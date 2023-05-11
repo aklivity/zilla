@@ -97,8 +97,8 @@ public final class GrpcDurationMetricContext implements MetricContext
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long streamId = frame.streamId();
             final long exchangeId = initialId(streamId);
-            long direction = GrpcUtils.direction(streamId);
-            long timestamp = frame.timestamp();
+            final long direction = GrpcUtils.direction(streamId);
+            final long timestamp = frame.timestamp();
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:

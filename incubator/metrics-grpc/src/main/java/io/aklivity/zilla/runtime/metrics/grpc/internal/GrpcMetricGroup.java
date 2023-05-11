@@ -31,7 +31,9 @@ public class GrpcMetricGroup implements MetricGroup
         "grpc.request.size", GrpcRequestSizeMetric::new,
         "grpc.response.size", GrpcResponseSizeMetric::new,
         "grpc.active.requests", GrpcActiveRequestsMetric::new,
-        "grpc.duration", GrpcDurationMetric::new
+        "grpc.duration", GrpcDurationMetric::new,
+        "grpc.requests.per.rpc", GrpcRequestsPerRpcMetric::new,
+        "grpc.responses.per.rpc", GrpcResponsesPerRpcMetric::new
     );
 
     public GrpcMetricGroup(

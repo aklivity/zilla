@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.metrics.grpc.internal;
 
+import static io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.GrpcType.TEXT;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
 import org.agrona.concurrent.AtomicBuffer;
@@ -37,9 +39,13 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.GrpcTypeFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.ResetFW;
 
 public class GrpcMetricGroupTest
@@ -59,7 +65,9 @@ public class GrpcMetricGroupTest
             "grpc.request.size",
             "grpc.response.size",
             "grpc.active.requests",
-            "grpc.duration"
+            "grpc.duration",
+            "grpc.requests.per.rpc",
+            "grpc.responses.per.rpc"
         ));
     }
 
@@ -99,73 +107,51 @@ public class GrpcMetricGroupTest
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
     }
 
-    /*@Test
-    public void shouldRecordFixedHttpRequestSize()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-
-        // begin frame with header Content-Length = 42
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("42"))
-                .build();
-        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-
-        // end frame
-        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(42L);
-    }
-
     @Test
-    public void shouldRecordDynamicHttpRequestSize()
+    public void shouldRecordGrpcRequestSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.request.size");
+        Metric metric = metricGroup.supply("grpc.request.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame without Content-Length
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .build();
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
@@ -201,33 +187,51 @@ public class GrpcMetricGroupTest
     }
 
     @Test
-    public void shouldRecordZeroHttpRequestSize()
+    public void shouldRecordZeroGrpcRequestSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.request.size");
+        Metric metric = metricGroup.supply("grpc.request.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame when header Content-Length is empty
-        HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value(""))
-                .build();
-        AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
@@ -237,60 +241,55 @@ public class GrpcMetricGroupTest
                 .traceId(0L).authorization(0L).build();
         handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
 
-        // begin frame when header Content-Length is 0
-        HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("0"))
-                .build();
-        AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
-
-        // end frame
-        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
-
         // THEN
-        verify(recorder, times(2)).accept(0L);
+        verify(recorder, times(1)).accept(0L);
     }
 
     @Test
-    public void shouldNotRecordAbortedHttpRequestSize()
+    public void shouldNotRecordAbortedGrpcRequestSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.request.size");
+        Metric metric = metricGroup.supply("grpc.request.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame with header Content-Length = 42
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("42"))
-                .build();
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame
@@ -303,7 +302,7 @@ public class GrpcMetricGroupTest
 
         // THEN
         verify(recorder, never()).accept(anyLong());
-    }*/
+    }
 
     @Test
     public void shouldResolveGrpcResponseSize()
@@ -341,73 +340,51 @@ public class GrpcMetricGroupTest
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
     }
 
-    /*@Test
-    public void shouldRecordFixedHttpResponseSize()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("http.response.size");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-
-        // begin frame with Content-Length of 42
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("42"))
-                .build();
-        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-
-        // end frame
-        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(42L);
-    }
-
     @Test
-    public void shouldRecordDynamicHttpResponseSize()
+    public void shouldRecordGrpcResponseSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.response.size");
+        Metric metric = metricGroup.supply("grpc.response.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame without Content-Length
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .build();
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
@@ -443,96 +420,109 @@ public class GrpcMetricGroupTest
     }
 
     @Test
-    public void shouldRecordZeroHttpResponseSize()
+    public void shouldRecordZeroGrpcResponseSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.response.size");
+        Metric metric = metricGroup.supply("grpc.response.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame when header Content-Length is empty
-        HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value(""))
-                .build();
-        AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame
-        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
-
-        // begin frame when header Content-Length is 0
-        HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("0"))
-                .build();
-        AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
-        new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
-
-        // end frame
-        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(recorder, times(2)).accept(0L);
+        verify(recorder, times(1)).accept(0L);
     }
 
     @Test
-    public void shouldNotRecordAbortedHttpResponseSize()
+    public void shouldNotRecordAbortedGrpcResponseSize()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.request.size");
+        Metric metric = metricGroup.supply("grpc.response.size");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
-        // begin frame with header Content-Length = 42
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .typeId(0)
-                .headersItem(h -> h.name(":status").value("200"))
-                .headersItem(h -> h.name("content-length").value("42"))
-                .build();
+        // begin frame
+        String name = "answer";
+        String value = "forty two";
+        Consumer<GrpcTypeFW.Builder> text = t -> t.set(TEXT).build();
+        OctetsFW nameOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(name.getBytes())
+            .build();
+        OctetsFW valueOctets = new OctetsFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .set(value.getBytes())
+            .build();
+        GrpcBeginExFW grpcBeginEx = new GrpcBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoStream")
+            .metadataItem(h -> h.type(text)
+                .nameLen(name.length())
+                .name(nameOctets)
+                .valueLen(value.length())
+                .value(valueOctets))
+            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L)
-                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(grpcBeginEx.buffer(), 0, grpcBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame
@@ -545,7 +535,7 @@ public class GrpcMetricGroupTest
 
         // THEN
         verify(recorder, never()).accept(anyLong());
-    }*/
+    }
 
     @Test
     public void shouldResolveGrpcActiveRequests()
@@ -789,5 +779,326 @@ public class GrpcMetricGroupTest
         // THEN
         verify(recorder, never()).accept(anyLong());
     }
-}
 
+    @Test
+    public void shouldResolveGrpcRequestsPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.requests.per.rpc");
+
+        // THEN
+        assertThat(metric, instanceOf(GrpcRequestsPerRpcMetric.class));
+        assertThat(metric.name(), equalTo("grpc.requests.per.rpc"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of gRPC requests per RPC"));
+    }
+
+    @Test
+    public void shouldResolveGrpcRequestsPerRpcContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        Metric metric = metricGroup.supply("grpc.requests.per.rpc");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context, instanceOf(GrpcCountPerRpcContext.class));
+        assertThat(context.group(), equalTo("grpc"));
+        assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
+    }
+
+    @Test
+    public void shouldRecordGrpcRequestsPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.requests.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // data frame 1
+        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload1 = new UnsafeBuffer(new byte[32], 0, 32);
+        new DataFW.Builder().wrap(dataBuffer1, 0, dataBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+            .payload(payload1, 0, 32).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
+
+        // data frame 2
+        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload2 = new UnsafeBuffer(new byte[32], 0, 32);
+        new DataFW.Builder().wrap(dataBuffer2, 0, dataBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+            .payload(payload2, 0, 32).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(2L);
+    }
+
+    @Test
+    public void shouldRecordZeroGrpcRequestsPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.requests.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer0 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer0, 0, endBuffer0.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer0, 0, endBuffer0.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(0L);
+    }
+
+    @Test
+    public void shouldNotRecordAbortedGrpcRequestsPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.requests.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // abort frame
+        AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new AbortFW.Builder().wrap(abortBuffer, 0, abortBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
+
+        // THEN
+        verify(recorder, never()).accept(anyLong());
+    }
+
+    @Test
+    public void shouldResolveGrpcResponsesPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.responses.per.rpc");
+
+        // THEN
+        assertThat(metric, instanceOf(GrpcResponsesPerRpcMetric.class));
+        assertThat(metric.name(), equalTo("grpc.responses.per.rpc"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of gRPC responses per RPC"));
+    }
+
+    @Test
+    public void shouldResolveGrpcResponsesPerRpcContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        Metric metric = metricGroup.supply("grpc.responses.per.rpc");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context, instanceOf(GrpcCountPerRpcContext.class));
+        assertThat(context.group(), equalTo("grpc"));
+        assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
+    }
+
+    @Test
+    public void shouldRecordGrpcResponsesPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.responses.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // data frame 1
+        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload1 = new UnsafeBuffer(new byte[32], 0, 32);
+        new DataFW.Builder().wrap(dataBuffer1, 0, dataBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+            .payload(payload1, 0, 32).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
+
+        // data frame 2
+        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload2 = new UnsafeBuffer(new byte[32], 0, 32);
+        new DataFW.Builder().wrap(dataBuffer2, 0, dataBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+            .payload(payload2, 0, 32).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(2L);
+    }
+
+    @Test
+    public void shouldRecordZeroGrpcResponsesPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.responses.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(0L);
+    }
+
+    @Test
+    public void shouldNotRecordAbortedGrpcResponsesPerRpc()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("grpc.responses.per.rpc");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // abort frame
+        AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new AbortFW.Builder().wrap(abortBuffer, 0, abortBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(2L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
+
+        // THEN
+        verify(recorder, never()).accept(anyLong());
+    }
+}

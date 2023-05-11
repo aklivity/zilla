@@ -14,35 +14,35 @@
  */
 package io.aklivity.zilla.runtime.metrics.grpc.internal;
 
-import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.grpc.internal.GrpcUtils.initialId;
-
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Long2LongHashMap;
+import org.agrona.collections.Long2LongCounterMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.ResetFW;
 
-public final class GrpcActiveRequestsMetricContext implements MetricContext
+public final class GrpcCountPerRpcContext implements MetricContext
 {
     private final String group;
     private final Metric.Kind kind;
+    private final Direction direction;
     private final FrameFW frameRO = new FrameFW();
 
-    public GrpcActiveRequestsMetricContext(
+    public GrpcCountPerRpcContext(
         String group,
-        Metric.Kind kind)
+        Metric.Kind kind,
+        Direction direction)
     {
         this.group = group;
         this.kind = kind;
+        this.direction = direction;
     }
 
     @Override
@@ -60,32 +60,29 @@ public final class GrpcActiveRequestsMetricContext implements MetricContext
     @Override
     public Direction direction()
     {
-        return BOTH;
+        return direction;
     }
 
     @Override
     public MessageConsumer supply(
         LongConsumer recorder)
     {
-        return new GrpcActiveRequestsMetricHandler(recorder);
+        return new GrpcCountPerRpcHandler(recorder);
     }
 
-    private final class GrpcActiveRequestsMetricHandler implements MessageConsumer
+    private final class GrpcCountPerRpcHandler implements MessageConsumer
     {
         private static final long INITIAL_VALUE = 0L;
-        private static final long EXCHANGE_CLOSED = 0b11L;
 
         private final LongConsumer recorder;
-        private final Long2LongHashMap exchanges;
+        private final Long2LongCounterMap count = new Long2LongCounterMap(INITIAL_VALUE);
 
-        private GrpcActiveRequestsMetricHandler(
+        private GrpcCountPerRpcHandler(
             LongConsumer recorder)
         {
             this.recorder = recorder;
-            this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
         }
 
-        @Override
         public void accept(
             int msgTypeId,
             DirectBuffer buffer,
@@ -94,30 +91,17 @@ public final class GrpcActiveRequestsMetricContext implements MetricContext
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long streamId = frame.streamId();
-            final long exchangeId = initialId(streamId);
-            final long direction = GrpcUtils.direction(streamId);
             switch (msgTypeId)
             {
-            case BeginFW.TYPE_ID:
-                if (direction == 1L) //received
-                {
-                    recorder.accept(1L);
-                }
+            case DataFW.TYPE_ID:
+                count.getAndAdd(streamId, 1L);
                 break;
-            case ResetFW.TYPE_ID:
-            case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                final long mask = 1L << direction;
-                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
-                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
-                {
-                    exchanges.remove(exchangeId);
-                    recorder.accept(-1L);
-                }
-                else
-                {
-                    exchanges.put(exchangeId, status);
-                }
+                recorder.accept(count.remove(streamId));
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                count.remove(streamId);
                 break;
             }
         }

@@ -18,5 +18,15 @@
     "op": "add",
     "path": "/$defs/telemetry/metrics/items/enum/-",
     "value": "grpc.duration"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "grpc.requests.per.rpc"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "grpc.responses.per.rpc"
   }
 ]
