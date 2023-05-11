@@ -66,7 +66,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "options":
                 {
@@ -79,7 +80,7 @@
             [
                 "type"
             ],
-            "oneOf":
+            "allOf":
             [
             ]
         },
@@ -91,7 +92,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "options":
                 {
@@ -104,7 +106,7 @@
             [
                 "type"
             ],
-            "oneOf":
+            "allOf":
             [
             ]
         },
@@ -122,7 +124,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "kind":
                 {
@@ -232,7 +235,7 @@
                     }
                 }
             ],
-            "oneOf":
+            "allOf":
             [
             ]
         }

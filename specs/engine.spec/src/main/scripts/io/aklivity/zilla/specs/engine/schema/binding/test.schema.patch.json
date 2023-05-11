@@ -1,36 +1,55 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "test"
-                },
-                "kind":
-                {
-                    "enum": [ "server", "proxy" ]
-                },
-                "options": false
-            },
-            "anyOf":
-            [
-                {
-                    "required":
-                    [
-                        "exit"
-                    ]
-                },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
+                    "type":
+                    {
+                        "const": "test"
+                    }
                 }
-            ]
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "proxy" ]
+                    },
+                    "options": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            },
+            "else": true
         }
     }
 ]

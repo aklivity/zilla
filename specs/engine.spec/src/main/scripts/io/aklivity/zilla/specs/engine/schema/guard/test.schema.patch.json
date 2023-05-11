@@ -1,46 +1,65 @@
 [
     {
         "op": "add",
-        "path": "/$defs/guard/oneOf/-",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "test"
-                },
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "credentials":
-                        {
-                            "type": "string"
-                        },
-                        "lifetime":
-                        {
-                            "type": "string",
-                            "pattern": "PT\\d+S"
-                        },
-                        "challenge":
-                        {
-                            "type": "string",
-                            "pattern": "PT\\d+S"
-                        },
-                        "roles":
-                        {
-                            "type": "array",
-                            "items":
-                            {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "additionalProperties": false
+                        "const": "test"
+                    }
                 }
             },
-            "additionalProperties": false
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "type": "string"
+                            },
+                            "lifetime":
+                            {
+                                "type": "string",
+                                "pattern": "PT\\d+S"
+                            },
+                            "challenge":
+                            {
+                                "type": "string",
+                                "pattern": "PT\\d+S"
+                            },
+                            "roles":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            },
+            "else": true
         }
     }
 ]

@@ -1,231 +1,249 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "kafka"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "kafka"
-                },
-                "kind":
-                {
-                    "enum": [ "cache_client", "cache_server", "client" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "merged":
-                        {
-                            "title": "Merged",
-                            "type": "array",
-                            "items":
-                            {
-                                "type": "string"
-                            },
-                            "deprecated": true
-                        },
-                        "bootstrap":
-                        {
-                            "title": "Bootstrap",
-                            "type": "array",
-                            "items":
-                            {
-                                "type": "string"
-                            }
-                        },
-                        "topics":
-                        {
-                            "title": "Topics",
-                            "type": "array",
-                            "items":
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties":
-                                {
-                                    "name":
-                                    {
-                                        "type": "string"
-                                    },
-                                    "defaultOffset":
-                                    {
-                                        "type": "string",
-                                        "enum": [ "live", "historical" ]
-                                    },
-                                    "deltaType":
-                                    {
-                                        "type": "string",
-                                        "enum": [ "none", "json_patch" ]
-                                    }
-                                }
-                            }
-                        },
-                        "sasl":
-                        {
-                            "title": "SASL",
-                            "type": "object",
-                            "properties":
-                            {
-                                "mechanism":
-                                {
-                                    "title": "Mechanism",
-                                    "type": "string",
-                                    "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
-                                }
-                            },
-                            "oneOf":
-                            [
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "mechanism":
-                                        {
-                                            "const": "plain"
-                                        },
-                                        "username":
-                                        {
-                                            "title": "Username",
-                                            "type": "string"
-                                        },
-                                        "password":
-                                        {
-                                            "title": "Password",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required":
-                                    [
-                                        "username",
-                                        "password"
-                                    ]
-                                },
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "mechanism":
-                                        {
-                                            "const": "scram-sha-1"
-                                        },
-                                        "username":
-                                        {
-                                            "title": "Username",
-                                            "type": "string"
-                                        },
-                                        "password":
-                                        {
-                                            "title": "Password",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required":
-                                    [
-                                        "username",
-                                        "password"
-                                    ]
-                                },
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "mechanism":
-                                        {
-                                            "const": "scram-sha-256"
-                                        },
-                                        "username":
-                                        {
-                                            "title": "Username",
-                                            "type": "string"
-                                        },
-                                        "password":
-                                        {
-                                            "title": "Password",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required":
-                                    [
-                                        "username",
-                                        "password"
-                                    ]
-                                },
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "mechanism":
-                                        {
-                                            "const": "scram-sha-512"
-                                        },
-                                        "username":
-                                        {
-                                            "title": "Username",
-                                            "type": "string"
-                                        },
-                                        "password":
-                                        {
-                                            "title": "Password",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required":
-                                    [
-                                        "username",
-                                        "password"
-                                    ]
-                                }
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "routes":
-                {
-                    "items":
-                    {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "topic":
-                                        {
-                                            "title": "Topic",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "with": false
-                        }
+                        "const": "kafka"
                     }
                 }
             },
-            "anyOf":
-            [
+            "then":
+            {
+                "properties":
                 {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "kafka"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "cache_client", "cache_server", "client" ]
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "merged":
+                            {
+                                "title": "Merged",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                },
+                                "deprecated": true
+                            },
+                            "bootstrap":
+                            {
+                                "title": "Bootstrap",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "topics":
+                            {
+                                "title": "Topics",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "defaultOffset":
+                                        {
+                                            "type": "string",
+                                            "enum": [ "live", "historical" ]
+                                        },
+                                        "deltaType":
+                                        {
+                                            "type": "string",
+                                            "enum": [ "none", "json_patch" ]
+                                        }
+                                    }
+                                }
+                            },
+                            "sasl":
+                            {
+                                "title": "SASL",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "mechanism":
+                                    {
+                                        "title": "Mechanism",
+                                        "type": "string",
+                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                                    }
+                                },
+                                "oneOf":
+                                [
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "const": "plain"
+                                            },
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "username",
+                                            "password"
+                                        ]
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "const": "scram-sha-1"
+                                            },
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "username",
+                                            "password"
+                                        ]
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "const": "scram-sha-256"
+                                            },
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "username",
+                                            "password"
+                                        ]
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "mechanism":
+                                            {
+                                                "const": "scram-sha-512"
+                                            },
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "username",
+                                            "password"
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
-            ]
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]
