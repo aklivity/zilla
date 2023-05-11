@@ -17,7 +17,7 @@ spec:
       containers:
         - name: zilla
           image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
-          args: ["start", "-v", "-e"]
+          args: ["start", "-v", "-e", "-P", "zilla.binding.mqtt.sessions.available=false"]
           env:
             - name: KEYSTORE_PASSWORD
               value: generated
