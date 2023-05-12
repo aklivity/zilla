@@ -32,9 +32,9 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           args: ["start", "-v", "-e"]
           env:
-          {{- if .Values.keystorePassword }}
-            - name: KEYSTORE_PASSWORD
-              value: {{ .Values.keystorePassword }}
+          {{- range $env := .Values.env }}
+          - name: {{ $env.name }}
+            value: {{ $env.value }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}

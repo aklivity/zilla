@@ -18,6 +18,7 @@ securityContext: {}
 livenessProbePort: 0
 readinessProbePort: 0
 
+env: []
 configPath: /etc/zilla
 configMaps: {}
 secrets: {}
