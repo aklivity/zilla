@@ -1,0 +1,52 @@
+---
+name: example
+telemetry:
+  attributes:
+    service.namespace: example
+  metrics:
+    - http.request.size
+    - http.response.size
+    - stream.active.received
+    - stream.active.sent
+    - stream.opens.received
+    - stream.opens.sent
+    - stream.data.received
+    - stream.data.sent
+    - stream.errors.received
+    - stream.errors.sent
+    - stream.closes.received
+    - stream.closes.sent
+  exporters:
+    prometheus0:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            path: /metrics
+            port: 9090
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 8080
+    telemetry:
+      metrics:
+        - stream.*
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+        exit: echo_server0
+    telemetry:
+      metrics:
+        - http.*
+  echo_server0:
+    type: echo
+    kind: server

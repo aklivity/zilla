@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zilla
+  labels:
+    app.kubernetes.io/instance: zilla
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: zilla
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: zilla
+    spec:
+      containers:
+        - name: zilla
+          image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
+          imagePullPolicy: Never
+          args: ["start", "-v", "-e"]
+          ports:
+            - containerPort: 8080
+            - containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/zilla
+      volumes:
+        - name: config
+          configMap:
+            name: zilla
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zilla
+data:
+  zilla.yaml: |-
+{{ .Files.Get "files/zilla.yaml" | indent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zilla
+spec:
+  selector:
+    app.kubernetes.io/instance: zilla
+  ports:
+    - name: http
+      port: 8080
+    - name: prometheus
+      port: 9090
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: zilla
+spec:
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 10
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 200
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: zilla
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: stream_active_received
+        target:
+          type: AverageValue
+          averageValue: 10
