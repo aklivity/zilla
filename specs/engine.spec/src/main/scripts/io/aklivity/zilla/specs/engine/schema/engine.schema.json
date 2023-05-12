@@ -166,14 +166,15 @@
                     "type":
                     {
                         "title": "Type",
-                        "type": "string"
+                        "type": "string",
+                        "enum": []
                     }
                 },
                 "required":
                 [
                     "type"
                 ],
-                "oneOf":
+                "allOf":
                 [
                 ]
             }
