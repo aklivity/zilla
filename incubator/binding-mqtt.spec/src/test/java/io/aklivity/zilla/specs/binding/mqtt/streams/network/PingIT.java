@@ -40,7 +40,16 @@ public class PingIT
     @Specification({
         "${net}/ping/client",
         "${net}/ping/server"})
-    public void shouldConnect() throws Exception
+    public void shouldConnectThenPingRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ping.keep.alive/client",
+        "${net}/ping.keep.alive/server"})
+    public void shouldPingAtKeepAliveInterval() throws Exception
     {
         k3po.finish();
     }

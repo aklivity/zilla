@@ -24,4 +24,4 @@ bindings:
       - exit: app0
         when:
           - topic: sensor/one
-            capabilities: subscribe_only
+            capabilities: subscribe

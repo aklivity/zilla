@@ -20,20 +20,20 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .subscriptionId(0)
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
                               .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .flags("RETAIN")
-                             .expiryInterval(15)
-                             .contentType("text/plain")
+                             .publish()
+                                .topic("sensor/one")
+                                .flags("RETAIN")
+                                .build()
                              .build()}
 
 write "message"

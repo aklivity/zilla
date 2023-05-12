@@ -36,6 +36,9 @@ public final class MqttReasonCodes
     public static final byte UNSPECIFIED_ERROR = (byte) 0x80;
     public static final byte MALFORMED_PACKET = (byte) 0x81;
     public static final byte PROTOCOL_ERROR = (byte) 0x82;
+    public static final byte WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = (byte) 0xa2;
+    public static final byte SHARED_SUBSCRIPTION_NOT_SUPPORTED = (byte) 0x9e;
+    public static final byte SUBSCRIPTION_IDS_NOT_SUPPORTED = (byte) 0xa1;
     public static final byte IMPLEMENTATION_SPECIFIC_ERROR = (byte) 0x83;
     public static final byte UNSUPPORTED_PROTOCOL_VERSION = (byte) 0x84;
     public static final byte CLIENT_IDENTIFIER_NOT_VALID = (byte) 0x85;
@@ -52,6 +55,8 @@ public final class MqttReasonCodes
 
     public static final byte TOPIC_FILTER_INVALID = (byte) 0x8F;
     public static final byte TOPIC_NAME_INVALID = (byte) 0x90;
+    public static final byte PAYLOAD_FORMAT_INVALID = (byte) 0x99;
+    public static final byte QOS_NOT_SUPPORTED = (byte) 0x9b;
 
     public static final byte PACKET_IDENTIFIER_IN_USE = (byte) 0x91;
     public static final byte PACKET_IDENTIFIER_NOT_FOUND = (byte) 0x92;

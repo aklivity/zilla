@@ -19,6 +19,7 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
+    <module>binding-mqtt-kafka.spec</module>
 
     <module>exporter-prometheus.spec</module>
 
@@ -28,6 +29,7 @@
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
+    <module>binding-mqtt-kafka</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -51,6 +53,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
