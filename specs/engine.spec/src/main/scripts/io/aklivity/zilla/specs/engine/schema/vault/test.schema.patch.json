@@ -28,8 +28,7 @@
                         "const": "test"
                     }
                 }
-            },
-            "else": true
+            }
         }
     }
 ]
