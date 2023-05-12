@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -33,36 +34,21 @@ read  [0x20 0x03]                    # CONNACK
       [0x00]                         # reason code
       [0x00]                         # properties = none
 
-write [0x30 0x3a]                    # PUBLISH
+write [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x25]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"     # content type
-      [0x01 0x01]                    # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"  # response topic
-      [0x09 0x00 0x04] "info"        # correlation data
+      [0x00]                         # properties
       "message1"                     # payload
 
-write [0x30 0x3a]                    # PUBLISH
+write [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x25]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"     # content type
-      [0x01 0x01]                    # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"  # response topic
-      [0x09 0x00 0x04] "info"        # correlation data
+      [0x00]                         # properties
       "message2"                     # payload
 
 write notify PUBLISHED_MESSAGE_TWO
 write await PUBLISH_MESSAGE_THREE
 
-write [0x30 0x3a]                    # PUBLISH
+write [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x25]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"     # content type
-      [0x01 0x01]                    # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"  # response topic
-      [0x09 0x00 0x04] "info"        # correlation data
+      [0x00]                         # properties
       "message3"                     # payload
 

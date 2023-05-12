@@ -29,36 +29,76 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class UnsubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/unsubscribe");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+    // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/client",
-        "${net}/server"})
-    public void shouldUnsubscribeFromOneTopic() throws Exception
+        "${net}/unsubscribe.reject.missing.packet.id/client",
+        "${net}/unsubscribe.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketId() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.exact/client",
-        "${net}/aggregated.topic.filters.both.exact/server"})
-    public void shouldUnsubscribeFromMultipleTopics() throws Exception
+        "${net}/unsubscribe.after.subscribe/client",
+        "${net}/unsubscribe.after.subscribe/server"})
+    public void shouldAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.10.4-5]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.no.matching.subscription/client",
+        "${net}/unsubscribe.no.matching.subscription/server"})
+    public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/invalid.fixed.header.flags/client",
-        "${net}/invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedUnsubscribePacket() throws Exception
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server"})
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.topic.filter.single/client",
+        "${net}/unsubscribe.topic.filter.single/server"})
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.10.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
+        "${net}/unsubscribe.reject.invalid.fixed.header.flags/server"})
+    public void shouldRejectMalformedPacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.10.3-2]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.no.topic.filter/client",
+        "${net}/unsubscribe.reject.no.topic.filter/server"})
+    public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
     }

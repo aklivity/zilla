@@ -38,7 +38,7 @@
                                         {
                                             "title": "Capabilities",
                                             "type": "string",
-                                            "enum": [ "publish_only", "subscribe_only", "publish_and_subscribe" ],
+                                            "enum": [ "session", "publish", "subscribe", "publish_and_subscribe" ],
                                             "default": "publish_and_subscribe"
                                         }
                                     }

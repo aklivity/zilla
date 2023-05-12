@@ -41,6 +41,16 @@ public final class MqttBindingConfig
 
     public MqttRouteConfig resolve(
         long authorization,
+        MqttCapabilities capabilities)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(capabilities))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public MqttRouteConfig resolve(
+        long authorization,
         String topic,
         MqttCapabilities capabilities)
     {

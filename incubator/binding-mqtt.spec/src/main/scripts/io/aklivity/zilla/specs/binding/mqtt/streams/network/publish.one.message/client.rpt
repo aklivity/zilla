@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -42,4 +43,3 @@ write [0x30 0x39]                    # PUBLISH
       [0x08 0x00 0x0a] "sensor/one"  # response topic
       [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload
-

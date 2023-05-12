@@ -1,0 +1,50 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write [0x10 0x13]                   # CONNECT
+      [0x00 0x04] "MQTT"            # protocol name
+      [0x05]                        # protocol version
+      [0x02]                        # flags = clean start
+      [0x00 0x3c]                   # keep alive = 60s
+      [0x00]                        # properties = none
+      [0x00 0x06] "client"          # client id
+
+read  [0x20 0x03]                   # CONNACK
+      [0x00]                        # flags = none
+      [0x00]                        # reason code
+      [0x00]                        # properties = none
+
+write [0x82 0x1b]                   # SUBSCRIBE
+      [0x00 0x01]                   # packet id = 1
+      [0x02]                        # properties
+      [0x0b 0x01]                   # subscription id = 1
+      [0x00 0x08] "sensor/#"        # topic filter
+      [0x00]                        # options = at-most-once, send retained
+
+      [0x00 0x08] "device/#"        # topic filter
+      [0x00]                        # options = at-most-once, send retained
+
+read  [0x90 0x05]                   # SUBACK
+      [0x00 0x01]                   # packet id = 1
+      [0x00]                        # properties = none
+      [0x00 0x00]                   # reason codes      

@@ -62,12 +62,12 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
         JsonObject object)
     {
         String topic = object.containsKey(TOPIC_NAME)
-                ? object.getString(TOPIC_NAME)
-                : null;
+            ? object.getString(TOPIC_NAME)
+            : null;
 
         MqttCapabilities capabilities = object.containsKey(CAPABILITIES_NAME)
-                ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
-                : null;
+            ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
+            : null;
 
         return new MqttConditionConfig(topic, capabilities);
     }

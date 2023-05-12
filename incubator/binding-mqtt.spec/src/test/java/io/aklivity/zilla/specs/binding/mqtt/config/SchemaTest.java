@@ -98,7 +98,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopicOrSessions()
     {
-        JsonObject config = schema.validate("server.when.topic.or.sessions.yaml");
+        JsonObject config = schema.validate("server.when.sessions.yaml");
 
         assertThat(config, not(nullValue()));
     }
