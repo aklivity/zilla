@@ -1737,7 +1737,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private int nextResponseId;
 
         private String16FW leader;
-        private String16FW memberId;
+        private String16FW memberId = new String16FW("");
         private KafkaGroupCoordinatorClientDecoder decoder;
         private LongLongConsumer encoder;
 
@@ -2088,9 +2088,10 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     .groupId(delegate.groupId)
                     .sessionTimeoutMillis(10000)
                     .rebalanceTimeoutMillis(10000)
-                    .memberId("")
+                    .memberId(memberId)
                     .protocolType("consumer")
-                    .protocols(p -> p.item(i -> i.name(delegate.groupId)))
+                    .protocols(p -> p.item(i -> i.name("")
+                        .metadata(delegate.protocol.buffer(), delegate.protocol.offset(), delegate.protocol.sizeof())))
                     .build();
 
             encodeProgress = joinGroupRequest.limit();

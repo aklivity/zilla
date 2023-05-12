@@ -1018,7 +1018,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, extensionRO);
+                    traceId, authorization, emptyRO);
             }
         }
 
@@ -2233,10 +2233,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
-                    .topic(result.topic())
-                    .partitions(result::partitions)
-                    .filters(result::filters))
+                .group(g -> g.groupId("test").protocol("roundrobin").timeout(3000000))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
