@@ -30,7 +30,8 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          args: ["start", "-v", "-e"]
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
           env:
           {{- range $env := .Values.env }}
           - name: {{ $env.name }}
