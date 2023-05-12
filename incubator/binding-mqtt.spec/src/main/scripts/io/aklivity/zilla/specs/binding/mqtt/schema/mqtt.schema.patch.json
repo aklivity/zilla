@@ -1,69 +1,87 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mqtt"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "mqtt"
-                },
-                "kind":
-                {
-                    "enum": [ "server" ]
-                },
-                "vault": false,
-                "options": false,
-                "routes":
-                {
-                    "items":
+                    "type":
                     {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "topic":
-                                        {
-                                            "title": "Topic",
-                                            "type": "string"
-                                        },
-                                        "capabilities":
-                                        {
-                                            "title": "Capabilities",
-                                            "type": "string",
-                                            "enum": [ "session", "publish", "subscribe", "publish_and_subscribe" ],
-                                            "default": "publish_and_subscribe"
-                                        }
-                                    }
-                                }
-                            },
-                            "with": false
-                        }
+                        "const": "mqtt"
                     }
                 }
             },
-            "anyOf":
-            [
+            "then":
+            {
+                "properties":
                 {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "mqtt"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "capabilities":
+                                            {
+                                                "title": "Capabilities",
+                                                "type": "string",
+                                                "enum": [ "session", "publish", "subscribe", "publish_and_subscribe" ],
+                                                "default": "publish_and_subscribe"
+                                            }
+                                        }
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
-            ]
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]

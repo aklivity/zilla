@@ -1,56 +1,74 @@
 [
     {
         "op": "add",
-        "path": "/$defs/telemetry/exporter/oneOf/-",
+        "path": "/$defs/telemetry/exporter/properties/type/enum/-",
+        "value": "prometheus"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "prometheus"
-                },
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "endpoints":
-                        {
-                            "type": "array",
-                            "items":
-                            {
-                                "properties":
-                                {
-                                    "scheme":
-                                    {
-                                        "title": "Scheme",
-                                        "enum":
-                                        [
-                                            "http"
-                                        ]
-                                    },
-                                    "port":
-                                    {
-                                        "title": "Port",
-                                        "type": "int"
-                                    },
-                                    "path":
-                                    {
-                                        "title": "Path",
-                                        "type": "string"
-                                    }
-                                },
-                                "required":
-                                [
-                                    "scheme",
-                                    "port"
-                                ],
-                                "additionalProperties": false
-                            },
-                            "minItems": 1
-                        }
+                        "const": "prometheus"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "prometheus"
                     },
-                    "additionalProperties": false
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "endpoints":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "scheme":
+                                        {
+                                            "title": "Scheme",
+                                            "enum":
+                                            [
+                                                "http"
+                                            ]
+                                        },
+                                        "port":
+                                        {
+                                            "title": "Port",
+                                            "type": "int"
+                                        },
+                                        "path":
+                                        {
+                                            "title": "Path",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "scheme",
+                                        "port"
+                                    ],
+                                    "additionalProperties": false
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "additionalProperties": false
+                    }
                 }
             }
         }

@@ -1,14 +1,32 @@
 [
     {
         "op": "add",
-        "path": "/$defs/telemetry/exporter/oneOf/-",
+        "path": "/$defs/telemetry/exporter/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "test"
+                    "type":
+                    {
+                        "const": "test"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    }
                 }
             }
         }

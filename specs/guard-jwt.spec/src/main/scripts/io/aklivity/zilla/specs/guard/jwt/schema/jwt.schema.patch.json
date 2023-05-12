@@ -1,80 +1,98 @@
 [
     {
         "op": "add",
-        "path": "/$defs/guard/oneOf/-",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "jwt"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "jwt"
-                },
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "issuer":
-                        {
-                            "title": "Issuer",
-                            "type": "string"
-                        },
-                        "audience":
-                        {
-                            "title": "Audience",
-                            "type": "string"
-                        },
-                        "keys":
-                        {
-                            "title": "Keys",
-                            "oneOf": [
-                                {
-                                    "type": "string",
-                                    "format": "uri",
-                                    "pattern": "^(https?)://"
-                                },
-                                {
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "title": "Key",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "kty":
-                                            {
-                                                "title": "Key Type",
-                                                "type": "string"
-                                            },
-                                            "kid":
-                                            {
-                                                "title": "Key ID",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "additionalProperties": true,
-                                        "required":
-                                        [
-                                            "kty",
-                                            "kid"
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
-                        "challenge":
-                        {
-                            "title": "Challenge",
-                            "type": "number"
-                        }
-                    },
-                    "additionalProperties": false
+                        "const": "jwt"
+                    }
                 }
             },
-            "required":
-            [
-                "options"
-            ]
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "jwt"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "issuer":
+                            {
+                                "title": "Issuer",
+                                "type": "string"
+                            },
+                            "audience":
+                            {
+                                "title": "Audience",
+                                "type": "string"
+                            },
+                            "keys":
+                            {
+                                "title": "Keys",
+                                "oneOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "pattern": "^(https?)://"
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "title": "Key",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "kty":
+                                                {
+                                                    "title": "Key Type",
+                                                    "type": "string"
+                                                },
+                                                "kid":
+                                                {
+                                                    "title": "Key ID",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": true,
+                                            "required":
+                                            [
+                                                "kty",
+                                                "kid"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "challenge":
+                            {
+                                "title": "Challenge",
+                                "type": "number"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "required":
+                [
+                    "options"
+                ]
+            }
         }
     }
 ]

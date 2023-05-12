@@ -1,32 +1,50 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mqtt-kafka"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "mqtt-kafka"
-                },
-                "kind":
-                {
-                    "enum": [ "proxy" ]
-                },
-                "vault": false,
-                "options": false,
-                "routes": false
-            },
-            "anyOf":
-            [
-                {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    }
                 }
-            ]
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]
