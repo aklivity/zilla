@@ -15,19 +15,35 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
+
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -36,12 +52,19 @@ public class NamespaceRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, MetricContext> metricsByName;
+    private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
-    private final LongConsumer supplyLoadEntry;
+    private final LongFunction<MetricRegistry> supplyMetric;
+    private final LongConsumer exporterAttached;
+    private final LongConsumer exporterDetached;
     private final int namespaceId;
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
+    private final Int2ObjectHashMap<MetricRegistry> metricsById;
+    private final Int2ObjectHashMap<ExporterRegistry> exportersById;
+    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
@@ -49,21 +72,33 @@ public class NamespaceRegistry
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
+        Function<String, MetricContext> metricsByName,
+        Function<String, ExporterContext> exportersByType,
         ToIntFunction<String> supplyLabelId,
-        LongConsumer supplyLoadEntry,
+        LongFunction<MetricRegistry> supplyMetric,
+        LongConsumer exporterAttached,
+        LongConsumer exporterDetached,
+        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.metricsByName = metricsByName;
+        this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
-        this.supplyLoadEntry = supplyLoadEntry;
+        this.supplyMetric = supplyMetric;
+        this.supplyMetricRecorder = supplyMetricRecorder;
+        this.exporterAttached = exporterAttached;
+        this.exporterDetached = exporterDetached;
         this.detachBinding = detachBinding;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
+        this.metricsById = new Int2ObjectHashMap<>();
+        this.exportersById = new Int2ObjectHashMap<>();
     }
 
     public int namespaceId()
@@ -75,6 +110,8 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
+        namespace.telemetry.metrics.forEach(this::attachMetric);
+        namespace.telemetry.exporters.forEach(this::attachExporter);
         namespace.bindings.forEach(this::attachBinding);
     }
 
@@ -83,6 +120,8 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
         namespace.bindings.forEach(this::detachBinding);
+        namespace.telemetry.metrics.forEach(this::detachMetric);
+        namespace.telemetry.exporters.forEach(this::detachExporter);
     }
 
     private void attachBinding(
@@ -95,7 +134,93 @@ public class NamespaceRegistry
         BindingRegistry registry = new BindingRegistry(config, context);
         bindingsById.put(bindingId, registry);
         registry.attach();
-        supplyLoadEntry.accept(config.id);
+        setMetricHandlers(registry, config);
+    }
+
+    private void setMetricHandlers(
+        BindingRegistry registry,
+        BindingConfig config)
+    {
+        BindingHandler binding = registry.streamFactory();
+        MessageConsumer sentOriginMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer receivedOriginMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer sentRoutedMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
+        if (config.metricIds != null)
+        {
+            for (long metricId : config.metricIds)
+            {
+                MetricRegistry metric = supplyMetric.apply(metricId);
+                LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
+                MessageConsumer handler = metric.supplyHandler(metricRecorder);
+                MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
+                MetricContext.Direction direction = metric.direction();
+                if (kind == ROUTED)
+                {
+                    if (direction == SENT || direction == BOTH)
+                    {
+                        sentRoutedMetricHandler = sentRoutedMetricHandler.andThen(handler);
+                    }
+                    if (direction == RECEIVED || direction == BOTH)
+                    {
+                        receivedRoutedMetricHandler = receivedRoutedMetricHandler.andThen(handler);
+                    }
+                }
+                else if (kind == ORIGIN)
+                {
+                    if (direction == SENT || direction == BOTH)
+                    {
+                        sentOriginMetricHandler = sentOriginMetricHandler.andThen(handler);
+                    }
+                    if (direction == RECEIVED || direction == BOTH)
+                    {
+                        receivedOriginMetricHandler = receivedOriginMetricHandler.andThen(handler);
+                    }
+                }
+                else
+                {
+                    assert kind == null;
+                    // no op
+                }
+            }
+        }
+        registry.sentOriginMetricHandler(sentOriginMetricHandler);
+        registry.receivedOriginMetricHandler(receivedOriginMetricHandler);
+        registry.sentRoutedMetricHandler(sentRoutedMetricHandler);
+        registry.receivedRoutedMetricHandler(receivedRoutedMetricHandler);
+    }
+
+    private MetricHandlerKind resolveKind(
+        int originTypeId,
+        int routedTypeId,
+        String metricGroup)
+    {
+        MetricHandlerKind kind = null;
+        switch (metricGroup)
+        {
+        case "stream":
+            if (originTypeId >= 0)
+            {
+                kind = ROUTED;
+            }
+            else if (routedTypeId >= 0)
+            {
+                kind = ORIGIN;
+            }
+            break;
+        default:
+            final int metricGroupId = supplyLabelId.applyAsInt(metricGroup);
+            if (metricGroupId == routedTypeId)
+            {
+                kind = ORIGIN;
+            }
+            else if (metricGroupId == originTypeId)
+            {
+                kind = ROUTED;
+            }
+            break;
+        }
+        return kind;
     }
 
     private void detachBinding(
@@ -156,6 +281,45 @@ public class NamespaceRegistry
         }
     }
 
+    private void attachMetric(
+        MetricConfig config)
+    {
+        int metricId = supplyLabelId.applyAsInt(config.name);
+        MetricContext context = metricsByName.apply(config.name);
+        MetricRegistry registry = new MetricRegistry(context);
+        metricsById.put(metricId, registry);
+    }
+
+    private void detachMetric(
+        MetricConfig config)
+    {
+        int metricId = supplyLabelId.applyAsInt(config.name);
+        metricsById.remove(metricId);
+    }
+
+    private void attachExporter(
+        ExporterConfig config)
+    {
+        int exporterId = supplyLabelId.applyAsInt(config.name);
+        ExporterContext context = exportersByType.apply(config.type);
+        assert context != null : "Missing exporter type: " + config.type;
+        ExporterHandler handler = context.attach(config);
+        ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
+        exportersById.put(exporterId, registry);
+        registry.attach();
+    }
+
+    private void detachExporter(
+        ExporterConfig config)
+    {
+        int exporterId = supplyLabelId.applyAsInt(config.name);
+        ExporterRegistry registry = exportersById.remove(exporterId);
+        if (registry != null)
+        {
+            registry.detach();
+        }
+    }
+
     BindingRegistry findBinding(
         int bindingId)
     {
@@ -173,4 +337,29 @@ public class NamespaceRegistry
     {
         return vaultsById.get(vaultId);
     }
+
+    MetricRegistry findMetric(
+        int metricId)
+    {
+        return metricsById.get(metricId);
+    }
+
+    ExporterRegistry findExporter(
+        int exporterId)
+    {
+        return exportersById.get(exporterId);
+    }
+
+    private void onExporterAttached(
+        int exporterId)
+    {
+        exporterAttached.accept(NamespacedId.id(namespaceId, exporterId));
+    }
+
+    private void onExporterDetached(
+        int exporterId)
+    {
+        exporterDetached.accept(NamespacedId.id(namespaceId, exporterId));
+    }
+
 }

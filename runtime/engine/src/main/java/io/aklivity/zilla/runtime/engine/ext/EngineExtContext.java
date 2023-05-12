@@ -16,15 +16,10 @@
 package io.aklivity.zilla.runtime.engine.ext;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineStats;
 
 public interface EngineExtContext
 {
     Configuration config();
-
-    EngineStats load(
-        String namespace,
-        String binding);
 
     void onError(
         Exception error);

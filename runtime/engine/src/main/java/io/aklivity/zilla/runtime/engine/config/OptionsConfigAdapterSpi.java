@@ -23,6 +23,7 @@ public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, Jso
     enum Kind
     {
         BINDING,
+        EXPORTER,
         VAULT,
         GUARD
     }

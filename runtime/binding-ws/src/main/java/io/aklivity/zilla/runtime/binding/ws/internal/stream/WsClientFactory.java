@@ -140,6 +140,12 @@ public final class WsClientFactory implements WsStreamFactory
     }
 
     @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {
