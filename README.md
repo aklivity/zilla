@@ -21,16 +21,18 @@
 </h3>
 
 ## About Zilla
-Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing edge clients (mobile apps, browsers, partner systems, etc.) to Apache Kafka-based microservices and data.
+Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing non-Kafka clients running at the edge (mobile apps, browsers, partner systems, etc.) or inside the datacenter (gRPC services) to Apache Kafka-based microservices and data.
 
 Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
 
-With Zilla, apps and services can use standard protocols such as HTTP, SSE and the native Kafka protocol (see [roadmap](#roadmap) for additional protocols on the way) to directly consume and produce Kafka event-streams over the internet. 
+With Zilla, apps and services can use standard protocols such as HTTP, SSE, gRPC and the native Kafka protocol (see roadmap for additional protocols on the way) to directly consume and produce Kafka event-streams.
 
-<b>Zilla aims to:</b>
+**Zilla aims to:**
+- **Unify event-driven architectures** by enabling any non-Kafka app or service to seamlessly consume and produce event-streams.
+- **Offload DevOps burden and TCO** associated with deploying and managing Kafka integration middleware, such as Kafka Connect and custom Kafka consumer/producer API implementations.
+- **Streamline an event-driven architecture’s security footprint** by centralizing authorization and authentication of all non-Kafka clients.
+- **Maximize your investment in Kafka** by enabling non-Kafka developers to build their applications on top of event-streams, and take advantage of Kafka’s performance and streaming data processing capabilities.
 
-1. Streamline event-driven architectures and make them easier to manage by eliminating the need for intermediary brokers and web servers, sink/source connectors, and change data capture (CDC) tooling.
-2. Simplify creating scalable, asynchronous backends that can support realtime frontend experiences.
 
 ## Features
 Zilla is designed on the fundamental principle that every data flow is a stream, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
@@ -38,15 +40,22 @@ Zilla is designed on the fundamental principle that every data flow is a stream,
 ### Kafka Proxies
 Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
 
-- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">HTTP ⇄ Kafka</a></b> — 
+- [**HTTP ⇄ Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
   Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
-- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">SSE ← Kafka</a></b> — 
+- [**SSE ← Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
   Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable data streaming/pushing down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
+- [**Kafka → gRPC**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-grpc-kafka.html) & [**gRPC ⇄ Kafka**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-kafka-grpc.html) — 
+  Transforms Kafka streams to gRPC streams and vice-versa. Support for both Kafka to gRPC server streaming (reliable and unreliable) as well as correlated request-response.
+  
+  
 
 ### Other
-- **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
-- **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
-- **SSL/TLS** — support for TLS virtual hosting.
+- [x] **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
+- [x] **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
+- [x] **SSL/TLS** — support for TLS virtual hosting.
+- [x] [**Kubernetes Deployment**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — deploy Zilla via a Helm Chart with metrics-driven autoscaling.
+- [x] [**Prometheus Integration**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) - export Zilla metrics to Prometheus for observability.
+- [x] **Kafka Security** - connect Zilla to Kafka over PLAINTEXT, TLS/SSL, TLS/SSL with Client Certificates, SASL/PLAIN, and SASL/SCRAM. 
 
 <div align="center">
   </br>
