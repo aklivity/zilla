@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -20,7 +20,9 @@ module io.aklivity.zilla.runtime.engine
 
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
+    exports io.aklivity.zilla.runtime.engine.exporter;
     exports io.aklivity.zilla.runtime.engine.guard;
+    exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
 
@@ -43,7 +45,9 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;

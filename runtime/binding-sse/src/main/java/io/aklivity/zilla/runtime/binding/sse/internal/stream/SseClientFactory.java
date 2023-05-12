@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -175,6 +175,12 @@ public class SseClientFactory implements SseStreamFactory
         this.sseTypeId = context.supplyTypeId(SseBinding.NAME);
         this.decodeMax = decodePool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
     }
 
     @Override

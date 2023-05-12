@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -30,7 +30,9 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/engine/config");
 

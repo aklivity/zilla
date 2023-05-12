@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -21,6 +21,19 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public interface BindingHandler
 {
+    int STREAM_TYPE = 0;
+    int EXTERNAL_TYPE = -1;
+
+    default int originTypeId()
+    {
+        return STREAM_TYPE;
+    }
+
+    default int routedTypeId()
+    {
+        return STREAM_TYPE;
+    }
+
     MessageConsumer newStream(
         int msgTypeId,
         DirectBuffer buffer,

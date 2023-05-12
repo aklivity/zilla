@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
@@ -118,29 +119,12 @@ public interface EngineContext
     URL resolvePath(
         String path);
 
-    void initialOpened(
-        long bindingId);
+    Metric resolveMetric(
+        String name);
 
-    void initialClosed(
-        long bindingId);
+    void onExporterAttached(
+        long exporterId);
 
-    void initialErrored(
-        long bindingId);
-
-    void initialBytes(
-        long bindingId,
-        long bytes);
-
-    void replyOpened(
-        long bindingId);
-
-    void replyClosed(
-        long bindingId);
-
-    void replyErrored(
-        long bindingId);
-
-    void replyBytes(
-        long bindingId,
-        long count);
+    void onExporterDetached(
+        long exporterId);
 }

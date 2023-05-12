@@ -1,0 +1,22 @@
+[
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "http.request.size"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "http.response.size"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "http.active.requests"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "http.duration"
+  }
+]

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -15,9 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts;
 
-
 public abstract class Layout implements AutoCloseable
 {
+    public enum Mode
+    {
+        CREATE_READ_WRITE,
+        READ_ONLY
+    }
+
     @Override
     public abstract void close();
 

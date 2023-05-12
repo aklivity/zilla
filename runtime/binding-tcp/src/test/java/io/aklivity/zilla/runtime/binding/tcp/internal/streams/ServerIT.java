@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static java.lang.invoke.VarHandle.fullFence;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -40,7 +39,6 @@ import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -401,14 +399,6 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
 
-        EngineStats stats = engine.stats("test", "net0");
-        fullFence();
-
-        assertEquals(3, stats.initialOpens());
-        assertEquals(0, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(0, stats.replyCloses());
-
         SocketChannel channel4 = SocketChannel.open();
         try
         {
@@ -420,11 +410,6 @@ public class ServerIT
             // expected
         }
 
-        assertEquals(3, stats.initialOpens());
-        assertEquals(0, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(0, stats.replyCloses());
-
         channel1.close();
         channel4.close();
 
@@ -432,27 +417,15 @@ public class ServerIT
 
         // sleep so that rebind happens
         Thread.sleep(200);
-        assertEquals(3, stats.initialOpens());
-        assertEquals(1, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(1, stats.replyCloses());
 
         SocketChannel channel5 = SocketChannel.open();
         channel5.connect(new InetSocketAddress("127.0.0.1", 8080));
         k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
-        assertEquals(4, stats.initialOpens());
-        assertEquals(1, stats.initialCloses());
-        assertEquals(4, stats.replyOpens());
-        assertEquals(1, stats.replyCloses());
 
         channel2.close();
         channel3.close();
         channel5.close();
         Thread.sleep(500);
-        assertEquals(4, stats.initialOpens());
-        assertEquals(4, stats.initialCloses());
-        assertEquals(4, stats.replyOpens());
-        assertEquals(4, stats.replyCloses());
 
         k3po.finish();
     }

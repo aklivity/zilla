@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Aklivity Inc.
+# Copyright 2021-2023 Aklivity Inc.
 #
 # Aklivity licenses this file to you under the Apache License,
 # version 2.0 (the "License"); you may not use this file except in compliance
@@ -22,31 +22,20 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
-                             .topic("/sensors/1")
-                             .subscriptionId(0)
+                             .publish()
+                                .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
+                                .topic("/sensors/1")
+                                .build()
                              .build()}
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("/sensors/1")
-                            .flags("RETAIN")
-                            .userProperty("row1", "1")
-                            .userProperty("row1", "2")
+                            .publish()
+                                .topic("/sensors/1")
+                                .userProperty("row1", "1")
+                                .userProperty("row1", "2")
+                                .build()
                             .build()}
 
 read "{\"id\":\"1\",\"unit\":\"CELSIUS\",\"value\":\"189\"}"
-
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
-                             .topic("/control/1")
-                             .flags("SEND_RETAINED")
-                             .subscriptionId(1)
-                             .build()}
-connected

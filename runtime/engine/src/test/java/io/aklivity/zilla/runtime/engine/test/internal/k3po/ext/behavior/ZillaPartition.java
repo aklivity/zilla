@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -45,8 +45,8 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Begi
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongObjectBiConsumer;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 
 final class ZillaPartition implements AutoCloseable
 {

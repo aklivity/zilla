@@ -1,0 +1,17 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "test.counter"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "test.gauge"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "test.histogram"
+    }
+]

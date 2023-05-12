@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -59,6 +59,7 @@ import org.agrona.concurrent.AgentRunner;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -71,6 +72,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
@@ -96,7 +98,9 @@ public final class Engine implements AutoCloseable
     Engine(
         EngineConfiguration config,
         Collection<Binding> bindings,
+        Collection<Exporter> exporters,
         Collection<Guard> guards,
+        Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities)
@@ -148,7 +152,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, vaults, coreIndex);
+                        bindings, exporters, guards, vaults, metricGroups, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -162,7 +166,9 @@ public final class Engine implements AutoCloseable
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(exporters.stream().map(Exporter::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
@@ -213,13 +219,6 @@ public final class Engine implements AutoCloseable
                 .map(kind::cast)
                 .findFirst()
                 .orElse(null);
-    }
-
-    public EngineStats stats(
-        String namespace,
-        String binding)
-    {
-        return context.load(namespace, binding);
     }
 
     public long counter(
@@ -383,96 +382,10 @@ public final class Engine implements AutoCloseable
         }
 
         @Override
-        public EngineStats load(
-            String namespace,
-            String binding)
-        {
-            int namespaceId = supplyLabelId.applyAsInt(namespace);
-            int bindingId = supplyLabelId.applyAsInt(binding);
-            long namespacedId = NamespacedId.id(namespaceId, bindingId);
-
-            return new LoadImpl(namespacedId);
-        }
-
-        @Override
         public void onError(
             Exception error)
         {
             errorHandler.onError(error);
-        }
-
-        private final class LoadImpl implements EngineStats
-        {
-            private final ToLongFunction<? super DispatchAgent> initialOpens;
-            private final ToLongFunction<? super DispatchAgent> initialCloses;
-            private final ToLongFunction<? super DispatchAgent> initialErrors;
-            private final ToLongFunction<? super DispatchAgent> initialBytes;
-
-            private final ToLongFunction<? super DispatchAgent> replyOpens;
-            private final ToLongFunction<? super DispatchAgent> replyCloses;
-            private final ToLongFunction<? super DispatchAgent> replyErrors;
-            private final ToLongFunction<? super DispatchAgent> replyBytes;
-
-            private LoadImpl(
-                long id)
-            {
-                this.initialOpens = d -> d.initialOpens(id);
-                this.initialCloses = d -> d.initialCloses(id);
-                this.initialErrors = d -> d.initialErrors(id);
-                this.initialBytes = d -> d.initialBytes(id);
-                this.replyOpens = d -> d.replyOpens(id);
-                this.replyCloses = d -> d.replyCloses(id);
-                this.replyErrors = d -> d.replyErrors(id);
-                this.replyBytes = d -> d.replyBytes(id);
-            }
-
-            @Override
-            public long initialOpens()
-            {
-                return dispatchers.stream().mapToLong(initialOpens).sum();
-            }
-
-            @Override
-            public long initialCloses()
-            {
-                return dispatchers.stream().mapToLong(initialCloses).sum();
-            }
-
-            @Override
-            public long initialBytes()
-            {
-                return dispatchers.stream().mapToLong(initialBytes).sum();
-            }
-
-            @Override
-            public long initialErrors()
-            {
-                return dispatchers.stream().mapToLong(initialErrors).sum();
-            }
-
-            @Override
-            public long replyOpens()
-            {
-                return dispatchers.stream().mapToLong(replyOpens).sum();
-            }
-
-            @Override
-            public long replyCloses()
-            {
-                return dispatchers.stream().mapToLong(replyCloses).sum();
-            }
-
-            @Override
-            public long replyBytes()
-            {
-                return dispatchers.stream().mapToLong(replyBytes).sum();
-            }
-
-            @Override
-            public long replyErrors()
-            {
-                return dispatchers.stream().mapToLong(replyErrors).sum();
-            }
         }
     }
 }

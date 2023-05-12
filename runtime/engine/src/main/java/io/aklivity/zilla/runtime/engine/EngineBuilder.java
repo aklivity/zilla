@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -25,8 +25,12 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -76,12 +80,28 @@ public class EngineBuilder
             bindings.add(binding);
         }
 
+        final Set<Exporter> exporters = new LinkedHashSet<>();
+        final ExporterFactory exporterFactory = ExporterFactory.instantiate();
+        for (String name : exporterFactory.names())
+        {
+            Exporter exporter = exporterFactory.create(name, config);
+            exporters.add(exporter);
+        }
+
         final Set<Guard> guards = new LinkedHashSet<>();
         final GuardFactory guardFactory = GuardFactory.instantiate();
         for (String name : guardFactory.names())
         {
             Guard guard = guardFactory.create(name, config);
             guards.add(guard);
+        }
+
+        final Set<MetricGroup> metricGroups = new LinkedHashSet<>();
+        final MetricGroupFactory metricGroupFactory = MetricGroupFactory.instantiate();
+        for (String name : metricGroupFactory.names())
+        {
+            MetricGroup metricGroup = metricGroupFactory.create(name, config);
+            metricGroups.add(metricGroup);
         }
 
         final Set<Vault> vaults = new LinkedHashSet<>();
@@ -94,6 +114,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, vaults, errorHandler, affinities);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities);
     }
 }

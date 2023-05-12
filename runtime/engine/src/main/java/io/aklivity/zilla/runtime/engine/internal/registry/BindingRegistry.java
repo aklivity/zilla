@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 final class BindingRegistry
@@ -25,6 +26,10 @@ final class BindingRegistry
     private final BindingContext context;
 
     private BindingHandler attached;
+    private MessageConsumer sentOriginMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer receivedOriginMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer sentRoutedMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
 
     BindingRegistry(
         BindingConfig binding,
@@ -48,5 +53,49 @@ final class BindingRegistry
     public BindingHandler streamFactory()
     {
         return attached;
+    }
+
+    public void sentOriginMetricHandler(
+        MessageConsumer sentOriginMetricHandler)
+    {
+        this.sentOriginMetricHandler = sentOriginMetricHandler;
+    }
+
+    public void receivedOriginMetricHandler(
+        MessageConsumer receivedOriginMetricHandler)
+    {
+        this.receivedOriginMetricHandler = receivedOriginMetricHandler;
+    }
+
+    public void sentRoutedMetricHandler(
+        MessageConsumer sentRoutedMetricHandler)
+    {
+        this.sentRoutedMetricHandler = sentRoutedMetricHandler;
+    }
+
+    public void receivedRoutedMetricHandler(
+        MessageConsumer receivedRoutedMetricHandler)
+    {
+        this.receivedRoutedMetricHandler = receivedRoutedMetricHandler;
+    }
+
+    public MessageConsumer sentOriginMetricHandler()
+    {
+        return sentOriginMetricHandler;
+    }
+
+    public MessageConsumer receivedOriginMetricHandler()
+    {
+        return receivedOriginMetricHandler;
+    }
+
+    public MessageConsumer sentRoutedMetricHandler()
+    {
+        return sentRoutedMetricHandler;
+    }
+
+    public MessageConsumer receivedRoutedMetricHandler()
+    {
+        return receivedRoutedMetricHandler;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc
+ * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -148,6 +148,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         this.httpContentLength = new String8FW("content-length");
         this.httpContentType = new String8FW("content-type");
         this.httpEtag = new String8FW("etag");
+    }
+
+    @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.mqtt.streams.network;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -38,8 +39,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/successful/client",
-        "${net}/connect/successful/server"})
+        "${net}/connect.successful/client",
+        "${net}/connect.successful/server"})
     public void shouldConnect() throws Exception
     {
         k3po.finish();
@@ -47,8 +48,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/server.assigned.client.id/client",
-        "${net}/connect/server.assigned.client.id/server"})
+        "${net}/connect.server.assigned.client.id/client",
+        "${net}/connect.server.assigned.client.id/server"})
     public void shouldConnectWithServerAssignedClientId() throws Exception
     {
         k3po.finish();
@@ -56,8 +57,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.missing.client.id/client",
-        "${net}/connect/reject.missing.client.id/server"})
+        "${net}/connect.reject.missing.client.id/client",
+        "${net}/connect.reject.missing.client.id/server"})
     public void shouldRejectMissingClientId() throws Exception
     {
         k3po.finish();
@@ -74,8 +75,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/invalid.protocol.version/client",
-        "${net}/connect/invalid.protocol.version/server"})
+        "${net}/connect.invalid.protocol.version/client",
+        "${net}/connect.invalid.protocol.version/server"})
     public void shouldRejectInvalidProtocolVersion() throws Exception
     {
         k3po.finish();
@@ -83,8 +84,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/invalid.flags/client",
-        "${net}/connect/invalid.flags/server"})
+        "${net}/connect.invalid.flags/client",
+        "${net}/connect.invalid.flags/server"})
     public void shouldRejectMalformedConnectPacket() throws Exception
     {
         k3po.finish();
@@ -92,8 +93,17 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/disconnect/invalid.fixed.header.flags/client",
-        "${net}/disconnect/invalid.fixed.header.flags/server"})
+        "${net}/connect.invalid.authentication.method/client",
+        "${net}/connect.invalid.authentication.method/server"})
+    public void shouldRejectBadAuthenticationMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.invalid.fixed.header.flags/client",
+        "${net}/disconnect.reject.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedDisconnectPacket() throws Exception
     {
         k3po.finish();
@@ -101,8 +111,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.second.connect/client",
-        "${net}/connect/reject.second.connect/server"})
+        "${net}/connect.reject.second.connect/client",
+        "${net}/connect.reject.second.connect/server"})
     public void shouldRejectSecondConnectPacket() throws Exception
     {
         k3po.finish();
@@ -110,8 +120,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/reject.connect.when.topic.alias.maximum.repeated/client",
-        "${net}/reject.connect.when.topic.alias.maximum.repeated/server"})
+        "${net}/connect.reject.topic.alias.maximum.repeated/client",
+        "${net}/connect.reject.topic.alias.maximum.repeated/server"})
     public void shouldRejectConnectWhenTopicAliasMaximumRepeated() throws Exception
     {
         k3po.finish();
@@ -119,9 +129,19 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/successful.fragmented/client",
-        "${net}/connect/successful.fragmented/server"})
-    public void shouldProcessFragmentedConnectPacket() throws Exception
+        "${net}/connect.successful.fragmented/client",
+        "${net}/connect.successful.fragmented/server"})
+    public void shouldConnectFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.0-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.other.packet.before.connect/client",
+        "${net}/connect.reject.other.packet.before.connect/server"})
+    public void shouldRejectOtherPacketBeforeConnect() throws Exception
     {
         k3po.finish();
     }
@@ -162,19 +182,20 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
     @Test
     @Specification({
-        "${net}/keep.alive.with.pingreq/client",
-        "${net}/keep.alive.with.pingreq/server"})
-    public void shouldKeepAliveWithPingreq() throws Exception
+        "${net}/connect.server.defined.keep.alive/client",
+        "${net}/connect.server.defined.keep.alive/server"})
+    public void shouldConnectAndUseServerDefinedKeepAlive() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/timeout.before.connect/client",
-        "${net}/timeout.before.connect/server"})
+        "${net}/connect.timeout.before.connect/client",
+        "${net}/connect.timeout.before.connect/server"})
     public void shouldTimeoutBeforeConnect() throws Exception
     {
         k3po.finish();
@@ -182,8 +203,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/maximum.qos.0/client",
-        "${net}/connect/maximum.qos.0/server"})
+        "${net}/connect.maximum.qos.0/client",
+        "${net}/connect.maximum.qos.0/server"})
     public void shouldConnectWithMaximumQos0() throws Exception
     {
         k3po.finish();
@@ -191,71 +212,47 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/retain.unavailable/client",
-        "${net}/connect/retain.unavailable/server"})
-    public void shouldConnectWithRetainUnavailable() throws Exception
+        "${net}/connect.retain.not.supported/client",
+        "${net}/connect.retain.not.supported/server"})
+    public void shouldConnectWithRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-13]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.retain.not.supported/client",
+        "${net}/connect.reject.will.retain.not.supported/server"})
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore
+    @Test
+    @Specification({
+        "${net}/connect.reject.username.not.authorized/client",
+        "${net}/connect.reject.username.not.authorized/server"})
+    public void shouldRejectConnectWithUsernameNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.not.authorized/client",
+        "${net}/connect.reject.password.not.authorized/server"})
+    public void shouldRejectConnectWithPasswordNotAuthorized() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/connect/wildcard.subscriptions.unavailable/client",
-        "${net}/connect/wildcard.subscriptions.unavailable/server"})
-    public void shouldConnectWithWildcardSubscriptionsUnavailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/subscription.identifiers.unavailable/client",
-        "${net}/connect/subscription.identifiers.unavailable/server"})
-    public void shouldConnectWithSubscriptionIdentifiersUnavailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/shared.subscriptions.unavailable/client",
-        "${net}/connect/shared.subscriptions.unavailable/server"})
-    public void shouldConnectWithSharedSubscriptionsUnavailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/reject.username/client",
-        "${net}/connect/reject.username/server"})
-    public void shouldRejectConnectWithUsername() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/reject.password/client",
-        "${net}/connect/reject.password/server"})
-    public void shouldRejectConnectWithPassword() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/reject.will.flag/client",
-        "${net}/connect/reject.will.flag/server"})
-    public void shouldRejectWillFlag() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/reject.invalid.will.qos/client",
-        "${net}/connect/reject.invalid.will.qos/server"})
+        "${net}/connect.will.invalid.will.qos/client",
+        "${net}/connect.will.invalid.will.qos/server"})
     public void shouldRejectInvalidWillQos() throws Exception
     {
         k3po.finish();
@@ -263,8 +260,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.qos.1.without.will.flag/client",
-        "${net}/connect/reject.will.qos.1.without.will.flag/server"})
+        "${net}/connect.will.reject.will.qos.1.without.will.flag/client",
+        "${net}/connect.will.reject.will.qos.1.without.will.flag/server"})
     public void shouldRejectWillQos1WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -272,8 +269,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.qos.2.without.will.flag/client",
-        "${net}/connect/reject.will.qos.2.without.will.flag/server"})
+        "${net}/connect.will.reject.will.qos.2.without.will.flag/client",
+        "${net}/connect.will.reject.will.qos.2.without.will.flag/server"})
     public void shouldRejectWillQos2WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -281,45 +278,89 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.retain.without.will.flag/client",
-        "${net}/connect/reject.will.retain.without.will.flag/server"})
+        "${net}/connect.will.reject.will.retain.without.will.flag/client",
+        "${net}/connect.will.reject.will.retain.without.will.flag/server"})
     public void shouldRejectWillRetainWithoutWillFlag() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect/will.message.with.abrupt.disconnect/client",
-        "${net}/connect/will.message.with.abrupt.disconnect/server"})
-    public void shouldConnectWithWillMessageThenAbruptDisconnect() throws Exception
+        "${net}/connect.reject.will.payload.missing/client",
+        "${net}/connect.reject.will.payload.missing/server"})
+    public void shouldRejectConnectWillPayloadMissing() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect/will.message.with.normal.disconnect/client",
-        "${net}/connect/will.message.with.normal.disconnect/server"})
-    public void shouldConnectWithWillMessageThenNormalDisconnect() throws Exception
+        "${net}/connect.reject.will.properties.missing/client",
+        "${net}/connect.reject.will.properties.missing/server"})
+    public void shouldRejectConnectWillPropertiesMissing() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.with.will.message.then.publish.one.message/client",
-        "${net}/connect.with.will.message.then.publish.one.message/server"})
-    public void shouldConnectWithWillMessageThenPublishOneMessage() throws Exception
+        "${net}/connect.reject.will.topic.missing/client",
+        "${net}/connect.reject.will.topic.missing/server"})
+    public void shouldRejectConnectWillTopicNotMissing() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-16]
     @Test
     @Specification({
-        "${net}/connect.with.session.expiry/client",
-        "${net}/connect.with.session.expiry/server"})
-    public void shouldConnectWithSessionExpiry() throws Exception
+        "${net}/connect.reject.username.flag.missing/client",
+        "${net}/connect.reject.username.flag.missing/server"})
+    public void shouldRejectUsernameUserFlagMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-18]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client",
+        "${net}/connect.reject.password.no.password.flag/server"})
+    public void shouldRejectPasswordWhenMissingPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-17]
+    @Test
+    @Specification({
+        "${net}/connect.reject.username.flag.only/client",
+        "${net}/connect.reject.username.flag.only/server"})
+    public void shouldRejectConnectUsernameFlagOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-19]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.flag.no.password/client",
+        "${net}/connect.reject.password.flag.no.password/server"})
+    public void shouldRejectPasswordFlagWhenMissingPassword() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-24]
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.exceeded/client",
+        "${net}/connect.max.packet.size.exceeded/server"})
+    public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
     {
         k3po.finish();
     }
