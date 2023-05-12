@@ -1,19 +1,33 @@
 # Install
 
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait #--values your.custom.values.yaml
+$ helm install zilla . --namespace zilla --create-namespace --wait
 NAME: zilla
 NAMESPACE: zilla
 STATUS: deployed
 [...]
 ```
 
+To use your own `values.yaml` and `zilla.yaml` file:
+```
+$ helm install zilla . --namespace zilla --create-namespace --wait \
+    --values values.yaml \
+    --set-file zilla\\.yaml=zilla.yaml
+```
+
 # Upgrade
 
 ```
-$ helm upgrade zilla . --namespace zilla --wait #--values your.custom.values.yaml
+$ helm upgrade zilla . --namespace zilla --wait
 Release "zilla" has been upgraded. Happy Helming!
 [...]
+```
+
+To use your own `values.yaml` and `zilla.yaml` file:
+```
+$ helm upgrade zilla . --namespace zilla --create-namespace --wait \
+    --values values.yaml \
+    --set-file zilla\\.yaml=zilla.yaml
 ```
 
 # Uninstall
