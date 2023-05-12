@@ -24,7 +24,7 @@ public class StreamOpensSentMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "opens.sent");
-    private static final String DESCRIPTION = "Number of closed sent streams";
+    private static final String DESCRIPTION = "Number of opened sent streams";
 
     @Override
     public String name()
