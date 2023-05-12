@@ -22,8 +22,6 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttle
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
 import static io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW.FIELD_OFFSET_TIMESTAMP;
 
-import java.util.function.LongFunction;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -34,7 +32,6 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ChallengeFW;
@@ -62,7 +59,6 @@ public final class Target implements AutoCloseable
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
-    private final LongFunction<LoadEntry> supplyLoadEntry;
 
     private MessagePredicate streamsBuffer;
 
@@ -74,8 +70,7 @@ public final class Target implements AutoCloseable
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
-        Int2ObjectHashMap<MessageConsumer>[] throttles,
-        LongFunction<LoadEntry> supplyLoadEntry)
+        Int2ObjectHashMap<MessageConsumer>[] throttles)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -92,7 +87,6 @@ public final class Target implements AutoCloseable
         this.streamsBuffer = streamsLayout.streamsBuffer()::write;
 
         this.writeBuffer = writeBuffer;
-        this.supplyLoadEntry = supplyLoadEntry;
         this.correlations = correlations;
         this.streams = streams;
         this.streamSets = streamSets;
@@ -236,7 +230,6 @@ public final class Target implements AutoCloseable
             case ResetFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
-                supplyLoadEntry.apply(routedId).initialClosed(1L).initialErrored(1L);
                 LongHashSet streamIdSet = streamSets.get(routedId);
                 if (streamIdSet != null)
                 {
@@ -274,21 +267,16 @@ public final class Target implements AutoCloseable
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                supplyLoadEntry.apply(routedId).replyOpened(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case DataFW.TYPE_ID:
-                int bytesWritten = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
-                supplyLoadEntry.apply(routedId).replyBytesWritten(bytesWritten);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case EndFW.TYPE_ID:
-                supplyLoadEntry.apply(routedId).replyClosed(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
                 break;
             case AbortFW.TYPE_ID:
-                supplyLoadEntry.apply(routedId).replyClosed(1L).replyErrored(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
                 break;

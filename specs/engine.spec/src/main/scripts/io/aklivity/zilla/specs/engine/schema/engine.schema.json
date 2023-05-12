@@ -36,6 +36,40 @@
             },
             "additionalProperties": false
         },
+        "telemetry":
+        {
+            "title": "Telemetry",
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "type": "string"
+                        }
+                    }
+                },
+                "metrics": {
+                    "$ref": "#/$defs/telemetry/metrics"
+                },
+                "exporters":
+                {
+                    "title": "Exporters",
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "$ref": "#/$defs/telemetry/exporter"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -109,6 +143,40 @@
             "allOf":
             [
             ]
+        },
+        "telemetry":
+        {
+            "metrics":
+            {
+                "type": "array",
+                "items":
+                {
+                    "enum":
+                    [
+                    ]
+                },
+                "uniqueItems": true
+            },
+            "exporter":
+            {
+                "title": "Exporter",
+                "type": "object",
+                "properties":
+                {
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string"
+                    }
+                },
+                "required":
+                [
+                    "type"
+                ],
+                "oneOf":
+                [
+                ]
+            }
         },
         "binding":
         {
@@ -187,6 +255,18 @@
                             }
                         },
                         "additionalProperties": false
+                    }
+                },
+                "telemetry":
+                {
+                    "title": "Telemetry",
+                    "type": "object",
+                    "properties":
+                    {
+                        "metrics":
+                        {
+                            "type": "array"
+                        }
                     }
                 },
                 "exit":

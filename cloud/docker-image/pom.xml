@@ -231,7 +231,9 @@
                             <include>io/aklivity/zilla/runtime/**</include>
                             <include>io/aklivity/zilla/engine/**</include>
                             <include>io/aklivity/zilla/binding-*/**</include>
+                            <include>io/aklivity/zilla/exporter-*/**</include>
                             <include>io/aklivity/zilla/guard-*/**</include>
+                            <include>io/aklivity/zilla/metrics-*/**</include>
                             <include>io/aklivity/zilla/vault-*/**</include>
                             <include>io/aklivity/zilla/command/**</include>
                             <include>io/aklivity/zilla/command-*/**</include>
@@ -312,13 +314,31 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>command-load</artifactId>
+          <artifactId>command-metrics</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>command-tune</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>exporter-prometheus</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>metrics-stream</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>metrics-http</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

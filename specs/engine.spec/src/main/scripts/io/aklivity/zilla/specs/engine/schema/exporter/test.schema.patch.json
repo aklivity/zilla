@@ -1,0 +1,16 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "test"
+                }
+            }
+        }
+    }
+]
