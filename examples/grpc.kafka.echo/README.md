@@ -41,11 +41,12 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
 ### Verify behavior
 
-Echo one message via unary rpc.
+#### Unary Stream
+
+Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` client.
+
 ```bash
 grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
-```
-```
 {
   "message": "Hello World"
 }
@@ -54,24 +55,24 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 Verify the message payload, followed by a tombstone to mark the end of the request.
 ```bash
 kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
-```
-```
 {
   "topic": "echo-messages",
   "partition": 0,
   "offset": 0,
   "tstype": "create",
-  "ts": 1682638405716,
+  "ts": 1683827977709,
   "broker": 1,
   "headers": [
     "zilla:service",
     "example.EchoService",
     "zilla:method",
     "EchoUnary",
+    "zilla:reply-to",
+    "echo-messages",
     "zilla:correlation-id",
-    "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e"
+    "13360c3e-6c68-4c1f-bb7b-3cbd832a6007-74b89a7e944bd502db9d81165bda4983"
   ],
-  "key": "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e",
+  "key": "13360c3e-6c68-4c1f-bb7b-3cbd832a6007-74b89a7e944bd502db9d81165bda4983",
   "payload": "\n\u000bHello World"
 }
 {
@@ -79,41 +80,34 @@ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
   "partition": 0,
   "offset": 1,
   "tstype": "create",
-  "ts": 1682638405720,
+  "ts": 1683827977742,
   "broker": 1,
   "headers": [
     "zilla:service",
     "example.EchoService",
     "zilla:method",
     "EchoUnary",
+    "zilla:reply-to",
+    "echo-messages",
     "zilla:correlation-id",
-    "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e"
+    "13360c3e-6c68-4c1f-bb7b-3cbd832a6007-74b89a7e944bd502db9d81165bda4983"
   ],
-  "key": "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e",
+  "key": "13360c3e-6c68-4c1f-bb7b-3cbd832a6007-74b89a7e944bd502db9d81165bda4983",
   "payload": null
 }
 % Reached end of topic echo-messages [0] at offset 2
 ```
 
-Echo each message via bidirectional streaming rpc.
+#### Bidirectional Stream
+
+Echo messages via bidirectional streaming rpc.
+
 ```bash
 grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
-```
-{
-  "message": "Hello World"
-}
-```
-```
-{
-  "message": "Hello World"
-}
-```
-```
-{
-  "message": "Hello World"
-}
-```
+
+Paste below message.
+
 ```
 {
   "message": "Hello World"
@@ -121,62 +115,28 @@ grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 exampl
 ```
 
 Verify the message payloads, followed by a tombstone to mark the end of each request.
+
 ```bash
 kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
-```
-```
-{
-  "topic": "echo-messages",
-  "partition": 0,
-  "offset": 0,
-  "tstype": "create",
-  "ts": 1682638405716,
-  "broker": 1,
-  "headers": [
-    "zilla:service",
-    "example.EchoService",
-    "zilla:method",
-    "EchoUnary",
-    "zilla:correlation-id",
-    "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e"
-  ],
-  "key": "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e",
-  "payload": "\n\u000bHello World"
-}
-{
-  "topic": "echo-messages",
-  "partition": 0,
-  "offset": 1,
-  "tstype": "create",
-  "ts": 1682638405720,
-  "broker": 1,
-  "headers": [
-    "zilla:service",
-    "example.EchoService",
-    "zilla:method",
-    "EchoUnary",
-    "zilla:correlation-id",
-    "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e"
-  ],
-  "key": "000567a5-decd-4123-abba-0bdef6dce97c-d41d8cd98f00b204e9800998ecf8427e",
-  "payload": null
-}
+...
 {
   "topic": "echo-messages",
   "partition": 0,
   "offset": 2,
   "tstype": "create",
-  "ts": 1682638477834,
+  "ts": 1683828250706,
   "broker": 1,
   "headers": [
     "zilla:service",
     "example.EchoService",
     "zilla:method",
     "EchoBidiStream",
+    "zilla:reply-to",
+    "echo-messages",
     "zilla:correlation-id",
-    "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e"
+    "3eb292f7-c503-42d2-a579-82da7bc853f8-45b1b1a7b121d744d1d1a68b30ebc5ef"
   ],
-  "key": "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e",
+  "key": "3eb292f7-c503-42d2-a579-82da7bc853f8-45b1b1a7b121d744d1d1a68b30ebc5ef",
   "payload": "\n\u000bHello World"
 }
 {
@@ -184,38 +144,22 @@ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
   "partition": 0,
   "offset": 3,
   "tstype": "create",
-  "ts": 1682638479578,
+  "ts": 1683828252352,
   "broker": 1,
   "headers": [
     "zilla:service",
     "example.EchoService",
     "zilla:method",
     "EchoBidiStream",
+    "zilla:reply-to",
+    "echo-messages",
     "zilla:correlation-id",
-    "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e"
+    "3eb292f7-c503-42d2-a579-82da7bc853f8-45b1b1a7b121d744d1d1a68b30ebc5ef"
   ],
-  "key": "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e",
-  "payload": "\n\u000bHello World"
-}
-{
-  "topic": "echo-messages",
-  "partition": 0,
-  "offset": 4,
-  "tstype": "create",
-  "ts": 1682638495376,
-  "broker": 1,
-  "headers": [
-    "zilla:service",
-    "example.EchoService",
-    "zilla:method",
-    "EchoBidiStream",
-    "zilla:correlation-id",
-    "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e"
-  ],
-  "key": "4b19771d-631b-4fd1-b7ee-6ae66d513603-d41d8cd98f00b204e9800998ecf8427e",
+  "key": "3eb292f7-c503-42d2-a579-82da7bc853f8-45b1b1a7b121d744d1d1a68b30ebc5ef",
   "payload": null
 }
-% Reached end of topic echo-messages [0] at offset 5
+% Reached end of topic echo-messages [0] at offset 4
 ```
 
 ### Teardown
