@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: zilla
-data:
-  zilla.yaml: |
-{{ .Values.zilla_yaml | indent 4 }}

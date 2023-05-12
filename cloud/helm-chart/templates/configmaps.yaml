@@ -1,10 +1,20 @@
-{{- $root := . }}
-{{- range $configMap := .Values.configMaps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zilla
+data:
+  zilla.yaml: |
+{{ index .Values "zilla.yaml" | indent 4 }}
+
+{{ range $name, $configMap := .Values.configMaps }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $configMap.name }}
+  name: {{ $name }}
 data:
-{{ ($root.Files.Glob $configMap.localPath).AsConfig | indent 2 }}
+{{- range $key, $value := $configMap.data }}
+{{ $key | indent 2 }}: |
+{{ $value  | indent 4 }}
+{{- end }}
 {{- end }}

@@ -57,16 +57,16 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - name: config
+            - name: zilla
               mountPath: {{ .Values.configPath }}
-            {{- $root := . }}
-            {{- range $configMap := .Values.configMaps }}
-            - name: {{ $configMap.name }}
-              mountPath: {{ $root.Values.configPath }}/{{ $configMap.mountPath }}
+            {{- $configPath := .Values.configPath }}
+            {{- range $name, $configMap := .Values.configMaps }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $configMap.mountPath | default $name }}
             {{- end }}
-            {{- range $secret := .Values.secrets }}
-            - name: {{ $secret.name }}
-              mountPath: {{ $root.Values.configPath }}/{{ $secret.mountPath }}
+            {{- range $name, $secret := .Values.secrets }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $secret.mountPath | default $name }}
             {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -81,16 +81,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: config
+        - name: zilla
           configMap:
             name: zilla
-        {{- range $configMap := .Values.configMaps }}
-        - name: {{ $configMap.name }}
+        {{- range $name, $_ := .Values.configMaps }}
+        - name: {{ $name }}
           configMap:
-            name: {{ $configMap.name }}
+            name: {{ $name }}
         {{- end }}
-        {{- range $secret := .Values.secrets }}
-        - name: {{ $secret.name }}
+        {{- range $name, $_ := .Values.secrets }}
+        - name: {{ $name }}
           secret:
-            secretName: {{ $secret.name }}
+            secretName: {{ $name }}
         {{- end }}
