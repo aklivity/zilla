@@ -73,6 +73,14 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private static final short SIGNAL_NEXT_REQUEST = 1;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
+    private static final short JOIN_GROUP_API_KEY = 11;
+    private static final short JOIN_GROUP_VERSION = 2;
+    private static final short SYNC_GROUP_API_KEY = 14;
+    private static final short SYNC_GROUP_VERSION = 1;
+    private static final short LEAVE_GROUP_API_KEY = 13;
+    private static final short LEAVE_GROUP_VERSION = 1;
+    private static final short HEARTBEAT_API_KEY = 12;
+    private static final short HEARTBEAT_VERSION = 1;
 
     private static final byte GROUP_KEY_TYPE = 0x00;
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
@@ -747,19 +755,19 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             {
                 progress = responseHeader.limit();
 
-                final SyncGroupResponseFW syncGroupResponse =
-                    syncGroupResponseRO.tryWrap(buffer, progress, limit);
+                final HeartbeatResponseFW heartbeatResponse =
+                    heartbeatResponseRO.tryWrap(buffer, progress, limit);
 
-                if (syncGroupResponse == null)
+                if (heartbeatResponse == null)
                 {
                     client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
-                else if (syncGroupResponse.errorCode() == ERROR_REBALANCE_IN_PROGRESS)
+                else if (heartbeatResponse.errorCode() == ERROR_REBALANCE_IN_PROGRESS)
                 {
                     client.onRebalanceError(traceId, authorization);
                 }
-                else if (syncGroupResponse.errorCode() == ERROR_NONE)
+                else if (heartbeatResponse.errorCode() == ERROR_NONE)
                 {
                     client.onHeartbeatResponse(traceId, authorization);
                 }
@@ -769,7 +777,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     break decode;
                 }
 
-                progress = syncGroupResponse.limit();
+                progress = heartbeatResponse.limit();
             }
         }
 
@@ -1119,27 +1127,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
             this.delegate = delegate;
             this.decoder = decodeClusterReject;
-        }
-
-        public void onDecodeResource(
-            long traceId,
-            long authorization,
-            int errorCode,
-            String resource)
-        {
-            switch (errorCode)
-            {
-            case ERROR_NONE:
-                break;
-            default:
-                final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .error(errorCode)
-                    .build();
-                delegate.cleanupApplication(traceId, resetEx);
-                doNetworkEnd(traceId, authorization);
-                break;
-            }
         }
 
         private void onNetwork(
@@ -1767,27 +1754,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.decoder = decodeCoordinatorReject;
         }
 
-        public void onDecodeResource(
-            long traceId,
-            long authorization,
-            int errorCode,
-            String resource)
-        {
-            switch (errorCode)
-            {
-            case ERROR_NONE:
-                break;
-            default:
-                final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .error(errorCode)
-                    .build();
-                delegate.cleanupApplication(traceId, resetEx);
-                doNetworkEnd(traceId, authorization);
-                break;
-            }
-        }
-
         private void onNetwork(
             int msgTypeId,
             DirectBuffer buffer,
@@ -2109,8 +2075,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .length(0)
-                .apiKey(FIND_COORDINATOR_API_KEY)
-                .apiVersion(FIND_COORDINATOR_API_VERSION)
+                .apiKey(JOIN_GROUP_API_KEY)
+                .apiVersion(JOIN_GROUP_VERSION)
                 .correlationId(0)
                 .clientId((String) null)
                 .build();
@@ -2157,8 +2123,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .length(0)
-                .apiKey(FIND_COORDINATOR_API_KEY)
-                .apiVersion(FIND_COORDINATOR_API_VERSION)
+                .apiKey(SYNC_GROUP_API_KEY)
+                .apiVersion(SYNC_GROUP_VERSION)
                 .correlationId(0)
                 .clientId((String) null)
                 .build();
@@ -2202,8 +2168,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .length(0)
-                .apiKey(FIND_COORDINATOR_API_KEY)
-                .apiVersion(FIND_COORDINATOR_API_VERSION)
+                .apiKey(HEARTBEAT_API_KEY)
+                .apiVersion(HEARTBEAT_VERSION)
                 .correlationId(0)
                 .clientId((String) null)
                 .build();

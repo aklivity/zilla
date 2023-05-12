@@ -350,9 +350,10 @@ scope protocol
 
             struct FindCoordinatorResponse
             {
+                int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
-                string16 errorMessage;
+                string16 errorMessage = null;
                 int32 nodeId;
                 string16 host;
                 int32 port;
@@ -382,13 +383,14 @@ scope protocol
 
             struct JoinGroupResponse
             {
-                 int32 throttleTimeMillis;
-                 int16 errorCode;
-                 int32 generatedId;
-                 string16 protocolName;
-                 string16 leader;
-                 string16 memberId;
-                 MemberMetadata[] members;
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                int32 generatedId;
+                string16 protocolName;
+                string16 leader;
+                string16 memberId;
+                MemberMetadata[] members;
             }
 
             struct Assignment
@@ -407,6 +409,7 @@ scope protocol
 
             struct SyncGroupResponse
             {
+                int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
                 octets assignment;
@@ -421,6 +424,7 @@ scope protocol
 
             struct HeartbeatResponse
             {
+                int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
             }
@@ -433,6 +437,7 @@ scope protocol
 
             struct LeaveGroupResponse
             {
+                int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
             }
