@@ -123,10 +123,10 @@ The above Quickstarts do not require you to run Kafka as they rely on [Zilla Exa
 - [Aiven](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/aiven.html)
 
 ### The Zilla VSCode Extension
-To help define and manage your Zilla configuration, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension provides a visual representation of a Zilla configuration.
+API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also helps write and maintain your configuraiton with Zilla-specific YAML autocomplete and validation.
 
 <div align="center" float="left">
-    <img src="./assets/zilla-studio@2x.png" height="300">  
+    <img src="./assets/zilla-vscode-flow-diagram.png">  
 </div>
 <br></br>
 
