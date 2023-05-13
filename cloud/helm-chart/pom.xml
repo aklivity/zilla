@@ -14,7 +14,6 @@
 
     <artifactId>helm-chart</artifactId>
     <name>zilla::cloud::helm-chart</name>
-    <version>0.1.0-develop-SNAPSHOT</version>
     <packaging>helm</packaging>
 
     <licenses>
@@ -25,6 +24,10 @@
         </license>
     </licenses>
 
+    <properties>
+        <chart.version>0.1.0</chart.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -34,7 +37,8 @@
                 <extensions>true</extensions>
                 <configuration>
                     <chartDirectory>${project.basedir}</chartDirectory>
-                    <chartVersion>${project.version}</chartVersion>
+                    <chartVersion>${chart.version}</chartVersion>
+                    <appVersion>${project.version}</appVersion>
                 </configuration>
             </plugin>
             <plugin>
