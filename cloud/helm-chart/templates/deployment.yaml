@@ -26,6 +26,8 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -58,8 +60,10 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if index .Values "zilla.yaml" }}
             - name: zilla
               mountPath: {{ .Values.configPath }}
+            {{- end }}
             {{- $configPath := .Values.configPath }}
             {{- range $name, $configMap := .Values.configMaps }}
             - name: {{ $name }}
@@ -68,6 +72,10 @@ spec:
             {{- range $name, $secret := .Values.secrets }}
             - name: {{ $name }}
               mountPath: {{ $configPath }}/{{ $secret.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+            - name: {{ $name }}
+              mountPath: {{ $pvc.mountPath }}
             {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -82,9 +90,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        {{- if index .Values "zilla.yaml" }}
         - name: zilla
           configMap:
             name: zilla
+        {{- end }}
         {{- range $name, $_ := .Values.configMaps }}
         - name: {{ $name }}
           configMap:
@@ -94,4 +104,9 @@ spec:
         - name: {{ $name }}
           secret:
             secretName: {{ $name }}
+        {{- end }}
+        {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+        - name: {{ $name }}
+          persistentVolumeClaim:
+            claimName: {{ $name }}
         {{- end }}
