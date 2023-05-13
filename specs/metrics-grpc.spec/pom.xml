@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>specs</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>exporter-prometheus.spec</artifactId>
-  <name>zilla::incubator::exporter-prometheus.spec</name>
+  <artifactId>metrics-grpc.spec</artifactId>
+  <name>zilla::specs::metrics-grpc.spec</name>
 
   <licenses>
     <license>
@@ -78,8 +78,8 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.specs.exporter.prometheus.internal.types</packageName>
+          <scopeNames>core grpc</scopeNames>
+          <packageName>io.aklivity.zilla.specs.metrics.grpc.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -135,7 +135,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/exporter/prometheus/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/metrics/grpc/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

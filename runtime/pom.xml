@@ -21,24 +21,29 @@
     <module>binding-echo</module>
     <module>binding-fan</module>
     <module>binding-filesystem</module>
-    <module>binding-proxy</module>
-    <module>binding-tcp</module>
-    <module>binding-tls</module>
-    <module>binding-http</module>
     <module>binding-grpc</module>
-    <module>binding-sse</module>
-    <module>binding-ws</module>
-    <module>binding-kafka</module>
+    <module>binding-grpc-kafka</module>
+    <module>binding-http</module>
     <module>binding-http-filesystem</module>
     <module>binding-http-kafka</module>
-    <module>binding-grpc-kafka</module>
-    <module>binding-sse-kafka</module>
+    <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
-    <module>guard-jwt</module>
-    <module>vault-filesystem</module>
+    <module>binding-proxy</module>
+    <module>binding-sse</module>
+    <module>binding-sse-kafka</module>
+    <module>binding-tcp</module>
+    <module>binding-tls</module>
+    <module>binding-ws</module>
     <module>command</module>
+    <module>command-metrics</module>
     <module>command-start</module>
     <module>command-stop</module>
+    <module>exporter-prometheus</module>
+    <module>guard-jwt</module>
+    <module>metrics-grpc</module>
+    <module>metrics-http</module>
+    <module>metrics-stream</module>
+    <module>vault-filesystem</module>
   </modules>
 
   <dependencyManagement>
@@ -46,11 +51,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>engine</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>vault-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -70,7 +70,52 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-http-filesystem</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-kafka-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-http-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-proxy</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -85,62 +130,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>binding-http</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-grpc</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-sse</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
         <artifactId>binding-ws</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>binding-kafka</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-http-filesystem</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-http-kafka</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-grpc-kafka</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-sse-kafka</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-kafka-grpc</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>guard-jwt</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
         <artifactId>command</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>command-metrics</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -151,6 +151,36 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-stop</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-prometheus</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-stream</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>vault-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

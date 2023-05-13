@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>specs</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>metrics-grpc.spec</artifactId>
-  <name>zilla::incubator::metrics-grpc.spec</name>
+  <artifactId>metrics-http.spec</artifactId>
+  <name>zilla::specs::metrics-http.spec</name>
 
   <licenses>
     <license>
@@ -39,6 +39,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -78,8 +83,8 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc</scopeNames>
-          <packageName>io.aklivity.zilla.specs.metrics.grpc.internal.types</packageName>
+          <scopeNames>core http</scopeNames>
+          <packageName>io.aklivity.zilla.specs.metrics.http.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -135,7 +140,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/metrics/grpc/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/metrics/http/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
