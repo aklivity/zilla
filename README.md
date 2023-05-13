@@ -123,7 +123,7 @@ The above Quickstarts do not require you to run Kafka as they rely on [Zilla Exa
 - [Aiven](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/aiven.html)
 
 ### The Zilla VSCode Extension
-API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also supports writiting and maintaining your configuraiton with Zilla-specific YAML autocomplete and validation.
+API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also supports writing and maintaining your configuration with Zilla-specific YAML autocomplete and validation.
 
 <div align="center" float="left">
     <img src="./assets/zilla-vscode-flow-diagram.png">  
@@ -159,7 +159,7 @@ Zilla is designed from the ground up to be extensible and we are working on addi
 Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
 
 ## Performance
-End-to-end latency and throughput testing are are in the works. In the meantime, you can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
+End-to-end latency and throughput testing are in the works. In the meantime, you can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
 
 ```
 git clone https://github.com/aklivity/zilla
