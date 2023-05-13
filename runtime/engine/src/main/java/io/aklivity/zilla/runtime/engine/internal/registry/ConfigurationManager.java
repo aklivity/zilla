@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -23,8 +23,10 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -33,6 +35,7 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
+import java.util.regex.Pattern;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -56,6 +59,8 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -211,6 +216,11 @@ public class ConfigurationManager
                 vault.id = namespace.resolveId.applyAsLong(vault.name);
             }
 
+            for (MetricConfig metric : namespace.telemetry.metrics)
+            {
+                metric.id = namespace.resolveId.applyAsLong(metric.name);
+            }
+
             for (BindingConfig binding : namespace.bindings)
             {
                 binding.id = namespace.resolveId.applyAsLong(binding.name);
@@ -254,6 +264,8 @@ public class ConfigurationManager
                     }
                 }
 
+                binding.metricIds = resolveMetricIds(namespace, binding);
+
                 long affinity = tuning.affinity(binding.id);
 
                 final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
@@ -275,6 +287,30 @@ public class ConfigurationManager
             errors.forEach(this::logError);
         }
         return namespace;
+    }
+
+    private long[] resolveMetricIds(
+        NamespaceConfig namespace,
+        BindingConfig binding)
+    {
+        if (binding.telemetryRef == null || binding.telemetryRef.metricRefs == null)
+        {
+            return new long[0];
+        }
+
+        Set<Long> metricIds = new HashSet<>();
+        for (MetricRefConfig metricRef : binding.telemetryRef.metricRefs)
+        {
+            Pattern pattern = Pattern.compile(metricRef.name);
+            for (MetricConfig metric : namespace.telemetry.metrics)
+            {
+                if (pattern.matcher(metric.name).matches())
+                {
+                    metricIds.add(namespace.resolveId.applyAsLong(metric.name));
+                }
+            }
+        }
+        return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 
     public void register(

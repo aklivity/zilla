@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -45,8 +45,10 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttCapabilitiesFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.runtime.command.log.internal.types.MqttMessageFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.command.log.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressFW;
@@ -58,6 +60,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.ProxySecureInfoFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.String16FW;
 import io.aklivity.zilla.runtime.command.log.internal.types.StringFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpDataExFW;
@@ -94,7 +97,13 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceD
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSessionBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
@@ -134,6 +143,7 @@ public final class LoggableStream implements AutoCloseable
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
+    private final MqttEndExFW mqttEndExRO = new MqttEndExFW();
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
@@ -257,6 +267,7 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttBeginEx);
             dataHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttDataEx);
             flushHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttFlushEx);
+            endHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttEndEx);
         }
 
         if (hasExtensionType.test("amqp"))
@@ -1218,20 +1229,83 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = begin.extension();
 
         final MqttBeginExFW mqttBeginEx = mqttBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final MqttCapabilities capabilities = mqttBeginEx.capabilities().get();
-        final String clientId = mqttBeginEx.clientId().asString();
-        final String topic = mqttBeginEx.topic().asString();
-        final int flags = mqttBeginEx.flags();
-        final int subscriptionId = mqttBeginEx.subscriptionId();
-        final Array32FW<MqttUserPropertyFW> properties = mqttBeginEx.properties();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
-        out.printf(verboseFormat, index, offset, timestamp, format("clientId: %s", clientId));
-        out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
-        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
-        out.printf(verboseFormat, index, offset, timestamp, format("subscriptionId: %s", subscriptionId));
-        properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%s: %s", p.key().asString(), p.value().asString())));
+        switch (mqttBeginEx.kind())
+        {
+        case MqttBeginExFW.KIND_PUBLISH:
+            onMqttPublishBeginEx(offset, timestamp, mqttBeginEx.publish());
+            break;
+        case MqttBeginExFW.KIND_SUBSCRIBE:
+            onMqttSubscribeBeginEx(offset, timestamp, mqttBeginEx.subscribe());
+            break;
+        case MqttBeginExFW.KIND_SESSION:
+            onMqttSessionBeginEx(offset, timestamp, mqttBeginEx.session());
+            break;
+        }
+    }
+
+    private void onMqttPublishBeginEx(
+        int offset,
+        long timestamp,
+        MqttPublishBeginExFW publish)
+    {
+        final String clientId = publish.clientId().asString();
+        final String topic = publish.topic().asString();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[publish] %s %s", clientId, topic));
+    }
+
+    private void onMqttSubscribeBeginEx(
+        int offset,
+        long timestamp,
+        MqttSubscribeBeginExFW subscribe)
+    {
+        final String clientId = subscribe.clientId().asString();
+        final Array32FW<MqttTopicFilterFW> filters = subscribe.filters();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[subscribe] %s", clientId));
+        filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));
+
+    }
+
+    private void onMqttSessionBeginEx(
+        int offset,
+        long timestamp,
+        MqttSessionBeginExFW session)
+    {
+        final String clientId = session.clientId().asString();
+        final int expiry = session.expiry();
+        final MqttMessageFW will = session.will();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[session] %s %d", clientId, expiry));
+        if (will != null)
+        {
+            final String willTopic = will.topic().asString();
+            final int delay = will.delay();
+            final int flags = will.flags();
+            final int expiryInterval = will.expiryInterval();
+            final String contentType = will.contentType().asString();
+            final MqttPayloadFormat format = will.format().get();
+            final String responseTopic = will.responseTopic().asString();
+            final String correlation = asString(will.correlation().bytes());
+            final Array32FW<MqttUserPropertyFW> userProperties = will.properties();
+            final String payload = asString(will.payload().bytes());
+            out.printf(verboseFormat, index, offset, timestamp, format("will topic: %s", willTopic));
+            out.printf(verboseFormat, index, offset, timestamp, format("will delay: %d", delay));
+            out.printf(verboseFormat, index, offset, timestamp, format("will flags: %d", flags));
+            out.printf(verboseFormat, index, offset, timestamp, format("will expiry: %d", expiryInterval));
+            out.printf(verboseFormat, index, offset, timestamp, format("will content type: %s", contentType));
+            out.printf(verboseFormat, index, offset, timestamp, format("will format: %s", format.name()));
+            out.printf(verboseFormat, index, offset, timestamp, format("will response topic: %s", responseTopic));
+            out.printf(verboseFormat, index, offset, timestamp, format("will correlation: %s", correlation));
+            out.printf(verboseFormat, index, offset, timestamp, format("will payload: %s", payload));
+            userProperties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
+                format("will user property: %s %s ", u.key(), u.value())));
+        }
     }
 
     private void onMqttDataEx(
@@ -1242,24 +1316,63 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = data.extension();
 
         final MqttDataExFW mqttDataEx = mqttDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final int flags = mqttDataEx.flags();
-        final String contentType = mqttDataEx.contentType().asString();
-        final int correlationBytes = mqttDataEx.correlation().length();
-        final int deferred = mqttDataEx.deferred();
-        final int expiryInterval = mqttDataEx.expiryInterval();
-        final String responseTopic = mqttDataEx.responseTopic().asString();
-        final String topic = mqttDataEx.topic().asString();
-        final Array32FW<MqttUserPropertyFW> properties = mqttDataEx.properties();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
-        out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s", contentType));
-        out.printf(verboseFormat, index, offset, timestamp, format("responseTopic: %s", responseTopic));
-        out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
-        out.printf(verboseFormat, index, offset, timestamp, format("correlationBytes: %d bytes", correlationBytes));
-        out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
-        out.printf(verboseFormat, index, offset, timestamp, format("expiryInterval: %d", expiryInterval));
-        properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%s: %s", p.key().asString(), p.value().asString())));
+        switch (mqttDataEx.kind())
+        {
+        case MqttBeginExFW.KIND_PUBLISH:
+            onMqttPublishDataEx(offset, timestamp, mqttDataEx.publish());
+            break;
+        case MqttBeginExFW.KIND_SUBSCRIBE:
+            onMqttSubscribeDataEx(offset, timestamp, mqttDataEx.subscribe());
+            break;
+        }
+    }
+
+    private void onMqttPublishDataEx(
+        int offset,
+        long timestamp,
+        MqttPublishDataExFW publish)
+    {
+        final int deferred = publish.deferred();
+        final String topic = publish.topic().asString();
+        final int flags = publish.flags();
+        final int expiryInterval = publish.expiryInterval();
+        final String contentType = publish.contentType().asString();
+        final MqttPayloadFormat format = publish.format().get();
+        final String responseTopic = publish.responseTopic().asString();
+        final String correlation = asString(publish.correlation().bytes());
+        final Array32FW<MqttUserPropertyFW> properties = publish.properties();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[publish] (%d) %s %d %d %s %s %s %s",
+                deferred, topic, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
+        properties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%s %s ", u.key(), u.value())));
+    }
+
+    private void onMqttSubscribeDataEx(
+        int offset,
+        long timestamp,
+        MqttSubscribeDataExFW subscribe)
+    {
+        final int deferred = subscribe.deferred();
+        final String topic = subscribe.topic().asString();
+        final int flags = subscribe.flags();
+        final Array32FW<Varuint32FW> subscriptionIds = subscribe.subscriptionIds();
+        final int expiryInterval = subscribe.expiryInterval();
+        final String contentType = subscribe.contentType().asString();
+        final MqttPayloadFormat format = subscribe.format().get();
+        final String responseTopic = subscribe.responseTopic().asString();
+        final String correlation = asString(subscribe.correlation().bytes());
+        final Array32FW<MqttUserPropertyFW> properties = subscribe.properties();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[subscribe] (%d) %s %d %d %s %s %s %s",
+                deferred, topic, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
+        subscriptionIds.forEach(s -> out.printf(verboseFormat, index, offset, timestamp,
+            format("Subscription ID: %d ", s.value())));
+        properties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%s %s ", u.key(), u.value())));
     }
 
     private void onMqttFlushEx(
@@ -1270,11 +1383,22 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = flush.extension();
 
         final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final int flags =  mqttFlushEx.flags();
-        final MqttCapabilitiesFW capabilities = mqttFlushEx.capabilities();
+        final Array32FW<MqttTopicFilterFW> filters = mqttFlushEx.subscribe().filters();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
-        out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
+        filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));
+    }
+
+    private void onMqttEndEx(
+        final EndFW end)
+    {
+        final int offset = end.offset() - HEADER_LENGTH;
+        final long timestamp = end.timestamp();
+        final OctetsFW extension = end.extension();
+
+        final MqttEndExFW mqttEndEx = mqttEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final MqttEndReasonCode reasonCode = mqttEndEx.reasonCode().get();
+        out.printf(verboseFormat, index, offset, timestamp, format("%s", reasonCode.name()));
     }
 
     private void onAmqpBeginEx(

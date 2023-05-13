@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Aklivity Inc.
+# Copyright 2021-2023 Aklivity Inc.
 #
 # Aklivity licenses this file to you under the Apache License,
 # version 2.0 (the "License"); you may not use this file except in compliance
@@ -17,6 +17,7 @@
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 accepted
 connected
@@ -34,10 +35,6 @@ write [0x20 0x03]                    # CONNACK
       [0x00]                         # reason code
       [0x00]                         # properties = none
 
-read  [0x31 0x1f]                    # PUBLISH flags = at-most-once, retain
+read  [0x31 0x0d]                    # PUBLISH flags = at-most-once, retain
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x12]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x0a] "text/plain"  # content type
-# read  zilla:data.empty             # payload
-
+      [0x00]                         # properties

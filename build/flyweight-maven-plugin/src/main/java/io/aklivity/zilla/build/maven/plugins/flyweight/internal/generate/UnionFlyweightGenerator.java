@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -484,6 +484,21 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                         codeBlock.add(")");
                     }
                 }
+                else if (byteOrder == NETWORK)
+                {
+                    if (type == TypeName.SHORT)
+                    {
+                        codeBlock.add(", $T.BIG_ENDIAN)", ByteOrder.class);
+                    }
+                    else if (type == TypeName.INT)
+                    {
+                        codeBlock.add(", $T.BIG_ENDIAN)", ByteOrder.class);
+                    }
+                    else
+                    {
+                        codeBlock.add(")");
+                    }
+                }
                 else
                 {
                     codeBlock.add(")");
@@ -923,7 +938,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
 
             memberField.addMember(name, typeName, byteOrder);
             memberAccessor.addMember(name, typeName, size, sizeName, byteOrder);
-            memberMutator.addMember(name, type, typeName, sizeName);
+            memberMutator.addMember(name, type, typeName, sizeName, byteOrder);
 
             //   setMethod
         }
@@ -1245,6 +1260,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
             private AstType deferredType;
             private TypeName deferredTypeName;
             private String deferredSizeName;
+            private AstByteOrder deferredByteOrder;
 
             private String lastParentMemberName;
 
@@ -1292,12 +1308,14 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                 String name,
                 AstType type,
                 TypeName typeName,
-                String sizeName)
+                String sizeName,
+                AstByteOrder byteOrder)
             {
                 deferredName = name;
                 deferredType = type;
                 deferredTypeName = typeName;
                 deferredSizeName = sizeName;
+                deferredByteOrder = byteOrder;
                 return this;
             }
 
@@ -1512,14 +1530,16 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                 String name = deferredName;
                 TypeName type = deferredTypeName;
                 String sizeName = deferredSizeName;
+                AstByteOrder byteOrder = deferredByteOrder;
 
                 deferredName = null;
                 deferredTypeName = null;
                 deferredSizeName = null;
+                deferredByteOrder = null;
 
                 if (type.isPrimitive())
                 {
-                    addPrimitiveMember(name, type);
+                    addPrimitiveMember(name, type, byteOrder);
                 }
                 else
                 {
@@ -1531,7 +1551,8 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
 
             private void addPrimitiveMember(
                 String name,
-                TypeName type)
+                TypeName type,
+                AstByteOrder byteOrder)
             {
                 String putterName = PUTTER_NAMES.get(type);
                 if (putterName == null)
@@ -1539,7 +1560,9 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                     throw new IllegalStateException("member type not supported: " + type);
                 }
 
-                String statement = String.format("buffer().%s(offset() + $L, value)", putterName);
+                String statement = byteOrder == NETWORK && (type == TypeName.SHORT || type == TypeName.INT)
+                    ? String.format("buffer().%s(offset() + $L, value, ByteOrder.BIG_ENDIAN)", putterName)
+                    : String.format("buffer().%s(offset() + $L, value)", putterName);
 
                 CodeBlock.Builder code = CodeBlock.builder()
                     .addStatement("kind($L)", kind(name))

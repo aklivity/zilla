@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -40,7 +40,16 @@ public class PingIT
     @Specification({
         "${net}/ping/client",
         "${net}/ping/server"})
-    public void shouldConnect() throws Exception
+    public void shouldConnectThenPingRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ping.keep.alive/client",
+        "${net}/ping.keep.alive/server"})
+    public void shouldPingAtKeepAliveInterval() throws Exception
     {
         k3po.finish();
     }

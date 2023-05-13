@@ -1,0 +1,50 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mqtt-kafka"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+]

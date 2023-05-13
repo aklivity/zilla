@@ -36,6 +36,40 @@
             },
             "additionalProperties": false
         },
+        "telemetry":
+        {
+            "title": "Telemetry",
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "type": "string"
+                        }
+                    }
+                },
+                "metrics": {
+                    "$ref": "#/$defs/telemetry/metrics"
+                },
+                "exporters":
+                {
+                    "title": "Exporters",
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "$ref": "#/$defs/telemetry/exporter"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -66,7 +100,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "options":
                 {
@@ -79,7 +114,7 @@
             [
                 "type"
             ],
-            "oneOf":
+            "allOf":
             [
             ]
         },
@@ -91,7 +126,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "options":
                 {
@@ -104,9 +140,44 @@
             [
                 "type"
             ],
-            "oneOf":
+            "allOf":
             [
             ]
+        },
+        "telemetry":
+        {
+            "metrics":
+            {
+                "type": "array",
+                "items":
+                {
+                    "enum":
+                    [
+                    ]
+                },
+                "uniqueItems": true
+            },
+            "exporter":
+            {
+                "title": "Exporter",
+                "type": "object",
+                "properties":
+                {
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string",
+                        "enum": []
+                    }
+                },
+                "required":
+                [
+                    "type"
+                ],
+                "allOf":
+                [
+                ]
+            }
         },
         "binding":
         {
@@ -122,7 +193,8 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string"
+                    "type": "string",
+                    "enum": []
                 },
                 "kind":
                 {
@@ -186,6 +258,18 @@
                         "additionalProperties": false
                     }
                 },
+                "telemetry":
+                {
+                    "title": "Telemetry",
+                    "type": "object",
+                    "properties":
+                    {
+                        "metrics":
+                        {
+                            "type": "array"
+                        }
+                    }
+                },
                 "exit":
                 {
                     "title": "Exit",
@@ -232,7 +316,7 @@
                     }
                 }
             ],
-            "oneOf":
+            "allOf":
             [
             ]
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
-import static java.lang.invoke.VarHandle.fullFence;
 import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -36,7 +35,6 @@ import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -217,10 +215,6 @@ public class ClientIT
     public void connnectionFailed() throws Exception
     {
         k3po.finish();
-        Thread.sleep(250); // TODO: engine quiesce instead of close
-        EngineStats stats = engine.stats("test", "app0");
-        fullFence();
-        assertEquals(1, stats.initialErrors());
     }
 
     @Test

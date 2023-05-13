@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -396,6 +396,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         frameBuffer.getBytes(9, settingsPayload);
 
         this.h2cSettingsPayload = new String16FW(Base64.getUrlEncoder().encodeToString(settingsPayload));
+    }
+
+    @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
     }
 
     @Override

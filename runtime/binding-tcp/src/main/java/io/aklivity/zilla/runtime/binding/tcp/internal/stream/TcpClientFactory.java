@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -115,6 +115,18 @@ public class TcpClientFactory implements TcpStreamFactory
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
+    }
+
+    @Override
+    public int originTypeId()
+    {
+        return proxyTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return EXTERNAL_TYPE;
     }
 
     @Override

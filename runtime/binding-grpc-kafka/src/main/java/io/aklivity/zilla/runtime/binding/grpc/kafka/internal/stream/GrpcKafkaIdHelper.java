@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc
+ * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -97,11 +97,6 @@ public final class GrpcKafkaIdHelper
             final byte[] encodedBase64 = byteArrays.computeIfAbsent(decodeBuf.capacity(), byte[]::new);
             decodeBuf.getBytes(0, encodedBase64, 0, decodeBuf.capacity());
 
-            if ((encodedBase64.length & 0x03) != 0x00)
-            {
-                break decode;
-            }
-
             boolean padding = false;
             for (int i = 0; i < encodedBase64.length; i++)
             {
@@ -175,20 +170,4 @@ public final class GrpcKafkaIdHelper
         return progress;
     }
 
-    private static int indexOfByte(
-        DirectBuffer buffer,
-        int offset,
-        int limit,
-        byte value)
-    {
-        for (int cursor = offset; cursor < limit; cursor++)
-        {
-            if (buffer.getByte(cursor) == value)
-            {
-                return cursor;
-            }
-        }
-
-        return -1;
-    }
 }

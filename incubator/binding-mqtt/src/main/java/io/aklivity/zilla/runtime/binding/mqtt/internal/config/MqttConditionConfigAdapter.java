@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -62,12 +62,12 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
         JsonObject object)
     {
         String topic = object.containsKey(TOPIC_NAME)
-                ? object.getString(TOPIC_NAME)
-                : null;
+            ? object.getString(TOPIC_NAME)
+            : null;
 
         MqttCapabilities capabilities = object.containsKey(CAPABILITIES_NAME)
-                ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
-                : null;
+            ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
+            : null;
 
         return new MqttConditionConfig(topic, capabilities);
     }

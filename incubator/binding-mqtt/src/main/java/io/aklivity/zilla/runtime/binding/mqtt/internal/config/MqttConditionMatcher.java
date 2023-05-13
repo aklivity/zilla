@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -33,11 +33,17 @@ public final class MqttConditionMatcher
     }
 
     public boolean matches(
+        MqttCapabilities capabilities)
+    {
+        return matchesCapabilities(capabilities);
+    }
+
+    public boolean matches(
         String topic,
         MqttCapabilities capabilities)
     {
         return matchesTopic(topic) &&
-                matchesCapabilities(capabilities);
+            matchesCapabilities(capabilities);
     }
 
     private boolean matchesTopic(
@@ -56,9 +62,9 @@ public final class MqttConditionMatcher
         String wildcard)
     {
         return Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher("");
+            .replace(".", "\\.")
+            .replace("$", "\\$")
+            .replace("+", "[^/]*")
+            .replace("#", ".*")).matcher("");
     }
 }

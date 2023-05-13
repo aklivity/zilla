@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc
+ * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -144,6 +144,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
+    }
+
+    @Override
+    public int originTypeId()
+    {
+        return grpcTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return kafkaTypeId;
     }
 
     @Override
@@ -1018,7 +1030,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, extensionRO);
+                    traceId, authorization, emptyRO);
             }
         }
 

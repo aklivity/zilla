@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -98,7 +98,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopicOrSessions()
     {
-        JsonObject config = schema.validate("server.when.topic.or.sessions.yaml");
+        JsonObject config = schema.validate("server.when.sessions.yaml");
 
         assertThat(config, not(nullValue()));
     }

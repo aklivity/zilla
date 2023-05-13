@@ -1,178 +1,196 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "kafka-grpc"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "kafka-grpc"
-                },
-                "kind":
-                {
-                    "enum": [ "remote_server" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "acks":
-                        {
-                            "title": "Acks",
-                            "type": "string",
-                            "enum": [
-                                "none",
-                                "leader_only",
-                                "in_sync_replicas"
-                            ]
-                        },
-                        "idempotency":
-                        {
-                            "title": "Idempotency",
-                            "type": "object",
-                            "properties":
-                            {
-                                "metadata":
-                                {
-                                    "title": "Idempotency Metadata name",
-                                    "type": "string",
-                                    "default": "idempotency-key"
-                                }
-                            }
-                        },
-                        "correlation":
-                        {
-                            "title": "Correlation",
-                            "type": "object",
-                            "properties":
-                            {
-                                "headers":
-                                {
-                                    "title": "Correlation Kafka Headers",
-                                    "type": "object",
-                                    "properties":
-                                    {
-                                        "service":
-                                        {
-                                            "title": "Grpc Service Kafka Header",
-                                            "type": "string",
-                                            "default": "zilla:service"
-                                        },
-                                        "method":
-                                        {
-                                            "title": "Grpc Method Kafka Header",
-                                            "type": "string",
-                                            "default": "zilla:method"
-                                        },
-                                        "correlation-id":
-                                        {
-                                            "title": "Correlation-Id Kafka Header",
-                                            "type": "string",
-                                            "default": "zilla:correlation-id"
-                                        },
-                                        "reply-to":
-                                        {
-                                            "title": "Reply to Topic",
-                                            "type": "string",
-                                            "default": "zilla:reply-to"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "additionalProperties": false
-                        }
+                        "const": "kafka-grpc"
                     }
-                },
-                "routes":
+                }
+            },
+            "then":
+            {
+                "properties":
                 {
-                    "items":
+                    "type":
+                    {
+                        "const": "kafka-grpc"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "remote_server" ]
+                    },
+                    "vault": false,
+                    "options":
                     {
                         "properties":
                         {
-                            "when":
+                            "acks":
                             {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "topic":
-                                        {
-                                            "title": "Topic",
-                                            "type": "string"
-                                        },
-                                        "key":
-                                        {
-                                            "title": "Key",
-                                            "type": "string"
-                                        },
-                                        "headers":
-                                        {
-                                            "title": "Headers",
-                                            "type": "object",
-                                            "additionalProperties":
-                                            {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "reply-to":
-                                        {
-                                            "title": "ReplyTo",
-                                            "type": "string"
-                                        },
-                                        "method":
-                                        {
-                                            "title": "Method",
-                                            "type": "string",
-                                            "pattern": "^(?<Service>[^/]+)/(?<Method>[^/]+)"
-                                        }
-                                    },
-                                    "additionalProperties": false,
-                                    "required":
-                                    [
-                                        "topic",
-                                        "reply-to"
-                                    ]
-                                }
+                                "title": "Acks",
+                                "type": "string",
+                                "enum": [
+                                    "none",
+                                    "leader_only",
+                                    "in_sync_replicas"
+                                ]
                             },
-                            "with":
+                            "idempotency":
                             {
+                                "title": "Idempotency",
+                                "type": "object",
                                 "properties":
                                 {
-                                    "scheme":
+                                    "metadata":
                                     {
-                                        "title": "Scheme",
-                                        "type": "string"
-                                    },
-                                    "authority":
+                                        "title": "Idempotency Metadata name",
+                                        "type": "string",
+                                        "default": "idempotency-key"
+                                    }
+                                }
+                            },
+                            "correlation":
+                            {
+                                "title": "Correlation",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "headers":
                                     {
-                                        "title": "Authority",
-                                        "type": "string"
+                                        "title": "Correlation Kafka Headers",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "service":
+                                            {
+                                                "title": "Grpc Service Kafka Header",
+                                                "type": "string",
+                                                "default": "zilla:service"
+                                            },
+                                            "method":
+                                            {
+                                                "title": "Grpc Method Kafka Header",
+                                                "type": "string",
+                                                "default": "zilla:method"
+                                            },
+                                            "correlation-id":
+                                            {
+                                                "title": "Correlation-Id Kafka Header",
+                                                "type": "string",
+                                                "default": "zilla:correlation-id"
+                                            },
+                                            "reply-to":
+                                            {
+                                                "title": "Reply to Topic",
+                                                "type": "string",
+                                                "default": "zilla:reply-to"
+                                            }
+                                        },
+                                        "additionalProperties": false
                                     }
                                 },
                                 "additionalProperties": false
-                            },
-                            "required":
-                            [
-                                "scheme",
-                                "authority"
-                            ]
+                            }
                         }
                     },
-                    "required":
-                    [
-                        "with"
-                    ]
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "key":
+                                            {
+                                                "title": "Key",
+                                                "type": "string"
+                                            },
+                                            "headers":
+                                            {
+                                                "title": "Headers",
+                                                "type": "object",
+                                                "additionalProperties":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "reply-to":
+                                            {
+                                                "title": "ReplyTo",
+                                                "type": "string"
+                                            },
+                                            "method":
+                                            {
+                                                "title": "Method",
+                                                "type": "string",
+                                                "pattern": "^(?<Service>[^/]+)/(?<Method>[^/]+)"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "required":
+                                        [
+                                            "topic",
+                                            "reply-to"
+                                        ]
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "scheme":
+                                        {
+                                            "title": "Scheme",
+                                            "type": "string"
+                                        },
+                                        "authority":
+                                        {
+                                            "title": "Authority",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "required":
+                                [
+                                    "scheme",
+                                    "authority"
+                                ]
+                            }
+                        },
+                        "required":
+                        [
+                            "with"
+                        ]
+                    },
+                    "exit": false
                 },
-                "exit": false
-            },
-            "required":
-            [
-                "routes"
-            ]
+                "required":
+                [
+                    "routes"
+                ]
+            }
         }
     }
 ]

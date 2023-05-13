@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -52,7 +52,6 @@ import io.aklivity.zilla.runtime.engine.Configuration.PropertyDef;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -163,13 +162,6 @@ public final class EngineRule implements TestRule
         ensureDriveStarted();
 
         return requireNonNull(engine.binding(kind));
-    }
-
-    public EngineStats stats(
-        String namespace,
-        String binding)
-    {
-        return engine.stats(namespace, binding);
     }
 
     public long counter(

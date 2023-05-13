@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -28,6 +28,8 @@ public class BindingConfig
 
     public transient long vaultId;
 
+    public transient long[] metricIds;
+
     public final String vault;
     public final String name;
     public final String type;
@@ -35,6 +37,7 @@ public class BindingConfig
     public final String entry;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
+    public final TelemetryRefConfig telemetryRef;
 
     public BindingConfig(
         String vault,
@@ -43,7 +46,8 @@ public class BindingConfig
         KindConfig kind,
         String entry,
         OptionsConfig options,
-        List<RouteConfig> routes)
+        List<RouteConfig> routes,
+        TelemetryRefConfig telemetryRef)
     {
         this.vault = vault;
         this.name = name;
@@ -52,5 +56,6 @@ public class BindingConfig
         this.entry = entry;
         this.options = options;
         this.routes = routes;
+        this.telemetryRef = telemetryRef;
     }
 }

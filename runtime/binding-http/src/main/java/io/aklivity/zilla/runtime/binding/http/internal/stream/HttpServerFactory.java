@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -576,6 +576,12 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.headers404 = initHeadersEmpty(config, STATUS_404);
         this.response403 = initResponse(config, 403, "Forbidden");
         this.response404 = initResponse(config, 404, "Not Found");
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
     }
 
     @Override
@@ -1994,28 +2000,37 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupEncodeSlotIfNecessary();
-            doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            if (!HttpState.replyClosed(state))
+            {
+                cleanupEncodeSlotIfNecessary();
+                doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+                state = HttpState.closeReply(state);
+            }
         }
 
         private void doNetworkAbort(
             long traceId,
             long authorization)
         {
-            cleanupEncodeSlotIfNecessary();
-            doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            if (!HttpState.replyClosed(state))
+            {
+                cleanupEncodeSlotIfNecessary();
+                doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+                state = HttpState.closeReply(state);
+            }
         }
 
         private void doNetworkReset(
             long traceId,
             long authorization)
         {
-            cleanupDecodeSlotIfNecessary();
-            final int initialMax = exchange != null ? decodeMax : 0;
-            doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-            state = HttpState.closeInitial(state);
+            if (!HttpState.initialClosed(state))
+            {
+                cleanupDecodeSlotIfNecessary();
+                final int initialMax = exchange != null ? decodeMax : 0;
+                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                state = HttpState.closeInitial(state);
+            }
         }
 
         private void doNetworkWindow(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -37,6 +37,16 @@ public final class MqttBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
+    }
+
+    public MqttRouteConfig resolve(
+        long authorization,
+        MqttCapabilities capabilities)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(capabilities))
+            .findFirst()
+            .orElse(null);
     }
 
     public MqttRouteConfig resolve(

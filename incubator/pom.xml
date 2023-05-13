@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.43</version>
+    <version>0.9.44</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,11 +19,12 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
+    <module>binding-mqtt-kafka.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
+    <module>binding-mqtt-kafka</module>
 
-    <module>command-load</module>
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
@@ -43,7 +44,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>command-load</artifactId>
+        <artifactId>binding-mqtt-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

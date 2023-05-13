@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Aklivity Inc.
+# Copyright 2021-2023 Aklivity Inc.
 #
 # Aklivity licenses this file to you under the Apache License,
 # version 2.0 (the "License"); you may not use this file except in compliance
@@ -23,20 +23,20 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("client")
-                             .topic("sensor/one")
-                             .subscriptionId(0)
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
                              .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("sensor/one")
-                            .flags("RETAIN")
-                            .expiryInterval(15)
-                            .contentType("text/plain")
+                            .publish()
+                                .topic("sensor/one")
+                                .flags("RETAIN")
+                                .build()
                             .build()}
 
 read "message"

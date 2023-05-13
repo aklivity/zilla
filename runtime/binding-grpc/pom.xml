@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.43</version>
+    <version>0.9.44</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -163,6 +163,24 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-proto</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-grpc.spec</artifactId>
+                  <version>${project.version}</version>
+                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                  <includes>**\/*.proto</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -235,30 +253,6 @@
             </rule>
           </rules>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>unpack</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-grpc.spec</artifactId>
-                  <version>${project.version}</version>
-                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
-                  <includes>**\/*.proto</includes>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>io.gatling</groupId>

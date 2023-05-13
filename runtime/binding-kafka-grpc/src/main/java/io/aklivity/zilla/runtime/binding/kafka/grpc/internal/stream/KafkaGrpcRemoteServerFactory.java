@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc
+ * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -155,6 +155,18 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.servers = new ArrayList<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
+    }
+
+    @Override
+    public int originTypeId()
+    {
+        return kafkaTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return grpcTypeId;
     }
 
     @Override

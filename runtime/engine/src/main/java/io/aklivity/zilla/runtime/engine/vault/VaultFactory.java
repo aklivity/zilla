@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -19,9 +19,9 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
@@ -53,7 +53,7 @@ public final class VaultFactory
     private static VaultFactory instantiate(
         ServiceLoader<VaultFactorySpi> factories)
     {
-        Map<String, VaultFactorySpi> factorySpisByName = new HashMap<>();
+        Map<String, VaultFactorySpi> factorySpisByName = new TreeMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
 
         return new VaultFactory(unmodifiableMap(factorySpisByName));

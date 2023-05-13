@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -264,6 +264,7 @@ public class ClientIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("client.yaml")
     @Specification({

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.43</version>
+    <version>0.9.44</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -34,6 +34,10 @@
     <module>binding-grpc-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
+    <module>exporter-prometheus.spec</module>
+    <module>metrics-stream.spec</module>
+    <module>metrics-http.spec</module>
+    <module>metrics-grpc.spec</module>
     <module>guard-jwt.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
