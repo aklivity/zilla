@@ -20,10 +20,7 @@ readinessProbePort: 0
 
 initContainers: []
 
-args:
-  - start
-  - -v
-  - -e
+args: ["start", "-v", "-e"]
 env: []
 configPath: /etc/zilla
 configMaps: {}
@@ -41,8 +38,6 @@ autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 persistentVolumeClaims: {}
 
