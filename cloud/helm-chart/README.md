@@ -1,48 +1,53 @@
-# Install
+# Zilla packaged by Aklivity
 
-```
-$ helm install zilla . --namespace zilla --create-namespace --wait
-NAME: zilla
-NAMESPACE: zilla
-STATUS: deployed
-[...]
-```
+Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless
+and reliable way of interfacing edge clients (mobile apps, browsers, partner systems, etc.) to Apache Kafka-based
+microservices and data.
 
-To use your own `values.yaml` and `zilla.yaml` file:
-```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+[Zilla by Aklivity](https://www.aklivity.io/)
+
+## TL;DR
+
+```shell
+helm install zilla . --namespace zilla --create-namespace --wait \
     --values values.yaml \
-    --set-file zilla\\.yaml=zilla.yaml
+    --set-file zilla\\.yaml=zilla.yaml \
+    --set-file configMaps.proto.data.echo\\.proto=proto/echo.proto \
+    --set-file secrets.tls.data.localhost\\.p12=tls/localhost.p12
 ```
 
-# Upgrade
+## Introduction
 
-```
-$ helm upgrade zilla . --namespace zilla --wait
-Release "zilla" has been upgraded. Happy Helming!
-[...]
-```
+This chart bootstraps a [Zilla](https://github.com/aklivity/zilla) deployment on a [Kubernetes](https://kubernetes.io)
+cluster using the [Helm](https://helm.sh) package manager.
 
-To use your own `values.yaml` and `zilla.yaml` file:
-```
-$ helm upgrade zilla . --namespace zilla --create-namespace --wait \
-    --values values.yaml \
-    --set-file zilla\\.yaml=zilla.yaml
-```
+## Requirements
 
-# Uninstall
+Kubernetes: `>=1.13.x`
+Helm: `>=3.0.x`
 
-```
-$ helm uninstall zilla --namespace zilla
-release "zilla" uninstalled
+## Install Chart
+
+```console
+helm install [RELEASE_NAME] aklivity/zilla
 ```
 
-# Examples
+The command deploys aklivity/zilla on the Kubernetes cluster in the default configuration.
 
-Default is no-op zilla.
+## Uninstall Chart
 
+```console
+helm uninstall [RELEASE_NAME]
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait
-```
 
-See the https://github.com/aklivity/zilla-examples repository for examples.
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+## Configuration
+
+Zilla specific configuration is in the `zilla.yaml` file which can be included in the helm install by adding
+`--set-file zilla\\.yaml=zilla.yaml` to your command. 
+
+Additional files can be deployed to configmaps and secrets by adding e.g. `--set-file configMaps.proto.data.echo\\.proto=proto/echo.proto`
+and `--set-file secrets.tls.data.localhost\\.p12=tls/localhost.p12` to your command.
+
+See the [aklivity/zilla-examples](https://github.com/aklivity/zilla-examples) repository for examples.
