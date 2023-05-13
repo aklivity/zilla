@@ -138,7 +138,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
-        assertThat(metric.description(), equalTo("Number of closed sent streams"));
+        assertThat(metric.description(), equalTo("Number of opened sent streams"));
     }
 
     @Test
