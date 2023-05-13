@@ -21,11 +21,6 @@
     <module>binding-mqtt.spec</module>
     <module>binding-mqtt-kafka.spec</module>
 
-    <module>exporter-prometheus.spec</module>
-
-    <module>metrics-stream.spec</module>
-    <module>metrics-http.spec</module>
-
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
     <module>binding-mqtt-kafka</module>
@@ -33,12 +28,6 @@
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
-    <module>command-metrics</module>
-
-    <module>exporter-prometheus</module>
-
-    <module>metrics-stream</module>
-    <module>metrics-http</module>
   </modules>
 
   <dependencyManagement>
@@ -71,26 +60,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-dump</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>command-metrics</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>exporter-prometheus</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>metrics-stream</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>metrics-http</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

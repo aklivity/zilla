@@ -1,23 +1,41 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "echo"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "echo"
-                },
-                "kind":
+                    "type":
+                    {
+                        "const": "echo"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
                 {
-                    "enum": [ "server" ]
-                },
-                "vault": false,
-                "options": false,
-                "routes": false,
-                "exit": false
+                    "type":
+                    {
+                        "const": "echo"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes": false,
+                    "exit": false
+                }
             }
         }
     }

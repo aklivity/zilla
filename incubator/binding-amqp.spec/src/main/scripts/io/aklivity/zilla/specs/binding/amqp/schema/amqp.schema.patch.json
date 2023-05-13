@@ -1,69 +1,87 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "amqp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "amqp"
-                },
-                "kind":
-                {
-                    "enum": [ "server" ]
-                },
-                "vault": false,
-                "options": false,
-                "routes":
-                {
-                    "items":
+                    "type":
                     {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        "address":
-                                        {
-                                            "title": "Address",
-                                            "type": "string"
-                                        },
-                                        "capabilities":
-                                        {
-                                            "title": "Capabilities",
-                                            "type": "string",
-                                            "enum": [ "send_only", "receive_only", "send_and_receive" ],
-                                            "default": "send_and_receive"
-                                        }
-                                    }
-                                }
-                            },
-                            "with": false
-                        }
+                        "const": "amqp"
                     }
                 }
             },
-            "anyOf":
-            [
+            "then":
+            {
+                "properties":
                 {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "amqp"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "address":
+                                            {
+                                                "title": "Address",
+                                                "type": "string"
+                                            },
+                                            "capabilities":
+                                            {
+                                                "title": "Capabilities",
+                                                "type": "string",
+                                                "enum": [ "send_only", "receive_only", "send_and_receive" ],
+                                                "default": "send_and_receive"
+                                            }
+                                        }
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
-            ]
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]

@@ -1,151 +1,169 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "tcp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "tcp"
-                },
-                "kind":
-                {
-                    "enum": [ "server", "client" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "host":
-                        {
-                            "title": "Host",
-                            "type": "string"
-                        },
-                        "port":
-                        {
-                            "title": "Port",
-                            "oneOf":
-                            [
-                                {
-                                    "type": "integer"
-                                },
-                                {
-                                    "type": "string",
-                                    "pattern": "^\\d+(-\\d+)?$"
-                                },
-                                {
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "oneOf":
-                                        [
-                                            {
-                                                "type": "integer"
-                                            },
-                                            {
-                                                "type": "string",
-                                                "pattern": "^\\d+(-\\d+)?$"
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "routes":
+                        "const": "tcp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
                 {
-                    "items":
+                    "type":
+                    {
+                        "const": "tcp"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client" ]
+                    },
+                    "vault": false,
+                    "options":
                     {
                         "properties":
                         {
-                            "when":
+                            "host":
+                            {
+                                "title": "Host",
+                                "type": "string"
+                            },
+                            "port":
+                            {
+                                "title": "Port",
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(-\\d+)?$"
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "pattern": "^\\d+(-\\d+)?$"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "authority":
+                                            {
+                                                "title": "Authority",
+                                                "type": "string"
+                                            },
+                                            "cidr":
+                                            {
+                                                "title": "CIDR Mask",
+                                                "type": "string",
+                                                "pattern": "^[0-9a-fA-F:.]+/(\\d{1,3})$"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "routes":
                             {
                                 "items":
                                 {
                                     "properties":
                                     {
-                                        "authority":
-                                        {
-                                            "title": "Authority",
-                                            "type": "string"
-                                        },
-                                        "cidr":
-                                        {
-                                            "title": "CIDR Mask",
-                                            "type": "string",
-                                            "pattern": "^[0-9a-fA-F:.]+/(\\d{1,3})$"
-                                        }
-                                    },
-                                    "additionalProperties": false
+                                        "exit": false
+                                    }
                                 }
                             },
-                            "with": false
+                            "exit": false
                         }
                     }
-                }
-            },
-            "oneOf":
-            [
-                {
-                    "properties":
-                    {
-                        "kind":
-                        {
-                            "const": "server"
-                        }
-                    },
-                    "anyOf":
-                    [
-                        {
-                            "required":
-                            [
-                                "exit"
-                            ]
-                        },
-                        {
-                            "properties":
-                            {
-                                "routes":
-                                {
-                                    "required":
-                                    [
-                                        "exit"
-                                    ]
-                                }
-                            },
-                            "required":
-                            [
-                                "routes"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "properties":
-                    {
-                        "kind":
-                        {
-                            "const": "client"
-                        },
-                        "routes":
-                        {
-                            "items":
-                            {
-                                "properties":
-                                {
-                                    "exit": false
-                                }
-                            }
-                        },
-                        "exit": false
-                    }
-                }
-            ]
+                ]
+            }
         }
     }
 ]

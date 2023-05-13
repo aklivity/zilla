@@ -1,102 +1,120 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "grpc"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "grpc"
-                },
-                "kind":
-                {
-                    "enum": [ "server", "client"]
-                },
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "services":
-                        {
-                            "title": "Services",
-                            "type": "array",
-                            "items":
-                            {
-                                "title": "Service",
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "routes":
-                {
-                    "items":
-                    {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "method":
-                                        {
-                                            "title": "Method",
-                                            "type": "string"
-                                        },
-                                        "metadata":
-                                        {
-                                            "title": "Metadata",
-                                            "type": "object",
-                                            "additionalProperties" :
-                                            {
-                                                "oneOf":
-                                                [
-                                                    {
-                                                        "type": "string"
-                                                    },
-                                                    {
-                                                        "type": "object",
-                                                        "properties":
-                                                        {
-                                                            "base64":
-                                                            {
-                                                                "title": "Base64 value",
-                                                                "type": "string"
-                                                            }
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "with": false
-                        }
+                        "const": "grpc"
                     }
                 }
             },
-            "anyOf":
-            [
+            "then":
+            {
+                "properties":
                 {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "grpc"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client"]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "services":
+                            {
+                                "title": "Services",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Service",
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "method":
+                                            {
+                                                "title": "Method",
+                                                "type": "string"
+                                            },
+                                            "metadata":
+                                            {
+                                                "title": "Metadata",
+                                                "type": "object",
+                                                "additionalProperties" :
+                                                {
+                                                    "oneOf":
+                                                    [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "base64":
+                                                                {
+                                                                    "title": "Base64 value",
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
-            ]
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]

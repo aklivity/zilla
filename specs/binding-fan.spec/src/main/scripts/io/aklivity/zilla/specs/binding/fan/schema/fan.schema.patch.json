@@ -1,38 +1,56 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "fan"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "fan"
-                },
-                "kind":
-                {
-                    "enum": [ "server" ]
-                },
-                "vault": false,
-                "options": false,
-                "routes": false
-            },
-            "anyOf":
-            [
-                {
-                    "required":
-                    [
-                        "exit"
-                    ]
-                },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
+                    "type":
+                    {
+                        "const": "fan"
+                    }
                 }
-            ]
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "fan"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "vault": false,
+                    "options": false,
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]
