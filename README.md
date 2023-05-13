@@ -15,7 +15,7 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Documentation</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/get-started"><b>Getting Started</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/next/get-started/install/"><b>Get Started</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull; 
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
@@ -52,9 +52,9 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 - [x] **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
 - [x] **SSL/TLS** — support for TLS virtual hosting.
 - [x] [**Kubernetes Deployment**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — deploy Zilla via a Helm Chart with metrics-driven autoscaling.
-- [x] [**Prometheus Integration**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) - export Zilla metrics to Prometheus for observability.
-- [x] **Kafka Security** - connect Zilla to Kafka over PLAINTEXT, TLS/SSL, TLS/SSL with Client Certificates, SASL/PLAIN, and SASL/SCRAM. 
-- [x] **Declartive YAML Configuration** - no coding required, API mappings and endpoints inside Zilla are declaratively configured via YAML.
+- [x] [**Prometheus Integration**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — export Zilla metrics to Prometheus for observability.
+- [x] **Kafka Security** — connect Zilla to Kafka over PLAINTEXT, TLS/SSL, TLS/SSL with Client Certificates, SASL/PLAIN, and SASL/SCRAM. 
+- [x] **Declartive YAML Configuration** — no coding required, API mappings and endpoints inside Zilla are declaratively configured via YAML.
 
 <div align="center">
   </br>
@@ -109,7 +109,7 @@ Hello, world
 ```
 
 ### Configure Zilla Kafka Proxies
-Follow the Quickstarts to configure and test out Kafka proxies.
+Follow the Quickstarts to configure and test Kafka proxies.
 - [REST-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/sse-proxy.html)
 - [SSE-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/rest-proxy.html)
 - [gRPC-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/grpc-proxy.html)
@@ -123,12 +123,40 @@ The above Quickstarts do not require you to run Kafka as they rely on [Zilla Exa
 - [Aiven](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/aiven.html)
 
 ### The Zilla VSCode Extension
-API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also helps write and maintain your configuraiton with Zilla-specific YAML autocomplete and validation.
+API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also supports writiting and maintaining your configuraiton with Zilla-specific YAML autocomplete and validation.
 
 <div align="center" float="left">
     <img src="./assets/zilla-vscode-flow-diagram.png">  
 </div>
-<br></br>
+
+## Community
+If you have any questions, need assistance or have ideas/recommendations, please join our developer [Slack community][community-join].
+
+### Contributing
+Looking to contribute to Zilla? Here are some possibilities:
+- Star this repo and follow us on [Twitter](https://twitter.com/aklivityinc).
+- Create issues every time you feel something is missing or goes wrong.
+- Provide pull requests for open issues, especially for those with a [good first issue](https://github.com/aklivity/zilla/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label.
+
+✨We value all contributions whether its source code, documentation, bug reports, feature requests or feedback!
+
+## Roadmap
+Zilla is designed from the ground up to be extensible and we are working on adding support for several new capabilities:
+
+**Protocols and Transformations**
+ - [MQTT, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4/views/1?pane=issue&itemId=7132841)
+ - GraphQL, proxy and Kafka mapping
+ - WebHooks, Kafka mapping
+ - AMQP, proxy and Kafka mapping
+ - WebSocket, proxy and Kafka mapping
+ - HTTP, proxy, including HTTP/3
+
+**Integrations** 
+ - [OpenTelemetry integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735584)
+ - Export OpenAPI and AsyncAPI definitions from a Zilla configuration file
+ - Schema Registry integration
+
+Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
 
 ## Performance
 End-to-end latency and throughput testing are are in the works. In the meantime, you can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
@@ -156,36 +184,11 @@ BufferBM.single           thrpt   15  15111915.264 ± 294689.110  ops/s
 
 This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Intel i9 chip` and `16 GB of DDR4 RAM`, showing about `14-15 million messages per second`.
 
-## Roadmap
-Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
-
-**Protocols and Transformations**
- - [gRPC, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=24080080)
- - [MQTT, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4/views/1?pane=issue&itemId=7132841)
- - GraphQL, proxy and Kafka mapping
- - WebHooks, Kafka mapping
- - AMQP, proxy and Kafka mapping
- - WebSocket, proxy and Kafka mapping
- - HTTP, proxy, including HTTP/3
-
-**Integrations** 
- - [Kubernetes integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735594)
- - [OpenTelemetry integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735584)
- - OpenAPI integration
- - AsyncAPI integration
- - Avro integration
-
-Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
-
-## Community
-If you have any questions, need assistance or have ideas/recommendations, please join our developer [Slack community][community-join]
-
 ## Build from source
 ```bash
 ./mvnw clean install
 ```
 This creates a local `docker` image with version `develop-SNAPSHOT`.
-
 
 ## License
 The project is licensed under the [Aklivity Community License](LICENSE-AklivityCommunity), except for selected components
@@ -197,7 +200,7 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://www.aklivity.io/slack
-[zilla-docs]: https://docs.aklivity.io/zilla
-[zilla-get-started]: https://docs.aklivity.io/zilla/get-started
+[zilla-docs]: https://docs.aklivity.io/zilla/latest/
+[zilla-get-started]: https://docs.aklivity.io/zilla/latest/get-started
 [zilla-examples]: https://github.com/aklivity/zilla-examples
 [zilla-todo-tutorial]: https://docs.aklivity.io/zilla/get-started/build-todo-app
