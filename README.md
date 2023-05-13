@@ -28,9 +28,9 @@ Zilla's declarative configuration defines a routed graph of protocol decoders, t
 With Zilla, apps and services can use standard protocols such as HTTP, SSE, gRPC and the native Kafka protocol (see roadmap for additional protocols on the way) to directly consume and produce Kafka event-streams.
 
 ### Why Zilla?
-- **Unify event-driven architectures** by enabling any non-Kafka app or service to seamlessly consume and produce event-streams.
+- **Unify your event-driven architecture** by enabling any non-Kafka app or service to seamlessly consume and produce event-streams.
 - **Offload DevOps burden and TCO** associated with deploying and managing Kafka integration middleware, such as Kafka Connect and custom Kafka consumer/producer API implementations.
-- **Streamline an event-driven architecture’s security footprint** by centralizing authorization and authentication of all non-Kafka clients.
+- **Streamline your event-driven architecture’s security footprint** by centralizing authorization and authentication of all non-Kafka clients.
 - **Maximize your investment in Kafka** by enabling non-Kafka developers to build their applications on top of event-streams, and take advantage of Kafka’s performance and streaming data processing capabilities.
 
 
