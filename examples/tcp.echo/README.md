@@ -17,15 +17,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-tcp-echo chart --namespace zilla-tcp-echo --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-tcp-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-tcp-echo [...]
 NAME: zilla-tcp-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-tcp-echo
 STATUS: deployed
 REVISION: 1
-TEST SUITE: None
+NOTES:
+Zilla has been installed.
+[...]
 + nc -z localhost 12345
-+ kubectl port-forward --namespace zilla-tcp-echo service/zilla 12345
++ kubectl port-forward --namespace zilla-tcp-echo service/zilla-tcp-echo 12345
 + sleep 1
 + nc -z localhost 12345
 Connection to localhost port 12345 [tcp/italk] succeeded!

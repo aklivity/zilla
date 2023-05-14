@@ -26,8 +26,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-http-proxy chart --namespace zilla-http-proxy --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-http-proxy oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-proxy --create-namespace --wait [...]
 NAME: zilla-http-proxy
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-proxy
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-http-proxy-nginx chart --namespace zilla-http-proxy --create-namespace --wait
+NAME: zilla-http-proxy-nginx
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-proxy
 STATUS: deployed
@@ -36,10 +47,10 @@ TEST SUITE: None
 ++ kubectl get pods --namespace zilla-http-proxy --selector app.kubernetes.io/instance=nginx -o json
 ++ jq -r '.items[0].metadata.name'
 + NGINX_POD=nginx-1234567890-abcde
-+ kubectl cp --namespace zilla-http-proxy server/demo.html nginx-1234567890-abcde:/usr/share/nginx/html
-+ kubectl cp --namespace zilla-http-proxy server/style.css nginx-1234567890-abcde:/usr/share/nginx/html
++ kubectl cp --namespace zilla-http-proxy www/demo.html nginx-1234567890-abcde:/usr/share/nginx/html
++ kubectl cp --namespace zilla-http-proxy www/style.css nginx-1234567890-abcde:/usr/share/nginx/html
 + nc -z localhost 9090
-+ kubectl port-forward --namespace zilla-http-proxy service/zilla 9090
++ kubectl port-forward --namespace zilla-http-proxy service/zilla-http-proxy 9090
 + sleep 1
 + nc -z localhost 9090
 Connection to localhost port 9090 [tcp/websm] succeeded!
@@ -83,8 +94,9 @@ $ ./teardown.sh
 + pgrep kubectl
 99999
 + killall kubectl
-+ helm uninstall zilla-http-proxy --namespace zilla-http-proxy
++ helm uninstall zilla-http-proxy zilla-http-proxy-nginx --namespace zilla-http-proxy
 release "zilla-http-proxy" uninstalled
+release "zilla-http-proxy-nginx" uninstalled
 + kubectl delete namespace zilla-http-proxy
 namespace "zilla-http-proxy" deleted
 ```

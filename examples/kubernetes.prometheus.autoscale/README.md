@@ -21,14 +21,25 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-kubernetes-prometheus-autoscale chart --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-kubernetes-prometheus-autoscale oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait [...]
 NAME: zilla-kubernetes-prometheus-autoscale
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-kubernetes-prometheus-autoscale
 STATUS: deployed
 REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-kubernetes-prometheus-autoscale-prometheus chart --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait
+NAME: zilla-kubernetes-prometheus-autoscale-prometheus
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-kubernetes-prometheus-autoscale
+STATUS: deployed
+REVISION: 1
 TEST SUITE: None
-+ kubectl port-forward --namespace zilla-kubernetes-prometheus-autoscale service/zilla 8080
++ kubectl port-forward --namespace zilla-kubernetes-prometheus-autoscale service/zilla-kubernetes-prometheus-autoscale 8080
 + nc -z localhost 8080
 + kubectl port-forward --namespace zilla-kubernetes-prometheus-autoscale service/prometheus 9090
 + sleep 1
@@ -282,8 +293,9 @@ $ ./teardown.sh
 99999
 99998
 + killall kubectl
-+ helm uninstall zilla-kubernetes-prometheus-autoscale --namespace zilla-kubernetes-prometheus-autoscale
++ helm uninstall zilla-kubernetes-prometheus-autoscale zilla-kubernetes-prometheus-autoscale-prometheus --namespace zilla-kubernetes-prometheus-autoscale
 release "zilla-kubernetes-prometheus-autoscale" uninstalled
+release "zilla-kubernetes-prometheus-autoscale-prometheus" uninstalled
 + kubectl delete namespace zilla-kubernetes-prometheus-autoscale
 namespace "zilla-kubernetes-prometheus-autoscale" deleted
 ```

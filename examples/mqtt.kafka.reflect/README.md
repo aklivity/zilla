@@ -21,10 +21,20 @@ The `setup.sh` script:
 
 ```bash
 $./setup.sh   
-+ helm install zilla-mqtt-kafka chart --namespace zilla-mqtt-kafka --create-namespace --wait
-NAME: zilla-mqtt-kafka
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-mqtt-kafka-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-mqtt-kafka-reflect --create-namespace --wait [...]
+NAME: zilla-mqtt-kafka-reflect
 LAST DEPLOYED: [...]
-NAMESPACE: zilla-mqtt-kafka
+NAMESPACE: zilla-mqtt-kafka-reflect
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
++ helm install zilla-mqtt-kafka-reflect-kafka chart --namespace zilla-mqtt-kafka-reflect --create-namespace --wait
+NAME: zilla-mqtt-kafka-reflect-kafka
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-mqtt-kafka-reflect
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
@@ -32,7 +42,7 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-74675fbb8-g56l9
 + kubectl exec --namespace zilla-mqtt-kafka pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt_messages --if-not-exists
 Created topic mqtt_messages.
-+ kubectl port-forward --namespace zilla-mqtt-kafka service/zilla 1883 8883
++ kubectl port-forward --namespace zilla-mqtt-kafka service/zilla-mqtt-kafka-reflect 1883 8883
 + nc -z localhost 1883
 + kubectl port-forward --namespace zilla-mqtt-kafka service/kafka 9092 29092
 + sleep 1
@@ -72,6 +82,7 @@ Subscribed (mid: 1): 0
 Client 2b77314a-163f-4f18-908c-2913645e4f56 received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
 Hello, world
 ```
+
 ```bash
 $ mosquitto_sub -V '5' -t 'zilla' --cafile test-ca.crt -d
 Client null sending CONNECT
@@ -82,6 +93,7 @@ Subscribed (mid: 1): 0
 Client 26ab67d8-4a61-4e14-9d95-6a383c0cbdd7 received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
 Hello, world
 ```
+
 ```bash
 $ mosquitto_pub -V '5' -t 'zilla' -m 'Hello, world' -d
 Client null sending CONNECT
@@ -120,12 +132,12 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and d
 ```bash
 ./teardown.sh        
 + pgrep kubectl
-99999
 99998
+99999
 + killall kubectl
-+ helm uninstall zilla-mqtt-kafka --namespace zilla-mqtt-kafka
-release "zilla-mqtt-kafka" uninstalled
++ helm uninstall zilla-mqtt-kafka-reflect zilla-mqtt-kafka-reflect-kafka --namespace zilla-mqtt-kafka
+release "zilla-mqtt-kafka-reflect" uninstalled
+release "zilla-mqtt-kafka-reflect-kafka" uninstalled
 + kubectl delete namespace zilla-mqtt-kafka
 namespace "zilla-mqtt-kafka" deleted
-
 ```

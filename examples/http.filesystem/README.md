@@ -20,19 +20,23 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-http-filesystem chart --namespace zilla-http-filesystem --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-http-filesystem oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-filesystem --create-namespace --wait [...]
 NAME: zilla-http-filesystem
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-filesystem
 STATUS: deployed
 REVISION: 1
-TEST SUITE: None
+NOTES:
+Zilla has been installed.
+[...]
 ++ kubectl get pods --namespace zilla-http-filesystem --selector app.kubernetes.io/instance=zilla -o json
 ++ jq -r '.items[0].metadata.name'
 + ZILLA_POD=zilla-1234567890-abcde
 + kubectl cp --namespace zilla-http-filesystem www zilla-1234567890-abcde:/var/
 + nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-http-filesystem service/zilla 8080 9090
++ kubectl port-forward --namespace zilla-http-filesystem service/zilla-http-filesystem 8080 9090
 + sleep 1
 + nc -z localhost 8080
 Connection to localhost port 8080 [tcp/http-alt] succeeded!

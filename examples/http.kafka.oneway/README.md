@@ -28,8 +28,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-http-kafka-oneway chart --namespace zilla-http-kafka-oneway --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-http-kafka-oneway oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-oneway --create-namespace --wait [...]
 NAME: zilla-http-kafka-oneway
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-kafka-oneway
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-http-kafka-oneway-kafka chart --namespace zilla-http-kafka-oneway --create-namespace --wait
+NAME: zilla-http-kafka-oneway-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-oneway
 STATUS: deployed
@@ -39,7 +50,7 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-1234567890-abcde
 + kubectl exec --namespace zilla-http-kafka-oneway pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic events --if-not-exists
 Created topic events.
-+ kubectl port-forward --namespace zilla-http-kafka-oneway service/zilla 8080 9090
++ kubectl port-forward --namespace zilla-http-kafka-oneway service/zilla-http-kafka-oneway-kafka 8080 9090
 + nc -z localhost 8080
 + kubectl port-forward --namespace zilla-http-kafka-oneway service/kafka 9092 29092
 + sleep 1
@@ -92,11 +103,12 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and d
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
-99999
 99998
+99999
 + killall kubectl
-+ helm uninstall zilla-http-kafka-oneway --namespace zilla-http-kafka-oneway
++ helm uninstall zilla-http-kafka-oneway zilla-http-kafka-oneway-kafka --namespace zilla-http-kafka-oneway
 release "zilla-http-kafka-oneway" uninstalled
+release "zilla-http-kafka-oneway-kafka" uninstalled
 + kubectl delete namespace zilla-http-kafka-oneway
 namespace "zilla-http-kafka-oneway" deleted
 ```

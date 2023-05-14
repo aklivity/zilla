@@ -1,0 +1,16 @@
+image:
+  tag: develop-SNAPSHOT
+
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 5671
+readinessProbePort: 5671
+
+service:
+  ports:
+    - port: 5671
+      name: amqps
+    - port: 5672
+      name: amqp

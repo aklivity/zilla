@@ -1,4 +1,4 @@
-# tcp.echo
+# grpc.echo
 
 Listens on tcp port `9090` and will echo grpc message sent by client.
 
@@ -17,15 +17,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-grpc-echo chart --namespace zilla-grpc-echo --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-echo --wait [...]
 NAME: zilla-grpc-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-echo
 STATUS: deployed
 REVISION: 1
-TEST SUITE: None
+NOTES:
+Zilla has been installed.
+[...]
 + nc -z localhost 9090
-+ kubectl port-forward --namespace zilla-grpc-echo service/zilla 9090
++ kubectl port-forward --namespace zilla-grpc-echo service/zilla-grpc-echo 9090
 + sleep 1
 + nc -z localhost 9090
 Connection to localhost port 9090 [tcp/italk] succeeded!
@@ -38,7 +42,7 @@ Connection to localhost port 9090 [tcp/italk] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` command.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
 {
   "message": "Hello World"
 }
@@ -49,7 +53,7 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.

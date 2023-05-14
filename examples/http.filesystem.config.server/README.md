@@ -1,9 +1,12 @@
 # http.filesystem.config.server
+
 ## Zilla config server
+
 Listens on http port `8081` and serves files from the pod's `/var/www` subdirectory.
 Listens on https port `9091` and serves files from the pod's `/var/www` subdirectory.
 
 ## Zilla HTTP echo server
+
 Listens on http port `8080` and will echo back whatever is sent to the server on path `\echo`.
 Listens on http port `9090` and will echo back whatever is sent to the server on path `\echo`.
 
@@ -25,22 +28,35 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-config-server chart --namespace zilla-config-server --create-namespace --wait
-NAME: zilla-config-server
-LAST DEPLOYED: Thu Mar  9 13:35:48 2023
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-config-server-config oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-config-server --create-namespace --wait --values zilla-config/values.yaml --set-file 'zilla\.yaml=zilla-config/zilla.yaml' --set-file 'secrets.tls.data.localhost\.p12=tls/localhost.p12'
+NAME: zilla-config-server-config
+LAST DEPLOYED: Sat May 13 14:30:38 2023
 NAMESPACE: zilla-config-server
 STATUS: deployed
 REVISION: 1
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-config-server --selector app.kubernetes.io/instance=zilla-config -o json
+NOTES:
+Zilla has been installed.
+[...]
+++ kubectl get pods --namespace zilla-config-server --selector app.kubernetes.io/instance=zilla-config-server-config -o json
 ++ jq -r '.items[0].metadata.name'
-+ ZILLA_POD=zilla-config-5bb9d6cc4c-9b7nv
-+ kubectl cp --namespace zilla-config-server www zilla-config-5bb9d6cc4c-9b7nv:/var/
-+ kubectl run busybox-pod --image=busybox:1.28 --namespace zilla-config-server --rm --restart=Never -i -t -- /bin/sh -c 'until nc -w 2 zilla-http 8080; do echo . && sleep 5; done'
++ ZILLA_CONFIG_POD=zilla-config-server-config-bc455d4d6-fshdl
++ kubectl cp --namespace zilla-config-server www zilla-config-server-config-bc455d4d6-fshdl:/var/
++ helm install zilla-config-server-http oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-config-server --create-namespace --wait --values zilla-http/values.yaml --set-file 'configMaps.prop.data.zilla\.properties=zilla-http/zilla.properties'
+NAME: zilla-config-server-http
+LAST DEPLOYED: Sat May 13 14:30:50 2023
+NAMESPACE: zilla-config-server
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ kubectl run busybox-pod --image=busybox:1.28 --namespace zilla-config-server --rm --restart=Never -i -t -- /bin/sh -c 'until nc -w 2 zilla-config-server-http 8080; do echo . && sleep 5; done'
 + kubectl wait --namespace zilla-config-server --for=delete pod/busybox-pod
-+ kubectl port-forward --namespace zilla-config-server service/zilla-config 8081 9091
++ kubectl port-forward --namespace zilla-config-server service/zilla-config-server-config 8081 9091
 + nc -z localhost 8081
-+ kubectl port-forward --namespace zilla-config-server service/zilla-http 8080 9090
++ kubectl port-forward --namespace zilla-config-server service/zilla-config-server-http 8080 9090
 + sleep 1
 + nc -z localhost 8081
 Connection to localhost port 8081 [tcp/sunproxyadmin] succeeded!
@@ -108,6 +124,7 @@ bindings:
     type: echo
     kind: server
 ```
+
 The same URL will be used by the Zilla HTTP echo server to query its configuration.
 
 ### Verify behavior of the Zilla HTTP echo server
@@ -122,12 +139,10 @@ The Zilla HTTP echo server currently echoes only for the /echo HTTP path. Let's 
 
 ```bash
 $ ./change_config.sh
-++ kubectl get pods --namespace zilla-config-server --selector app.kubernetes.io/instance=zilla-config -o json
+++ kubectl get pods --namespace zilla-config-server --selector app.kubernetes.io/instance=zilla-config-server-config -o json
 ++ jq -r '.items[0].metadata.name'
-+ ZILLA_POD=zilla-config-5bb9d6cc4c-9b7nv
-+ kubectl cp --namespace zilla-config-server zilla.yaml zilla-config-5bb9d6cc4c-9b7nv:/var/www/zilla.yaml
-+ curl -s -f -d 'Hello, World' -H 'Content-Type: text/plain' -X POST -v http://localhost:8080/echo_changed
-+ sleep 1
++ ZILLA_CONFIG_POD=zilla-config-server-config-bc455d4d6-fshdl
++ kubectl cp --namespace zilla-config-server www-updated/zilla.yaml zilla-config-server-config-bc455d4d6-fshdl:/var/www/zilla.yaml
 + curl -s -f -d 'Hello, World' -H 'Content-Type: text/plain' -X POST -v http://localhost:8080/echo_changed
 + sleep 1
 + curl -s -f -d 'Hello, World' -H 'Content-Type: text/plain' -X POST -v http://localhost:8080/echo_changed
@@ -136,15 +151,19 @@ $ ./change_config.sh
 ### Verify behavior of the reconfigured Zilla HTTP echo server
 
 ### Verify the `/echo` path is no longer working
-```bash
-$ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
 
+```bash
+$ curl -i -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
+HTTP/1.1 404 Not Found
 ```
+
 ### Verify the `/echo_changed` path is working
+
 ```bash
 $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo_changed
 Hello, world
 ```
+
 ### Teardown
 
 The `teardown.sh` script stops port forwarding, uninstalls both Zilla and deletes the namespace.
@@ -152,11 +171,12 @@ The `teardown.sh` script stops port forwarding, uninstalls both Zilla and delete
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
-99999
+99998
 99999
 + killall kubectl
-+ helm uninstall zilla-config-server --namespace zilla-config-server
-release "zilla-config-server" uninstalled
++ helm uninstall zilla-config-server-config zilla-config-server-http --namespace zilla-config-server
+release "zilla-config-server-config" uninstalled
+release "zilla-config-server-http" uninstalled
 + kubectl delete namespace zilla-config-server
 namespace "zilla-config-server" deleted
 ```

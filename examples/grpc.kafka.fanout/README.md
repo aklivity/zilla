@@ -18,9 +18,20 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-grpc-kafka-fanout chart --namespace zilla-grpc-kafka-fanout --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-grpc-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-kafka-fanout --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-fanout
-LAST DEPLOYED: Wed Apr 19 10:28:50 2023
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-grpc-kafka-fanout
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-grpc-kafka-fanout-kafka chart --namespace zilla-grpc-kafka-fanout --create-namespace --wait
+NAME: zilla-grpc-kafka-fanout-kafka
+LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-fanout
 STATUS: deployed
 REVISION: 1
@@ -29,7 +40,7 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-969789cc9-mxd98
 + kubectl exec --namespace zilla-grpc-kafka-fanout pod/kafka-969789cc9-mxd98 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic messages --if-not-exists
 Created topic messages.
-+ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla-grpc-kafka-fanout 9090
 + nc -z localhost 9090
 + kubectl port-forward --namespace zilla-grpc-kafka-fanout service/kafka 9092 29092
 + sleep 1
@@ -38,6 +49,7 @@ Connection to localhost port 9090 [tcp/websm] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
+
 ### Verify behavior
 
 #### Unreliable server streaming
@@ -45,19 +57,19 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Prepare protobuf message to send to Kafka topic.
 
 ```bash
-echo 'message: "test"' | protoc --encode=example.FanoutMessage chart/files/proto/fanout.proto > binary.data
+$ echo 'message: "test"' | protoc --encode=example.FanoutMessage proto/fanout.proto > binary.data
 ```
 
 Produce protobuf message to Kafka topic, repeat to produce multiple messages.
 
 ```bash
-kcat -P -b localhost:9092 -t messages -k -e ./binary.data
+$ kcat -P -b localhost:9092 -t messages -k -e ./binary.data
 ```
 
 Stream messages via server streaming rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/fanout.proto -d '' localhost:9090 example.FanoutService.FanoutServerStream
+$ grpcurl -insecure -proto proto/fanout.proto -d '' localhost:9090 example.FanoutService.FanoutServerStream
 {
   "message": "test"
 }
@@ -70,15 +82,15 @@ This output repeats for each message produced to Kafka.
 Build the reliable streaming client which uses `32767` field as last message id to send as metadata to resume streaming from last received message.
 
 ```bash
-cd grpc.reliable.streaming/
-./mvnw clean install
-cd ..
+$ cd grpc.reliable.streaming/
+$ ./mvnw clean install
+$ cd ..
 ```
 
 Connect with the reliable streaming client.
 
 ```bash
-java -jar grpc.reliable.streaming/target/grpc-example-develop-SNAPSHOT-jar-with-dependencies.jar
+$ java -jar grpc.reliable.streaming/target/grpc-example-develop-SNAPSHOT-jar-with-dependencies.jar
 ...
 INFO: Found message: message: "test"
 32767: "\001\002\000\002"
@@ -87,21 +99,21 @@ INFO: Found message: message: "test"
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
 ```bash
-$ kubectl scale --replicas=0 --namespace=zilla-grpc-kafka-fanout deployment/zilla
+$ kubectl scale --replicas=0 --namespace=zilla-grpc-kafka-fanout deployment/zilla-grpc-kafka-fanout
 ```
 
 Simulate connection recovery by starting the `zilla` service again.
 
 ```bash
-$ kubectl scale --replicas=1 --namespace=zilla-grpc-kafka-fanout deployment/zilla
+$ kubectl scale --replicas=1 --namespace=zilla-grpc-kafka-fanout deployment/zilla-grpc-kafka-fanout
 # you need to restart the port-forward now
-$ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla 9090 > /tmp/kubectl-zilla.log 2>&1 &
+$ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla-grpc-kafka-fanout 9090 > /tmp/kubectl-zilla.log 2>&1 &
 ```
 
 Then produce another protobuf message to Kafka, repeat to produce multiple messages.
 
 ```bash
-kcat -P -b localhost:9092 -t messages -k -e ./binary.data
+$ kcat -P -b localhost:9092 -t messages -k -e ./binary.data
 ```
 
 The reliable streaming client will recover and zilla deliver only the new message.
@@ -121,10 +133,12 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
+99998
 99999
 + killall kubectl
-+ helm uninstall zilla-grpc-kafka-fanout --namespace zilla-grpc-kafka-fanout
++ helm uninstall zilla-grpc-kafka-fanout zilla-grpc-kafka-fanout-kafka --namespace zilla-grpc-kafka-fanout
 release "zilla-grpc-kafka-fanout" uninstalled
+release "zilla-grpc-kafka-fanout-kafka" uninstalled
 + kubectl delete namespace zilla-grpc-fanout
 namespace "zilla-grpc-kafka-fanout" deleted
 ```

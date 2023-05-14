@@ -28,8 +28,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-http-kafka-sync chart --namespace zilla-http-kafka-sync --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-http-kafka-sync oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-sync --create-namespace --wait
 NAME: zilla-http-kafka-sync
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-kafka-sync
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-http-kafka-sync-kafka chart --namespace zilla-http-kafka-sync --create-namespace --wait
+NAME: zilla-http-kafka-sync-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-sync
 STATUS: deployed
@@ -41,7 +52,7 @@ TEST SUITE: None
 Created topic items-requests.
 + kubectl exec --namespace zilla-http-kafka-sync pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-responses --if-not-exists
 Created topic items-responses.
-+ kubectl port-forward --namespace zilla-http-kafka-sync service/zilla 8080 9090
++ kubectl port-forward --namespace zilla-http-kafka-sync service/zilla-http-kafka-sync 8080 9090
 + nc -z localhost 8080
 + kubectl port-forward --namespace zilla-http-kafka-sync service/kafka 9092 29092
 + sleep 1
@@ -129,8 +140,9 @@ $ ./teardown.sh
 99999
 99998
 + killall kubectl
-+ helm uninstall zilla-http-kafka-sync --namespace zilla-http-kafka-sync
++ helm uninstall zilla-http-kafka-sync zilla-http-kafka-sync-kafka --namespace zilla-http-kafka-sync
 release "zilla-http-kafka-sync" uninstalled
+release "zilla-http-kafka-sync-kafka" uninstalled
 + kubectl delete namespace zilla-http-kafka-sync
 namespace "zilla-http-kafka-sync" deleted
 ```

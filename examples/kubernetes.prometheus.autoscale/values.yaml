@@ -1,0 +1,42 @@
+image:
+  tag: develop-SNAPSHOT
+
+livenessProbePort: 8080
+readinessProbePort: 8080
+
+service:
+  ports:
+    - port: 8080
+      name: http
+    - name: prometheus
+      port: 9090
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: stream_active_received
+        target:
+          type: AverageValue
+          averageValue: 10
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 10
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 200
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max

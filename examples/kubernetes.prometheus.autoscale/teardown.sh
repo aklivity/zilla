@@ -4,6 +4,6 @@ set -x
 # Stop port forwarding
 pgrep kubectl && killall kubectl
 
-# Uninstall Zilla engine
-helm uninstall zilla-kubernetes-prometheus-autoscale --namespace zilla-kubernetes-prometheus-autoscale
+# Uninstall Zilla, Prometheus and Prometheus Adapter
+helm uninstall zilla-kubernetes-prometheus-autoscale zilla-kubernetes-prometheus-autoscale-prometheus --namespace zilla-kubernetes-prometheus-autoscale
 kubectl delete namespace zilla-kubernetes-prometheus-autoscale

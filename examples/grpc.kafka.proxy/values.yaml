@@ -1,0 +1,14 @@
+image:
+  tag: develop-SNAPSHOT
+
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 9090
+readinessProbePort: 9090
+
+service:
+  ports:
+    - port: 9090
+      name: https

@@ -10,8 +10,8 @@ kubectl get hpa --namespace zilla-kubernetes-prometheus-autoscale
 echo
 
 echo -e "${BOLD}Deployment:${END}"
-kubectl get deployment zilla --namespace zilla-kubernetes-prometheus-autoscale
+kubectl get deployment zilla-kubernetes-prometheus-autoscale --namespace zilla-kubernetes-prometheus-autoscale
 echo
 
 echo -e "${BOLD}Pods:${END}"
-kubectl get pods --namespace zilla-kubernetes-prometheus-autoscale --selector app.kubernetes.io/instance=zilla
+kubectl get pods --namespace zilla-kubernetes-prometheus-autoscale --selector app.kubernetes.io/instance=zilla-kubernetes-prometheus-autoscale

@@ -1,0 +1,23 @@
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 8081
+readinessProbePort: 8081
+
+service:
+  ports:
+    - port: 8081
+      name: http
+    - port: 9091
+      name: https
+
+persistentVolumeClaims:
+  zilla-web:
+    mountPath: /var/www
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Mi

@@ -1,0 +1,11 @@
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 23456
+readinessProbePort: 23456
+
+service:
+  ports:
+    - port: 23456
+      name: tls

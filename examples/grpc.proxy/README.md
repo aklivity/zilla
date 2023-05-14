@@ -27,18 +27,29 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
-
-+ helm install zilla-grpc-proxy chart --namespace zilla-grpc-proxy --create-namespace --wait --timeout 2m
++ docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
+Image Found [zilla-examples/grpc-echo:latest]
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-grpc-proxy oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-proxy
-LAST DEPLOYED: Tue Apr 18 14:46:24 2023
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-grpc-proxy
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-grpc-proxy-grpc-echo chart --namespace zilla-grpc-proxy --create-namespace --wait --timeout 2m
+NAME: zilla-grpc-proxy-grpc-echo
+LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-proxy
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ kubectl port-forward --namespace zilla-grpc-proxy service/zilla 9090
-+ nc -z localhost 9090
++ kubectl port-forward --namespace zilla-grpc-proxy service/zilla-grpc-proxy 9090
 + kubectl port-forward --namespace zilla-grpc-proxy service/grpc-echo 8080
++ nc -z localhost 9090
 + sleep 1
 + nc -z localhost 9090
 Connection to localhost port 9090 [tcp/websm] succeeded!
@@ -53,7 +64,7 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
 {
   "message": "Hello World"
 }
@@ -64,7 +75,7 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
@@ -82,11 +93,12 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
-24494
-24495
+99998
+99999
 + killall kubectl
-+ helm uninstall zilla-grpc-proxy --namespace zilla-grpc-proxy
++ helm uninstall zilla-grpc-proxy zilla-grpc-proxy-grpc-echo --namespace zilla-grpc-proxy
 release "zilla-grpc-proxy" uninstalled
+release "zilla-grpc-proxy-grpc-echo" uninstalled
 + kubectl delete namespace zilla-grpc-proxy
 namespace "zilla-grpc-proxy" deleted
 ```

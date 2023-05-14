@@ -27,29 +27,39 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
-
-+ helm install zilla-grpc-kafka-proxy chart --namespace zilla-grpc-kafka-proxy --create-namespace --wait --timeout 3m
++ docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
+Image Found [zilla-examples/grpc-echo:latest]
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-proxy
-LAST DEPLOYED: Tue Apr 18 14:46:24 2023
+LAST [...]
 NAMESPACE: zilla-grpc-kafka-proxy
 STATUS: deployed
 REVISION: 1
+Zilla has been installed.
+[...]
++ helm install zilla-grpc-kafka-proxy-kafka chart --namespace zilla-grpc-kafka-proxy --create-namespace --wait --timeout 2m
+NAME: zilla-grpc-kafka-proxy-kafka
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-grpc-kafka-proxy
+STATUS: deployed
 TEST SUITE: None
 ++ kubectl get pods --namespace zilla-grpc-kafka-proxy --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-74675fbb8-bg8kl
-+ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-bg8kl -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-requests --if-not-exists
++ KAFKA_POD=pod/kafka-74675fbb8-7knvx
++ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-7knvx -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-requests --if-not-exists
 Created topic echo-requests.
-++ kubectl get pods --namespace zilla-grpc-kafka-proxy --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-74675fbb8-bg8kl
-+ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-bg8kl -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-responses --if-not-exists
++ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-7knvx -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-responses --if-not-exists
 Created topic echo-responses.
-+ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/zilla 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/zilla-grpc-kafka-proxy 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/kafka 9092 29092
 + nc -z localhost 9090
 + kubectl port-forward --namespace zilla-grpc-kafka-proxy service/grpc-echo 8080
 + sleep 1
 + nc -z localhost 9090
 Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 9092
+Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 + nc -z localhost 8080
 Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ```
@@ -61,7 +71,7 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
 {
   "message": "Hello World"
 }
@@ -70,7 +80,7 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 Verify the message payload, followed by a tombstone to mark the end of the request.
 
 ```bash
-kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
+$ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
 {
   "topic": "echo-requests",
   "partition": 0,
@@ -114,9 +124,28 @@ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
 % Reached end of topic echo-requests [0] at offset 2
 ```
 
+#### Bidirectional streaming
+
+Echo messages via bidirectional streaming rpc.
+
+```bash
+$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+```
+
+Past below message.
+
+```
+{
+  "message": "Hello World"
+}
+```
+
 Verify the message payload, followed by a tombstone to mark the end of the response.
 
 ```bash
+$ kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
+```
+```
 {
   "topic": "echo-responses",
   "partition": 0,
@@ -150,22 +179,6 @@ Verify the message payload, followed by a tombstone to mark the end of the respo
 % Reached end of topic echo-responses [0] at offset 2
 ```
 
-#### Bidirectional streaming 
-
-Echo messages via bidirectional streaming rpc.
-
-```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
-```
-
-Past below message.
-
-```
-{
-  "message": "Hello World"
-}
-```
-
 ### Teardown
 
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
@@ -173,11 +186,13 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
-24494
-24495
+99997
+99998
+99999
 + killall kubectl
-+ helm uninstall zilla-grpc-kafka-proxy --namespace zilla-grpc-kafka-proxy
++ helm uninstall zilla-grpc-kafka-proxy zilla-grpc-kafka-proxy-kafka --namespace zilla-grpc-kafka-proxy
 release "zilla-grpc-kafka-proxy" uninstalled
+release "zilla-grpc-kafka-proxy-kafka" uninstalled
 + kubectl delete namespace zilla-grpc-kafka-proxy
 namespace "zilla-grpc-kafka-proxy" deleted
 ```

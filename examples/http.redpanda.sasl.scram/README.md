@@ -29,8 +29,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-http-redpanda-sasl-scram chart --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-http-redpanda-sasl-scram ./zilla-0.1.0.tgz --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait [...]
 NAME: zilla-http-redpanda-sasl-scram
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-redpanda-sasl-scram
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-http-redpanda-sasl-scram-redpanda chart --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait
+NAME: zilla-http-redpanda-sasl-scram-redpanda
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-redpanda-sasl-scram
 STATUS: deployed
@@ -43,7 +54,7 @@ Created user "user".
 + kubectl exec --namespace zilla-http-redpanda-sasl-scram pod/redpanda-1234567890-abcde -- rpk topic create events --user user --password redpanda --sasl-mechanism SCRAM-SHA-256
 TOPIC   STATUS
 events  OK
-+ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/zilla 8080 9090
++ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/zilla-http-redpanda-sasl-scram 8080 9090
 + nc -z localhost 8080
 + kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/redpanda 9092
 + sleep 1
@@ -99,8 +110,9 @@ $ ./teardown.sh
 99999
 99998
 + killall kubectl
-+ helm uninstall zilla-http-redpanda-sasl-scram --namespace zilla-http-redpanda-sasl-scram
++ helm uninstall zilla-http-redpanda-sasl-scram zilla-http-redpanda-sasl-scram-redpanda --namespace zilla-http-redpanda-sasl-scram
 release "zilla-http-redpanda-sasl-scram" uninstalled
+release "zilla-http-redpanda-sasl-scram-redpanda" uninstalled
 + kubectl delete namespace zilla-http-redpanda-sasl-scram
 namespace "zilla-http-redpanda-sasl-scram" deleted
 ```

@@ -37,8 +37,19 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-sse-kafka-fanout chart --namespace zilla-sse-kafka-fanout --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-sse-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-sse-kafka-fanout --create-namespace --wait [...]
 NAME: zilla-sse-kafka-fanout
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-sse-kafka-fanout
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-sse-kafka-fanout-kafka chart --namespace zilla-sse-kafka-fanout --create-namespace --wait
+NAME: zilla-sse-kafka-fanout-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-kafka-fanout
 STATUS: deployed
@@ -53,7 +64,7 @@ TEST SUITE: None
 + kubectl exec --namespace zilla-sse-kafka-fanout pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic events --config cleanup.policy=compact --if-not-exists
 Created topic events.
 + nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla 8080 9090
++ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090
 + kubectl port-forward --namespace zilla-sse-kafka-fanout service/kafka 9092 29092
 + sleep 1
 + nc -z localhost 8080
@@ -96,7 +107,7 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
 ```
-$ kubectl scale --replicas=0 --namespace=zilla-sse-kafka-fanout deployment/zilla
+$ kubectl scale --replicas=0 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
 ```
 
 This causes errors to be logged in the browser console during repeated attempts to automatically reconnect.
@@ -104,9 +115,9 @@ This causes errors to be logged in the browser console during repeated attempts 
 Simulate connection recovery by starting the `zilla` service again.
 
 ```
-$ kubectl scale --replicas=1 --namespace=zilla-sse-kafka-fanout deployment/zilla
+$ kubectl scale --replicas=1 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
 # you need to restart the port-forward now
-$ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla 8080 9090 > /tmp/kubectl-zilla.log 2>&1 &
+$ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090 > /tmp/kubectl-zilla.log 2>&1 &
 ```
 
 Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
@@ -123,8 +134,9 @@ $ ./teardown.sh
 99999
 99998
 + killall kubectl
-+ helm uninstall zilla-sse-kafka-fanout --namespace zilla-sse-kafka-fanout
++ helm uninstall zilla-sse-kafka-fanout zilla-sse-kafka-fanout-kafka --namespace zilla-sse-kafka-fanout
 release "zilla-sse-kafka-fanout" uninstalled
+release "zilla-sse-kafka-fanout-kafka" uninstalled
 + kubectl delete namespace zilla-sse-kafka-fanout
 namespace "zilla-sse-kafka-fanout" deleted
 ```

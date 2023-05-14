@@ -40,8 +40,19 @@ The `setup.sh` script:
 $ ./setup.sh
 + docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/sse-server:latest]
-+ helm install zilla-sse-proxy-jwt chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-sse-proxy-jwt oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-sse-proxy-jwt --create-namespace --wait [...]
 NAME: zilla-sse-proxy-jwt
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-sse-proxy-jwt
+STATUS: deployed
+REVISION: 1
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-sse-proxy-jwt-sse chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
+NAME: zilla-sse-proxy-jwt-sse
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-proxy-jwt
 STATUS: deployed
@@ -51,7 +62,7 @@ TEST SUITE: None
 ++ jq -r '.items[0].metadata.name'
 + ZILLA_POD=zilla-1234567890-abcde
 + kubectl cp --namespace zilla-sse-proxy-jwt www zilla-1234567890-abcde:/var/
-+ kubectl port-forward --namespace zilla-sse-proxy-jwt service/zilla 9090
++ kubectl port-forward --namespace zilla-sse-proxy-jwt service/zilla-sse-proxy-jwt 9090
 + nc -z localhost 9090
 + kubectl port-forward --namespace zilla-sse-proxy-jwt service/sse-server 8001 7001
 Connection to localhost port 9090 [tcp/websm] succeeded!
@@ -168,8 +179,9 @@ $ ./teardown.sh
 + pgrep kubectl
 99999
 + killall kubectl
-+ helm uninstall zilla-sse-proxy-jwt --namespace zilla-sse-proxy-jwt
++ helm uninstall zilla-sse-proxy-jwt zilla-sse-proxy-jwt-sse --namespace zilla-sse-proxy-jwt
 release "zilla-sse-proxy-jwt" uninstalled
+release "zilla-sse-proxy-jwt-sse" uninstalled
 + kubectl delete namespace zilla-sse-proxy-jwt
 namespace "zilla-sse-proxy-jwt" deleted
 ```

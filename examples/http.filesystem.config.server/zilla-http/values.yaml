@@ -1,0 +1,22 @@
+initContainers:
+  - name: wait-for-zilla-config-server
+    image: "busybox:latest"
+    command: ['/bin/sh', '-c', 'until nc -w 2 zilla-config-server-config 8081; do echo . && sleep 5; done']
+
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+args: ["start", "-v", "-e", "-p", "/etc/zilla/prop/zilla.properties"]
+
+livenessProbePort: 8080
+readinessProbePort: 8080
+
+service:
+  ports:
+    - port: 8080
+      name: http
+    - port: 9090
+      name: https
+
+zilla.yaml: ""

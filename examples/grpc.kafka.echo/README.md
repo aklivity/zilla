@@ -18,21 +18,30 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
-+ helm install zilla-./setup.sh
-echo chart --namespace zilla-grpc-kafka-echo helm install zilla-grpc-kafka-echo chart --namespace zilla-grpc-kafka-echo --create-namespace --wait-echo --create-namespace --wait
-NAME: zilla-NAME: zilla-grpc-kafka-echo
-LAST DEPLOYED: Mon Apr  3 14:18:19 2023
-NAMESPACE: zilla-LAST DEPLOYED: Mon Apr  3 14:18:19 2023-echo
++ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
++ VERSION=0.9.46
++ helm install zilla-grpc-kafka-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-kafka-echo --wait [...]
+NAME: zilla-grpc-kafka-echo
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-grpc-kafka-echo
+STATUS: deployed
+NOTES:
+Zilla has been installed.
+[...]
++ helm install zilla-grpc-kafka-echo-kafka chart --namespace zilla-grpc-kafka-echo --create-namespace --wait
+NAME: zilla-grpc-kafka-echo-kafka
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-grpc-kafka-echo
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-++ kubectl get pods --namespace zilla-NAMESPACE: zilla-grpc-kafka-echo --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-969789cc9-sn7jt
-+ kubectl exec --namespace zilla-STATUS: deployed-echo pod/kafka-969789cc9-sn7jt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-messages --if-not-exists
+++ kubectl get pods --namespace zilla-grpc-kafka-echo --selector app.kubernetes.io/instance=kafka -o name
++ KAFKA_POD=pod/kafka-74675fbb8-kpkm8
++ kubectl exec --namespace zilla-grpc-kafka-echo pod/kafka-74675fbb8-kpkm8 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-messages --if-not-exists
 Created topic echo-messages.
++ kubectl port-forward --namespace zilla-grpc-kafka-echo service/zilla-grpc-kafka-echo 9090
 + nc -z localhost 9090
-+ kubectl port-forward --namespace zilla-REVISION: 1-echo service/zilla 9090
-+ kubectl port-forward --namespace zilla-TEST SUITE: None-echo service/kafka 9092 29092
++ kubectl port-forward --namespace zilla-grpc-kafka-echo service/kafka 9092 29092
 + sleep 1
 + nc -z localhost 9090
 Connection to localhost port 9090 [tcp/websm] succeeded!
@@ -46,7 +55,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` client.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
 {
   "message": "Hello World"
 }
@@ -54,7 +63,7 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 
 Verify the message payload, followed by a tombstone to mark the end of the request.
 ```bash
-kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
+$ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
 {
   "topic": "echo-messages",
   "partition": 0,
@@ -103,7 +112,7 @@ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto chart/files/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
@@ -117,7 +126,7 @@ Paste below message.
 Verify the message payloads, followed by a tombstone to mark the end of each request.
 
 ```bash
-kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
+$ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
 ...
 {
   "topic": "echo-messages",
@@ -169,10 +178,12 @@ The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the
 ```bash
 $ ./teardown.sh
 + pgrep kubectl
+99998
 99999
 + killall kubectl
-+ helm uninstall zilla-grpc-kafka-echo --namespace zilla-grpc-kafka-echo
++ helm uninstall zilla-grpc-kafka-echo zilla-grpc-kafka-echo-kafka --namespace zilla-grpc-kafka-echo
 release "zilla-grpc-kafka-echo" uninstalled
+release "zilla-grpc-kafka-echo-kafka" uninstalled
 + kubectl delete namespace zilla-grpc-echo
 namespace "zilla-grpc-kafka-echo" deleted
 ```
