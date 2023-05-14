@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.44</version>
+    <version>0.9.45</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,4 +19,20 @@
   <modules>
     <module>docker-image</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>release</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <modules>
+        <module>helm-chart</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>

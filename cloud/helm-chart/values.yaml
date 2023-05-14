@@ -1,0 +1,51 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/aklivity/zilla
+  pullPolicy: IfNotPresent
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+livenessProbePort: 0
+readinessProbePort: 0
+
+initContainers: []
+
+args: ["start", "-v", "-e"]
+env: []
+configPath: /etc/zilla
+configMaps: {}
+secrets: {}
+
+service:
+  type: ClusterIP
+  ports: []
+
+resources: {}
+
+volumeMounts: []
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+
+persistentVolumeClaims: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+zilla.yaml: |
+  name: example

@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.43...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.44...HEAD)
+
+**Implemented enhancements:**
+
+- Generic helm chart [\#242](https://github.com/aklivity/zilla/issues/242)
+
+**Merged pull requests:**
+
+- Generic helm chart [\#230](https://github.com/aklivity/zilla/pull/230) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.44](https://github.com/aklivity/zilla/tree/0.9.44) (2023-05-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.43...0.9.44)
 
 **Implemented enhancements:**
 
