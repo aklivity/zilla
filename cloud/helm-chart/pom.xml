@@ -40,9 +40,9 @@
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>**/*.tpl</exclude>
-            </excludes>
+            <mapping>
+              <tpl>SCRIPT_STYLE</tpl>
+            </mapping>
           </configuration>
       </plugin>
       <plugin>
