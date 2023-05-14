@@ -19,4 +19,14 @@
   <modules>
     <module>docker-image</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+
+      <modules>
+        <module>helm-chart</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>

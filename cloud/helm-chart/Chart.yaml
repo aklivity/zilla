@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.0.0 # helm-maven-plugin -> configuration -> appVersion
+description: Zilla The Event-Driven API Gateway
+name: zilla
+type: application
+version: 0.0.0 # helm-maven-plugin -> configuration -> chartVersion
