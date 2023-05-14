@@ -52,7 +52,7 @@
           <skipUpload>true</skipUpload>
           <uploadRepoStable>
             <name>github</name>
-            <url>ghcr.io/aklivity/helm/charts</url>
+            <url>ghcr.io/aklivity/charts</url>
           </uploadRepoStable>
         </configuration>
         <executions>
