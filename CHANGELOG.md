@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.46...HEAD)
+
+**Merged pull requests:**
+
+- Update README.md of helm-chart [\#248](https://github.com/aklivity/zilla/pull/248) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.46](https://github.com/aklivity/zilla/tree/0.9.46) (2023-05-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.45...0.9.46)
+
 ## [0.9.45](https://github.com/aklivity/zilla/tree/0.9.45) (2023-05-14)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.44...0.9.45)
