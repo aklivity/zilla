@@ -9,7 +9,7 @@ microservices and data.
 ## TL;DR
 
 ```shell
-helm install zilla . --namespace zilla --create-namespace --wait \
+helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --create-namespace --wait \
     --values values.yaml \
     --set-file zilla\\.yaml=zilla.yaml \
     --set-file configMaps.proto.data.echo\\.proto=proto/echo.proto \
@@ -29,7 +29,7 @@ Helm: `>=3.0.x`
 ## Install Chart
 
 ```console
-helm install [RELEASE_NAME] aklivity/zilla
+helm install [RELEASE_NAME] oci://ghcr.io/aklivity/charts/zilla
 ```
 
 The command deploys aklivity/zilla on the Kubernetes cluster in the default configuration.
