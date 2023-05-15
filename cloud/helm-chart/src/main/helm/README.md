@@ -23,8 +23,8 @@ cluster using the [Helm](https://helm.sh) package manager.
 
 ## Requirements
 
-Kubernetes: `>=1.13.x`
-Helm: `>=3.0.x`
+Kubernetes: `>=1.23.x`
+Helm: `>=3.8.x`
 
 ## Install Chart
 
