@@ -1,6 +1,3 @@
-image:
-  tag: develop-SNAPSHOT
-
 livenessProbePort: 8080
 readinessProbePort: 8080
 
