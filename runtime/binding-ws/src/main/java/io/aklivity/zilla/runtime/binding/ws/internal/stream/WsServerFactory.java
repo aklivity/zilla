@@ -204,7 +204,7 @@ public final class WsServerFactory implements WsStreamFactory
         final String upgrade = headers.get("upgrade");
         final String protocol = headers.get(":protocol");
         final String version = headers.get("sec-websocket-version");
-        final String[] protocols = parseProtocols(headers.get("sec-websocket-protocol"));
+        final String[] subprotocols = parseProtocols(headers.get("sec-websocket-protocol"));
         // TODO: need lightweight approach (end)
 
         MessageConsumer newStream = null;
@@ -216,17 +216,16 @@ public final class WsServerFactory implements WsStreamFactory
             if (binding != null)
             {
                 WsRouteConfig route = null;
-                String websocketProtocol = null;
+                String subprotocol = null;
 
-                for (int i = 0; i < (protocols != null ? protocols.length : 1); i++)
-                {
-                    String newProtocol = protocols != null ? protocols[i] : null;
+                for (int i = 0; i < (subprotocols != null ? subprotocols.length : 1); i++) {
+                    String newProtocol = subprotocols != null ? subprotocols[i] : null;
                     WsRouteConfig newRoute = binding.resolve(authorization, newProtocol, scheme, authority, path);
 
                     if (newRoute != null && (route == null || newRoute.order < route.order))
                     {
                         route = newRoute;
-                        websocketProtocol = newProtocol;
+                        subprotocol = newProtocol;
                     }
                 }
 
@@ -245,7 +244,7 @@ public final class WsServerFactory implements WsStreamFactory
                             route.id,
                             HttpVersion.HTTP_1_1,
                             key,
-                            websocketProtocol,
+                            subprotocol,
                             scheme,
                             authority,
                             path)::onNetMessage;
@@ -261,7 +260,7 @@ public final class WsServerFactory implements WsStreamFactory
                             route.id,
                             HttpVersion.HTTP_2,
                             null,
-                            websocketProtocol,
+                            subprotocol,
                             scheme,
                             authority,
                             path)::onNetMessage;
@@ -292,7 +291,7 @@ public final class WsServerFactory implements WsStreamFactory
         private final long replyId;
         private final HttpVersion httpVersion;
         private final String key;
-        private final String protocol;
+        private final String subprotocol;
         private final String scheme;
         private final String authority;
         private final String path;
@@ -334,7 +333,7 @@ public final class WsServerFactory implements WsStreamFactory
             long resolvedId,
             HttpVersion httpVersion,
             String key,
-            String protocol,
+            String subprotocol,
             String scheme,
             String authority,
             String path)
@@ -346,7 +345,7 @@ public final class WsServerFactory implements WsStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.httpVersion = httpVersion;
             this.key = key;
-            this.protocol = protocol;
+            this.subprotocol = subprotocol;
             this.scheme = scheme;
             this.authority = authority;
             this.path = path;
@@ -372,12 +371,12 @@ public final class WsServerFactory implements WsStreamFactory
                 final String handshakeHash = new String(encoder.encode(digest), US_ASCII);
 
                 doHttpBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
-                    setHttp11Headers(handshakeHash, protocol));
+                    setHttp11Headers(handshakeHash, subprotocol));
             }
             else if (httpVersion == HttpVersion.HTTP_2)
             {
                 doHttpBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
-                    setHttp2Headers(protocol));
+                    setHttp2Headers(subprotocol));
             }
         }
 
@@ -606,7 +605,7 @@ public final class WsServerFactory implements WsStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            stream.doAppBegin(traceId, authorization, affinity, protocol, scheme, authority, path);
+            stream.doAppBegin(traceId, authorization, affinity, subprotocol, scheme, authority, path);
         }
 
         private void onNetData(
