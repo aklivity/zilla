@@ -28,6 +28,9 @@
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
+
+    <module>exporter-otlp</module>
+    <module>exporter-otlp.spec</module>
   </modules>
 
   <dependencyManagement>
@@ -60,6 +63,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-dump</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-otlp</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
