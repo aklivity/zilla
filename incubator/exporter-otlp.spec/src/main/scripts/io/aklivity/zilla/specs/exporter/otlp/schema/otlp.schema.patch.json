@@ -1,0 +1,62 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/properties/type/enum/-",
+        "value": "otlp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "otlp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "otlp"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "endpoints":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "url":
+                                        {
+                                            "title": "URL",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "url"
+                                    ],
+                                    "additionalProperties": false
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    }
+]
