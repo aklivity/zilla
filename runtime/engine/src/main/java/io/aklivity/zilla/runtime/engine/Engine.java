@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -386,6 +387,16 @@ public final class Engine implements AutoCloseable
             Exception error)
         {
             errorHandler.onError(error);
+        }
+
+        @Override
+        public LongSupplier counter(
+            String namespace,
+            String binding,
+            String metric)
+        {
+            // TODO: Ati
+            return null;
         }
     }
 }

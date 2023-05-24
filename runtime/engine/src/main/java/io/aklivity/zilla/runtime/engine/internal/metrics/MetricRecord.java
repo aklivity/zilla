@@ -13,21 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.ext;
+package io.aklivity.zilla.runtime.engine.internal.metrics;
 
-import java.util.function.LongSupplier;
-
-import io.aklivity.zilla.runtime.engine.Configuration;
-
-public interface EngineExtContext
+public interface MetricRecord
 {
-    Configuration config();
+    String namespaceName();
 
-    void onError(
-        Exception error);
+    String bindingName();
 
-    LongSupplier counter(
-        String namespace,
-        String binding,
-        String metric);
+    String metricName();
+
+    String stringValue();
+
+    void update();
 }
