@@ -390,7 +390,7 @@ public class MetricsProcessorTest
     }
 
     @Test
-    public void shouldResolveCounterValue() throws Exception
+    public void shouldResolveCounterValue()
     {
         // GIVEN
         long[][] counterIds = new long[][]{
