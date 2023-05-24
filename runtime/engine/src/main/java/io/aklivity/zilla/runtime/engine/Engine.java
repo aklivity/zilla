@@ -382,10 +382,10 @@ public final class Engine implements AutoCloseable
             this.config = config;
             this.errorHandler = errorHandler;
             this.labels = labels;
-            this.metrics = initMetricProcessor();
+            this.metrics = newMetricsProcessor();
         }
 
-        private MetricsProcessor initMetricProcessor()
+        private MetricsProcessor newMetricsProcessor()
         {
             try
             {
