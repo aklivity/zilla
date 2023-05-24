@@ -88,6 +88,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world"
 
+read notify STABLE_OFFSET_TWO
+
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
@@ -95,6 +97,8 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}
+
+read notify STABLE_OFFSET_THREE
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))

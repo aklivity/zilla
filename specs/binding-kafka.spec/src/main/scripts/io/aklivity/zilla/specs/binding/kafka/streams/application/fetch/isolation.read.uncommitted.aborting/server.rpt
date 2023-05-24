@@ -96,6 +96,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world"
 write flush
 
+write await STABLE_OFFSET_TWO
+
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
@@ -103,6 +105,8 @@ write advise zilla:flush ${kafka:flushEx()
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}
+
+write await STABLE_OFFSET_THREE
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))

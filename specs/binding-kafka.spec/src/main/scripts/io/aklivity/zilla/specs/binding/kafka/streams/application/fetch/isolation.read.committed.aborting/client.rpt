@@ -76,6 +76,10 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                    .build()
                                .build()}
 
+read notify STABLE_OFFSET_TWO
+
+read notify STABLE_OFFSET_THREE
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
