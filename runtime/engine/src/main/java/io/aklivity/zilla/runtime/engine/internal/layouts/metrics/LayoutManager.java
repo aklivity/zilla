@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.metrics;
+package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.READ_ONLY;
 import static java.util.stream.Collectors.toList;
@@ -24,11 +24,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 
 public class LayoutManager
 {

@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 
-import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,21 +33,12 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 
 public class MetricsProcessor
 {
-    private static final String NAMESPACE_HEADER = "namespace";
-    private static final String BINDING_HEADER = "binding";
-    private static final String METRIC_HEADER = "metric";
-    private static final String VALUE_HEADER = "value";
     private static final long[][] EMPTY = new long[0][0];
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
     private final LabelManager labels;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
-
-    private int namespaceWidth;
-    private int bindingWidth;
-    private int metricWidth;
-    private int valueWidth;
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
@@ -71,14 +61,6 @@ public class MetricsProcessor
             collectHistograms();
         }
         updateRecords();
-    }
-
-    public void print(
-        PrintStream out)
-    {
-        init();
-        calculateColumnWidths();
-        printRecords(out);
     }
 
     public MetricRecord findRecord(
@@ -193,34 +175,5 @@ public class MetricsProcessor
     private void updateRecords()
     {
         metricRecords.forEach(MetricRecord::update);
-    }
-
-    private void calculateColumnWidths()
-    {
-        namespaceWidth = NAMESPACE_HEADER.length();
-        bindingWidth = BINDING_HEADER.length();
-        metricWidth = METRIC_HEADER.length();
-        valueWidth = VALUE_HEADER.length();
-
-        for (MetricRecord metric : metricRecords)
-        {
-            namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
-            bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
-            metricWidth = Math.max(metricWidth, metric.metricName().length());
-            valueWidth = Math.max(valueWidth, metric.stringValue().length());
-        }
-    }
-
-    private void printRecords(
-        PrintStream out)
-    {
-        String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
-                valueWidth + "s\n";
-        out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
-        for (MetricRecord metric : metricRecords)
-        {
-            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
-        }
-        out.println();
     }
 }
