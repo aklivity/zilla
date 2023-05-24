@@ -164,14 +164,6 @@ public final class EngineRule implements TestRule
         return requireNonNull(engine.binding(kind));
     }
 
-    public long counter(
-        String name)
-    {
-        ensureDriveStarted();
-
-        return engine.counter(name);
-    }
-
     private EngineConfiguration configuration()
     {
         if (configuration == null)

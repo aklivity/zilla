@@ -48,7 +48,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
@@ -80,7 +79,6 @@ public final class Engine implements AutoCloseable
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
     private final Collection<AgentRunner> runners;
-    private final ToLongFunction<String> counter;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
     private final EngineExtContext context;
@@ -88,7 +86,6 @@ public final class Engine implements AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ToIntFunction<String> supplyLabelId;
     private final ConfigurationManager configurationManager;
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
@@ -198,17 +195,11 @@ public final class Engine implements AutoCloseable
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
 
-        final ToLongFunction<String> counter =
-            name -> dispatchers.stream().mapToLong(d -> d.counter(name)).sum();
-
-        this.supplyLabelId = labels::supplyLabelId;
-
         this.bindings = bindings;
         this.tasks = tasks;
         this.extensions = extensions;
         this.context = context;
         this.runners = runners;
-        this.counter = counter;
     }
 
     public <T> T binding(
@@ -219,12 +210,6 @@ public final class Engine implements AutoCloseable
                 .map(kind::cast)
                 .findFirst()
                 .orElse(null);
-    }
-
-    public long counter(
-        String name)
-    {
-        return counter.applyAsLong(name);
     }
 
     public void start() throws Exception

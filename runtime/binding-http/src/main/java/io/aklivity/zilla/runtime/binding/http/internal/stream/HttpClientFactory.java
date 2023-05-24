@@ -45,7 +45,6 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -335,15 +334,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final int maximumConnectionsPerRoute;
     private final int maximumPushPromiseListSize;
 
-    private final LongSupplier countRequests;
-    private final LongSupplier countRequestsRejected;
-    private final LongSupplier countRequestsAbandoned;
-    private final LongSupplier countResponses;
-    private final LongSupplier countResponsesAbandoned;
-    private final LongSupplier enqueues;
-    private final LongSupplier dequeues;
-    private final LongConsumer connectionInUse;
-
     public HttpClientFactory(
         HttpConfiguration config,
         EngineContext context)
@@ -378,14 +368,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
-        this.countRequests = context.supplyCounter("http.requests");
-        this.countRequestsRejected = context.supplyCounter("http.requests.rejected");
-        this.countRequestsAbandoned = context.supplyCounter("http.requests.abandoned");
-        this.countResponses = context.supplyCounter("http.responses");
-        this.countResponsesAbandoned = context.supplyCounter("http.responses.abandoned");
-        this.enqueues = context.supplyCounter("http.enqueues");
-        this.dequeues = context.supplyCounter("http.dequeues");
-        this.connectionInUse = context.supplyAccumulator("http.connections.in.use");
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
 
@@ -2057,9 +2039,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             Map<String8FW, String16FW> overrides,
             SortedSet<HttpVersion> versions)
         {
-            // count all requests
-            countRequests.getAsLong();
-
             this.versions = versions;
 
             MessageConsumer newStream;
@@ -2112,9 +2091,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> headers)
         {
             MessageConsumer newStream;
-            // count all responses
-            countResponses.getAsLong();
-
             final long originId = begin.originId();
             final long routedId = begin.routedId();
             final long initialId = begin.streamId();
@@ -2136,9 +2112,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     supplyTraceId.getAsLong(), 0L, 0, beginEx);
             doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     supplyTraceId.getAsLong(), 0, EMPTY_OCTETS);
-
-            // count rejected requests (no connection or no space in the queue)
-            countRequestsRejected.getAsLong();
 
             // ignore DATA, FLUSH, END, ABORT
             newStream = (t, b, i, l) -> {};
@@ -2176,7 +2149,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     }
                 }
                 httpQueueSlotOffset += queueEntry.sizeof();
-                dequeues.getAsLong();
 
                 if (client != null && client.encoder == HttpEncoder.H2C)
                 {
@@ -2232,22 +2204,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void onCreated(
             HttpClient client)
         {
-            if (clients.add(client))
-            {
-                connectionInUse.accept(1L);
-            }
-
+            clients.add(client);
             assert clients.size() <= maximumConnectionsPerRoute;
         }
 
         private void onUpgradedOrClosed(
             HttpClient client)
         {
-            if (clients.remove(client))
-            {
-                connectionInUse.accept(-1L);
-            }
-
+            clients.remove(client);
             assert clients.size() <= maximumConnectionsPerRoute;
         }
 
@@ -4613,7 +4577,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                             .build();
 
                     client.pool.httpQueueSlotLimit += queueEntry.sizeof();
-                    enqueues.getAsLong();
                 }
             }
 
@@ -4797,9 +4760,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            // count all responses
-            countResponses.getAsLong();
-
             state = HttpState.openingReply(state);
 
             doBegin(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
@@ -4885,9 +4845,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
 
-                    // count abandoned responses
-                    countResponsesAbandoned.getAsLong();
-
                     if (HttpState.closed(state))
                     {
                         onExchangeClosed();
@@ -4901,9 +4858,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                             .build();
                     doResponseBegin(traceId, authorization, beginEx);
                     doResponseEnd(traceId, authorization, EMPTY_OCTETS);
-
-                    // count abandoned requests
-                    countRequestsAbandoned.getAsLong();
                 }
             }
         }
