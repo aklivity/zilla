@@ -421,11 +421,8 @@ public final class Engine implements AutoCloseable
             String binding,
             String metric)
         {
-            return () ->
-            {
-                MetricRecord record = metrics.findRecord(namespace, binding, metric);
-                return record == null ? 0L : record.value();
-            };
+            MetricRecord record = metrics.findRecord(namespace, binding, metric);
+            return () -> record == null ? 0L : record.value();
         }
     }
 }

@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.internal.metrics.MetricRecord;
 import io.aklivity.zilla.runtime.engine.internal.metrics.MetricsProcessor;
 
 public class MetricsProcessorTest
@@ -385,6 +387,50 @@ public class MetricsProcessorTest
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
+    }
+
+    @Test
+    public void shouldResolveCounterValue() throws Exception
+    {
+        // GIVEN
+        long[][] counterIds = new long[][]{
+            {BINDING_ID_1_11, METRIC_ID_1_21},
+            {BINDING_ID_1_11, METRIC_ID_1_22},
+            {BINDING_ID_1_12, METRIC_ID_1_21},
+            {BINDING_ID_2_11, METRIC_ID_2_21}
+        };
+        LabelManager labels = mock(LabelManager.class);
+        when(labels.lookupLabel(1)).thenReturn("ns1");
+        when(labels.lookupLabel(2)).thenReturn("ns2");
+        when(labels.lookupLabel(11)).thenReturn("binding1");
+        when(labels.lookupLabel(12)).thenReturn("binding2");
+        when(labels.lookupLabel(21)).thenReturn("counter1");
+        when(labels.lookupLabel(22)).thenReturn("counter2");
+
+        CountersLayout countersLayout = mock(CountersLayout.class);
+        when(countersLayout.getIds()).thenReturn(counterIds);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+            COUNTER, List.of(countersLayout));
+        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+
+        // WHEN
+        MetricRecord record0 = metrics.findRecord("none", "none", "none");
+        MetricRecord record1 = metrics.findRecord("ns1", "binding1", "counter1");
+        MetricRecord record2 = metrics.findRecord("ns1", "binding1", "counter2");
+        MetricRecord record3 = metrics.findRecord("ns1", "binding2", "counter1");
+        MetricRecord record4 = metrics.findRecord("ns2", "binding1", "counter1");
+
+        // THEN
+        assertThat(record0, nullValue());
+        assertThat(record1.value(), equalTo(42L));
+        assertThat(record2.value(), equalTo(77L));
+        assertThat(record3.value(), equalTo(43L));
+        assertThat(record4.value(), equalTo(44L));
     }
 
     // packs the two provided id's (int) in one combined id (long)

@@ -62,8 +62,7 @@ public class MetricsProcessor
         this.metricRecords = new LinkedList<>();
     }
 
-    public void print(
-        PrintStream out)
+    private void init()
     {
         if (metricRecords.isEmpty())
         {
@@ -72,6 +71,12 @@ public class MetricsProcessor
             collectHistograms();
         }
         updateRecords();
+    }
+
+    public void print(
+        PrintStream out)
+    {
+        init();
         calculateColumnWidths();
         printRecords(out);
     }
@@ -84,6 +89,7 @@ public class MetricsProcessor
         Objects.requireNonNull(namespace);
         Objects.requireNonNull(binding);
         Objects.requireNonNull(metric);
+        init();
         return metricRecords.stream()
             .filter(r -> namespace.equals(r.namespaceName()) && binding.equals(r.bindingName()) && metric.equals(r.metricName()))
             .findFirst()
@@ -131,7 +137,7 @@ public class MetricsProcessor
     {
         // the list of ids are expected to be identical in a group of layout files of the same type
         // e.g. counters0, counters1, counters2 should all have the same set of ids, so we can get it from any
-        return layout.isEmpty() ? EMPTY : layout.get(0).getIds();
+        return layout == null || layout.isEmpty() ? EMPTY : layout.get(0).getIds();
     }
 
     private String counterGaugeFormatter(
