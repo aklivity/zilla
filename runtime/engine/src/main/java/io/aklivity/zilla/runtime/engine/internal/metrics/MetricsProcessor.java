@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -73,6 +74,20 @@ public class MetricsProcessor
         updateRecords();
         calculateColumnWidths();
         printRecords(out);
+    }
+
+    public MetricRecord findRecord(
+        String namespace,
+        String binding,
+        String metric)
+    {
+        Objects.requireNonNull(namespace);
+        Objects.requireNonNull(binding);
+        Objects.requireNonNull(metric);
+        return metricRecords.stream()
+            .filter(r -> namespace.equals(r.namespaceName()) && binding.equals(r.bindingName()) && metric.equals(r.metricName()))
+            .findFirst()
+            .orElse(null);
     }
 
     private LongPredicate filterBy(

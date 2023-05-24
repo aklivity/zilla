@@ -79,6 +79,12 @@ public class HistogramRecord implements MetricRecord
     }
 
     @Override
+    public long value()
+    {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
     public void update()
     {
         stats = stats();

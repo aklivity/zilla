@@ -25,5 +25,7 @@ public interface MetricRecord
 
     String stringValue();
 
+    long value();
+
     void update();
 }

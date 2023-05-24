@@ -85,7 +85,7 @@ public class CounterGaugeRecord implements MetricRecord
         value = value();
     }
 
-    private long value()
+    public long value()
     {
         return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
     }
