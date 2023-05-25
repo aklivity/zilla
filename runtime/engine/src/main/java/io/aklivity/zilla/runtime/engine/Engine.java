@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -55,7 +54,6 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
@@ -69,17 +67,15 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.LayoutManager;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
@@ -170,7 +166,7 @@ public final class Engine implements AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, errorHandler, labels);
+        final ContextImpl context = new ContextImpl(config, errorHandler);
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
@@ -371,35 +367,16 @@ public final class Engine implements AutoCloseable
     {
         private final Configuration config;
         private final ErrorHandler errorHandler;
-        private final LabelManager labels;
         private final MetricsProcessor metrics;
 
         private ContextImpl(
             Configuration config,
-            ErrorHandler errorHandler,
-            LabelManager labels)
+            ErrorHandler errorHandler)
         {
             this.config = config;
             this.errorHandler = errorHandler;
-            this.labels = labels;
-            this.metrics = newMetricsProcessor();
-        }
-
-        private MetricsProcessor newMetricsProcessor()
-        {
-            try
-            {
-                LayoutManager manager = new LayoutManager(config.directory());
-                Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-                    COUNTER, manager.countersLayouts()
-                );
-                return new MetricsProcessor(layouts, labels, String::valueOf, null, null, null);
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
-            return null;
+            MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null, null, null);
+            this.metrics = factory.create();
         }
 
         @Override
@@ -421,6 +398,10 @@ public final class Engine implements AutoCloseable
             String binding,
             String metric)
         {
+            if (metrics == null)
+            {
+                return () -> 0L;
+            }
             MetricRecord record = metrics.findRecord(namespace, binding, metric);
             return () -> record == null ? 0L : record.value();
         }
