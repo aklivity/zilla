@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -40,17 +42,23 @@ public class MetricsProcessor
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
     private final LabelManager labels;
+    private final LongFunction<String> formatCounterGauge;
+    private final Function<long[], String> formatHistogram;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
         LabelManager labels,
+        LongFunction<String> formatCounterGauge,
+        Function<long[], String> formatHistogram,
         String namespaceName,
         String bindingName)
     {
         this.layouts = layouts;
         this.labels = labels;
+        this.formatCounterGauge = formatCounterGauge;
+        this.formatHistogram = formatHistogram;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
     }
@@ -64,6 +72,12 @@ public class MetricsProcessor
             collectHistograms();
         }
         updateRecords();
+    }
+
+    public List<MetricRecord> getRecords()
+    {
+        init();
+        return metricRecords;
     }
 
     public MetricRecord findRecord(
@@ -111,7 +125,7 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                        labels::lookupLabel, this::counterGaugeFormatter);
+                        labels::lookupLabel, formatCounterGauge);
                 metricRecords.add(record);
             }
         }
@@ -123,12 +137,6 @@ public class MetricsProcessor
         // the list of ids are expected to be identical in a group of layout files of the same type
         // e.g. counters0, counters1, counters2 should all have the same set of ids, so we can get it from any
         return layout == null || layout.isEmpty() ? EMPTY : layout.get(0).getIds();
-    }
-
-    private String counterGaugeFormatter(
-        long value)
-    {
-        return String.valueOf(value);
     }
 
     private void collectGauges()
@@ -144,7 +152,7 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                        labels::lookupLabel, this::counterGaugeFormatter);
+                        labels::lookupLabel, formatCounterGauge);
                 metricRecords.add(record);
             }
         }
@@ -163,16 +171,10 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers,
-                        labels::lookupLabel, this::histogramFormatter);
+                        labels::lookupLabel, formatHistogram);
                 metricRecords.add(record);
             }
         }
-    }
-
-    private String histogramFormatter(
-        long[] stats)
-    {
-        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
     private void updateRecords()

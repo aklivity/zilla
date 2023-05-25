@@ -393,7 +393,7 @@ public final class Engine implements AutoCloseable
                 Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
                     COUNTER, manager.countersLayouts()
                 );
-                return new MetricsProcessor(layouts, labels, null, null);
+                return new MetricsProcessor(layouts, labels, String::valueOf, null, null, null);
             }
             catch (IOException ex)
             {
