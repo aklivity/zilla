@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
@@ -63,17 +64,6 @@ public class MetricsProcessor
         this.metricRecords = new LinkedList<>();
     }
 
-    private void init()
-    {
-        if (metricRecords.isEmpty())
-        {
-            collectCounters();
-            collectGauges();
-            collectHistograms();
-        }
-        updateRecords();
-    }
-
     public List<MetricRecord> getRecords()
     {
         init();
@@ -95,16 +85,24 @@ public class MetricsProcessor
             .orElse(null);
     }
 
+    private void init()
+    {
+        if (metricRecords.isEmpty())
+        {
+            collectCounters();
+            collectGauges();
+            collectHistograms();
+        }
+        updateRecords();
+    }
+
     private LongPredicate filterBy(
         String namespace,
         String binding)
     {
         int namespaceId = namespace != null ? Math.max(labels.supplyLabelId(namespace), 0) : 0;
         int bindingId = binding != null ? Math.max(labels.supplyLabelId(binding), 0) : 0;
-
-        long namespacedId =
-                (long) namespaceId << Integer.SIZE |
-                        (long) bindingId << 0;
+        long namespacedId = NamespacedId.id(namespaceId, bindingId);
 
         long mask =
                 (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
