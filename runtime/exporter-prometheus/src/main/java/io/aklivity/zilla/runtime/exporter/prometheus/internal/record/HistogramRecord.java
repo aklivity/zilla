@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.record;
 
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKETS;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.NamespacedId.namespaceId;
 

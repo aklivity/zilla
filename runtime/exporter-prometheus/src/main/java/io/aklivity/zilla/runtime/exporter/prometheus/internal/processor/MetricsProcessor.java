@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKETS;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKET_LIMITS;
 
 import java.io.PrintStream;
 import java.util.LinkedList;
@@ -31,7 +31,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.MetricRecord;
@@ -40,7 +40,7 @@ public class MetricsProcessor
 {
     private static final long[][] EMPTY = new long[0][0];
 
-    private final Map<Metric.Kind, List<MetricsLayout>> layouts;
+    private final Map<Metric.Kind, List<MetricsLayoutRO>> layouts;
     private final IntFunction<String> supplyLocalName;
     private final Function<String, String> supplyKind;
     private final Function<String, String> supplyName;
@@ -49,7 +49,7 @@ public class MetricsProcessor
     private final List<MetricRecord> metricRecords;
 
     public MetricsProcessor(
-        Map<Metric.Kind, List<MetricsLayout>> layouts,
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts,
         IntFunction<String> supplyLocalName,
         Function<String, String> supplyKind,
         Function<String, String> supplyName,
@@ -106,7 +106,7 @@ public class MetricsProcessor
     }
 
     private long[][] fetchIds(
-        List<MetricsLayout> layout)
+        List<MetricsLayoutRO> layout)
     {
         // the list of ids are expected to be identical in a group of layout files of the same type
         // e.g. counters0, counters1, counters2 should all have the same set of ids, so we can get it from any

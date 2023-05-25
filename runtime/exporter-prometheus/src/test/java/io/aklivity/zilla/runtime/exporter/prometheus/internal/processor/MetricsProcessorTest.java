@@ -33,10 +33,10 @@ import java.util.function.LongSupplier;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.CountersLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.GaugesLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.metrics.layout.CountersLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.GaugesLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
 
 public class MetricsProcessorTest
 {
@@ -210,22 +210,22 @@ public class MetricsProcessorTest
             "histogram_1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_1_sum{namespace=\"ns1\",binding=\"binding1\"} 64\n" +
             "histogram_1_count{namespace=\"ns1\",binding=\"binding1\"} 2\n\n\n";
-        CountersLayout countersLayout = mock(CountersLayout.class);
+        CountersLayoutRO countersLayout = mock(CountersLayoutRO.class);
         when(countersLayout.getIds()).thenReturn(counterIds);
         when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
         when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
         when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
         when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
-        GaugesLayout gaugesLayout = mock(GaugesLayout.class);
+        GaugesLayoutRO gaugesLayout = mock(GaugesLayoutRO.class);
         when(gaugesLayout.getIds()).thenReturn(gaugeIds);
         when(gaugesLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_88);
 
-        HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
+        HistogramsLayoutRO histogramsLayout = mock(HistogramsLayoutRO.class);
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts = Map.of(
                 COUNTER, List.of(countersLayout),
                 GAUGE, List.of(gaugesLayout),
                 HISTOGRAM, List.of(histogramsLayout));
@@ -364,40 +364,40 @@ public class MetricsProcessorTest
             "histogram_1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_1_sum{namespace=\"ns1\",binding=\"binding1\"} 134\n" +
             "histogram_1_count{namespace=\"ns1\",binding=\"binding1\"} 6\n\n\n";
-        CountersLayout countersLayout0 = mock(CountersLayout.class);
+        CountersLayoutRO countersLayout0 = mock(CountersLayoutRO.class);
         when(countersLayout0.getIds()).thenReturn(counterIds);
         when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
         when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
 
-        CountersLayout countersLayout1 = mock(CountersLayout.class);
+        CountersLayoutRO countersLayout1 = mock(CountersLayoutRO.class);
         when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
         when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
 
-        CountersLayout countersLayout2 = mock(CountersLayout.class);
+        CountersLayoutRO countersLayout2 = mock(CountersLayoutRO.class);
         when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
         when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
 
-        GaugesLayout gaugesLayout0 = mock(GaugesLayout.class);
+        GaugesLayoutRO gaugesLayout0 = mock(GaugesLayoutRO.class);
         when(gaugesLayout0.getIds()).thenReturn(gaugeIds);
         when(gaugesLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_40);
 
-        GaugesLayout gaugesLayout1 = mock(GaugesLayout.class);
+        GaugesLayoutRO gaugesLayout1 = mock(GaugesLayoutRO.class);
         when(gaugesLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_20);
 
-        GaugesLayout gaugesLayout2 = mock(GaugesLayout.class);
+        GaugesLayoutRO gaugesLayout2 = mock(GaugesLayoutRO.class);
         when(gaugesLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_2);
 
-        HistogramsLayout histogramsLayout0 = mock(HistogramsLayout.class);
+        HistogramsLayoutRO histogramsLayout0 = mock(HistogramsLayoutRO.class);
         when(histogramsLayout0.getIds()).thenReturn(histogramIds);
         when(histogramsLayout0.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        HistogramsLayout histogramsLayout1 = mock(HistogramsLayout.class);
+        HistogramsLayoutRO histogramsLayout1 = mock(HistogramsLayoutRO.class);
         when(histogramsLayout1.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_2);
 
-        HistogramsLayout histogramsLayout2 = mock(HistogramsLayout.class);
+        HistogramsLayoutRO histogramsLayout2 = mock(HistogramsLayoutRO.class);
         when(histogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
 
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts = Map.of(
                 COUNTER, List.of(countersLayout0, countersLayout1, countersLayout2),
                 GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
                 HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
@@ -587,13 +587,13 @@ public class MetricsProcessorTest
             "histogram_3_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_3_sum{namespace=\"ns1\",binding=\"binding1\"} 70\n" +
             "histogram_3_count{namespace=\"ns1\",binding=\"binding1\"} 4\n\n\n";
-        HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
+        HistogramsLayoutRO histogramsLayout = mock(HistogramsLayoutRO.class);
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_42)).thenReturn(READER_HISTOGRAM_2);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_43)).thenReturn(READER_HISTOGRAM_3);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_44)).thenReturn(READER_HISTOGRAM_4);
 
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts = Map.of(
                 COUNTER, List.of(),
                 GAUGE, List.of(),
                 HISTOGRAM, List.of(histogramsLayout));
@@ -633,7 +633,7 @@ public class MetricsProcessorTest
     {
         // GIVEN
         String expectedOutput = "";
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts = Map.of(
                 COUNTER, List.of(),
                 GAUGE, List.of(),
                 HISTOGRAM, List.of());

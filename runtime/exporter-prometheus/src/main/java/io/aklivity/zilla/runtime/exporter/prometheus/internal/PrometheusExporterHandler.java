@@ -39,10 +39,10 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsProcessor;
 
@@ -54,7 +54,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
 
-    private Map<Metric.Kind, List<MetricsLayout>> layouts;
+    private Map<Metric.Kind, List<MetricsLayoutRO>> layouts;
     private MetricsProcessor metrics;
 
     public PrometheusExporterHandler(
@@ -111,7 +111,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         }
         if (layouts != null)
         {
-            layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
+            layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayoutRO::close);
         }
     }
 

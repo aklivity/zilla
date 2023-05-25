@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
 
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.Layout.Mode.READ_ONLY;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -24,10 +23,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.CountersLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.GaugesLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.metrics.layout.CountersLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.GaugesLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
 
 public class LayoutManager
 {
@@ -43,19 +42,19 @@ public class LayoutManager
         this.metricsPath = engineDirectory.resolve("metrics");
     }
 
-    public List<MetricsLayout> countersLayouts() throws IOException
+    public List<MetricsLayoutRO> countersLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
-    public List<MetricsLayout> gaugesLayouts() throws IOException
+    public List<MetricsLayoutRO> gaugesLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
-    public List<MetricsLayout> histogramsLayouts() throws IOException
+    public List<MetricsLayoutRO> histogramsLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
@@ -85,21 +84,21 @@ public class LayoutManager
             Files.isRegularFile(path);
     }
 
-    private CountersLayout newCountersLayout(
+    private CountersLayoutRO newCountersLayout(
         Path path)
     {
-        return new CountersLayout.Builder().path(path).mode(READ_ONLY).build();
+        return new CountersLayoutRO.Builder().path(path).build();
     }
 
-    private GaugesLayout newGaugesLayout(
+    private GaugesLayoutRO newGaugesLayout(
         Path path)
     {
-        return new GaugesLayout.Builder().path(path).mode(READ_ONLY).build();
+        return new GaugesLayoutRO.Builder().path(path).build();
     }
 
-    private HistogramsLayout newHistogramsLayout(
+    private HistogramsLayoutRO newHistogramsLayout(
         Path path)
     {
-        return new HistogramsLayout.Builder().path(path).mode(READ_ONLY).build();
+        return new HistogramsLayoutRO.Builder().path(path).build();
     }
 }
