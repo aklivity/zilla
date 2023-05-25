@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.metrics;
+package io.aklivity.zilla.runtime.engine.metrics.processor;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsProcessor
 {

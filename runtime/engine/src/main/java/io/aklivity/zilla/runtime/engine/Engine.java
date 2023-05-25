@@ -71,8 +71,6 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.LayoutManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
-import io.aklivity.zilla.runtime.engine.internal.metrics.MetricRecord;
-import io.aklivity.zilla.runtime.engine.internal.metrics.MetricsProcessor;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
@@ -81,6 +79,8 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable

@@ -13,35 +13,34 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.metrics;
+package io.aklivity.zilla.runtime.engine.metrics.record;
 
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
-import java.util.Arrays;
+import java.util.function.Function;
 import java.util.function.IntFunction;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
-public class CounterGaugeRecord implements MetricRecord
+public class HistogramRecord implements MetricRecord
 {
-    private static final int UNINITIALIZED = -1;
-
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
-    private final LongSupplier[] readers;
+    private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
-    private final LongFunction<String> valueFormatter;
+    private final Function<long[], String> valueFormatter;
 
-    private long value = UNINITIALIZED;
+    private long[] stats;
 
-    public CounterGaugeRecord(
+    public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
-        LongSupplier[] readers,
+        LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        LongFunction<String> valueFormatter)
+        Function<long[], String> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
@@ -72,22 +71,61 @@ public class CounterGaugeRecord implements MetricRecord
     @Override
     public String stringValue()
     {
-        if (value == UNINITIALIZED)
+        if (stats == null)
         {
             update();
         }
-        return valueFormatter.apply(value);
+        return valueFormatter.apply(stats);
+    }
+
+    @Override
+    public long value()
+    {
+        throw new RuntimeException("not implemented");
     }
 
     @Override
     public void update()
     {
-        value = value();
+        stats = stats();
     }
 
-    public long value()
+    private long[] stats()
     {
-        return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
+        long count = 0L;
+        long sum = 0L;
+        int minIndex = -1;
+        int maxIndex = -1;
+        long[] histogram = new long[BUCKETS];
+
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            for (LongSupplier[] reader : readers)
+            {
+                histogram[i] += reader[i].getAsLong();
+            }
+            long bucketCount = histogram[i];
+            count += bucketCount;
+            sum += bucketCount * getValue(i);
+            if (bucketCount != 0)
+            {
+                maxIndex = i;
+                if (minIndex == -1)
+                {
+                    minIndex = i;
+                }
+            }
+        }
+
+        long minimum = minIndex == -1 ? 0L : getValue(minIndex);
+        long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
+        long average = count == 0L ? 0L : sum / count;
+        return new long[]{minimum, maximum, count, average};
     }
 
+    private long getValue(
+        int index)
+    {
+        return BUCKET_LIMITS.get(index) - 1;
+    }
 }

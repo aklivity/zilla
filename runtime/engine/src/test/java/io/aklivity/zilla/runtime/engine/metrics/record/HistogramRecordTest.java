@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.metrics.record;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -22,8 +22,6 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.internal.metrics.HistogramRecord;
 
 public class HistogramRecordTest
 {

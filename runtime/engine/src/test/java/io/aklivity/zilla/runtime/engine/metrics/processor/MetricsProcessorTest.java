@@ -13,8 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.metrics.processor;
 
+import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.id;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -31,17 +32,17 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
-import io.aklivity.zilla.runtime.engine.internal.metrics.MetricRecord;
-import io.aklivity.zilla.runtime.engine.internal.metrics.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsProcessorTest
 {
-    public static final long BINDING_ID_1_11 = pack(1, 11);
-    public static final long BINDING_ID_1_12 = pack(1, 12);
-    public static final long BINDING_ID_2_11 = pack(2, 11);
-    public static final long METRIC_ID_1_21 = pack(1, 21);
-    public static final long METRIC_ID_1_22 = pack(1, 22);
-    public static final long METRIC_ID_2_21 = pack(2, 21);
+    public static final long BINDING_ID_1_11 = id(1, 11);
+    public static final long BINDING_ID_1_12 = id(1, 12);
+    public static final long BINDING_ID_2_11 = id(2, 11);
+    public static final long METRIC_ID_1_21 = id(1, 21);
+    public static final long METRIC_ID_1_22 = id(1, 22);
+    public static final long METRIC_ID_2_21 = id(2, 21);
     public static final LongSupplier READER_42 = () -> 42L;
     public static final LongSupplier READER_43 = () -> 43L;
     public static final LongSupplier READER_44 = () -> 44L;
@@ -89,14 +90,5 @@ public class MetricsProcessorTest
         assertThat(record2.value(), equalTo(77L));
         assertThat(record3.value(), equalTo(43L));
         assertThat(record4.value(), equalTo(44L));
-    }
-
-    // packs the two provided id's (int) in one combined id (long)
-    private static long pack(
-        final int namespaceId,
-        final int localId)
-    {
-        return (long) namespaceId << Integer.SIZE |
-                (long) localId << 0;
     }
 }
