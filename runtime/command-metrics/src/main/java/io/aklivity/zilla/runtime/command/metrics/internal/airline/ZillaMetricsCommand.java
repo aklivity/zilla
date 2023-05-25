@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -40,8 +40,8 @@ import com.github.rvesse.airline.annotations.Option;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.layout.CountersLayoutRO;
 import io.aklivity.zilla.runtime.engine.metrics.layout.GaugesLayoutRO;
 import io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO;

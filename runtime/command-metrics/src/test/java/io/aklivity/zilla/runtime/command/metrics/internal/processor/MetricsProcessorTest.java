@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -31,7 +31,7 @@ import java.util.function.LongSupplier;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.layout.CountersLayoutRO;
 import io.aklivity.zilla.runtime.engine.metrics.layout.GaugesLayoutRO;
 import io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO;

@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 
 import java.io.PrintStream;
 import java.util.LinkedList;
@@ -27,11 +27,11 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
-import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
+import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsProcessor
 {

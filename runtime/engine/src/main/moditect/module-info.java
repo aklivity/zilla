@@ -24,6 +24,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.guard;
     exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.metrics.layout;
+    exports io.aklivity.zilla.runtime.engine.metrics.record;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
 
