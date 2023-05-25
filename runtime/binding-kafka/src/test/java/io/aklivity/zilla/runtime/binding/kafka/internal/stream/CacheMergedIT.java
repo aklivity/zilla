@@ -295,6 +295,36 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/merged.produce.flush/client",
+        "${app}/unmerged.produce.flush/server"})
+    public void shouldProduceMergedFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/merged.produce.flush.dynamic/client",
+        "${app}/unmerged.produce.flush.dynamic/server"})
+    public void shouldProduceMergedFlushDynamic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/merged.produce.flush.dynamic.hashed/client",
+        "${app}/unmerged.produce.flush.dynamic.hashed/server"})
+    public void shouldProduceMergedFlushDynamicHashed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/merged.produce.message.values/client",
         "${app}/unmerged.produce.message.values/server"})
     public void shouldProduceMergedMessageValuesByDefault() throws Exception
