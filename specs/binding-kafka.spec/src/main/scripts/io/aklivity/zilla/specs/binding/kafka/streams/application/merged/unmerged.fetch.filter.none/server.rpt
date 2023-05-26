@@ -166,6 +166,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A3"
 write flush
 
+write await PARTITION_ZERO_OFFSET_FOUR
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
@@ -179,6 +181,8 @@ write "Hello, world #A4"
 write flush
 write notify SENT_MESSAGE_A4
 
+write await PARTITION_ZERO_OFFSET_FIVE
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
@@ -189,6 +193,9 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world #A5"
 write flush
+write notify SENT_MESSAGE_A5
+
+write await PARTITION_ZERO_OFFSET_SIX
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
@@ -203,6 +210,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world #A6"
 write flush
+write notify SENT_MESSAGE_A6
 
 accepted
 
@@ -259,6 +267,7 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #B3"
 write flush
 
+write await SENT_MESSAGE_A4
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
@@ -271,6 +280,7 @@ write "Hello, world #B4"
 write flush
 write notify SENT_MESSAGE_B4
 
+write await SENT_MESSAGE_A5
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
@@ -282,6 +292,7 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #B5"
 write flush
 
+write await SENT_MESSAGE_A6
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()

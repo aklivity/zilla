@@ -115,6 +115,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #B3"
 write flush
 
+write await PARTITION_ZERO_OFFSET_FOUR
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
@@ -142,6 +144,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #B4"
 write flush
 
+write await PARTITION_ZERO_OFFSET_FIVE
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
@@ -167,6 +171,8 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world #B5"
 write flush
+
+write await PARTITION_ZERO_OFFSET_SIX
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
