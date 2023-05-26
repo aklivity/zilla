@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.name
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
@@ -84,5 +85,27 @@ public class CounterGaugeRecord implements MetricRecord
     public Map<Integer, Long> histogramBucketLimits()
     {
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public boolean equals(
+        Object o)
+    {
+        if (this == o)
+        {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass())
+        {
+            return false;
+        }
+        CounterGaugeRecord that = (CounterGaugeRecord) o;
+        return namespaceId == that.namespaceId && bindingId == that.bindingId && metricId == that.metricId;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(namespaceId, bindingId, metricId);
     }
 }

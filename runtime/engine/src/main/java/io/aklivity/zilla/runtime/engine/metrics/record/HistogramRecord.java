@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.loca
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
@@ -119,5 +120,27 @@ public class HistogramRecord implements MetricRecord
         int index)
     {
         return BUCKET_LIMITS.get(index) - 1;
+    }
+
+    @Override
+    public boolean equals(
+        Object o)
+    {
+        if (this == o)
+        {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass())
+        {
+            return false;
+        }
+        HistogramRecord that = (HistogramRecord) o;
+        return namespaceId == that.namespaceId && bindingId == that.bindingId && metricId == that.metricId;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(namespaceId, bindingId, metricId);
     }
 }
