@@ -63,21 +63,21 @@ public class EngineContextTest
         long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
 
         // write some metric data
-        Path path1 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters0");
-        Path path2 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters1");
-        Path path3 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters2");
+        Path path0 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters0");
+        Path path1 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters1");
+        Path path2 = Paths.get(ENGINE_DIRECTORY, "metrics", "counters2");
         CountersLayout countersLayout0 = new CountersLayout.Builder()
-            .path(path1)
+            .path(path0)
             .capacity(8192)
             .mode(CREATE_READ_WRITE)
             .build();
         CountersLayout countersLayout1 = new CountersLayout.Builder()
-            .path(path2)
+            .path(path1)
             .capacity(8192)
             .mode(CREATE_READ_WRITE)
             .build();
         CountersLayout countersLayout2 = new CountersLayout.Builder()
-            .path(path3)
+            .path(path2)
             .capacity(8192)
             .mode(CREATE_READ_WRITE)
             .build();
