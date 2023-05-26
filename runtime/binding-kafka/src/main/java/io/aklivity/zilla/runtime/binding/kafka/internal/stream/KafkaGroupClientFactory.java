@@ -904,14 +904,16 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.openingInitial(state);
 
             clusterClient.doNetworkBegin(traceId, authorization, affinity);
+            doApplicationWindow(traceId, 0L, 0, 0, 0);
         }
 
         private void onApplicationData(
             DataFW data)
         {
             final long traceId = data.traceId();
+            final long budgetId = data.budgetId();
 
-            clusterClient.cleanupNetwork(traceId);
+            coordinatorClient.doSyncRequest(traceId, budgetId, data.payload());
         }
 
         private void onApplicationEnd(
@@ -1757,6 +1759,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private String16FW memberId = new String16FW("");
         private KafkaGroupCoordinatorClientDecoder decoder;
         private LongLongConsumer encoder;
+        private OctetsFW assignment = EMPTY_OCTETS;
 
         CoordinatorClient(
             long originId,
@@ -2103,8 +2106,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             final JoinGroupRequestFW joinGroupRequest =
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
-                    .sessionTimeoutMillis(10000)
-                    .rebalanceTimeoutMillis(10000)
+                    .sessionTimeoutMillis(delegate.timeout)
+                    .rebalanceTimeoutMillis(delegate.timeout)
                     .memberId(memberId)
                     .protocolType("consumer")
                     .protocolCount(1)
@@ -2114,16 +2117,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name("range")
-                    .metadata(m -> m.set((b, o, l) ->
-                    {
-                        RangeProtocolFW range = rangeProtocolRW.wrap(b, o, l)
-                            .version(0x01)
-                            .topic(delegate.topic)
-                            .partitionCount(0)
-                            .build();
-                        return range.sizeof();
-                    }))
+                    .name(delegate.protocol)
+                    .metadata(EMPTY_OCTETS)
                     .build();
 
             encodeProgress = protocolMetadata.limit();
@@ -2177,32 +2172,10 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             final GroupAssignmentsFW groupAssignment =
                 groupAssignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .memberId(memberId)
-                    .assignment(a -> a.set((b, o, l) ->
-                    {
-                        AssignmentFW assignment = assignmentRW.wrap(b, o, l)
-                            .memberId(memberId)
-                            .topicPartition(t -> t.set((b1, o1, l1) ->
-                            {
-                                TopicPartitionFW topicPartition = topicPartitionRW.wrap(b1, o1, l1)
-                                    .version(0x01)
-                                    .topic(delegate.topic)
-                                    .partitionCount(0x01)
-                                    .build();
-                                return topicPartition.sizeof();
-                            }))
-                            .build();
-                        return assignment.sizeof();
-                    }))
+                    .assignment(assignment)
                     .build();
 
             encodeProgress = groupAssignment.limit();
-
-            final PartitionFW partition = partitionRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                .partitionId(0x00)
-                .offsetId(0x00)
-                .build();
-
-            encodeProgress = partition.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -2262,6 +2235,15 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
             decoder = decodeSyncGroupResponse;
+        }
+
+        private void doSyncRequest(
+            long traceId,
+            long budgetId,
+            OctetsFW assignment)
+        {
+            this.assignment = assignment;
+            doEncodeSyncGroupRequest(traceId, budgetId);
         }
 
         private void encodeNetwork(
