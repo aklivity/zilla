@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -81,7 +82,8 @@ public final class Engine implements AutoCloseable
     private final Collection<AgentRunner> runners;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
-    private final EngineExtContext context;
+    // visible for testing
+    final EngineExtContext context;
 
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
@@ -159,7 +161,7 @@ public final class Engine implements AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
+        final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers, labels);
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
@@ -349,15 +351,18 @@ public final class Engine implements AutoCloseable
         private final Configuration config;
         private final ErrorHandler errorHandler;
         private final Collection<DispatchAgent> dispatchers;
+        private final LabelManager labels;
 
         private ContextImpl(
             Configuration config,
             ErrorHandler errorHandler,
-            Collection<DispatchAgent> dispatchers)
+            Collection<DispatchAgent> dispatchers,
+            LabelManager labels)
         {
             this.config = config;
             this.errorHandler = errorHandler;
             this.dispatchers = dispatchers;
+            this.labels = labels;
         }
 
         @Override
@@ -371,6 +376,25 @@ public final class Engine implements AutoCloseable
             Exception error)
         {
             errorHandler.onError(error);
+        }
+
+        @Override
+        public LongSupplier counter(
+            String namespace,
+            String binding,
+            String metric)
+        {
+            int namespaceId = labels.supplyLabelId(namespace);
+            int bindingId = labels.supplyLabelId(binding);
+            int metricId = labels.supplyLabelId(metric);
+            long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
+            long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
+            List<LongSupplier> counterSuppliers = dispatchers.stream()
+                .map(d -> d.supplyCounter(namespacedBindingId, namespacedMetricId))
+                .collect(toList());
+            return () -> counterSuppliers.stream()
+                .map(LongSupplier::getAsLong)
+                .reduce(0L, Long::sum);
         }
     }
 }

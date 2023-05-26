@@ -59,6 +59,7 @@ import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DeadlineTimerWheel;
@@ -198,6 +199,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
+    private final CountersLayout countersLayout;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -231,7 +233,7 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        final CountersLayout countersLayout = new CountersLayout.Builder()
+        this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
@@ -521,6 +523,14 @@ public class DispatchAgent implements EngineContext, Agent
     public BufferPool bufferPool()
     {
         return bufferPool;
+    }
+
+    @Override
+    public LongSupplier supplyCounter(
+        long bindingId,
+        long metricId)
+    {
+        return countersLayout.supplyReader(bindingId, metricId);
     }
 
     @Override
