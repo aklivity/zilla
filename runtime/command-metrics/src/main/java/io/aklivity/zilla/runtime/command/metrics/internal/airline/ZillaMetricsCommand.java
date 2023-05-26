@@ -14,12 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Layout.Mode.READ_ONLY;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -27,10 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
 
@@ -39,25 +31,15 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
-import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
+import io.aklivity.zilla.runtime.command.metrics.internal.printer.MetricsPrinter;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
 
 @Command(name = "metrics", description = "Show engine metrics")
 public final class ZillaMetricsCommand extends ZillaCommand
 {
     private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
-    private static final Pattern COUNTERS_PATTERN = Pattern.compile("counters(\\d+)");
-    private static final Pattern GAUGES_PATTERN = Pattern.compile("gauges(\\d+)");
-    private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
-
-    private final Path labelsPath;
-    private final Path metricsPath;
 
     @Option(name = { "--namespace" })
     public String namespace;
@@ -73,41 +55,19 @@ public final class ZillaMetricsCommand extends ZillaCommand
     @Arguments(title = {"name"})
     public List<String> args;
 
-    public ZillaMetricsCommand()
-    {
-        Path engineDirectory = engineDirectory();
-        this.labelsPath = engineDirectory;
-        this.metricsPath = engineDirectory.resolve("metrics");
-    }
-
     @Override
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of();
-        try
+        MetricsProcessorFactory factory = new MetricsProcessorFactory(engineDirectory(), namespace, binding);
+        MetricsProcessor metricsProcessor = factory.create();
+        MetricsPrinter printer = new MetricsPrinter(metricsProcessor);
+        do
         {
-            layouts = Map.of(
-                    COUNTER, countersLayouts(),
-                    GAUGE, gaugesLayouts(),
-                    HISTOGRAM, histogramsLayouts());
-            final LabelManager labels = new LabelManager(labelsPath);
-            MetricsProcessor metrics = new MetricsProcessor(layouts, labels, namespace, binding);
-            do
-            {
-                metrics.print(System.out);
-                Thread.sleep(interval * 1000L);
-            } while (interval != 0);
-        }
-        catch (InterruptedException | IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-        finally
-        {
-            Map<Metric.Kind, List<MetricsLayout>> layouts0 = layouts;
-            layouts.keySet().stream().flatMap(kind -> layouts0.get(kind).stream()).forEach(MetricsLayout::close);
-        }
+            printer.print(System.out);
+            sleep(interval);
+        } while (interval != 0);
+        metricsProcessor.close();
     }
 
     private Path engineDirectory()
@@ -132,63 +92,16 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return config.directory();
     }
 
-    private List<MetricsLayout> countersLayouts() throws IOException
+    private void sleep(
+        long interval)
     {
-        Stream<Path> files = Files.walk(metricsPath, 1);
-        return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
-    }
-
-    private List<MetricsLayout> gaugesLayouts() throws IOException
-    {
-        Stream<Path> files = Files.walk(metricsPath, 1);
-        return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
-    }
-
-    private List<MetricsLayout> histogramsLayouts() throws IOException
-    {
-        Stream<Path> files = Files.walk(metricsPath, 1);
-        return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
-    }
-
-    private boolean isCountersFile(
-        Path path)
-    {
-        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
-                COUNTERS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
-                Files.isRegularFile(path);
-    }
-
-    private boolean isGaugesFile(
-        Path path)
-    {
-        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
-                GAUGES_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
-                Files.isRegularFile(path);
-    }
-
-    private boolean isHistogramsFile(
-        Path path)
-    {
-        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
-                HISTOGRAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
-                Files.isRegularFile(path);
-    }
-
-    private CountersLayout newCountersLayout(
-        Path path)
-    {
-        return new CountersLayout.Builder().path(path).mode(READ_ONLY).build();
-    }
-
-    private GaugesLayout newGaugesLayout(
-        Path path)
-    {
-        return new GaugesLayout.Builder().path(path).mode(READ_ONLY).build();
-    }
-
-    private HistogramsLayout newHistogramsLayout(
-        Path path)
-    {
-        return new HistogramsLayout.Builder().path(path).mode(READ_ONLY).build();
+        try
+        {
+            Thread.sleep(interval * 1000L);
+        }
+        catch (InterruptedException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 }
