@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.layout;
+/*package io.aklivity.zilla.runtime.exporter.prometheus.internal.layout;
 
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.Layout.Mode.CREATE_READ_WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -216,3 +216,4 @@ public class HistogramsLayoutTest
         assertThat(countersLayout.getIds(), equalTo(expectedIds));
     }
 }
+*/

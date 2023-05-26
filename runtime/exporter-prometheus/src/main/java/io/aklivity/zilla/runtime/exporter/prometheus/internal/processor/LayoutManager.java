@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
+/*package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
 
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.Layout.Mode.READ_ONLY;
 import static java.util.stream.Collectors.toList;
@@ -103,3 +103,4 @@ public class LayoutManager
         return new HistogramsLayout.Builder().path(path).mode(READ_ONLY).build();
     }
 }
+*/

@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
 
@@ -25,7 +22,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.util.List;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.agrona.LangUtil;
@@ -38,33 +35,30 @@ import com.sun.net.httpserver.HttpServer;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.MetricsPrinter;
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
-    private final LayoutManager manager;
-    private final PrometheusMetricDescriptor metricDescriptor;
-    private final EngineContext context;
+    private final PrometheusMetricDescriptor descriptor;
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
+    private final Path engineDirectory;
 
-    private Map<Metric.Kind, List<MetricsLayout>> layouts;
-    private MetricsProcessor metrics;
+    private MetricsProcessor metricsProcessor;
+    private MetricsPrinter printer;
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
         EngineContext context,
         PrometheusExporterConfig exporter)
     {
-        this.manager = new LayoutManager(config.directory());
-        this.metricDescriptor = new PrometheusMetricDescriptor(context::resolveMetric);
-        this.context = context;
+        this.engineDirectory = config.directory();
+        this.descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
         this.servers = new Int2ObjectHashMap<>();
     }
@@ -72,7 +66,27 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        try
+        MetricsProcessorFactory factory = new MetricsProcessorFactory(engineDirectory, null, null);
+        metricsProcessor = factory.create();
+        printer = new MetricsPrinter(metricsProcessor, descriptor::kind, descriptor::name, descriptor::description);
+
+        for (PrometheusEndpointConfig endpoint : endpoints)
+        {
+            HttpServer server = null;
+            try
+            {
+                server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
+            }
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+            server.createContext(endpoint.path, new MetricsHttpHandler());
+            server.start();
+            servers.put(endpoint.port, server);
+        }
+
+        /*try
         {
             layouts = Map.of(
                 COUNTER, manager.countersLayouts(),
@@ -92,7 +106,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         catch (IOException ex)
         {
             LangUtil.rethrowUnchecked(ex);
-        }
+        }*/
     }
 
     @Override
@@ -109,9 +123,9 @@ public class PrometheusExporterHandler implements ExporterHandler
             HttpServer server = servers.remove(port);
             server.stop(0);
         }
-        if (layouts != null)
+        if (metricsProcessor != null)
         {
-            layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
+            metricsProcessor.close();
         }
     }
 
@@ -120,7 +134,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         String output = "";
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
-        metrics.print(out);
+        printer.print(out);
         try
         {
             output = os.toString("UTF8");

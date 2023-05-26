@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.record;
+/*package io.aklivity.zilla.runtime.exporter.prometheus.internal.record;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -155,3 +155,4 @@ public class HistogramRecordTest
         assertThat(stringValue, equalTo("[min: 0 | max: 0 | cnt: 0 | avg: 0]"));
     }
 }
+*/

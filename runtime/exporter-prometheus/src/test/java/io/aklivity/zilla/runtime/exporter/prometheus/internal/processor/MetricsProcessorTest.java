@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
+/*package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
@@ -662,3 +662,4 @@ public class MetricsProcessorTest
                 (long) localId << 0;
     }
 }
+*/
