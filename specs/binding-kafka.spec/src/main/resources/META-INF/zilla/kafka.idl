@@ -321,6 +321,7 @@ scope kafka
 
         struct KafkaGroupBeginEx
         {
+            string16 topic;
             string16 groupId;
             string16 protocol;
             int32 timeout;

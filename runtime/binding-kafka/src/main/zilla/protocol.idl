@@ -359,12 +359,6 @@ scope protocol
                 int32 port;
             }
 
-            struct ProtocolMetadata
-            {
-                string16 name;
-                octets metadata;
-            }
-
             struct JoinGroupRequest
             {
                 string16 groupId;
@@ -372,13 +366,21 @@ scope protocol
                 int32 rebalanceTimeoutMillis;
                 string16 memberId;
                 string16 protocolType;
-                ProtocolMetadata[] protocols;
+                int32 protocolCount;
             }
 
-            struct MemberMetadata
+            struct ProtocolMetadata
             {
-                string16 memberId;
-                octets metadata;
+                string16 name;
+                uint32 metadataLength;
+                octets[metadataLength] metadata;
+            }
+
+            struct RangeProtocol
+            {
+                int32 version;
+                string16 topic;
+                int32 partitionCount;
             }
 
             struct JoinGroupResponse
@@ -390,13 +392,14 @@ scope protocol
                 string16 protocolName;
                 string16 leader;
                 string16 memberId;
-                MemberMetadata[] members;
+                int32 memberCount;
             }
 
-            struct Assignment
+            struct MemberMetadata
             {
                 string16 memberId;
-                octets assignment;
+                uint32 length;
+                octets[length] metadata;
             }
 
             struct SyncGroupRequest
@@ -404,7 +407,34 @@ scope protocol
                 string16 groupId;
                 int32 generatedId;
                 string16 memberId;
-                Assignment[] assignments;
+                int32 assignmentCount;
+            }
+
+            struct GroupAssignments
+            {
+                string16 memberId;
+                uint32 length;
+                octets[length] assignment;
+            }
+
+            struct Assignment
+            {
+               string16 memberId;
+               uint32 length;
+               octets[length] topicPartition;
+            }
+
+            struct TopicPartition
+            {
+                int32 version;
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct Partition
+            {
+                int32 partitionId;
+                int32 offsetId;
             }
 
             struct SyncGroupResponse

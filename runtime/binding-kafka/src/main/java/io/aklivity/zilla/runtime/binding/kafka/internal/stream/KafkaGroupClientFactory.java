@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -38,14 +38,20 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeade
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.GroupAssignmentsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.PartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.RangeProtocolFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.TopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -111,7 +117,13 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
     private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
+    private final ProtocolMetadataFW.Builder protocolMetadataRW = new ProtocolMetadataFW.Builder();
+    private final RangeProtocolFW.Builder rangeProtocolRW = new RangeProtocolFW.Builder();
     private final SyncGroupRequestFW.Builder syncGroupRequestRW = new SyncGroupRequestFW.Builder();
+    private final GroupAssignmentsFW.Builder groupAssignmentRW = new GroupAssignmentsFW.Builder();
+    private final AssignmentFW.Builder assignmentRW = new AssignmentFW.Builder();
+    private final TopicPartitionFW.Builder topicPartitionRW = new TopicPartitionFW.Builder();
+    private final PartitionFW.Builder partitionRW = new PartitionFW.Builder();
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
 
@@ -212,6 +224,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         final KafkaRouteConfig resolved;
         final int timeout = kafkaGroupBeginEx.timeout();
         final String16FW groupId = kafkaGroupBeginEx.groupId();
+        final String16FW topic = kafkaGroupBeginEx.topic();
         final String16FW protocol = kafkaGroupBeginEx.protocol();
 
         if (binding != null)
@@ -236,6 +249,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     affinity,
                     resolvedId,
                     groupId,
+                    topic,
                     protocol,
                     timeout,
                     sasl)::onApplication;
@@ -795,6 +809,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private final ClusterClient clusterClient;
         private final CoordinatorClient coordinatorClient;
         private final String16FW groupId;
+        private final String16FW topic;
         private final String16FW protocol;
         private final int timeout;
         private final long originId;
@@ -824,6 +839,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             long affinity,
             long resolvedId,
             String16FW groupId,
+            String16FW topic,
             String16FW protocol,
             int timeout,
             KafkaSaslConfig sasl)
@@ -835,6 +851,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.groupId = groupId;
+            this.topic = topic;
             this.protocol = protocol;
             this.timeout = timeout;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
@@ -2090,11 +2107,26 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     .rebalanceTimeoutMillis(10000)
                     .memberId(memberId)
                     .protocolType("consumer")
-                    .protocols(p -> p.item(i -> i.name("")
-                        .metadata(delegate.protocol.buffer(), delegate.protocol.offset(), delegate.protocol.sizeof())))
+                    .protocolCount(1)
                     .build();
 
             encodeProgress = joinGroupRequest.limit();
+
+            final ProtocolMetadataFW protocolMetadata =
+                protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .name("range")
+                    .metadata(m -> m.set((b, o, l) ->
+                    {
+                        RangeProtocolFW range = rangeProtocolRW.wrap(b, o, l)
+                            .version(0x01)
+                            .topic(delegate.topic)
+                            .partitionCount(0)
+                            .build();
+                        return range.sizeof();
+                    }))
+                    .build();
+
+            encodeProgress = protocolMetadata.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -2135,11 +2167,42 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             final SyncGroupRequestFW syncGroupRequest =
                 syncGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
+                    .generatedId(nextRequestId)
                     .memberId(memberId)
-                    .assignments(a -> a.item(i -> i.memberId(memberId)))
+                    .assignmentCount(1)
                     .build();
 
             encodeProgress = syncGroupRequest.limit();
+
+            final GroupAssignmentsFW groupAssignment =
+                groupAssignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .memberId(memberId)
+                    .assignment(a -> a.set((b, o, l) ->
+                    {
+                        AssignmentFW assignment = assignmentRW.wrap(b, o, l)
+                            .memberId(memberId)
+                            .topicPartition(t -> t.set((b1, o1, l1) ->
+                            {
+                                TopicPartitionFW topicPartition = topicPartitionRW.wrap(b1, o1, l1)
+                                    .version(0x01)
+                                    .topic(delegate.topic)
+                                    .partitionCount(0x01)
+                                    .build();
+                                return topicPartition.sizeof();
+                            }))
+                            .build();
+                        return assignment.sizeof();
+                    }))
+                    .build();
+
+            encodeProgress = groupAssignment.limit();
+
+            final PartitionFW partition = partitionRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                .partitionId(0x00)
+                .offsetId(0x00)
+                .build();
+
+            encodeProgress = partition.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -2391,7 +2454,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        public void onJoinGroupResponse(
+        private void onJoinGroupResponse(
             long traceId,
             long authorization,
             String16FW leader,
@@ -2402,11 +2465,9 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.leader = leader;
             this.memberId = memberId;
 
-            if (memberId == null)
-            {
-                delegate.doApplicationBeginIfNecessary(traceId, authorization);
-            }
-            else
+            delegate.doApplicationBeginIfNecessary(traceId, authorization);
+
+            if (this.memberId.length() != 0)
             {
                 encoder = encodeSyncGroupRequest;
             }
@@ -2414,7 +2475,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        public void onSyncGroupResponse(
+        private void onSyncGroupResponse(
             long traceId,
             long authorization,
             OctetsFW assignment)
@@ -2432,7 +2493,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        public void onHeartbeatResponse(
+        private void onHeartbeatResponse(
             long traceId,
             long authorization)
         {
@@ -2440,7 +2501,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             signaler.signalAt((long) delegate.timeout / 2, originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        public void onRebalanceError(
+        private void onRebalanceError(
             long traceId,
             long authorization)
         {
