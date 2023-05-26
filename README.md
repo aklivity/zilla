@@ -41,7 +41,7 @@ Zilla is designed on the fundamental principle that every data flow is a stream,
 Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
 
 - [**REST ⇄ Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
-  Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
+  Transforms HTTP 1.1/HTTP 2 requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. Enables exposing Kafka topics and services via an application-centric REST API (as opposed to a topic-centric, system-level API as with the Confluent REST Proxy). JWT authentication supported.
 - [**SSE ← Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
   Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable data streaming/pushing down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
 - [**Kafka → gRPC**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-grpc-kafka.html) & [**gRPC ⇄ Kafka**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-kafka-grpc.html) — 
