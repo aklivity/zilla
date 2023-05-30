@@ -102,7 +102,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #B3"
 
-read notify PARTITION_ZERO_OFFSET_FOUR
+read notify RECEIVED_MESSAGE_B3
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -128,7 +128,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #B4"
 
-read notify PARTITION_ZERO_OFFSET_FIVE
+read notify RECEIVED_MESSAGE_B4
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -153,7 +153,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #B5"
 
-read notify PARTITION_ZERO_OFFSET_SIX
+read notify RECEIVED_MESSAGE_B5
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))

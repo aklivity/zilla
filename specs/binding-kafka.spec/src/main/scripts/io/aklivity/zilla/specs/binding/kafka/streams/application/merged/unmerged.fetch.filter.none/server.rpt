@@ -166,7 +166,7 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A3"
 write flush
 
-write await PARTITION_ZERO_OFFSET_FOUR
+write await SEND_MESSAGE_A4
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
@@ -181,7 +181,7 @@ write "Hello, world #A4"
 write flush
 write notify SENT_MESSAGE_A4
 
-write await PARTITION_ZERO_OFFSET_FIVE
+write await SEND_MESSAGE_A5
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
@@ -195,7 +195,7 @@ write "Hello, world #A5"
 write flush
 write notify SENT_MESSAGE_A5
 
-write await PARTITION_ZERO_OFFSET_SIX
+write await SEND_MESSAGE_A6
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
