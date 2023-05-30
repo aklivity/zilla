@@ -46,12 +46,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Heartb
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.PartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.RangeProtocolFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.TopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -118,12 +115,9 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
     private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
     private final ProtocolMetadataFW.Builder protocolMetadataRW = new ProtocolMetadataFW.Builder();
-    private final RangeProtocolFW.Builder rangeProtocolRW = new RangeProtocolFW.Builder();
     private final SyncGroupRequestFW.Builder syncGroupRequestRW = new SyncGroupRequestFW.Builder();
     private final GroupAssignmentsFW.Builder groupAssignmentRW = new GroupAssignmentsFW.Builder();
     private final AssignmentFW.Builder assignmentRW = new AssignmentFW.Builder();
-    private final TopicPartitionFW.Builder topicPartitionRW = new TopicPartitionFW.Builder();
-    private final PartitionFW.Builder partitionRW = new PartitionFW.Builder();
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
 
@@ -224,7 +218,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         final KafkaRouteConfig resolved;
         final int timeout = kafkaGroupBeginEx.timeout();
         final String16FW groupId = kafkaGroupBeginEx.groupId();
-        final String16FW topic = kafkaGroupBeginEx.topic();
         final String16FW protocol = kafkaGroupBeginEx.protocol();
 
         if (binding != null)
@@ -249,7 +242,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     affinity,
                     resolvedId,
                     groupId,
-                    topic,
                     protocol,
                     timeout,
                     sasl)::onApplication;
@@ -809,7 +801,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private final ClusterClient clusterClient;
         private final CoordinatorClient coordinatorClient;
         private final String16FW groupId;
-        private final String16FW topic;
         private final String16FW protocol;
         private final int timeout;
         private final long originId;
@@ -839,7 +830,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             long affinity,
             long resolvedId,
             String16FW groupId,
-            String16FW topic,
             String16FW protocol,
             int timeout,
             KafkaSaslConfig sasl)
@@ -851,7 +841,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.groupId = groupId;
-            this.topic = topic;
             this.protocol = protocol;
             this.timeout = timeout;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
