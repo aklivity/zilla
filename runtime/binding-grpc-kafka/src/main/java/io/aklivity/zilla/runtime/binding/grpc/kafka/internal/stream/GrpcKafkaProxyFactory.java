@@ -2233,8 +2233,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .group(g -> g.topic("requests").groupId("test")
-                    .protocol("roundrobin").timeout(3000000))
+                .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
+                    .topic(result.topic())
+                    .partitions(result::partitions)
+                    .filters(result::filters))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
