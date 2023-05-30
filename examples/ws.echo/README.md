@@ -14,11 +14,17 @@ Listens on wss port `9090` and will echo back whatever is sent to the server.
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-ws-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-ws-echo --create-namespace --wait [...]
@@ -38,19 +44,32 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ```
 
 ### Install wscat
+
 ```bash
-$ npm install wscat -g
+npm install wscat -g
 ```
 
 ### Verify behavior
+
 ```bash
-$ wscat -c ws://localhost:8080/ -s echo
+wscat -c ws://localhost:8080/ -s echo
+```
+
+output:
+
+```text
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world
 ```
+
 ```bash
-$ wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
+wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
+```
+
+output:
+
+```text
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world
@@ -61,7 +80,12 @@ Connected (press CTRL+C to quit)
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

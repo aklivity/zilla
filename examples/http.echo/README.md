@@ -14,11 +14,17 @@ Listens on https port `9090` and will echo back whatever is sent to the server.
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pods to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-echo --wait [...]
@@ -40,19 +46,42 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ### Verify behavior
 
 ```bash
-$ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/
+```
+
+output:
+
+```text
 Hello, world
 ```
+
 ```bash
-$ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/ --http2-prior-knowledge
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/ --http2-prior-knowledge
+```
+
+output:
+
+```text
 Hello, world
 ```
+
 ```bash
-$ curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
+curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
+```
+
+output:
+
+```text
 Hello, world
 ```
+
 ```bash
-$ curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
+curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
+```
+
+output:
+
+```text
 Hello, world
 ```
 
@@ -61,7 +90,12 @@ Hello, world
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

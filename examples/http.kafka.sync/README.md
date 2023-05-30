@@ -16,18 +16,24 @@ and `items-responses` topics in Kafka, synchronously.
 Requires Kafka client, such as `kcat`.
 
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
 - creates the `items-requests` and `items-responses` topics in Kafka
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-kafka-sync oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-sync --create-namespace --wait
@@ -68,11 +74,16 @@ Send a `PUT` request for a specific item.
 Note that the response will not return until you complete the following step to produce the response with `kcat`.
 
 ```bash
-$ curl -v \
+curl -v \
        -X "PUT" http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Idempotency-Key: 1" \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
+```
+
+output:
+
+```text
 ...
 > PUT /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > Idempotency-Key: 1
@@ -82,9 +93,11 @@ $ curl -v \
 ...
 {"greeting":"Hello, world ..."}
 ```
+
 Verify the request, then send the correlated response via the kafka `items-responses` topic.
+
 ```bash
-$ kcat -C -b localhost:9092 -t items-requests -J -u | jq .
+kcat -C -b localhost:9092 -t items-requests -J -u | jq .
 {
   "topic": "items-requests",
   "partition": 0,
@@ -117,11 +130,18 @@ $ kcat -C -b localhost:9092 -t items-requests -J -u | jq .
   "key": "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
+```
+
+output:
+
+```text
 % Reached end of topic items-requests [0] at offset 1
 ```
+
 Make sure to propagate the request message `zilla:correlation-id` header verbatim as a response message `zilla:correlation-id` header.
+
 ```bash
-$ echo "{\"greeting\":\"Hello, world `date`\"}" | \
+echo "{\"greeting\":\"Hello, world `date`\"}" | \
     kcat -P \
          -b localhost:9092 \
          -t items-responses \
@@ -135,7 +155,12 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 99998

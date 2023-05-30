@@ -14,12 +14,18 @@ Listens on https port `9090` and serves files from the pod's `/var/www` subdirec
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - copies the contents of the www directory to the Zilla pod
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-filesystem oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-filesystem --create-namespace --wait [...]
@@ -45,7 +51,12 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ### Verify behavior
 
 ```bash
-$ curl http://localhost:8080/index.html
+curl http://localhost:8080/index.html
+```
+
+output:
+
+```html
 <html>
 <head>
 <title>Welcome to Zilla!</title>
@@ -57,7 +68,12 @@ $ curl http://localhost:8080/index.html
 ```
 
 ```bash
-$ curl --cacert test-ca.crt https://localhost:9090/index.html
+curl --cacert test-ca.crt https://localhost:9090/index.html
+```
+
+output:
+
+```html
 <html>
 <head>
 <title>Welcome to Zilla!</title>
@@ -73,7 +89,12 @@ $ curl --cacert test-ca.crt https://localhost:9090/index.html
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

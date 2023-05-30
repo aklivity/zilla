@@ -12,7 +12,12 @@ Listens on https port `9090` and uses kafka as proxy to talk to `grpc_echo` on t
 ### Build `grpc-echo` service
 
 ```bash
-$ docker build -t zilla-examples/grpc-echo:latest .
+docker build -t zilla-examples/grpc-echo:latest .
+```
+
+output:
+
+```text
  => exporting to image
   => => exporting layers
  => => writing image sha256:8ad3819be40334045c01d189000c63a1dfe22b2a97ef376d0c6e56616de132c7 
@@ -22,11 +27,17 @@ $ docker build -t zilla-examples/grpc-echo:latest .
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
@@ -71,7 +82,12 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+```
+
+output:
+
+```json
 {
   "message": "Hello World"
 }
@@ -80,7 +96,7 @@ $ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' loca
 Verify the message payload, followed by a tombstone to mark the end of the request.
 
 ```bash
-$ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
+kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
 {
   "topic": "echo-requests",
   "partition": 0,
@@ -121,6 +137,11 @@ $ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
   "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
   "payload": null
 }
+```
+
+output:
+
+```text
 % Reached end of topic echo-requests [0] at offset 2
 ```
 
@@ -129,12 +150,12 @@ $ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Past below message.
 
-```
+```json
 {
   "message": "Hello World"
 }
@@ -143,9 +164,7 @@ Past below message.
 Verify the message payload, followed by a tombstone to mark the end of the response.
 
 ```bash
-$ kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
-```
-```
+kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
 {
   "topic": "echo-responses",
   "partition": 0,
@@ -176,6 +195,11 @@ $ kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
   "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
   "payload": null
 }
+```
+
+output:
+
+```text
 % Reached end of topic echo-responses [0] at offset 2
 ```
 
@@ -184,7 +208,12 @@ $ kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99997
 99998

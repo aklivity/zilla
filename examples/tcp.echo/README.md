@@ -12,11 +12,17 @@ Listens on tcp port `12345` and will echo back whatever is sent to the server.
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-tcp-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-tcp-echo [...]
@@ -38,7 +44,12 @@ Connection to localhost port 12345 [tcp/italk] succeeded!
 ### Verify behavior
 
 ```bash
-$ nc localhost 12345
+nc localhost 12345
+```
+
+output:
+
+```text
 Hello, world
 Hello, world
 ```
@@ -48,7 +59,12 @@ Hello, world
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

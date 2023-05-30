@@ -8,20 +8,25 @@ Listens on https port `9090` and will stream back whatever is published to `sse_
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
-- jwt-cli (https://github.com/mike-engel/jwt-cli)
+- [jwt-cli](https://github.com/mike-engel/jwt-cli)
 
 ### Install jwt-cli client
 
 Generates JWT tokens from the command line.
 
 ```bash
-$ brew install mike-engel/jwt-cli/jwt-cli
+brew install mike-engel/jwt-cli/jwt-cli
 ```
 
 ### Build the sse-server docker image
 
 ```bash
-$ docker build -t zilla-examples/sse-server:latest .
+docker build -t zilla-examples/sse-server:latest .
+```
+
+output:
+
+```text
 ...
  => exporting to image                                                                                                                                                                       1.4s 
  => => exporting layers                                                                                                                                                                      1.4s 
@@ -32,12 +37,18 @@ $ docker build -t zilla-examples/sse-server:latest .
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and SSE server to the Kubernetes cluster with helm and waits for the pods to start up
 - copies the contents of the www directory to the Zilla pod
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/sse-server:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
@@ -73,6 +84,7 @@ Connection to localhost port 8001 [tcp/vcom-tunnel] succeeded!
 ```
 
 Note: if you see the following output from `./setup.sh` then you need to first build the `zilla-examples/sse-server:latest` image, see above.
+
 ```bash
 + docker image inspect zilla-examples/sse-server --format 'Image Found {{.RepoTags}}'
 
@@ -80,9 +92,11 @@ Error: No such image: zilla-examples/sse-server
 ```
 
 ### Generate JWT token
+
 Generate JWT token valid for `30 seconds` and signed by local private key.
+
 ```bash
-$ export JWT_TOKEN=$(jwt encode \
+export JWT_TOKEN=$(jwt encode \
     --alg "RS256" \
     --kid "example" \
     --iss "https://auth.example.com" \
@@ -100,7 +114,12 @@ Connect `curl` client first, then send `Hello, world ...` from `nc` client.
 Note that the `Hello, world ...` event will not arrive until after using `nc` to send the `Hello, world ...` message in the next step.
 
 ```bash
-$ curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
+curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
+```
+
+output:
+
+```text
 *   Trying 127.0.0.1:9090...
 * Connected to localhost (127.0.0.1) port 9090 (#0)
 * ALPN, offering h2
@@ -143,23 +162,27 @@ data:Hello, world Wed Aug 29 9:05:52 PDT 2022
 ```
 
 ```bash
-$ echo '{ "data": "Hello, world '`date`'" }' | nc -c localhost 7001
+echo '{ "data": "Hello, world '`date`'" }' | nc -c localhost 7001
 ```
 
 About `20 seconds` after the JWT token was generated, when it is due to expire in `10 seconds`, a `challenge` event is sent to the client.
+
 ```bash
 event:challenge
 data:{"method":"POST","headers":{"content-type":"application/x-challenge-response"}}
 
 ```
+
 When a client receives the `challenge` event, the payload indicates the `method` and `headers` to be included in the challenge-response HTTP request, along with an updated JWT token via the `authorization` header.
 
 Note that if the client does not respond to the challenge event with an updated JWT token in time, then the SSE stream ends, ensuring that only authorized clients are allowed access.
+
 ```
 * Connection #0 to host localhost left intact
 ```
 
 #### Browser
+
 Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
 Click the `Go` button to attach the browser SSE event source via Zilla.
@@ -175,7 +198,12 @@ Note: if you uncheck the `reauthorize` checkbox, then the `challenge` event will
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

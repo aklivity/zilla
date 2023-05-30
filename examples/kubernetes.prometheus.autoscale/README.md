@@ -15,12 +15,18 @@ of an average load of 10 active connections per pod.
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla, Prometheus and Prometheus Adapter to the Kubernetes cluster with helm and waits for the pods to start up
 - sets up horizontal pod autoscaling
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-kubernetes-prometheus-autoscale oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait [...]
@@ -52,19 +58,30 @@ Connection to localhost port 9090 [tcp/websm] succeeded!
 ### Verify behavior
 
 ```bash
-$ curl -d "Hello, world" -X "POST" http://localhost:8080
+curl -d "Hello, world" -X "POST" http://localhost:8080
+```
+
+output:
+
+```text
 Hello, world
 ```
 
 The initial status is:
+
 - no open connections
 - the value of the `stream_active_received` metric should be 0
 - there should be 1 zilla pod in the deployment
 
+> If the kubernetes custom metrics API response does not appear correctly please wait a few seconds and try again before proceeding further.
+
 ```bash
-# The value of stream_active_received metric should be 0. If the kubernetes custom metrics API response does not appear
-# correctly please wait a few seconds and try again before proceeding further.
-$ ./check_metric.sh
+./check_metric.sh
+```
+
+output:
+
+```text
 The value of stream_active_received metric
 ------------------------------------------
 
@@ -87,9 +104,17 @@ Kubernetes custom metrics API:
       "value": "0",
 ...
 }
+```
 
-# The zilla deployment should consist of 1 pod.
-$ ./check_hpa.sh
+The zilla deployment should consist of 1 pod.
+
+```bash
+./check_hpa.sh
+```
+
+output:
+
+```text
 The status of horizontal pod autoscaling
 ----------------------------------------
 
@@ -106,22 +131,42 @@ NAME                     READY   STATUS    RESTARTS   AGE
 zilla-6db8d879f5-2wxgw   1/1     Running   0          4m25s
 ```
 
-Open 21 connections to zilla.
+Open 21 connections to zilla as instances of netcat in the background.
 
 ```bash
-# Open 21 instances of netcat in the background.
-$ for i in `seq 1 21`; do nc localhost 8080 &; done
+for i in `seq 1 21`; do nc localhost 8080 &; done
+```
+
+output:
+
+```text
 [42] 88886
 [43] 88887
 [44] 88888
 ...
+```
 
-# There should be 21 open connections in the background now.
-$ ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
-      21
+There should be 21 open connections in the background now.
 
-# Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 21 for one of the pods.
-$ ./check_metric.sh
+```bash
+ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
+```
+
+output:
+
+```text
+21
+```
+
+Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 21 for one of the pods.
+
+```bash
+./check_metric.sh
+```
+
+output:
+
+```text
 The value of stream_active_received metric
 ------------------------------------------
 
@@ -144,9 +189,17 @@ Kubernetes custom metrics API:
       "value": "21",
 ...
 }
+```
 
-# Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled up to 3 pods.
-$ ./check_hpa.sh
+Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled up to 3 pods.
+
+```bash
+./check_hpa.sh
+```
+
+output:
+
+```text
 The status of horizontal pod autoscaling
 ----------------------------------------
 
@@ -165,22 +218,41 @@ zilla-6db8d879f5-9bnkh   1/1     Running   0          75s
 zilla-6db8d879f5-fmgqx   1/1     Running   0          75s
 ```
 
-Open 21 more connections to zilla.
+Open 21 connections to zilla as instances of netcat in the background.
 
 ```bash
-# Open 21 more instances of netcat in the background.
-$ for i in `seq 1 21`; do nc localhost 8080 &; done
+for i in `seq 1 21`; do nc localhost 8080 &; done
+```
+
+output:
+
+```text
 [77] 77775
 [78] 77776
 [79] 77777
 ...
 
-# There should be 42 open connections in the background now.
-$ ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
-      42
+There should be 42 open connections in the background now.
 
-# Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 42 for one of the pods.
-$ ./check_metric.sh
+```bash
+ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
+```
+
+output:
+
+```text
+42
+```
+
+Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 42 for one of the pods.
+
+```bash
+./check_metric.sh
+```
+
+output:
+
+```text
 The value of stream_active_received metric
 ------------------------------------------
 
@@ -203,9 +275,17 @@ Kubernetes custom metrics API:
       "value": "42",
 ...
 }
+```
 
-# Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled up to 5 pods.
-$ ./check_hpa.sh
+Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled up to 5 pods.
+
+```bash
+./check_hpa.sh
+```
+
+output:
+
+```text
 The status of horizontal pod autoscaling
 ----------------------------------------
 
@@ -226,22 +306,41 @@ zilla-6db8d879f5-g74hl   1/1     Running   0          63s
 zilla-6db8d879f5-q5fmm   1/1     Running   0          63s
 ```
 
-Shut down all the connections.
+Shut down all running netcat instances.
 
 ```bash
-# Shut down all running netcat instances.
-$ ps auxw | grep "nc localhost 8080" | grep -v grep | awk '{print $2}' | xargs kill
+ps auxw | grep "nc localhost 8080" | grep -v grep | awk '{print $2}' | xargs kill
+```
+
+output:
+
+```text
 [23]  + 55555 terminated  nc localhost 8080
 [22]  + 55554 terminated  nc localhost 8080
 [21]  + 55553 terminated  nc localhost 8080
 ...
 
-# There should be no open connections in the background now.
-$ ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
-       0
+There should be no open connections in the background now.
 
-# Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 0 for all pods.
-$ ./check_metric.sh
+```bash
+ps auxw | grep "nc localhost 8080" | grep -v grep | wc -l
+```
+
+output:
+
+```text
+0
+```
+
+Wait for a few seconds so the metrics get updated. The value of stream_active_received metric should be 0 for all pods.
+
+```bash
+./check_metric.sh
+```
+
+output:
+
+```text
 The value of stream_active_received metric
 ------------------------------------------
 
@@ -265,8 +364,15 @@ Kubernetes custom metrics API:
 ...
 }
 
-# Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled down to 1 pod.
-$ ./check_hpa.sh
+Wait for a few seconds so the autoscaler can catch up. The zilla deployment should be soon scaled down to 1 pod.
+
+```bash
+./check_hpa.sh
+```
+
+output:
+
+```text
 The status of horizontal pod autoscaling
 ----------------------------------------
 
@@ -288,7 +394,12 @@ zilla-6db8d879f5-2wxgw   1/1     Running   0          14m
 The `teardown.sh` script stops port forwarding, uninstalls Zilla, Prometheus, Prometheus Adapter and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 99998

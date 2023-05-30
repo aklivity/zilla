@@ -12,7 +12,12 @@ Listens on https port `9090` and will echo back whatever is published to `grpc-p
 ### Build `grpc-proxy` service
 
 ```bash
-$ docker build -t zilla-examples/grpc-echo:latest .
+docker build -t zilla-examples/grpc-echo:latest .
+```
+
+output:
+
+```text
  => exporting to image
   => => exporting layers
  => => writing image sha256:8ad3819be40334045c01d189000c63a1dfe22b2a97ef376d0c6e56616de132c7 
@@ -22,11 +27,17 @@ $ docker build -t zilla-examples/grpc-echo:latest .
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
@@ -64,7 +75,12 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+```
+
+output:
+
+```json
 {
   "message": "Hello World"
 }
@@ -75,12 +91,12 @@ $ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' loca
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
 
-```
+```json
 {
   "message": "Hello World"
 }
@@ -91,7 +107,12 @@ Paste below message.
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999

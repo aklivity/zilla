@@ -10,24 +10,29 @@ Listens on http port `8080` or https port `9090` and will produce messages to th
 - helm 3.0+
 - kcat
 
-
 ### Install kcat client
 
 Requires Kafka client, such as `kcat`.
 
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
 - creates the `events` topic in Kafka.
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-kafka-oneway oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-oneway --create-namespace --wait [...]
@@ -65,10 +70,15 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Send a `POST` request with an event body.
 
 ```bash
-$ curl -v \
+curl -v \
        -X "POST" http://localhost:8080/events \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
+```
+
+output:
+
+```text
 ...
 > POST /events HTTP/1.1
 > Content-Type: application/json
@@ -79,7 +89,7 @@ $ curl -v \
 Verify that the event has been produced to the `events` Kafka topic.
 
 ```bash
-$ kcat -C -b localhost:9092 -t events -J -u | jq .
+kcat -C -b localhost:9092 -t events -J -u | jq .
 {
   "topic": "events",
   "partition": 0,
@@ -93,6 +103,11 @@ $ kcat -C -b localhost:9092 -t events -J -u | jq .
   ],
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
+```
+
+output:
+
+```text
 % Reached end of topic events [0] at offset 1
 ```
 
@@ -101,7 +116,12 @@ $ kcat -C -b localhost:9092 -t events -J -u | jq .
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999

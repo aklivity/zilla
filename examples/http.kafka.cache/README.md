@@ -11,20 +11,28 @@ Listens on http port `8080` or https port `9090` and will serve cached responses
 - kcat
 
 ### Install kcat client
+
 Requires Kafka client, such as `kcat`.
+
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
 - creates the `items-snapshots` topic in Kafka with the `cleanup.policy=compact` topic configuration
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-kafka-cache oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-cache --create-namespace --wait [...]
@@ -61,7 +69,12 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Retrieve all the items, initially returns empty array.
 
 ```bash
-$ curl -v http://localhost:8080/items
+curl -v http://localhost:8080/items
+```
+
+output:
+
+```text
 ...
 > GET /items HTTP/1.1
 ...
@@ -71,10 +84,17 @@ $ curl -v http://localhost:8080/items
 ...
 []
 ```
+
 Retrieve all the items again, if not matching the previous `etag`, returns not modified.
+
 ```bash
-$ curl -v http://localhost:8080/items \
+curl -v http://localhost:8080/items \
        -H "If-None-Match: AQIAAQ=="
+```
+
+output:
+
+```text
 ...
 > GET /items HTTP/1.1
 > If-None-Match: AQIAAQ==
@@ -84,10 +104,17 @@ $ curl -v http://localhost:8080/items \
 < Etag: AQIAAQ==
 ...
 ```
+
 Retrieve a specific item, initially not found after `5 seconds`.
+
 ```bash
-$ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Prefer: wait=5"
+```
+
+output:
+
+```text
 ...
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > Prefer: wait=5
@@ -95,19 +122,28 @@ $ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
 < HTTP/1.1 404 Not Found
 ...
 ```
+
 Produce an item snapshot to the kafka topic.
+
 ```bash
-$ echo "{\"greeting\":\"Hello, world `date`\"}" | \
+echo "{\"greeting\":\"Hello, world `date`\"}" | \
     kcat -P \
          -b localhost:9092 \
          -t items-snapshots \
          -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
          -H "content-type=application/json"
 ```
+
 Retrieve a specific item again, now returned.
+
 ```bash
-$ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Prefer: wait=5"
+```
+
+output:
+
+```text
 ...
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > Prefer: wait=5
@@ -118,10 +154,17 @@ $ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
 ...
 {"greeting":"Hello, world ..."}
 ```
+
 Retrieve a specific item again, if not matching the previous `etag`, returns not modified.
+
 ```bash
-$ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg=="
+```
+
+output:
+
+```text
 ...
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > If-None-Match: AQIAAg==
@@ -131,11 +174,18 @@ $ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
 < Etag: AQIAAg==
 ...
 ```
+
 Retrieve a specific item again, if not matching the previous `etag`, prefering to wait. After 5 seconds, returns not modified.
+
 ```bash
-$ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg==" \
        -H "Prefer: wait=5"
+```
+
+output:
+
+```text
 ...
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > If-None-Match: AQIAAg==
@@ -146,11 +196,18 @@ $ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
 < Etag: AQIAAg==
 ...
 ```
+
 Retrieve a specific item again, if not matching the previous `etag`, prefering to wait for 60 seconds.
+
 ```bash
-$ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg==" \
        -H "Prefer: wait=60"
+```
+
+output:
+
+```text
 ...
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > If-None-Match: AQIAAg==
@@ -162,19 +219,28 @@ $ curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
 ...
 {"greeting":"Hello, world ..."}
 ```
+
 Before the 60 seconds elapses, produce an updated item snapshot to the kafka topic with the same `key`.
 The prefer wait http request returns the new item snapshot with updated `etag` as shown above.
+
 ```bash
-$ echo "{\"greeting\":\"Hello, world `date`\"}" | \
+echo "{\"greeting\":\"Hello, world `date`\"}" | \
     kcat -P \
          -b localhost:9092 \
          -t items-snapshots \
          -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
          -H "content-type=application/json"
 ```
+
 Retrieve all the items, returns array with one item.
+
 ```bash
-$ curl -v http://localhost:8080/items
+curl -v http://localhost:8080/items
+```
+
+output:
+
+```text
 ...
 > GET /items HTTP/1.1
 ...
@@ -190,7 +256,12 @@ $ curl -v http://localhost:8080/items
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999

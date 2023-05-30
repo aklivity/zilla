@@ -16,6 +16,7 @@ Listens on mqtts port `8883` and will forward mqtt publish messages to Kafka, br
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
@@ -57,7 +58,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Requires MQTT 5.0 client, such as Mosquitto clients.
 
 ```bash
-$ brew install mosquitto
+brew install mosquitto
 ```
 
 ### Install kcat client
@@ -65,7 +66,7 @@ $ brew install mosquitto
 Requires Kafka client, such as `kcat`.
 
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Verify behavior
@@ -73,7 +74,12 @@ $ brew install kcat
 Connect two subscribing clients first, then send `Hello, world` from publishing client. Verify that the message arrived to Kafka.
 
 ```bash
-$ mosquitto_sub -V '5' -t 'zilla' -d
+mosquitto_sub -V '5' -t 'zilla' -d
+```
+
+output:
+
+```text
 Client null sending CONNECT
 Client 2b77314a-163f-4f18-908c-2913645e4f56 received CONNACK (0)
 Client 2b77314a-163f-4f18-908c-2913645e4f56 sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
@@ -84,7 +90,12 @@ Hello, world
 ```
 
 ```bash
-$ mosquitto_sub -V '5' -t 'zilla' --cafile test-ca.crt -d
+mosquitto_sub -V '5' -t 'zilla' --cafile test-ca.crt -d
+```
+
+output:
+
+```text
 Client null sending CONNECT
 Client 26ab67d8-4a61-4e14-9d95-6a383c0cbdd7 received CONNACK (0)
 Client 26ab67d8-4a61-4e14-9d95-6a383c0cbdd7 sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
@@ -95,7 +106,12 @@ Hello, world
 ```
 
 ```bash
-$ mosquitto_pub -V '5' -t 'zilla' -m 'Hello, world' -d
+mosquitto_pub -V '5' -t 'zilla' -m 'Hello, world' -d
+```
+
+output:
+
+```text
 Client null sending CONNECT
 Client 44181407-f1bc-4a6b-b94d-9f37d37ea395 received CONNACK (0)
 Client 44181407-f1bc-4a6b-b94d-9f37d37ea395 sending PUBLISH (d0, q0, r0, m1, 'zilla', ... (12 bytes))
@@ -103,7 +119,7 @@ Client 44181407-f1bc-4a6b-b94d-9f37d37ea395 sending DISCONNECT
 ```
 
 ```bash
-$ kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
+kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
 {
   "topic": "mqtt_messages",
   "partition": 0,
@@ -122,6 +138,11 @@ $ kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
   "key": "zilla",
   "payload": "Hello, world"
 }
+```
+
+output:
+
+```text
 % Reached end of topic mqtt_messages [0] at offset 1
 ```
 
@@ -130,7 +151,13 @@ $ kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-./teardown.sh        
+./teardown.sh
+
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999

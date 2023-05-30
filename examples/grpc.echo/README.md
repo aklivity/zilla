@@ -12,11 +12,17 @@ Listens on tcp port `9090` and will echo grpc message sent by client.
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-echo --wait [...]
@@ -42,7 +48,12 @@ Connection to localhost port 9090 [tcp/italk] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` command.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+```
+
+output:
+
+```json
 {
   "message": "Hello World"
 }
@@ -53,12 +64,12 @@ $ grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' loca
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-$ grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
 
-```
+```json
 {
   "message": "Hello World"
 }
@@ -69,7 +80,12 @@ Paste below message.
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

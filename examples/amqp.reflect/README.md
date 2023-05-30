@@ -15,11 +15,17 @@ Listens on amqps port `5671` and will echo back whatever is sent to the server, 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-amqp-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-amqp-reflect --create-namespace --wait [...]
@@ -43,7 +49,7 @@ Connection to localhost port 5671 [tcp/*] succeeded!
 Requires AMQP 1.0 client, such as `cli-rhea`.
 
 ```bash
-$ npm install cli-rhea -g
+npm install cli-rhea -g
 ```
 
 ### Verify behavior
@@ -51,7 +57,12 @@ $ npm install cli-rhea -g
 Connect two receiving clients first, then send `Hello, world` from sending client.
 
 ```bash
-$ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:5671 --conn-ssl-trust-store test-ca.crt
+cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:5671 --conn-ssl-trust-store test-ca.crt
+```
+
+output:
+
+```text
   rhea:events [connection-1] Connection got event: connection_open +0ms
   rhea:events [5c6a67c4-7e0b-fa4e-916c-b8e78ac6ba2e] Container got event: connection_open +0ms
   rhea:events [connection-1] Session got event: session_open +0ms
@@ -69,8 +80,14 @@ $ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body
   rhea:events [connection-1] Connection got event: connection_close +7ms
   rhea:events [5c6a67c4-7e0b-fa4e-916c-b8e78ac6ba2e] Container got event: connection_close +0ms
 ```
+
 ```bash
-$ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body'
+cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body'
+```
+
+output:
+
+```text
   rhea:events [connection-1] Connection got event: connection_open +0ms
   rhea:events [fc4447a6-ce6d-9943-8847-33dab2317567] Container got event: connection_open +0ms
   rhea:events [connection-1] Session got event: session_open +1ms
@@ -88,8 +105,14 @@ $ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body
   rhea:events [connection-1] Connection got event: connection_close +7ms
   rhea:events [fc4447a6-ce6d-9943-8847-33dab2317567] Container got event: connection_close +0ms
 ```
+
 ```bash
-$ cli-rhea-sender --address 'zilla' --msg-content 'Hello, world' --log-lib 'TRANSPORT_DRV'
+cli-rhea-sender --address 'zilla' --msg-content 'Hello, world' --log-lib 'TRANSPORT_DRV'
+```
+
+output:
+
+```text
   rhea:events [connection-1] Connection got event: connection_open +0ms
   rhea:events [efd09fe2-4090-4141-91e6-5ce5223d1dbc] Container got event: connection_open +1ms
   rhea:events [connection-1] Session got event: session_open +0ms
@@ -141,7 +164,12 @@ $ cli-rhea-sender --address 'zilla' --msg-content 'Hello, world' --log-lib 'TRAN
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

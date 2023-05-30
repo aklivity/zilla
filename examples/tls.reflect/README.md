@@ -13,11 +13,17 @@ Listens on tls port `23456` and will echo back whatever is sent to the server, b
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-tls-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-tls-reflect --create-namespace --wait [...]
@@ -41,7 +47,12 @@ Connection to localhost port 23456 [tcp/*] succeeded!
 Connect each client first, then send `Hello, one` from first client, then send `Hello, two` from second client.
 
 ```bash
-$ openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
+openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
+```
+
+output:
+
+```text
 depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = Test CA
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost
@@ -52,7 +63,12 @@ Hello, two
 ```
 
 ```bash
-$ openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
+openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
+```
+
+output:
+
+```text
 depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = Test CA
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost
@@ -67,7 +83,12 @@ Hello, two
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

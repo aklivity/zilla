@@ -16,7 +16,7 @@ Listens on http port `8080` or https port `9090` and will stream back whatever i
 Requires Server-Sent Events client, such as `sse-cat` version `2.0.5` or higher on `node` version `14` or higher.
 
 ```bash
-$ npm install -g sse-cat
+npm install -g sse-cat
 ```
 
 ### Install kcat client
@@ -24,19 +24,25 @@ $ npm install -g sse-cat
 Requires Kafka client, such as `kcat`.
 
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
 - copies the contents of the www directory to the Zilla pod
 - creates the `events` topic in Kafka with the `cleanup.policy=compact` topic configuration.
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-sse-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-sse-kafka-fanout --create-namespace --wait [...]
@@ -79,12 +85,17 @@ Connect `sse-cat` client first, then send `Hello, world ...` from `kcat` produce
 Note that the `Hello, world ...` message will not arrive until after using `kcat` to produce the `Hello, world ...` message in the next step.
 
 ```bash
-$ sse-cat http://localhost:8080/events
+sse-cat http://localhost:8080/events
+```
+
+output:
+
+```text
 Hello, world ...
 ```
 
 ```bash
-$ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t events -k 1
+echo "Hello, world `date`" | kcat -P -b localhost:9092 -t events -k 1
 ```
 
 Note that only the latest messages with distinct keys are guaranteed to be retained by a compacted Kafka topic, so use different values for `-k` above to retain more than one message in the `events` topic.
@@ -101,13 +112,12 @@ Open the browser developer tools console to see additional logging, such as the 
 
 Additional messages produced to the `events` Kafka topic then arrive at the browser live.
 
-
 ### Reliability
 
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
 ```
-$ kubectl scale --replicas=0 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
+kubectl scale --replicas=0 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
 ```
 
 This causes errors to be logged in the browser console during repeated attempts to automatically reconnect.
@@ -115,9 +125,13 @@ This causes errors to be logged in the browser console during repeated attempts 
 Simulate connection recovery by starting the `zilla` service again.
 
 ```
-$ kubectl scale --replicas=1 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
-# you need to restart the port-forward now
-$ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090 > /tmp/kubectl-zilla.log 2>&1 &
+kubectl scale --replicas=1 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
+```
+
+Now you need to restart the port-forward.
+
+```bash
+kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090 > /tmp/kubectl-zilla.log 2>&1 &
 ```
 
 Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
@@ -129,7 +143,12 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 99998

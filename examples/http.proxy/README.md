@@ -1,4 +1,5 @@
 # http.proxy
+
 Listens on https port `9090` and will response back whatever is hosted in `nginx` on that path.
 
 ### Requirements
@@ -7,25 +8,31 @@ Listens on https port `9090` and will response back whatever is hosted in `nginx
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
-- nghttp2 (https://nghttp2.org/)
+- [nghttp2](https://nghttp2.org/)
 
 ### Install nghttp2 client
 
 nghttp2 is an implementation of HTTP/2 client.
 
 ```bash
-$ brew install nghttp2
+brew install nghttp2
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Nginx to the Kubernetes cluster with helm and waits for the pods to start up
 - copies the web contents to the Nginx pod
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-proxy oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-proxy --create-namespace --wait [...]
@@ -59,7 +66,12 @@ Connection to localhost port 9090 [tcp/websm] succeeded!
 ### Verify behavior
 
 ```bash
-$ nghttp -ansy https://localhost:9090/demo.html
+nghttp -ansy https://localhost:9090/demo.html
+```
+
+output:
+
+```text
 ***** Statistics *****
 
 Request timing:
@@ -90,7 +102,12 @@ you get `/style.css` response as push promise that nginx is configured with.
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Nginx and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 + killall kubectl

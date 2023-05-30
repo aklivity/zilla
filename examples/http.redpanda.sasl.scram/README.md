@@ -16,19 +16,25 @@ enabled Redpanda cluster, synchronously.
 Requires Kafka client, such as `kcat`.
 
 ```bash
-$ brew install kcat
+brew install kcat
 ```
 
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Redpanda to the Kubernetes cluster with helm and waits for the pods to start up
 - creates the `user` user in Redpanda
 - creates the `events` topic in Redpanda
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-redpanda-sasl-scram ./zilla-0.1.0.tgz --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait [...]
@@ -65,25 +71,34 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
 
 ### Verify behavior
+
 Send a `POST` request with an event body.
+
 ```bash
-$ curl -v \
+curl -v \
        -X "POST" http://localhost:8080/events \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
+```
+
+output:
+
+```text
 ...
 > POST /events HTTP/1.1
 > Content-Type: application/json
 ...
 < HTTP/1.1 204 No Content
 ```
+
 Verify that the event has been produced to the `events` topic in Redpanda cluster.
+
 ```bash
-$ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
-		-X sasl.mechanisms=SCRAM-SHA-256 \
-		-X sasl.username=user \
-		-X sasl.password=redpanda \
-		-t events -J -u | jq .
+kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
+  -X sasl.mechanisms=SCRAM-SHA-256 \
+  -X sasl.username=user \
+  -X sasl.password=redpanda \
+  -t events -J -u | jq .
 {
   "topic": "events",
   "partition": 0,
@@ -97,6 +112,11 @@ $ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
   ],
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
+```
+
+output:
+
+```text
 % Reached end of topic events [0] at offset 1
 ```
 
@@ -105,7 +125,12 @@ $ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Redpanda and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99999
 99998

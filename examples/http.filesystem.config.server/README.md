@@ -21,13 +21,19 @@ Listens on http port `9090` and will echo back whatever is sent to the server on
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla config server to the Kubernetes cluster with helm and waits for the pod to start up
 - places the contents of the www directory to the Zilla pod
 - starts port forwarding
 - starts a Zilla instance with http echo configuration served by the Zilla config server and waits for the pod to start up
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-config-server-config oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-config-server --create-namespace --wait --values zilla-config/values.yaml --set-file 'zilla\.yaml=zilla-config/zilla.yaml' --set-file 'secrets.tls.data.localhost\.p12=tls/localhost.p12'
@@ -67,7 +73,12 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ### Verify behavior of the Zilla config server
 
 ```bash
-$ curl http://localhost:8081/zilla.yaml
+curl http://localhost:8081/zilla.yaml
+```
+
+output:
+
+```text
 ---
 name: example
 vaults:
@@ -130,15 +141,26 @@ The same URL will be used by the Zilla HTTP echo server to query its configurati
 ### Verify behavior of the Zilla HTTP echo server
 
 ```bash
-$ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
+```
+
+output:
+
+```text
 Hello, world
 ```
 
 ### Change the configuration of the Zilla HTTP echo server
+
 The Zilla HTTP echo server currently echoes only for the /echo HTTP path. Let's change it to /echo_changed path.
 
 ```bash
-$ ./change_config.sh
+./change_config.sh
+```
+
+output:
+
+```text
 ++ kubectl get pods --namespace zilla-config-server --selector app.kubernetes.io/instance=zilla-config-server-config -o json
 ++ jq -r '.items[0].metadata.name'
 + ZILLA_CONFIG_POD=zilla-config-server-config-bc455d4d6-fshdl
@@ -153,14 +175,24 @@ $ ./change_config.sh
 ### Verify the `/echo` path is no longer working
 
 ```bash
-$ curl -i -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
+curl -i -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo
+```
+
+output:
+
+```text
 HTTP/1.1 404 Not Found
 ```
 
 ### Verify the `/echo_changed` path is working
 
 ```bash
-$ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo_changed
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/echo_changed
+```
+
+output:
+
+```text
 Hello, world
 ```
 
@@ -169,7 +201,12 @@ Hello, world
 The `teardown.sh` script stops port forwarding, uninstalls both Zilla and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999

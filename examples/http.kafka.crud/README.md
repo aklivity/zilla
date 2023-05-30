@@ -13,12 +13,18 @@ deletes and reads messages in `items-snapshots` log-compacted Kafka topic acting
 ### Setup
 
 The `setup.sh` script:
+
 - installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
 - creates the `items-snapshots` topic in Kafka with the `cleanup.policy=compact` topic configuration
 - starts port forwarding
 
 ```bash
-$ ./setup.sh
+./setup.sh
+```
+
+output:
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
 + helm install zilla-http-kafka-crud oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-crud --create-namespace --wait [...]
@@ -61,7 +67,6 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 | HTTP     | GET    | /items      | items-snapshots | Fetch all items.        |
 | HTTP     | GET    | /items/{id} | items-snapshots | Fetch item by the key.  |
 
-
 ### Verify behavior
 
 `POST` request.
@@ -69,7 +74,12 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Note: You can remove `-H 'Idempotency-Key: 1'` to generate random key.
 
 ```bash
-$ curl -k -v -X POST https://localhost:9090/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
+curl -k -v -X POST https://localhost:9090/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
+```
+
+output:
+
+```text
 ...
 POST /items HTTP/2
 Host: localhost:9090
@@ -83,10 +93,15 @@ content-length: 28
 HTTP/2 204
 ```
 
-`GET` request to fetch specific item. 
+`GET` request to fetch specific item.
 
 ```bash
-$ curl -k -v https://localhost:9090/items/1
+curl -k -v https://localhost:9090/items/1
+```
+
+output:
+
+```text
 ...
 * Connection state changed (MAX_CONCURRENT_STREAMS == 2147483647)!
 < HTTP/2 200
@@ -101,7 +116,12 @@ $ curl -k -v https://localhost:9090/items/1
 `PUT` request to update specific item.
 
 ```bash
-$ curl -k -v -X PUT https://localhost:9090/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
+curl -k -v -X PUT https://localhost:9090/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
+```
+
+output:
+
+```text
 ...
 PUT /items/1 HTTP/2
 Host: localhost:9090
@@ -118,7 +138,12 @@ HTTP/2 204
 `DELETE` request to delete specific item.
 
 ```bash
-$ curl -k -v -X DELETE https://localhost:9090/items/1
+curl -k -v -X DELETE https://localhost:9090/items/1
+```
+
+output:
+
+```text
 ...
 > DELETE /items/1 HTTP/2
 > Host: localhost:9090
@@ -134,7 +159,12 @@ $ curl -k -v -X DELETE https://localhost:9090/items/1
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
 
 ```bash
-$ ./teardown.sh
+./teardown.sh
+```
+
+output:
+
+```text
 + pgrep kubectl
 99998
 99999
