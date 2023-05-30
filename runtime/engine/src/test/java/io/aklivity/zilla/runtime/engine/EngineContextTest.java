@@ -89,7 +89,7 @@ public class EngineContextTest
         writer2.accept(14L);
 
         // WHEN
-        LongSupplier counter = engine.context.counter("ns1", "binding1", "counter1");
+        LongSupplier counter = engine.context().counter("ns1", "binding1", "counter1");
 
         // THEN
         // the aggregated counter value across the 3 cores should be 42 + 21 + 14 = 77

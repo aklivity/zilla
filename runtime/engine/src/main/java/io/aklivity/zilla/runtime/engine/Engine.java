@@ -82,8 +82,7 @@ public final class Engine implements AutoCloseable
     private final Collection<AgentRunner> runners;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
-    // visible for testing
-    final EngineExtContext context;
+    private final EngineExtContext context;
 
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
@@ -161,7 +160,7 @@ public final class Engine implements AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers, labels);
+        final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers, labels::supplyLabelId);
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
@@ -261,6 +260,12 @@ public final class Engine implements AutoCloseable
         }
     }
 
+    // visible for testing
+    EngineExtContext context()
+    {
+        return context;
+    }
+
     private NamespaceConfig reconfigure(
         URL configURL,
         String configText)
@@ -351,18 +356,18 @@ public final class Engine implements AutoCloseable
         private final Configuration config;
         private final ErrorHandler errorHandler;
         private final Collection<DispatchAgent> dispatchers;
-        private final LabelManager labels;
+        private final ToIntFunction<String> supplyLabelId;
 
         private ContextImpl(
             Configuration config,
             ErrorHandler errorHandler,
             Collection<DispatchAgent> dispatchers,
-            LabelManager labels)
+            ToIntFunction<String> supplyLabelId)
         {
             this.config = config;
             this.errorHandler = errorHandler;
             this.dispatchers = dispatchers;
-            this.labels = labels;
+            this.supplyLabelId = supplyLabelId;
         }
 
         @Override
@@ -384,9 +389,9 @@ public final class Engine implements AutoCloseable
             String binding,
             String metric)
         {
-            int namespaceId = labels.supplyLabelId(namespace);
-            int bindingId = labels.supplyLabelId(binding);
-            int metricId = labels.supplyLabelId(metric);
+            int namespaceId = supplyLabelId.applyAsInt(namespace);
+            int bindingId = supplyLabelId.applyAsInt(binding);
+            int metricId = supplyLabelId.applyAsInt(metric);
             long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
             long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
             List<LongSupplier> counterSuppliers = dispatchers.stream()
