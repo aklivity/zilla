@@ -261,7 +261,7 @@ public final class Engine implements AutoCloseable
     }
 
     // visible for testing
-    EngineExtContext context()
+    public EngineExtContext context()
     {
         return context;
     }

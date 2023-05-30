@@ -17,43 +17,48 @@ package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.rules.RuleChain.outerRule;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
 
 public class EngineContextTest
 {
-    private static final String ENGINE_DIRECTORY = "target/zilla-itests";
+    private static final String ENGINE_DIRECTORY = "target/zilla-itests-ati1";
+
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+
+    private final EngineRule engine = new EngineRule()
+        .directory(ENGINE_DIRECTORY)
+        .configure(ENGINE_WORKERS, 3)
+        .commandBufferCapacity(8192)
+        .responseBufferCapacity(8192)
+        .counterValuesBufferCapacity(8192)
+        .clean();
+
+    @Rule
+    public final TestRule chain = outerRule(engine).around(timeout);
 
     @Test
     public void shouldFetchCounterValue() throws Exception
     {
         // GIVEN
-        // start up the engine
-        Properties properties = new Properties();
-        properties.put(EngineConfiguration.ENGINE_DIRECTORY.name(), ENGINE_DIRECTORY);
-        properties.put(ENGINE_WORKERS.name(), "3");
-        EngineConfiguration config = new EngineConfiguration(properties);
-        List<Throwable> errors = new LinkedList<>();
-        Engine engine = Engine.builder()
-            .config(config)
-            .errorHandler(errors::add)
-            .build();
-        engine.start();
-
         // create labels
         LabelManager labels = new LabelManager(Paths.get(ENGINE_DIRECTORY));
         int namespaceId = labels.supplyLabelId("ns1");

@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -162,6 +163,11 @@ public final class EngineRule implements TestRule
         ensureDriveStarted();
 
         return requireNonNull(engine.binding(kind));
+    }
+
+    public EngineExtContext context()
+    {
+        return engine.context();
     }
 
     private EngineConfiguration configuration()
