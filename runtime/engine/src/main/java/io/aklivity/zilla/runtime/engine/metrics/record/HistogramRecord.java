@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.Histogra
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -64,14 +63,7 @@ public class HistogramRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
-    @Override
-    public long value()
-    {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public long[] histogramStats()
+    public long[] stats()
     {
         long count = 0L;
         long sum = 0L;
@@ -104,22 +96,26 @@ public class HistogramRecord implements MetricRecord
         return new long[]{minimum, maximum, count, average};
     }
 
-    @Override
-    public int histogramBuckets()
+    public int buckets()
     {
         return BUCKETS;
     }
 
-    @Override
-    public Map<Integer, Long> histogramBucketLimits()
+    public long[] bucketLimits()
     {
         return BUCKET_LIMITS;
+    }
+
+    public long[] bucketValues()
+    {
+        // TODO: Ati
+        return new long[]{};
     }
 
     private long getValue(
         int index)
     {
-        return BUCKET_LIMITS.get(index) - 1;
+        return BUCKET_LIMITS[index] - 1;
     }
 
     @Override

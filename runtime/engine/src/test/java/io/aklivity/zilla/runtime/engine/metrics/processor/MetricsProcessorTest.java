@@ -176,37 +176,38 @@ public class MetricsProcessorTest
         assertThat(records.get(0).namespaceName(), equalTo("ns1"));
         assertThat(records.get(0).bindingName(), equalTo("binding1"));
         assertThat(records.get(0).metricName(), equalTo("counter1"));
-        assertThat(records.get(0).value(), equalTo(42L));
+        assertThat(((CounterGaugeRecord)records.get(0)).value(), equalTo(42L));
 
         assertThat(records.get(1), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(1).namespaceName(), equalTo("ns1"));
         assertThat(records.get(1).bindingName(), equalTo("binding1"));
         assertThat(records.get(1).metricName(), equalTo("counter2"));
-        assertThat(records.get(1).value(), equalTo(77L));
+        assertThat(((CounterGaugeRecord)records.get(1)).value(), equalTo(77L));
 
         assertThat(records.get(2), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(2).namespaceName(), equalTo("ns1"));
         assertThat(records.get(2).bindingName(), equalTo("binding2"));
         assertThat(records.get(2).metricName(), equalTo("counter1"));
-        assertThat(records.get(2).value(), equalTo(43L));
+        assertThat(((CounterGaugeRecord)records.get(2)).value(), equalTo(43L));
 
         assertThat(records.get(3), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(3).namespaceName(), equalTo("ns2"));
         assertThat(records.get(3).bindingName(), equalTo("binding1"));
         assertThat(records.get(3).metricName(), equalTo("counter1"));
-        assertThat(records.get(3).value(), equalTo(44L));
+        assertThat(((CounterGaugeRecord)records.get(3)).value(), equalTo(44L));
 
         assertThat(records.get(4), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(4).namespaceName(), equalTo("ns1"));
         assertThat(records.get(4).bindingName(), equalTo("binding1"));
         assertThat(records.get(4).metricName(), equalTo("gauge1"));
-        assertThat(records.get(4).value(), equalTo(88L));
+        assertThat(((CounterGaugeRecord)records.get(4)).value(), equalTo(88L));
 
         assertThat(records.get(5), instanceOf(HistogramRecord.class));
         assertThat(records.get(5).namespaceName(), equalTo("ns1"));
         assertThat(records.get(5).bindingName(), equalTo("binding1"));
         assertThat(records.get(5).metricName(), equalTo("histogram1"));
-        assertThat(records.get(5).histogramStats(), equalTo(new long[]{1L, 63L, 2L, 32L})); // min, max, cnt, avg
+        assertThat(((HistogramRecord)records.get(5)).stats(),
+            equalTo(new long[]{1L, 63L, 2L, 32L})); // min, max, cnt, avg
     }
 
     @Test
@@ -266,21 +267,21 @@ public class MetricsProcessorTest
         assertThat(records1.get(0).namespaceName(), equalTo("ns2"));
         assertThat(records1.get(0).bindingName(), equalTo("binding1"));
         assertThat(records1.get(0).metricName(), equalTo("counter1"));
-        assertThat(records1.get(0).value(), equalTo(44L));
+        assertThat(((CounterGaugeRecord)records1.get(0)).value(), equalTo(44L));
 
         assertThat(records2.size(), equalTo(1));
         assertThat(records2.get(0), instanceOf(CounterGaugeRecord.class));
         assertThat(records2.get(0).namespaceName(), equalTo("ns1"));
         assertThat(records2.get(0).bindingName(), equalTo("binding2"));
         assertThat(records2.get(0).metricName(), equalTo("counter1"));
-        assertThat(records2.get(0).value(), equalTo(43L));
+        assertThat(((CounterGaugeRecord)records2.get(0)).value(), equalTo(43L));
 
         assertThat(records3.size(), equalTo(1));
         assertThat(records3.get(0), instanceOf(CounterGaugeRecord.class));
         assertThat(records3.get(0).namespaceName(), equalTo("ns1"));
         assertThat(records3.get(0).bindingName(), equalTo("binding2"));
         assertThat(records3.get(0).metricName(), equalTo("counter1"));
-        assertThat(records3.get(0).value(), equalTo(43L));
+        assertThat(((CounterGaugeRecord)records3.get(0)).value(), equalTo(43L));
     }
 
     @Test
@@ -357,25 +358,26 @@ public class MetricsProcessorTest
         assertThat(records.get(0).namespaceName(), equalTo("ns1"));
         assertThat(records.get(0).bindingName(), equalTo("binding1"));
         assertThat(records.get(0).metricName(), equalTo("counter1"));
-        assertThat(records.get(0).value(), equalTo(42L));
+        assertThat(((CounterGaugeRecord)records.get(0)).value(), equalTo(42L));
 
         assertThat(records.get(1), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(1).namespaceName(), equalTo("ns1"));
         assertThat(records.get(1).bindingName(), equalTo("binding1"));
         assertThat(records.get(1).metricName(), equalTo("counter2"));
-        assertThat(records.get(1).value(), equalTo(77L));
+        assertThat(((CounterGaugeRecord)records.get(1)).value(), equalTo(77L));
 
         assertThat(records.get(2), instanceOf(CounterGaugeRecord.class));
         assertThat(records.get(2).namespaceName(), equalTo("ns1"));
         assertThat(records.get(2).bindingName(), equalTo("binding1"));
         assertThat(records.get(2).metricName(), equalTo("gauge1"));
-        assertThat(records.get(2).value(), equalTo(62L));
+        assertThat(((CounterGaugeRecord)records.get(2)).value(), equalTo(62L));
 
         assertThat(records.get(3), instanceOf(HistogramRecord.class));
         assertThat(records.get(3).namespaceName(), equalTo("ns1"));
         assertThat(records.get(3).bindingName(), equalTo("binding1"));
         assertThat(records.get(3).metricName(), equalTo("histogram1"));
-        assertThat(records.get(3).histogramStats(), equalTo(new long[]{1L, 63L, 6L, 22L})); // min, max, cnt, avg
+        assertThat(((HistogramRecord)records.get(3)).stats(),
+            equalTo(new long[]{1L, 63L, 6L, 22L})); // min, max, cnt, avg
     }
 
     @Test
@@ -417,19 +419,22 @@ public class MetricsProcessorTest
         assertThat(records.get(0).namespaceName(), equalTo("ns1"));
         assertThat(records.get(0).bindingName(), equalTo("binding1"));
         assertThat(records.get(0).metricName(), equalTo("histogram2"));
-        assertThat(records.get(0).histogramStats(), equalTo(new long[]{0L, 0L, 0L, 0L})); // min, max, cnt, avg
+        assertThat(((HistogramRecord)records.get(0)).stats(),
+            equalTo(new long[]{0L, 0L, 0L, 0L})); // min, max, cnt, avg
 
         assertThat(records.get(1), instanceOf(HistogramRecord.class));
         assertThat(records.get(1).namespaceName(), equalTo("ns1"));
         assertThat(records.get(1).bindingName(), equalTo("binding1"));
         assertThat(records.get(1).metricName(), equalTo("histogram3"));
-        assertThat(records.get(1).histogramStats(), equalTo(new long[]{1L, 63L, 4L, 17L})); // min, max, cnt, avg
+        assertThat(((HistogramRecord)records.get(1)).stats(),
+            equalTo(new long[]{1L, 63L, 4L, 17L})); // min, max, cnt, avg
 
         assertThat(records.get(2), instanceOf(HistogramRecord.class));
         assertThat(records.get(2).namespaceName(), equalTo("ns1"));
         assertThat(records.get(2).bindingName(), equalTo("binding1"));
         assertThat(records.get(2).metricName(), equalTo("histogram4"));
-        assertThat(records.get(2).histogramStats(), equalTo(new long[]{3L, 65535L, 45L, 2916L})); // min, max, cnt, avg
+        assertThat(((HistogramRecord)records.get(2)).stats(),
+            equalTo(new long[]{3L, 65535L, 45L, 2916L})); // min, max, cnt, avg
     }
 
     @Test
@@ -493,24 +498,24 @@ public class MetricsProcessorTest
         assertThat(record1.namespaceName(), equalTo("ns1"));
         assertThat(record1.bindingName(), equalTo("binding1"));
         assertThat(record1.metricName(), equalTo("counter1"));
-        assertThat(record1.value(), equalTo(42L));
+        assertThat(((CounterGaugeRecord)record1).value(), equalTo(42L));
 
         assertThat(record2, instanceOf(CounterGaugeRecord.class));
         assertThat(record2.namespaceName(), equalTo("ns1"));
         assertThat(record2.bindingName(), equalTo("binding1"));
         assertThat(record2.metricName(), equalTo("counter2"));
-        assertThat(record2.value(), equalTo(77L));
+        assertThat(((CounterGaugeRecord)record2).value(), equalTo(77L));
 
         assertThat(record3, instanceOf(CounterGaugeRecord.class));
         assertThat(record3.namespaceName(), equalTo("ns1"));
         assertThat(record3.bindingName(), equalTo("binding2"));
         assertThat(record3.metricName(), equalTo("counter1"));
-        assertThat(record3.value(), equalTo(43L));
+        assertThat(((CounterGaugeRecord)record3).value(), equalTo(43L));
 
         assertThat(record4, instanceOf(CounterGaugeRecord.class));
         assertThat(record4.namespaceName(), equalTo("ns2"));
         assertThat(record4.bindingName(), equalTo("binding1"));
         assertThat(record4.metricName(), equalTo("counter1"));
-        assertThat(record4.value(), equalTo(44L));
+        assertThat(((CounterGaugeRecord)record4).value(), equalTo(44L));
     }
 }

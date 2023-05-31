@@ -88,7 +88,7 @@ public class HistogramRecordTest
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN
-        long[] stats = histogram.histogramStats();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(stats[0], equalTo(3L)); // min
@@ -105,7 +105,7 @@ public class HistogramRecordTest
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN
-        long[] stats = histogram.histogramStats();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(stats[0], equalTo(1L)); // min
@@ -122,7 +122,7 @@ public class HistogramRecordTest
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN
-        long[] stats = histogram.histogramStats();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(stats[0], equalTo(3L)); // min
@@ -139,7 +139,7 @@ public class HistogramRecordTest
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN
-        long[] stats = histogram.histogramStats();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(stats[0], equalTo(0L)); // min
@@ -156,7 +156,7 @@ public class HistogramRecordTest
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN
-        long[] stats = histogram.histogramStats();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(stats[0], equalTo(0L)); // min

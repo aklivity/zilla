@@ -22,8 +22,8 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 public final class HistogramsLayout extends MetricsLayout
 {
     public static final int BUCKETS = 63;
-    public static final Map<Integer, Long> BUCKET_LIMITS = generateBucketLimits();
+    public static final long[] BUCKET_LIMITS = generateBucketLimits();
 
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
@@ -125,14 +125,14 @@ public final class HistogramsLayout extends MetricsLayout
     }
 
     // exclusive upper limits of each bucket
-    private static Map<Integer, Long> generateBucketLimits()
+    private static long[] generateBucketLimits()
     {
-        Map<Integer, Long> limits = new HashMap<>();
+        List<Long> limits = new ArrayList<>();
         for (int i = 0; i < BUCKETS; i++)
         {
-            limits.put(i, 1L << (i + 1));
+            limits.add(1L << (i + 1));
         }
-        return limits;
+        return limits.stream().mapToLong(l -> l).toArray();
     }
 
     public static final class Builder extends Layout.Builder<HistogramsLayout>

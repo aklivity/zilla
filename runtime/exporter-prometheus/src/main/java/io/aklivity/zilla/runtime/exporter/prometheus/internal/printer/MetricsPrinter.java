@@ -60,12 +60,14 @@ public class MetricsPrinter
         String result = null;
         if (metric.getClass().equals(CounterGaugeRecord.class))
         {
-            result = formatCounterGauge(metric.metricName(), metric.namespaceName(), metric.bindingName(), metric.value());
+            CounterGaugeRecord record = (CounterGaugeRecord) metric;
+            result = formatCounterGauge(record.metricName(), record.namespaceName(), record.bindingName(), record.value());
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
             // TODO: Ati
-            result = metric.metricName() + " histogram TODO";
+            HistogramRecord record = (HistogramRecord) metric;
+            result = record.metricName() + " histogram TODO";
         }
         return result;
     }
@@ -102,7 +104,7 @@ public class MetricsPrinter
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
         for (int i = 0; i < BUCKETS; i++)
         {
-            String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS.get(i));
+            String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS[i]);
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
                 extName, limit, namespace, binding, values[i]));
         }

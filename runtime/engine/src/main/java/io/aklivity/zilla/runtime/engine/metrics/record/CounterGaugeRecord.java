@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.loca
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -63,28 +62,9 @@ public class CounterGaugeRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
-    @Override
     public long value()
     {
         return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
-    }
-
-    @Override
-    public long[] histogramStats()
-    {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public int histogramBuckets()
-    {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public Map<Integer, Long> histogramBucketLimits()
-    {
-        throw new RuntimeException("not implemented");
     }
 
     @Override

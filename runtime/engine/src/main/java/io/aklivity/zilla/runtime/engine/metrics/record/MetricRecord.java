@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.record;
 
-import java.util.Map;
-
 public interface MetricRecord
 {
     String namespaceName();
@@ -24,12 +22,4 @@ public interface MetricRecord
     String bindingName();
 
     String metricName();
-
-    long value();
-
-    long[] histogramStats();
-
-    int histogramBuckets();
-
-    Map<Integer, Long> histogramBucketLimits();
 }

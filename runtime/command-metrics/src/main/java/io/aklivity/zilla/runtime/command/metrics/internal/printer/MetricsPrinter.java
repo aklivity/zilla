@@ -95,11 +95,13 @@ public class MetricsPrinter
         String result = null;
         if (metric.getClass().equals(CounterGaugeRecord.class))
         {
-            result = formatCounterGauge(metric.value());
+            CounterGaugeRecord record = (CounterGaugeRecord) metric;
+            result = formatCounterGauge(record.value());
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
-            result = formatHistogram(metric.histogramStats());
+            HistogramRecord record = (HistogramRecord) metric;
+            result = formatHistogram(record.stats());
         }
         return result;
     }

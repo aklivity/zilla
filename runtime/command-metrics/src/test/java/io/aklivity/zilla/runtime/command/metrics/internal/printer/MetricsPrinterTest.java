@@ -42,23 +42,23 @@ public class MetricsPrinterTest
             "ns1          binding1    gauge1                                           77\n" +
             "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 2 | avg: 32]\n\n";
 
-        MetricRecord counterRecord = mock(CounterGaugeRecord.class);
+        CounterGaugeRecord counterRecord = mock(CounterGaugeRecord.class);
         when(counterRecord.namespaceName()).thenReturn("ns1");
         when(counterRecord.bindingName()).thenReturn("binding1");
         when(counterRecord.metricName()).thenReturn("counter1");
         when(counterRecord.value()).thenReturn(42L);
 
-        MetricRecord gaugeRecord = mock(CounterGaugeRecord.class);
+        CounterGaugeRecord gaugeRecord = mock(CounterGaugeRecord.class);
         when(gaugeRecord.namespaceName()).thenReturn("ns1");
         when(gaugeRecord.bindingName()).thenReturn("binding1");
         when(gaugeRecord.metricName()).thenReturn("gauge1");
         when(gaugeRecord.value()).thenReturn(77L);
 
-        MetricRecord histogramRecord = mock(HistogramRecord.class);
+        HistogramRecord histogramRecord = mock(HistogramRecord.class);
         when(histogramRecord.namespaceName()).thenReturn("ns1");
         when(histogramRecord.bindingName()).thenReturn("binding1");
         when(histogramRecord.metricName()).thenReturn("histogram1");
-        when(histogramRecord.histogramStats()).thenReturn(new long[]{1L, 63L, 2L, 32L});
+        when(histogramRecord.stats()).thenReturn(new long[]{1L, 63L, 2L, 32L});
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
         MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
