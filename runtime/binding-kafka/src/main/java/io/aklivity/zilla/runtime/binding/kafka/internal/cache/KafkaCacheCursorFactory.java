@@ -83,7 +83,7 @@ public final class KafkaCacheCursorFactory
 
     public final class KafkaCacheCursor implements AutoCloseable
     {
-        private final KafkaFilterCondition condition;
+        private KafkaFilterCondition condition;
         private final KafkaDeltaType deltaType;
         private final LongHashSet deltaKeyOffsets; // TODO: bounded LongHashCache, evict -> discard
 
@@ -91,7 +91,7 @@ public final class KafkaCacheCursorFactory
         private KafkaCacheSegment segment;
         public long filters;
         public long offset;
-        private long latestOffset;
+        public long latestOffset;
         private int position;
 
         KafkaCacheCursor(

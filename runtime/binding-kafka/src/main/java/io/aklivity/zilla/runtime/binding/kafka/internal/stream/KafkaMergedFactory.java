@@ -1280,18 +1280,12 @@ public final class KafkaMergedFactory implements BindingHandler
             assert kafkaFlushEx.kind() == KafkaFlushExFW.KIND_MERGED;
             final KafkaMergedFlushExFW kafkaMergedFlushEx = kafkaFlushEx.merged();
             final KafkaCapabilities newCapabilities = kafkaMergedFlushEx.capabilities().get();
+            final Array32FW<KafkaFilterFW> filters = kafkaMergedFlushEx.filters();
+            final List<KafkaMergedFilter> newFilters = asMergedFilters(filters);
 
             if (capabilities != newCapabilities)
             {
-                final Array32FW<KafkaFilterFW> filters = kafkaMergedFlushEx.filters();
-                final List<KafkaMergedFilter> newFilters = asMergedFilters(filters);
-
                 this.maximumOffset = asMaximumOffset(kafkaMergedFlushEx.progress());
-
-                if (hasFetchCapability(capabilities) && hasFetchCapability(newCapabilities))
-                {
-                    assert Objects.equals(this.filters, newFilters);
-                }
 
                 if (hasFetchCapability(newCapabilities) && !hasFetchCapability(capabilities))
                 {
@@ -1315,6 +1309,16 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 doFetchPartitionsIfNecessary(traceId);
                 doProducePartitionsIfNecessary(traceId);
+            }
+
+            if (hasFetchCapability(capabilities) && !newFilters.equals(this.filters))
+            {
+                this.filters = newFilters;
+                final int partitionCount = leadersByPartitionId.size();
+                for (int partitionId = 0; partitionId < partitionCount; partitionId++)
+                {
+                    doFetchInitialFlush(traceId, partitionId);
+                }
             }
         }
 
@@ -1796,6 +1800,20 @@ public final class KafkaMergedFactory implements BindingHandler
             assert leader != null;
             assert leader.partitionId == partitionId;
             assert leader.leaderId == leaderId;
+        }
+
+        private void doFetchInitialFlush(
+            long traceId,
+            int partitionId)
+        {
+            final long partitionOffset = nextFetchPartitionOffset(partitionId);
+
+            KafkaUnmergedFetchStream leader = findFetchPartitionLeader(partitionId);
+
+            if (leader != null)
+            {
+                leader.doFetchInitialFlush(traceId, partitionOffset);
+            }
         }
 
         private void onFetchPartitionLeaderReady(
@@ -2563,6 +2581,23 @@ public final class KafkaMergedFactory implements BindingHandler
                                      .deltaType(t -> t.set(merged.deltaType)))
                         .build()
                         .sizeof()));
+        }
+
+        private void doFetchInitialFlush(
+            long traceId,
+            long partitionOffset)
+        {
+            KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .fetch(f -> f
+                    .partition(p -> p.partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(merged.maximumOffset.value()))
+                    .filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf)))))
+                .build();
+
+            doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, merged.authorization, leaderId, kafkaFlushEx);
         }
 
         private void onMergedInitialEnd(

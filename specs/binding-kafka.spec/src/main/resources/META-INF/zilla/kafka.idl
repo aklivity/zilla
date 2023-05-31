@@ -29,8 +29,8 @@ scope kafka
 
     struct KafkaOffset
     {
-        int32 partitionId;
-        int64 partitionOffset;
+        int32 partitionId = -1;
+        int64 partitionOffset = -1;
         int64 stableOffset = -1;
         int64 latestOffset = -1;
     }
@@ -292,6 +292,8 @@ scope kafka
         {
             KafkaOffset partition;
             KafkaTransaction[] transactions;
+            KafkaFilter[] filters; // ORed
+            KafkaEvaluation evaluation = LAZY;
         }
 
         struct KafkaProduceFlushEx

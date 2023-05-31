@@ -451,6 +451,17 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
+        "${app}/merged.fetch.filter.change/client",
+        "${app}/unmerged.fetch.filter.change/server"})
+    public void shouldReceiveMessagesWithFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("requires k3po parallel reads")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
         "${app}/merged.fetch.filter.headers.one/client",
         "${app}/unmerged.fetch.filter.none/server"})
     public void shouldReceiveMessagesWithHeadersOneFilter() throws Exception

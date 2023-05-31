@@ -38,6 +38,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.filter.change/client",
+        "${app}/merged.fetch.filter.change/server"})
+    public void shouldFetchMergedMessagesWithFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.filter.header/client",
         "${app}/merged.fetch.filter.header/server"})
     public void shouldFetchMergedMessagesWithHeaderFilter() throws Exception
@@ -279,6 +288,14 @@ public class MergedIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.filter.change/client",
+        "${app}/unmerged.fetch.filter.change/server"})
+    public void shouldFetchUnMergedMessagesWithFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Specification({
