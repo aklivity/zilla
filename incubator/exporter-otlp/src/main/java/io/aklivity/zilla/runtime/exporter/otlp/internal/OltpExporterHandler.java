@@ -19,58 +19,53 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsPrinter;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
 
-// TODO: Ati
 public class OltpExporterHandler implements ExporterHandler
 {
-    //private final LayoutManager manager;
-    //private final PrometheusMetricDescriptor metricDescriptor;
-    private final EngineContext context;
+    private final EngineConfiguration config;
     private final OtlpEndpointConfig[] endpoints;
+    private final OtlpMetricsDescriptor descriptor;
 
-    //private Map<Metric.Kind, List<MetricsLayout>> layouts;
-    //private MetricsProcessor metrics;
+    private MetricsProcessor metrics;
+    private MetricsPrinter printer;
+
 
     public OltpExporterHandler(
         EngineConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter)
     {
-        //this.manager = new LayoutManager(config.directory());
-        //this.metricDescriptor = new PrometheusMetricDescriptor(context::resolveMetric);
-        this.context = context;
+        this.config = config;
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
+        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric);
     }
 
     @Override
     public void start()
     {
-        /*try
-        {
-            layouts = Map.of(
-                COUNTER, manager.countersLayouts(),
-                GAUGE, manager.gaugesLayouts(),
-                HISTOGRAM, manager.histogramsLayouts()
-            );
-            metrics = new MetricsProcessor(layouts, context::supplyLocalName, metricDescriptor::kind,
-                metricDescriptor::name, metricDescriptor::description, null, null);
-            for (PrometheusEndpointConfig endpoint : endpoints)
-            {
-                HttpServer server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
-                server.createContext(endpoint.path, new MetricsHttpHandler());
-                server.start();
-                servers.put(endpoint.port, server);
-            }
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }*/
+        MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
+        metrics = factory.create();
+        printer = new MetricsPrinter(metrics, descriptor::kind, descriptor::name, descriptor::description);
     }
 
     @Override
     public int export()
     {
+        // TODO: Ati
+        System.out.println("Hello, World! I am the otlp exporter!");
+        printer.print(System.out);
+        try
+        {
+            Thread.sleep(30 * 1000);
+        }
+        catch (InterruptedException e)
+        {
+            throw new RuntimeException(e);
+        }
         return 0;
     }
 
