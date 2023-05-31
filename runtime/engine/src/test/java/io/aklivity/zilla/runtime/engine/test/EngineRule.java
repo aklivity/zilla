@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.LongConsumer;
 import java.util.regex.Pattern;
 
 import org.agrona.ErrorHandler;
@@ -168,6 +169,15 @@ public final class EngineRule implements TestRule
     public EngineExtContext context()
     {
         return engine.context();
+    }
+
+    public LongConsumer counterWriter(
+        String namespace,
+        String binding,
+        String metric,
+        int core)
+    {
+        return engine.context().counterWriter(namespace, binding, metric, core);
     }
 
     private EngineConfiguration configuration()

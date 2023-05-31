@@ -773,6 +773,14 @@ public class DispatchAgent implements EngineContext, Agent
         return metricGroupsByName.get(metricGroupName).supply(metricName);
     }
 
+    // required for testing
+    public LongConsumer supplyCounterWriter(
+        long bindingId,
+        long metricId)
+    {
+        return countersLayout.supplyWriter(bindingId, metricId);
+    }
+
     private void onSystemMessage(
         int msgTypeId,
         DirectBuffer buffer,

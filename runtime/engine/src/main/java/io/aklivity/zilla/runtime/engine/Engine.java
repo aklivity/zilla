@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
@@ -260,7 +261,7 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    // visible for testing
+    // required for testing
     public EngineExtContext context()
     {
         return context;
@@ -400,6 +401,23 @@ public final class Engine implements AutoCloseable
             return () -> counterSuppliers.stream()
                 .map(LongSupplier::getAsLong)
                 .reduce(0L, Long::sum);
+        }
+
+        // required for testing
+        @Override
+        public LongConsumer counterWriter(
+            String namespace,
+            String binding,
+            String metric,
+            int core)
+        {
+            int namespaceId = supplyLabelId.applyAsInt(namespace);
+            int bindingId = supplyLabelId.applyAsInt(binding);
+            int metricId = supplyLabelId.applyAsInt(metric);
+            long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
+            long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
+            DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
+            return dispatcher.supplyCounterWriter(namespacedBindingId, namespacedMetricId);
         }
     }
 }
