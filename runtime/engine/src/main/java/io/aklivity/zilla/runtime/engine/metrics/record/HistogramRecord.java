@@ -32,6 +32,8 @@ public class HistogramRecord implements MetricRecord
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
 
+    private long[] bucketValues = new long[BUCKETS];
+
     public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
@@ -63,21 +65,42 @@ public class HistogramRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
+    public int buckets()
+    {
+        return BUCKETS;
+    }
+
+    public long[] bucketLimits()
+    {
+        return BUCKET_LIMITS;
+    }
+
+    public void update()
+    {
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            bucketValues[i] = 0;
+            for (LongSupplier[] reader : readers)
+            {
+                bucketValues[i] += reader[i].getAsLong();
+            }
+        }
+    }
+
+    public long[] bucketValues()
+    {
+        return bucketValues;
+    }
+
     public long[] stats()
     {
         long count = 0L;
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        long[] histogram = new long[BUCKETS];
-
         for (int i = 0; i < BUCKETS; i++)
         {
-            for (LongSupplier[] reader : readers)
-            {
-                histogram[i] += reader[i].getAsLong();
-            }
-            long bucketCount = histogram[i];
+            long bucketCount = bucketValues[i];
             count += bucketCount;
             sum += bucketCount * getValue(i);
             if (bucketCount != 0)
@@ -93,24 +116,9 @@ public class HistogramRecord implements MetricRecord
         long minimum = minIndex == -1 ? 0L : getValue(minIndex);
         long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
         long average = count == 0L ? 0L : sum / count;
-        return new long[]{minimum, maximum, count, average};
+        return new long[]{minimum, maximum, sum, count, average};
     }
 
-    public int buckets()
-    {
-        return BUCKETS;
-    }
-
-    public long[] bucketLimits()
-    {
-        return BUCKET_LIMITS;
-    }
-
-    public long[] bucketValues()
-    {
-        // TODO: Ati
-        return new long[]{};
-    }
 
     private long getValue(
         int index)

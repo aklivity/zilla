@@ -170,6 +170,7 @@ public class MetricsProcessorTest
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
+        ((HistogramRecord)records.get(5)).update();
 
         // THEN
         assertThat(records.get(0), instanceOf(CounterGaugeRecord.class));
@@ -207,7 +208,7 @@ public class MetricsProcessorTest
         assertThat(records.get(5).bindingName(), equalTo("binding1"));
         assertThat(records.get(5).metricName(), equalTo("histogram1"));
         assertThat(((HistogramRecord)records.get(5)).stats(),
-            equalTo(new long[]{1L, 63L, 2L, 32L})); // min, max, cnt, avg
+            equalTo(new long[]{1L, 63L, 64L, 2L, 32L})); // min, max, sum, cnt, avg
     }
 
     @Test
@@ -352,6 +353,7 @@ public class MetricsProcessorTest
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
+        ((HistogramRecord)records.get(3)).update();
 
         // THEN
         assertThat(records.get(0), instanceOf(CounterGaugeRecord.class));
@@ -377,7 +379,7 @@ public class MetricsProcessorTest
         assertThat(records.get(3).bindingName(), equalTo("binding1"));
         assertThat(records.get(3).metricName(), equalTo("histogram1"));
         assertThat(((HistogramRecord)records.get(3)).stats(),
-            equalTo(new long[]{1L, 63L, 6L, 22L})); // min, max, cnt, avg
+            equalTo(new long[]{1L, 63L, 134L, 6L, 22L})); // min, max, sum, cnt, avg
     }
 
     @Test
@@ -413,6 +415,9 @@ public class MetricsProcessorTest
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
+        ((HistogramRecord)records.get(0)).update();
+        ((HistogramRecord)records.get(1)).update();
+        ((HistogramRecord)records.get(2)).update();
 
         // THEN
         assertThat(records.get(0), instanceOf(HistogramRecord.class));
@@ -420,21 +425,21 @@ public class MetricsProcessorTest
         assertThat(records.get(0).bindingName(), equalTo("binding1"));
         assertThat(records.get(0).metricName(), equalTo("histogram2"));
         assertThat(((HistogramRecord)records.get(0)).stats(),
-            equalTo(new long[]{0L, 0L, 0L, 0L})); // min, max, cnt, avg
+            equalTo(new long[]{0L, 0L, 0L, 0L, 0L})); // min, max, sum, cnt, avg
 
         assertThat(records.get(1), instanceOf(HistogramRecord.class));
         assertThat(records.get(1).namespaceName(), equalTo("ns1"));
         assertThat(records.get(1).bindingName(), equalTo("binding1"));
         assertThat(records.get(1).metricName(), equalTo("histogram3"));
         assertThat(((HistogramRecord)records.get(1)).stats(),
-            equalTo(new long[]{1L, 63L, 4L, 17L})); // min, max, cnt, avg
+            equalTo(new long[]{1L, 63L, 70L, 4L, 17L})); // min, max, sum, cnt, avg
 
         assertThat(records.get(2), instanceOf(HistogramRecord.class));
         assertThat(records.get(2).namespaceName(), equalTo("ns1"));
         assertThat(records.get(2).bindingName(), equalTo("binding1"));
         assertThat(records.get(2).metricName(), equalTo("histogram4"));
         assertThat(((HistogramRecord)records.get(2)).stats(),
-            equalTo(new long[]{3L, 65535L, 45L, 2916L})); // min, max, cnt, avg
+            equalTo(new long[]{3L, 65535L, 131259L, 45L, 2916L})); // min, max, sum, cnt, avg
     }
 
     @Test

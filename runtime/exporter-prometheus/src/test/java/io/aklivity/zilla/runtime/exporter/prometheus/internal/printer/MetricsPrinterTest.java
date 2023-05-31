@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.metrics.internal.printer;
+package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -29,18 +29,30 @@ import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
 
 public class MetricsPrinterTest
 {
     @Test
     public void shouldWorkInGenericCase() throws Exception
     {
-        // GIVEN
         String expectedOutput =
-            "namespace    binding     metric                                        value\n" +
-            "ns1          binding1    counter1                                         42\n" +
-            "ns1          binding1    gauge1                                           77\n" +
-            "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 2 | avg: 32]\n\n";
+            "# HELP counter1_total description for counter1\n" +
+            "# TYPE counter1_total counter\n" +
+            "counter1_total{namespace=\"ns1\",binding=\"binding1\"} 42\n" +
+            "\n" +
+            "# HELP gauge1 description for gauge1\n" +
+            "# TYPE gauge1 gauge\n" +
+            "gauge1{namespace=\"ns1\",binding=\"binding1\"} 77\n" +
+            "\n" +
+            "# HELP histogram1 description for histogram1\n" +
+            "# TYPE histogram1 histogram\n" +
+            "histogram1_bucket{le=\"1\",namespace=\"ns1\",binding=\"binding1\"} 7\n" +
+            "histogram1_bucket{le=\"10\",namespace=\"ns1\",binding=\"binding1\"} 42\n" +
+            "histogram1_bucket{le=\"100\",namespace=\"ns1\",binding=\"binding1\"} 9\n" +
+            "histogram1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 1\n" +
+            "histogram1_sum{namespace=\"ns1\",binding=\"binding1\"} 2327\n" +
+            "histogram1_count{namespace=\"ns1\",binding=\"binding1\"} 59\n\n\n";
 
         CounterGaugeRecord counterRecord = mock(CounterGaugeRecord.class);
         when(counterRecord.namespaceName()).thenReturn("ns1");
@@ -58,13 +70,30 @@ public class MetricsPrinterTest
         when(histogramRecord.namespaceName()).thenReturn("ns1");
         when(histogramRecord.bindingName()).thenReturn("binding1");
         when(histogramRecord.metricName()).thenReturn("histogram1");
-        when(histogramRecord.stats()).thenReturn(new long[]{1L, 63L, 64L, 2L, 32L});
+        when(histogramRecord.buckets()).thenReturn(4);
+        when(histogramRecord.bucketLimits()).thenReturn(new long[]{1, 10, 100, 1000});
+        when(histogramRecord.bucketValues()).thenReturn(new long[]{7, 42, 9, 1});
+        when(histogramRecord.stats()).thenReturn(new long[]{1L, 1000L, 2327L, 59L, 39L}); // min, max, sum, cnt, avg
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
         MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
         when(metricsProcessor.getRecords()).thenReturn(metricRecords);
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor);
+        PrometheusMetricDescriptor descriptor = mock(PrometheusMetricDescriptor.class);
+        when(descriptor.name("counter1")).thenReturn("counter1_total");
+        when(descriptor.kind("counter1")).thenReturn("counter");
+        when(descriptor.description("counter1")).thenReturn("description for counter1");
+
+        when(descriptor.name("gauge1")).thenReturn("gauge1");
+        when(descriptor.kind("gauge1")).thenReturn("gauge");
+        when(descriptor.description("gauge1")).thenReturn("description for gauge1");
+
+        when(descriptor.name("histogram1")).thenReturn("histogram1");
+        when(descriptor.kind("histogram1")).thenReturn("histogram");
+        when(descriptor.description("histogram1")).thenReturn("description for histogram1");
+
+        MetricsPrinter printer = new MetricsPrinter(metricsProcessor, descriptor::kind, descriptor::name,
+            descriptor::description);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -76,17 +105,16 @@ public class MetricsPrinterTest
     }
 
     @Test
-    public void shouldPrintHeaderOnly() throws Exception
+    public void shouldPrintEmpty() throws Exception
     {
         // GIVEN
-        String expectedOutput =
-            "namespace    binding    metric    value\n\n";
+        String expectedOutput = "";
         List<MetricRecord> metricRecords = List.of();
 
         MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
         when(metricsProcessor.getRecords()).thenReturn(metricRecords);
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor);
+        MetricsPrinter printer = new MetricsPrinter(metricsProcessor, null, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

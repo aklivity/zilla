@@ -86,6 +86,7 @@ public class HistogramRecordTest
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_1};
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
+        histogram.update();
 
         // WHEN
         long[] stats = histogram.stats();
@@ -93,8 +94,9 @@ public class HistogramRecordTest
         // THEN
         assertThat(stats[0], equalTo(3L)); // min
         assertThat(stats[1], equalTo(65535L)); // max
-        assertThat(stats[2], equalTo(100L)); // cnt
-        assertThat(stats[3], equalTo(50518L)); // avg
+        assertThat(stats[2], equalTo(5051808L)); // sum
+        assertThat(stats[3], equalTo(100L)); // cnt
+        assertThat(stats[4], equalTo(50518L)); // avg
     }
 
     @Test
@@ -103,6 +105,7 @@ public class HistogramRecordTest
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_1, READER_HISTOGRAM_2, READER_HISTOGRAM_3};
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
+        histogram.update();
 
         // WHEN
         long[] stats = histogram.stats();
@@ -110,8 +113,9 @@ public class HistogramRecordTest
         // THEN
         assertThat(stats[0], equalTo(1L)); // min
         assertThat(stats[1], equalTo(65535L)); // max
-        assertThat(stats[2], equalTo(201L)); // cnt
-        assertThat(stats[3], equalTo(25134L)); // avg
+        assertThat(stats[2], equalTo(5052109L)); // sum
+        assertThat(stats[3], equalTo(201L)); // cnt
+        assertThat(stats[4], equalTo(25134L)); // avg
     }
 
     @Test
@@ -120,6 +124,7 @@ public class HistogramRecordTest
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_4};
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
+        histogram.update();
 
         // WHEN
         long[] stats = histogram.stats();
@@ -127,8 +132,9 @@ public class HistogramRecordTest
         // THEN
         assertThat(stats[0], equalTo(3L)); // min
         assertThat(stats[1], equalTo(9223372036854775807L)); // max
-        assertThat(stats[2], equalTo(1000000099L)); // cnt
-        assertThat(stats[3], equalTo(9223371122L)); // avg
+        assertThat(stats[2], equalTo(9223372035854776109L)); // sum
+        assertThat(stats[3], equalTo(1000000099L)); // cnt
+        assertThat(stats[4], equalTo(9223371122L)); // avg
     }
 
     @Test
@@ -137,6 +143,7 @@ public class HistogramRecordTest
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_0};
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
+        histogram.update();
 
         // WHEN
         long[] stats = histogram.stats();
@@ -144,8 +151,9 @@ public class HistogramRecordTest
         // THEN
         assertThat(stats[0], equalTo(0L)); // min
         assertThat(stats[1], equalTo(0L)); // max
-        assertThat(stats[2], equalTo(0L)); // cnt
-        assertThat(stats[3], equalTo(0L)); // avg
+        assertThat(stats[2], equalTo(0L)); // sum
+        assertThat(stats[3], equalTo(0L)); // cnt
+        assertThat(stats[4], equalTo(0L)); // avg
     }
 
     @Test
@@ -161,7 +169,8 @@ public class HistogramRecordTest
         // THEN
         assertThat(stats[0], equalTo(0L)); // min
         assertThat(stats[1], equalTo(0L)); // max
-        assertThat(stats[2], equalTo(0L)); // cnt
-        assertThat(stats[3], equalTo(0L)); // avg
+        assertThat(stats[2], equalTo(0L)); // sum
+        assertThat(stats[3], equalTo(0L)); // cnt
+        assertThat(stats[4], equalTo(0L)); // avg
     }
 }

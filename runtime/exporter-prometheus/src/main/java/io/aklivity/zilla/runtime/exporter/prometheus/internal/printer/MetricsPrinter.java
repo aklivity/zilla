@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
-import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
-import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
-
 import java.io.PrintStream;
 import java.util.function.Function;
 
@@ -60,56 +57,51 @@ public class MetricsPrinter
         String result = null;
         if (metric.getClass().equals(CounterGaugeRecord.class))
         {
-            CounterGaugeRecord record = (CounterGaugeRecord) metric;
-            result = formatCounterGauge(record.metricName(), record.namespaceName(), record.bindingName(), record.value());
+            result = formatCounterGauge((CounterGaugeRecord) metric);
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
-            // TODO: Ati
             HistogramRecord record = (HistogramRecord) metric;
-            result = record.metricName() + " histogram TODO";
+            result = formatHistogram(record);
         }
         return result;
     }
 
     private String formatCounterGauge(
-        String metric,
-        String namespace,
-        String binding,
-        long value)
+        CounterGaugeRecord record)
     {
-        String kind = supplyKind.apply(metric);
-        String extName = supplyName.apply(metric);
-        String description = supplyDescription.apply(metric);
+        String kind = supplyKind.apply(record.metricName());
+        String extName = supplyName.apply(record.metricName());
+        String description = supplyDescription.apply(record.metricName());
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
-        return String.format(format, extName, description, extName, kind, extName, namespace, binding, value);
+        return String.format(format, extName, description, extName, kind, extName,
+            record.namespaceName(), record.bindingName(), record.value());
     }
 
     private String formatHistogram(
-        String metric,
-        String namespace,
-        String binding,
-        long[] values,
-        long[] stats)
+        HistogramRecord record)
     {
+        record.update();
         StringBuilder sb = new StringBuilder();
-        String kind = supplyKind.apply(metric);
-        String extName = supplyName.apply(metric);
-        String description = supplyDescription.apply(metric);
-        long sum = stats[2];
-        long count = stats[3];
+        String kind = supplyKind.apply(record.metricName());
+        String extName = supplyName.apply(record.metricName());
+        String description = supplyDescription.apply(record.metricName());
+        long sum = record.stats()[2];
+        long count = record.stats()[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
-        for (int i = 0; i < BUCKETS; i++)
+        for (int i = 0; i < record.buckets(); i++)
         {
-            String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS[i]);
+            String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                extName, limit, namespace, binding, values[i]));
+                extName, limit, record.namespaceName(), record.bindingName(), record.bucketValues()[i]));
         }
-        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, sum));
-        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, count));
+        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n",
+            extName, record.namespaceName(), record.bindingName(), sum));
+        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n",
+            extName, record.namespaceName(), record.bindingName(), count));
         return sb.toString();
     }
 }

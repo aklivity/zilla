@@ -95,26 +95,26 @@ public class MetricsPrinter
         String result = null;
         if (metric.getClass().equals(CounterGaugeRecord.class))
         {
-            CounterGaugeRecord record = (CounterGaugeRecord) metric;
-            result = formatCounterGauge(record.value());
+            result = formatCounterGauge((CounterGaugeRecord) metric);
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
-            HistogramRecord record = (HistogramRecord) metric;
-            result = formatHistogram(record.stats());
+            result = formatHistogram((HistogramRecord) metric);
         }
         return result;
     }
 
     private String formatCounterGauge(
-        long value)
+        CounterGaugeRecord record)
     {
-        return String.valueOf(value);
+        return String.valueOf(record.value());
     }
 
     private String formatHistogram(
-        long[] stats)
+        HistogramRecord record)
     {
-        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+        record.update();
+        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]",
+            record.stats()[0], record.stats()[1], record.stats()[3], record.stats()[4]);
     }
 }
