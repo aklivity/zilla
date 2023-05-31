@@ -1075,6 +1075,9 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                     m.topic(kafkaMessagesTopicName);
+                    m.partitionsItem(p ->
+                        p.partitionId(-1)
+                        .partitionOffset(-1L));
                     filters.forEach(filter ->
 
                         m.filtersItem(f ->
