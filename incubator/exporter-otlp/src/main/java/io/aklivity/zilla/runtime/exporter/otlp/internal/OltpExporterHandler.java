@@ -20,9 +20,18 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsPrinter;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;
+import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 public class OltpExporterHandler implements ExporterHandler
 {
@@ -31,8 +40,9 @@ public class OltpExporterHandler implements ExporterHandler
     private final OtlpMetricsDescriptor descriptor;
 
     private MetricsProcessor metrics;
-    private MetricsPrinter printer;
-
+    //private MetricsPrinter printer;
+    //private LongCounter counter1;
+    private ObservableDoubleMeasurement gauge1;
 
     public OltpExporterHandler(
         EngineConfiguration config,
@@ -49,7 +59,35 @@ public class OltpExporterHandler implements ExporterHandler
     {
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         metrics = factory.create();
-        printer = new MetricsPrinter(metrics, descriptor::kind, descriptor::name, descriptor::description);
+        //printer = new MetricsPrinter(metrics, descriptor::kind, descriptor::name, descriptor::description);
+
+        Resource resource = Resource.getDefault()
+            .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "my-zilla-service")));
+
+        OtlpGrpcMetricExporter otlpGrpcMetricExporter = OtlpGrpcMetricExporter.builder()
+            .setEndpoint("localhost:4317")
+            .build();
+
+        PeriodicMetricReader metricReader = PeriodicMetricReader.builder(otlpGrpcMetricExporter).build();
+
+        SdkMeterProvider meterProvider = SdkMeterProvider.builder()
+            .registerMetricReader(metricReader)
+            .setResource(resource)
+            .build();
+
+        OpenTelemetry openTelemetry = OpenTelemetrySdk.builder()
+            .setMeterProvider(meterProvider)
+            .buildAndRegisterGlobal();
+
+        Meter meter = openTelemetry.meterBuilder("instrumentation-library-name")
+            .setInstrumentationVersion("1.0.0")
+            .build();
+
+        gauge1 = meter
+            .gaugeBuilder("stream.closes.received")
+            .setDescription("desc for scr todo")
+            .setUnit("1")
+            .buildObserver();
     }
 
     @Override
@@ -57,7 +95,8 @@ public class OltpExporterHandler implements ExporterHandler
     {
         // TODO: Ati
         System.out.println("Hello, World! I am the otlp exporter!");
-        printer.print(System.out);
+        gauge1.record(77, Attributes.empty());
+
         try
         {
             Thread.sleep(30 * 1000);
