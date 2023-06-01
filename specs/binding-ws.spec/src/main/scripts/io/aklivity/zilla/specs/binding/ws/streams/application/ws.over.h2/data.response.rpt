@@ -31,9 +31,6 @@ connected
 
 # connection established
 
-read [0x81 0xfd] ([0..4] :readMask)
-read option mask ${readMask}
 read ([0..125] :server125)
-read option mask [0x00 0x00 0x00 0x00]
 
 write ${server125}

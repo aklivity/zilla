@@ -14,12 +14,14 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
+property writeMask ${http:randomBytes(4)}
+property client125 ${http:randomBytesUTF8(125)}
+
+connect "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "duplex"
-accepted
 
-read zilla:begin.ext ${ws:beginEx()
+write zilla:begin.ext ${ws:beginEx()
                            .typeId(zilla:id("ws"))
                            .protocol("chat")
                            .scheme("http")
@@ -30,3 +32,7 @@ read zilla:begin.ext ${ws:beginEx()
 connected
 
 # connection established
+
+write ${client125}
+
+read ${client125}

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.ws.internal.streams.rfc8441.server;
+package io.aklivity.zilla.runtime.binding.ws.internal.streams.server;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -32,8 +32,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class WsOverHttp2IT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/ws/streams/rfc8441/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/ws/streams/rfc8441/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/ws/streams/network/ws.over.h2")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/ws/streams/application/ws.over.h2");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
