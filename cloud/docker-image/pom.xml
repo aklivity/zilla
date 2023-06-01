@@ -285,6 +285,8 @@
                             <include>org/slf4j/**</include>
                             <include>org/antlr/**</include>
                             <include>org/sonatype/oss/**</include>
+                            <include>io/opentelemetry/**</include>
+                            <include>com/google/code/findbugs/**</include>
                           </includes>
                         </fileSet>
                       </fileSets>
