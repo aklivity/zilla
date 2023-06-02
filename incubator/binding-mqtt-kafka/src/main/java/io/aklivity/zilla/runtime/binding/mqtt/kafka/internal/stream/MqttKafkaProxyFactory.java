@@ -53,12 +53,12 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         final MqttKafkaSubscribeFactory subscribeFactory = new MqttKafkaSubscribeFactory(
             config, context, bindings::get);
 
-        //        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-        //            config, context, bindings::get);
+        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
+            config, context, bindings::get);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
-        //        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
+        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
 
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.factories = factories;
