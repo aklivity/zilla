@@ -244,6 +244,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.retain/client",
+        "${kafka}/subscribe.retain/server"})
+    public void shouldReceiveRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.wildcard/client",
         "${kafka}/subscribe.receive.message.wildcard/server"})
     public void shouldReceiveOneMessageWithPatternTopic() throws Exception

@@ -374,13 +374,16 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             messages.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
 
-            if (retainAvailable && (mqttPublishDataEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0)
+            if (retainAvailable)
             {
-                retained.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
-            }
-            else
-            {
-                retained.doKafkaFlush(traceId, authorization, budgetId, reserved);
+                if ((mqttPublishDataEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0)
+                {
+                    retained.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
+                }
+                else
+                {
+                    retained.doKafkaFlush(traceId, authorization, budgetId, reserved);
+                }
             }
         }
 
@@ -563,8 +566,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
             int padding,
             int capabilities)
         {
-            final long newInitialAck = Math.min(messages.initialAck, retained.initialAck);
-            final int newInitialMax = Math.min(messages.initialMax, retained.initialMax);
+            final long newInitialAck = retainAvailable ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
+            final int newInitialMax = retainAvailable ? Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
 
             if (initialAck != newInitialAck || initialMax != newInitialMax)
             {
@@ -654,7 +657,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
     final class KafkaMessagesProxy
     {
         private MessageConsumer kafka;
-        private MessageConsumer kafkaRetained;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -696,16 +698,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, kafkaTopicName);
-
-
-            if (retainAvailable)
-            {
-                // TODO: mqtt_retained: publish to both
-
-                kafkaRetained =
-                    newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, kafkaRetainedTopicName);
-            }
         }
 
         private void doKafkaData(
@@ -968,7 +960,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     final class KafkaRetainedProxy
     {
-        private MessageConsumer kafkaRetained;
+        private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -1010,7 +1002,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             if (retainAvailable)
             {
-                kafkaRetained =
+                kafka =
                     newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, affinity, kafkaRetainedTopicName);
             }
@@ -1025,7 +1017,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(kafkaRetained, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -1039,7 +1031,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             long budgetId,
             int reserved)
         {
-            doFlush(kafkaRetained, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, reserved);
 
             initialSeq += reserved;
@@ -1059,7 +1051,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 initialMax = delegate.initialMax;
                 state = MqttKafkaState.closeInitial(state);
 
-                doEnd(kafkaRetained, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
             }
         }
 
@@ -1074,7 +1066,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 initialMax = delegate.initialMax;
                 state = MqttKafkaState.closeInitial(state);
 
-                doAbort(kafkaRetained, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
             }
         }
 
@@ -1268,7 +1260,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             {
                 state = MqttKafkaState.closeReply(state);
 
-                doReset(kafkaRetained, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
             }
         }
 
@@ -1283,7 +1275,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             replyMax = delegate.replyMax;
             replyPad = delegate.replyPad;
 
-            doWindow(kafkaRetained, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
     }

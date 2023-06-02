@@ -226,6 +226,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.retain/client",
+        "${mqtt}/subscribe.retain/server"})
+    public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.publish.no.local/client",
         "${mqtt}/subscribe.publish.no.local/server"})
     public void shouldNotReceiveLocal() throws Exception
