@@ -15,7 +15,6 @@
 module io.aklivity.zilla.runtime.exporter.otlp
 {
     requires io.aklivity.zilla.runtime.engine;
-    requires jsr305;
 
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporterFactorySpi;
