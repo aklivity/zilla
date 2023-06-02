@@ -19,13 +19,14 @@ accept "zilla://streams/mqtt0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .subscribe()
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "AT_MOST_ONCE", "NO_LOCAL")
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
-                              .build()}
+                             .build()}
+
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
@@ -36,24 +37,19 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .format("TEXT")
                                  .build()
                              .build()}
+
+write "message"
+write flush
+
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+
 write "message2"
+write flush
 
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .build()
-                             .build()}
-connected
-
-read zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .topic("sensor/one")
-                                .format("TEXT")
-                                .build()
-                             .build()}
-read "message"

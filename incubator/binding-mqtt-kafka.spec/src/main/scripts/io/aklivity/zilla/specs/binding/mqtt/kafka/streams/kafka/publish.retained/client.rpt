@@ -38,15 +38,42 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:topic", "sensor")
                                .header("zilla:topic", "one")
                                .header("zilla:local", "client")
-                               .headerInt("zilla:timeout-ms", 15000)
-                               .header("zilla:content-type", "message")
                                .header("zilla:format", "TEXT")
-                               .header("zilla:reply-to", "sensor/one")
-                               .header("zilla:correlation-id", "info")
                                .build()
                            .build()}
 
 write "message"
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("sensor/one")
+                               .header("zilla:topic", "sensor")
+                               .header("zilla:topic", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:format", "TEXT")
+                               .build()
+                           .build()}
+
+write "message2"
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("sensor/one")
+                               .header("zilla:topic", "sensor")
+                               .header("zilla:topic", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:format", "TEXT")
+                               .build()
+                           .build()}
+
+write "message3"
+
 write notify MESSAGE_DELIVERED
 
 connect await MESSAGE_DELIVERED
@@ -66,6 +93,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write advise zilla:flush
+
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -75,12 +104,10 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:topic", "sensor")
                                .header("zilla:topic", "one")
                                .header("zilla:local", "client")
-                               .headerInt("zilla:timeout-ms", 15000)
-                               .header("zilla:content-type", "message")
                                .header("zilla:format", "TEXT")
-                               .header("zilla:reply-to", "sensor/one")
-                               .header("zilla:correlation-id", "info")
                                .build()
                            .build()}
 
-write "message"
+write "message2"
+
+write advise zilla:flush
