@@ -118,6 +118,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.retained/client",
+        "${mqtt}/publish.retained/server"})
+    public void shouldSendRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.with.user.properties.distinct/client",
         "${mqtt}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
