@@ -53,6 +53,23 @@
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
     </dependency>
+<!--    Ati-->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-stream</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-http</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-grpc</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+<!--    /Ati-->
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
@@ -126,6 +143,7 @@
 
   <build>
     <plugins>
+<!--      Ati-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -146,6 +164,7 @@
           </execution>
         </executions>
       </plugin>
+<!--      /Ati-->
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
