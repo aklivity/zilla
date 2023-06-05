@@ -28,6 +28,7 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
     private final Map<String, String> names;
     private final Map<String, String> kinds;
     private final Map<String, String> descriptions;
+    private final Map<String, String> units;
 
     public OtlpMetricsDescriptor(
         Function<String, Metric> metricResolver)
@@ -36,6 +37,7 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         this.names = new Object2ObjectHashMap<>();
         this.kinds = new Object2ObjectHashMap<>();
         this.descriptions = new Object2ObjectHashMap<>();
+        this.units = new Object2ObjectHashMap<>();
     }
 
     @Override
@@ -74,6 +76,18 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         {
             result = metricResolver.apply(internalName).description();
             descriptions.put(internalName, result);
+        }
+        return result;
+    }
+
+    public String unit(
+        String internalName)
+    {
+        String result = units.get(internalName);
+        if (result == null)
+        {
+            result = metricResolver.apply(internalName).unit().toString().toLowerCase();
+            units.put(internalName, result);
         }
         return result;
     }

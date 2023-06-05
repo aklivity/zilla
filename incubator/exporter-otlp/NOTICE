@@ -18,5 +18,8 @@ This project includes:
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::incubator::exporter-otlp.spec under Aklivity Community License Agreement
   zilla::runtime::engine under The Apache Software License, Version 2.0
+  zilla::runtime::metrics-grpc under Aklivity Community License Agreement
+  zilla::runtime::metrics-http under Aklivity Community License Agreement
+  zilla::runtime::metrics-stream under Aklivity Community License Agreement
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 

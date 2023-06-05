@@ -16,22 +16,18 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import java.time.Duration;
 import java.util.Timer;
-import java.util.TimerTask;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.publisher.MetricsPublisher;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.api.metrics.ObservableLongCounter;
-import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
@@ -41,13 +37,16 @@ import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 public class OltpExporterHandler implements ExporterHandler
 {
+    private static final String CLASS_NAME =  OltpExporterHandler.class.getName();
+    private static final String SCOPE_VERSION = "1.0.0";
+
     private final EngineConfiguration config;
     //private final OtlpEndpointConfig[] endpoints;
-    //private final OtlpMetricsDescriptor descriptor;
+    private final OtlpMetricsDescriptor descriptor;
     private final Duration interval;
     private final Timer timer;
 
-    private MetricsProcessor metrics;
+    private SdkMeterProvider meterProvider;
 
     public OltpExporterHandler(
         EngineConfiguration config,
@@ -56,8 +55,8 @@ public class OltpExporterHandler implements ExporterHandler
     {
         this.config = config;
         //this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
-        //this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric);
-        this.interval = Duration.ofSeconds(5L);
+        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric);
+        this.interval = Duration.ofSeconds(5L); // TODO: Ati - get this from config
         this.timer = new Timer();
     }
 
@@ -66,55 +65,50 @@ public class OltpExporterHandler implements ExporterHandler
     {
         System.out.println("Hello, World! I am the otlp exporter!");
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
-        metrics = factory.create();
-        //MetricsPrinter printer = new MetricsPrinter(metrics, descriptor::kind, descriptor::name, descriptor::description);
-
-        MetricRecord record = metrics.findRecord("example", "echo_server0", "stream.closes.received");
-        System.out.println(((CounterGaugeRecord)record).value());
-
+        MetricsProcessor metrics = factory.create();
         Resource resource = Resource.getDefault()
             .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "my-zilla-service")));
-
+        // TODO: Ati - set attributes from config
         OtlpGrpcMetricExporter otlpGrpcMetricExporter = OtlpGrpcMetricExporter.builder()
-            //.setEndpoint("localhost:4317")
-            .setEndpoint("http://localhost:4317")
-            //.setEndpoint("http://localhost:9999")
+            .setEndpoint("http://localhost:4317") // TODO: Ati - get this from endpoint
             .build();
-
         PeriodicMetricReader metricReader = PeriodicMetricReader.builder(otlpGrpcMetricExporter)
             .setInterval(interval)
             .build();
-
-        SdkMeterProvider meterProvider = SdkMeterProvider.builder()
+        meterProvider = SdkMeterProvider.builder()
             .registerMetricReader(metricReader)
             .setResource(resource)
             .build();
-
         OpenTelemetry openTelemetry = OpenTelemetrySdk.builder()
             .setMeterProvider(meterProvider)
             .buildAndRegisterGlobal();
-
-        Meter meter = openTelemetry.meterBuilder("instrumentation-library-name")
-            .setInstrumentationVersion("1.0.0")
+        Meter meter = openTelemetry.meterBuilder(CLASS_NAME)
+            .setInstrumentationVersion(SCOPE_VERSION)
             .build();
+        MetricsPublisher publisher = new MetricsPublisher(metrics, meter, descriptor::kind, descriptor::name,
+            descriptor::description, descriptor::unit);
+        publisher.setup();
 
+        /*String streamActiveReceived = "stream.active.received";
         ObservableLongGauge observableLongGauge = meter
-            .gaugeBuilder("stream.active.received")
-            .setDescription("desc todo")
-            .setUnit("count")
+            .gaugeBuilder(descriptor.name(streamActiveReceived))
+            .setDescription(descriptor.description(streamActiveReceived))
+            .setUnit(descriptor.unit(streamActiveReceived))
             .ofLongs()
-            .buildWithCallback(measurement -> measurement.record(fortyTwo(), Attributes.empty()));
+            .buildWithCallback(m -> m.record(fortyTwo(), Attributes.empty()));
 
+        String streamClosesReceived = "stream.closes.received";
         ObservableLongCounter observableLongCounter = meter
-            .counterBuilder("stream.closes.received")
-            .setDescription("desc todo")
-            .setUnit("count")
-            .buildWithCallback(measurement -> measurement.record(seventySeven(), Attributes.empty()));
+            .counterBuilder(descriptor.name(streamClosesReceived))
+            .setDescription(descriptor.description(streamClosesReceived))
+            .setUnit(descriptor.unit(streamClosesReceived))
+            .buildWithCallback(m -> m.record(seventySeven(), Attributes.empty()));*/
 
+        /*String httpRequestSize = "http.request.size";
         LongHistogram histogram1 = meter
-            .histogramBuilder("http.request.size")
-            .setDescription("desc todo")
-            .setUnit("bytes")
+            .histogramBuilder(descriptor.name(httpRequestSize))
+            .setDescription(descriptor.description(httpRequestSize))
+            .setUnit(descriptor.unit(httpRequestSize))
             .ofLongs()
             .build();
 
@@ -125,7 +119,7 @@ public class OltpExporterHandler implements ExporterHandler
                 histogram1.record(eightyEight(), Attributes.empty());
             }
         };
-        timer.schedule(histogramTask, 0, interval.toMillis());
+        timer.schedule(histogramTask, 0, interval.toMillis());*/
     }
 
     @Override
@@ -137,24 +131,10 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void stop()
     {
-        timer.cancel();
-    }
-
-    public long fortyTwo()
-    {
-        System.out.println("the answer is 42");
-        return 42L;
-    }
-
-    public long seventySeven()
-    {
-        System.out.println("the result is 77");
-        return 77L;
-    }
-
-    public long eightyEight()
-    {
-        System.out.println("sending 88");
-        return 88L;
+        meterProvider.close();
+        System.out.println("----------------");
+        System.out.println("handler stopped.");
+        //timer.cancel();
+        //System.out.println("Stopped.");
     }
 }
