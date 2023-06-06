@@ -120,6 +120,46 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/publish.server.sent.abort/client",
+        "${kafka}/publish.server.sent.retained.abort/server"})
+    public void shouldReceiveServerSentRetainedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/publish.server.sent.flush/client",
+        "${kafka}/publish.server.sent.retained.flush/server"})
+    public void shouldReceiveServerSentRetainedFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/publish.server.sent.reset/client",
+        "${kafka}/publish.server.sent.retained.reset/server"})
+    public void shouldReceiveServerSentRetainedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/publish.server.sent.data/client",
+        "${kafka}/publish.server.sent.retained.data/server"})
+    public void shouldAbortWhenServerSentRetainedData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.one.message/client",
