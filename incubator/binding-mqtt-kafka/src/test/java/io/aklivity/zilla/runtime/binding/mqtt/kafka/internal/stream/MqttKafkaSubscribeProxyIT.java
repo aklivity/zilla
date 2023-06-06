@@ -120,6 +120,26 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.server.sent.abort/client",
+        "${kafka}/subscribe.server.sent.retained.abort/server"})
+    public void shouldReceiveServerSentRetainedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.server.sent.reset/client",
+        "${kafka}/subscribe.server.sent.retained.reset/server"})
+    public void shouldReceiveServerSentRetainedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.one.message/client",
@@ -145,6 +165,26 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.retain/client",
         "${kafka}/subscribe.retain/server"})
     public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain/client",
+        "${kafka}/subscribe.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.deferred.filter.change.retain/client",
+        "${kafka}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterDeferredFilterChange() throws Exception
     {
         k3po.finish();
     }
