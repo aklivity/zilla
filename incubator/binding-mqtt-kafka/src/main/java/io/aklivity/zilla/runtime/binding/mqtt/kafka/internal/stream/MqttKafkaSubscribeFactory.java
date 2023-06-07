@@ -363,6 +363,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             if (retainAvailable)
             {
+                retainedFilters.removeIf(rf -> !currentFilters.anyMatch(f -> f.subscriptionId() == rf.id));
                 final List<Subscription> newRetainedFilters = new ArrayList<>();
                 currentFilters.forEach(filter ->
                 {
@@ -380,12 +381,13 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
                 if (!newRetainedFilters.isEmpty())
                 {
-                    if (MqttKafkaState.initialOpened(retained.state))
+                    if (MqttKafkaState.initialOpened(retained.state) && !MqttKafkaState.initialClosed(retained.state))
                     {
                         deferredRetainedFiltersQueue.add(newRetainedFilters);
                     }
                     else
                     {
+                        retained.state = 0;
                         messagesReplySeq = replySeq;
                         messagesReplyAck = replyAck;
                         retained.doKafkaBegin(traceId, authorization, 0, newRetainedFilters);
@@ -561,7 +563,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (retainAvailable && MqttKafkaState.initialOpening(retained.state) && !MqttKafkaState.replyClosing(retained.state))
+            if (retainAvailable && MqttKafkaState.initialOpening(retained.state) && !MqttKafkaState.initialClosing(retained.state))
             {
                 retained.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
@@ -710,6 +712,14 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
                 state = MqttKafkaState.openingInitial(state);
+                currentFilters.forEach(filter ->
+                {
+                    int subscriptionId = (int) filter.subscriptionId();
+                    if (!messagesSubscriptionIds.contains(subscriptionId))
+                    {
+                        messagesSubscriptionIds.add(subscriptionId);
+                    }
+                });
 
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, kafkaMessagesTopicName, currentFilters, KafkaOffsetType.LIVE);
@@ -1623,11 +1633,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                         {
                             f.conditionsItem(ci ->
                             {
-                                int subscriptionId = (int) filter.subscriptionId();
-                                if (!messagesSubscriptionIds.contains(subscriptionId))
-                                {
-                                    messagesSubscriptionIds.add(subscriptionId);
-                                }
                                 buildHeaders(ci, filter.pattern().asString());
                             });
                             boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
