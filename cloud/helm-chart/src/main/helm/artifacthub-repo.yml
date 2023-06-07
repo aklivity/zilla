@@ -1,0 +1,6 @@
+# This file is used by ArtifactHub to verify the repository.
+# See: https://artifacthub.io/packages/helm/zilla/zilla
+repositoryID: <artifact-id>
+owners:
+  - name: Aklivity
+    email: inquiry@aklivity.io
