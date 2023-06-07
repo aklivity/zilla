@@ -13,13 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -34,12 +32,13 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .build()
                             .build()}
 
+
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .timestamp(kafka:timestamp())
                                 .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -52,13 +51,11 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 
-write "message"
-write flush
+read "message"
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .timestamp(kafka:timestamp())
                                 .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -71,10 +68,9 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 
-write "message2"
-write flush
+read "message2"
 
-read advised zilla:flush ${kafka:flushEx()
+write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
                                     .capabilities("FETCH_ONLY")
@@ -93,38 +89,11 @@ read advised zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
+write notify MESSAGES_FINISHED
 
-read advised zilla:flush ${kafka:flushEx()
-                                .typeId(zilla:id("kafka"))
-                                .merged()
-                                    .capabilities("FETCH_ONLY")
-                                    .filter()
-                                        .headers("zilla:topic")
-                                            .sequence("sensor")
-                                            .sequence("one")
-                                            .build()
-                                        .build()
-                                    .filter()
-                                        .headers("zilla:topic")
-                                            .sequence("sensor")
-                                            .sequence("two")
-                                            .build()
-                                        .build()
-                                    .filter()
-                                        .headers("zilla:topic")
-                                            .sequence("sensor")
-                                            .sequence("three")
-                                            .build()
-                                        .build()
-                                    .build()
-                                .build()}
-
-read await RETAIN1_FINISHED
-read await RETAIN2_FINISHED
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .timestamp(kafka:timestamp())
                                 .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -137,12 +106,15 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 
-write "message3"
-write flush
+read "message3"
 
-accepted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+connect await MESSAGES_FINISHED
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -159,11 +131,10 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .timestamp(kafka:timestamp())
-                                .filters(1)
+                                .filters(2)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)
@@ -175,17 +146,12 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 
-write "message"
-write flush
+read "message"
 
-write notify FIRST_RETAINED_SENT
-read await SECOND_FLUSH_SENT
-
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .timestamp(kafka:timestamp())
-                                .filters(1)
+                                .filters(2)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)
@@ -197,57 +163,9 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 
-write "message2"
-write flush
+read "message2"
 
-write advise zilla:flush
+read advised zilla:flush
 
-read closed
 write close
-
-write notify RETAIN1_FINISHED
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt_retained")
-                                .filter()
-                                    .headers("zilla:topic")
-                                        .sequence("sensor")
-                                        .sequence("three")
-                                        .build()
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .filters(1)
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("sensor/three")
-                                .header("zilla:topic", "sensor")
-                                .header("zilla:topic", "three")
-                                .header("zilla:local", "client")
-                                .header("zilla:format", "TEXT")
-                                .build()
-                            .build()}
-
-write "message"
-write flush
-
-write advise zilla:flush
-
 read closed
-write close
-
-write notify RETAIN2_FINISHED

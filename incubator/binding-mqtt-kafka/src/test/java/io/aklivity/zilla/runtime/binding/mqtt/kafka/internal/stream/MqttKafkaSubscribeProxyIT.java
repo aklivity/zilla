@@ -151,6 +151,17 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.multiple.message/client",
+        "${kafka}/subscribe.multiple.message/server"})
+    public void shouldReceiveMultipleMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Specification({
         "${mqtt}/subscribe.retain.as.published/client",
         "${kafka}/subscribe.retain/server"})
@@ -185,6 +196,16 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterDeferredFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/client",
+        "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterResubscribe() throws Exception
     {
         k3po.finish();
     }

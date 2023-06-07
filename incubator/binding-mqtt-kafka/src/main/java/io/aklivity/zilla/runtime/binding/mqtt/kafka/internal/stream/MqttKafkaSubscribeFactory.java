@@ -138,7 +138,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
     private final Queue<List<Subscription>> deferredRetainedFiltersQueue = new LinkedList<>();
     private final List<Subscription> retainedFilters = new ArrayList<>();
-    private final IntArrayList subscriptionIds = new IntArrayList();
+    private final IntArrayList messagesSubscriptionIds = new IntArrayList();
+    private final IntArrayList retainedSubscriptionIds = new IntArrayList();
     private final Long2ObjectHashMap<Boolean> retainAsPublished = new Long2ObjectHashMap<>();
     private final String kafkaMessagesTopicName;
 
@@ -354,7 +355,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final MqttSubscribeFlushExFW mqttSubscribeFlushEx = mqttFlushEx.subscribe();
 
             currentFilters = mqttSubscribeFlushEx.filters();
-            subscriptionIds.clear();
+            messagesSubscriptionIds.clear();
 
             final KafkaFlushExFW kafkaFlushEx = createKafkaFlushEx(currentFilters);
 
@@ -406,7 +407,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                             final int subscriptionId = (int) filter.subscriptionId();
                             f.conditionsItem(ci ->
                             {
-                                subscriptionIds.add(subscriptionId);
+                                if (!messagesSubscriptionIds.contains(subscriptionId))
+                                {
+                                    messagesSubscriptionIds.add(subscriptionId);
+                                }
                                 buildHeaders(ci, filter.pattern().asString());
                             });
 
@@ -561,12 +565,12 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             {
                 retained.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
-            else if (MqttKafkaState.replyOpening(messages.state))
+
+            if (MqttKafkaState.replyOpening(messages.state))
             {
                 messages.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
         }
-
 
         private void doMqttBegin(
             long traceId,
@@ -809,8 +813,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             assert sequence >= replySeq;
             assert acknowledge >= replyAck;
 
-            replySeq = sequence;
-            replyAck = acknowledge;
+            replySeq = sequence + delegate.retainedReplySeq;
+            replyAck = acknowledge + delegate.retainedReplyAck;
             replyMax = maximum;
             state = MqttKafkaState.openingReply(state);
 
@@ -829,10 +833,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            assert acknowledge <= sequence + delegate.retainedReplySeq;
+            assert sequence + delegate.retainedReplySeq >= replySeq;
 
-            replySeq = sequence + reserved;
+            replySeq = sequence + delegate.retainedReplySeq + reserved;
 
             assert replyAck <= replySeq;
 
@@ -859,7 +863,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                     String topicName = kafkaMergedDataEx.key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
-                    final Flyweight mqttSubscribeDataEx = createSubscribeDataEx(kafkaMergedDataEx, filters, topicName, false);
+                    final Flyweight mqttSubscribeDataEx = createSubscribeDataEx(kafkaMergedDataEx, filters, topicName,
+                        false, messagesSubscriptionIds);
 
                     if (!MqttKafkaState.replyOpened(delegate.retained.state))
                     {
@@ -881,10 +886,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            assert acknowledge <= sequence + delegate.retainedReplySeq;
+            assert sequence + delegate.retainedReplySeq >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + delegate.retainedReplySeq;
             state = MqttKafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
@@ -902,10 +907,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final long budgetId = flush.budgetId();
             final int reserved = flush.reserved();
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            assert acknowledge <= sequence + delegate.retainedReplySeq;
+            assert sequence + delegate.retainedReplySeq >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + delegate.retainedReplySeq;
 
             assert replyAck <= replySeq;
 
@@ -920,10 +925,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            assert acknowledge <= sequence + delegate.retainedReplySeq;
+            assert sequence + delegate.retainedReplySeq >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + delegate.retainedReplySeq;
             state = MqttKafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
@@ -1007,7 +1012,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         KafkaMergedDataExFW kafkaMergedDataEx,
         long filters,
         String topicName,
-        boolean retained)
+        boolean retained,
+        IntArrayList subscriptionIds)
     {
         return mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
             .typeId(mqttTypeId)
@@ -1113,8 +1119,13 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             newRetainedFilters.forEach(f ->
             {
+                final int subscriptionId = f.id;
+                if (!retainedSubscriptionIds.contains(subscriptionId))
+                {
+                    retainedSubscriptionIds.add(subscriptionId);
+                }
                 sendRetainedFiltersRW.item(fb -> fb
-                    .subscriptionId(f.id).qos(f.qos).flags(f.flags).pattern(f.filter));
+                    .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
                 final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
                 retainAsPublished.put(f.id, rap);
             });
@@ -1285,7 +1296,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
                     final Flyweight mqttSubscribeDataEx = createSubscribeDataEx(kafkaMergedDataEx, filters, topicName,
-                        true);
+                        true, retainedSubscriptionIds);
 
                     delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
                 }
@@ -1340,9 +1351,11 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             delegate.retainedReplySeq = replySeq - delegate.messagesReplySeq;
             delegate.retainedReplyAck = replyAck - delegate.messagesReplyAck;
+            retainedSubscriptionIds.clear();
             doKafkaEnd(traceId, sequence, authorization);
 
             delegate.messages.doKafkaBegin(traceId, authorization, 0);
+
         }
 
         private void onKafkaAbort(
@@ -1506,18 +1519,21 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         long traceId,
         long authorization)
     {
-        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .build();
+        if (receiver != null)
+        {
+            final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
-        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+            receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+        }
     }
 
     private void doAbort(
@@ -1607,7 +1623,11 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                         {
                             f.conditionsItem(ci ->
                             {
-                                subscriptionIds.add((int) filter.subscriptionId());
+                                int subscriptionId = (int) filter.subscriptionId();
+                                if (!messagesSubscriptionIds.contains(subscriptionId))
+                                {
+                                    messagesSubscriptionIds.add(subscriptionId);
+                                }
                                 buildHeaders(ci, filter.pattern().asString());
                             });
                             boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
