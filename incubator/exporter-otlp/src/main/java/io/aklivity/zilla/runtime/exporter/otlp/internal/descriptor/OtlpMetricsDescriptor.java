@@ -25,9 +25,24 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricDescrip
 
 public class OtlpMetricsDescriptor implements MetricDescriptor
 {
+    private static final Map<String, String> SERVER_METRIC_NAMES = Map.of(
+        "http.request.size", "http.server.request.size",
+        "http.response.size", "http.server.response.size",
+        "http.duration", "http.server.duration",
+        "http.active.requests", "http.server.active_requests"
+    );
+    private static final Map<String, String> CLIENT_METRIC_NAMES = Map.of(
+        "http.request.size", "http.client.request.size",
+        "http.response.size", "http.client.response.size",
+        "http.duration", "http.client.duration"
+    );
+    private static final Map<KindConfig, Map<String, String>> KIND_METRIC_NAMES = Map.of(
+        KindConfig.SERVER, SERVER_METRIC_NAMES,
+        KindConfig.CLIENT, CLIENT_METRIC_NAMES
+    );
+
     private final Function<String, Metric> resolveMetric;
-    Function<String, KindConfig> findBindingKind;
-    private final Map<String, String> names;
+    private final Function<String, KindConfig> findBindingKind;
     private final Map<String, String> kinds;
     private final Map<String, String> descriptions;
     private final Map<String, String> units;
@@ -38,7 +53,6 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
     {
         this.resolveMetric = resolveMetric;
         this.findBindingKind = findBindingKind;
-        this.names = new Object2ObjectHashMap<>();
         this.kinds = new Object2ObjectHashMap<>();
         this.descriptions = new Object2ObjectHashMap<>();
         this.units = new Object2ObjectHashMap<>();
@@ -61,33 +75,21 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
     public String name(
         String internalName)
     {
-        return names.computeIfAbsent(internalName, this::externalName);
+        throw new RuntimeException("not implemented");
     }
 
-    //@Override
     public String nameByBinding(
-        String bindingName,
-        String internalName)
+        String internalMetricName,
+        String bindingName)
     {
+        String result = null;
         KindConfig kind = findBindingKind.apply(bindingName);
-        if (kind == KindConfig.SERVER)
+        Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
+        if (externalNames != null)
         {
-            //
+            result = externalNames.get(internalMetricName);
         }
-        else if (kind == KindConfig.CLIENT)
-        {
-            //
-        }
-        return internalName + "_extname_todo";
-        //return names.computeIfAbsent(internalName, this::externalName);
-    }
-
-
-    private String externalName(
-        String internalName)
-    {
-        // TODO: Ati
-        return internalName + "_extname_todo";
+        return result != null ? result : internalMetricName;
     }
 
     @Override
