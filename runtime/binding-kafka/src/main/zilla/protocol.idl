@@ -421,7 +421,7 @@ scope protocol
             {
                string16 memberId;
                uint32 length;
-               octets[length] topicPartition;
+               octets[length] value;
             }
 
             struct TopicPartition

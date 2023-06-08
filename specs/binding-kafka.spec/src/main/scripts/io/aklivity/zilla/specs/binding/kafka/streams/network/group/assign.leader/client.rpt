@@ -1,0 +1,121 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkConnectWindow 8192
+
+property newRequestId ${kafka:newRequestId()}
+property fetchWaitMax 500
+property fetchBytesMax 65535
+property partitionBytesMax 8192
+
+connect "zilla://streams/net0"
+  option zilla:window ${networkConnectWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write 17                                # size
+      10s                               # find coordinator
+      1s                                # v1
+      ${newRequestId}
+      -1s                               # no client id
+      4s "test"                         # "test" coordinator key
+      [0x00]                            # coordinator group type
+
+read 35                                 # size
+     ${newRequestId}
+     0                                  #throttle time
+     0s                                 #no error
+     4s "none"                          #error message none
+     1                                  #coordinator node
+        9s "localhost"                  #host
+        9092                            #port
+
+write 65                                # size
+      11s                               # join group
+      2s                                # v2
+      ${newRequestId}
+      -1s                               # no client id
+      4s "test"                         # consumer group
+      45000                             # session timeout
+      300000                            # rebalance timeout
+      0s                                # consumer group member
+      8s "consumer"                     # protocol type
+      2                                 # group protocol
+        5s "range"                      # protocol name
+        0s                              # protocol metadata
+        4s "test"                       # protocol name
+        10s "session"                # protocol metadata
+
+
+read 141                                             # size
+     ${newRequestId}
+     0                                               # throttle time
+     0s                                              # no error
+     3                                               # generated id
+     5s "range"                                      # protocol name
+     36s "134d7851-0dde-46a7-9483-a310ba44840b"      # leader id
+     36s "134d7851-0dde-46a7-9483-a310ba44840b"      # consumer member group id
+     1                                               # members
+        36s "134d7851-0dde-46a7-9483-a310ba44840b"      # consumer member group id
+        0s                                              # metadata
+
+write 100                                           # size
+      14s                                           # sync group
+      1s                                            # v1
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      3                                             # generation id
+      36s "134d7851-0dde-46a7-9483-a310ba44840b"    # consumer member group id
+      1                                             # assignments
+        36s "134d7851-0dde-46a7-9483-a310ba44840b"    # consumer member group id
+        0s                                            # member assignment
+
+read 12                                              # size
+     ${newRequestId}
+     0                                               # throttle time
+     0s                                              # no error
+     0s                                              # member assignment
+
+
+write 62                                            # size
+      12s                                           # sync group
+      1s                                            # v1
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      3                                             # generation id
+      36s "134d7851-0dde-46a7-9483-a310ba44840b"    # consumer member group id
+
+read 10                                              # size
+     ${newRequestId}
+     0                                               # throttle time
+     0s                                              # no error
+
+write 54                                           # size
+      13s                                           # sync group
+      1s                                            # v1
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      36s "134d7851-0dde-46a7-9483-a310ba44840b"    # consumer member group id
+
+read 10                                              # size
+     ${newRequestId}
+     0                                               # throttle time
+     0s                                              # no error

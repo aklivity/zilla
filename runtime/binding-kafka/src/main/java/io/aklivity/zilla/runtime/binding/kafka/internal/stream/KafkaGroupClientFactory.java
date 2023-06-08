@@ -2096,7 +2096,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .sessionTimeoutMillis(delegate.timeout)
-                    .rebalanceTimeoutMillis(delegate.timeout)
+                    .rebalanceTimeoutMillis(300000) //TODO: convert it zilla config
                     .memberId(memberId)
                     .protocolType("consumer")
                     .protocolCount(1)
@@ -2179,7 +2179,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
-            decoder = decodeHeartbeatResponse;
+            decoder = decodeSyncGroupResponse;
         }
 
         private void doEncodeHeartbeatRequest(
@@ -2223,7 +2223,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
-            decoder = decodeSyncGroupResponse;
+            decoder = decodeHeartbeatResponse;
         }
 
         private void doSyncRequest(
