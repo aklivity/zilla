@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
@@ -27,7 +28,7 @@ public class MetricsPublisher
     private final MetricsProcessor metrics;
     private final Meter meter;
     private final Function<String, String> supplyKind;
-    private final Function<String, String> supplyName;
+    private final BiFunction<String, String, String> supplyName;
     private final Function<String, String> supplyDescription;
     private final Function<String, String> supplyUnit;
 
@@ -35,7 +36,7 @@ public class MetricsPublisher
         MetricsProcessor metrics,
         Meter meter,
         Function<String, String> supplyKind,
-        Function<String, String> supplyName,
+        BiFunction<String, String, String> supplyName,
         Function<String, String> supplyDescription,
         Function<String, String> supplyUnit)
     {
@@ -57,7 +58,7 @@ public class MetricsPublisher
             case "counter":
                 CounterGaugeRecord counter = (CounterGaugeRecord) record;
                 meter
-                    .counterBuilder(supplyName.apply(metricName))
+                    .counterBuilder(supplyName.apply(counter.bindingName(), metricName))
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))
                     .buildWithCallback(m -> m.record(counter.value(), Attributes.empty()));
@@ -65,7 +66,7 @@ public class MetricsPublisher
             case "gauge":
                 CounterGaugeRecord gauge = (CounterGaugeRecord) record;
                 meter
-                    .gaugeBuilder(supplyName.apply(metricName))
+                    .gaugeBuilder(supplyName.apply(gauge.bindingName(), metricName))
                     .ofLongs()
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))
