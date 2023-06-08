@@ -58,7 +58,7 @@ public class MetricsPublisher
             case "counter":
                 CounterGaugeRecord counter = (CounterGaugeRecord) record;
                 meter
-                    .counterBuilder(supplyName.apply(counter.bindingName(), metricName))
+                    .counterBuilder(supplyName.apply(metricName, counter.bindingName()))
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))
                     .buildWithCallback(m -> m.record(counter.value(), Attributes.empty()));
@@ -66,7 +66,7 @@ public class MetricsPublisher
             case "gauge":
                 CounterGaugeRecord gauge = (CounterGaugeRecord) record;
                 meter
-                    .gaugeBuilder(supplyName.apply(gauge.bindingName(), metricName))
+                    .gaugeBuilder(supplyName.apply(metricName, gauge.bindingName()))
                     .ofLongs()
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))

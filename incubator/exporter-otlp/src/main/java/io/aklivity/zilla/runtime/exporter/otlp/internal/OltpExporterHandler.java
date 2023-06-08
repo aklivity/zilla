@@ -92,6 +92,13 @@ public class OltpExporterHandler implements ExporterHandler
             descriptor::description, descriptor::unit);
         publisher.setup();
 
+        System.out.println(descriptor.nameByBinding("http.duration", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.response.size", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.active.requests", "http_server0"));
+
         /*String streamActiveReceived = "stream.active.received";
         ObservableLongGauge observableLongGauge = meter
             .gaugeBuilder(descriptor.name(streamActiveReceived))
