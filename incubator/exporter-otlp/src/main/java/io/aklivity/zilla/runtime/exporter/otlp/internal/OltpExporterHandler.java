@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import java.time.Duration;
 import java.util.Timer;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
@@ -51,11 +53,12 @@ public class OltpExporterHandler implements ExporterHandler
     public OltpExporterHandler(
         EngineConfiguration config,
         EngineContext context,
-        OtlpExporterConfig exporter)
+        OtlpExporterConfig exporter,
+        Function<String, KindConfig> findBindingKind)
     {
         this.config = config;
         //this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
-        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric);
+        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, findBindingKind);
         this.interval = Duration.ofSeconds(5L); // TODO: Ati - get this from config
         this.timer = new Timer();
     }
@@ -85,7 +88,7 @@ public class OltpExporterHandler implements ExporterHandler
         Meter meter = openTelemetry.meterBuilder(CLASS_NAME)
             .setInstrumentationVersion(SCOPE_VERSION)
             .build();
-        MetricsPublisher publisher = new MetricsPublisher(metrics, meter, descriptor::kind, descriptor::name,
+        MetricsPublisher publisher = new MetricsPublisher(metrics, meter, descriptor::kind, descriptor::nameByBinding,
             descriptor::description, descriptor::unit);
         publisher.setup();
 
@@ -136,5 +139,10 @@ public class OltpExporterHandler implements ExporterHandler
         System.out.println("handler stopped.");
         //timer.cancel();
         //System.out.println("Stopped.");
+    }
+
+    private void resolveBindingKind(String bindingName)
+    {
+
     }
 }

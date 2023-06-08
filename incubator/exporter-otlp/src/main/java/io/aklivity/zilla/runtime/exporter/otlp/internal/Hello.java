@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -64,7 +65,7 @@ public class Hello
 
     public void hello()
     {
-        OltpExporterHandler handler = new OltpExporterHandler(config, createFakeEngineContext(), null);
+        OltpExporterHandler handler = new OltpExporterHandler(config, createFakeEngineContext(), null, this::fakeBindingKind);
         handler.start();
         wait(Duration.ofSeconds(15));
         handler.stop();
@@ -82,6 +83,19 @@ public class Hello
         {
             throw new RuntimeException(e);
         }
+    }
+
+    private KindConfig fakeBindingKind(
+        String bindingName)
+    {
+        switch (bindingName)
+        {
+        case "http_server0":
+            return KindConfig.SERVER;
+        case "http_client0":
+            return KindConfig.CLIENT;
+        }
+        return KindConfig.PROXY;
     }
 
     private EngineContext createFakeEngineContext()

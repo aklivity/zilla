@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -45,11 +59,11 @@ public class MetricsPublisherTest
         when(metricsProcessor.getRecords()).thenReturn(metricRecords);
 
         OtlpMetricsDescriptor descriptor = mock(OtlpMetricsDescriptor.class);
-        when(descriptor.name("counter1")).thenReturn("counter1_name");
+        when(descriptor.nameByBinding("binding1", "counter1")).thenReturn("counter1_server");
         when(descriptor.kind("counter1")).thenReturn("counter");
         when(descriptor.description("counter1")).thenReturn("description for counter1");
         when(descriptor.unit("counter1")).thenReturn("count");
-        when(descriptor.name("gauge1")).thenReturn("gauge1_name");
+        when(descriptor.nameByBinding("binding1", "gauge1")).thenReturn("gauge1_client");
         when(descriptor.kind("gauge1")).thenReturn("gauge");
         when(descriptor.description("gauge1")).thenReturn("description for gauge1");
         when(descriptor.unit("gauge1")).thenReturn("bytes");
@@ -68,7 +82,7 @@ public class MetricsPublisherTest
         when(longGaugeBuilder.setUnit(anyString())).thenReturn(longGaugeBuilder);
 
         MetricsPublisher publisher = new MetricsPublisher(metricsProcessor, meter, descriptor::kind,
-            descriptor::name, descriptor::description, descriptor::unit);
+            descriptor::nameByBinding, descriptor::description, descriptor::unit);
 
         ArgumentCaptor<Consumer<ObservableLongMeasurement>> captor = ArgumentCaptor.forClass(Consumer.class);
         ObservableLongMeasurement measurement = mock(ObservableLongMeasurement.class);
@@ -77,14 +91,14 @@ public class MetricsPublisherTest
         publisher.setup();
 
         // THEN
-        verify(meter).counterBuilder("counter1_name");
+        verify(meter).counterBuilder("counter1_server");
         verify(longCounterBuilder).setDescription("description for counter1");
         verify(longCounterBuilder).setUnit("count");
         verify(longCounterBuilder).buildWithCallback(captor.capture());
         captor.getValue().accept(measurement);
         verify(measurement).record(42L, Attributes.empty());
 
-        verify(meter).gaugeBuilder("gauge1_name");
+        verify(meter).gaugeBuilder("gauge1_client");
         verify(doubleGaugeBuilder).ofLongs();
         verify(longGaugeBuilder).setDescription("description for gauge1");
         verify(longGaugeBuilder).setUnit("bytes");
