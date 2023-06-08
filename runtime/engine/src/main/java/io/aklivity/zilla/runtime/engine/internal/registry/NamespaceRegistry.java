@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -111,8 +112,8 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
         namespace.telemetry.metrics.forEach(this::attachMetric);
-        namespace.telemetry.exporters.forEach(this::attachExporter);
         namespace.bindings.forEach(this::attachBinding);
+        namespace.telemetry.exporters.forEach(this::attachExporter);
     }
 
     public void detach()
@@ -303,7 +304,7 @@ public class NamespaceRegistry
         int exporterId = supplyLabelId.applyAsInt(config.name);
         ExporterContext context = exportersByType.apply(config.type);
         assert context != null : "Missing exporter type: " + config.type;
-        ExporterHandler handler = context.attach(config);
+        ExporterHandler handler = context.attach(config, this::findBindingKind);
         ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
         exportersById.put(exporterId, registry);
         registry.attach();
@@ -324,6 +325,14 @@ public class NamespaceRegistry
         int bindingId)
     {
         return bindingsById.get(bindingId);
+    }
+
+    public KindConfig findBindingKind(
+        String bindingName)
+    {
+        int bindingId = supplyLabelId.applyAsInt(bindingName);
+        BindingRegistry binding = findBinding(bindingId);
+        return binding == null ? null : binding.kind();
     }
 
     GuardRegistry findGuard(

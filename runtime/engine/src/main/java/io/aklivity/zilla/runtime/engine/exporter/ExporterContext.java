@@ -15,12 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public interface ExporterContext
 {
     ExporterHandler attach(
-        ExporterConfig config);
+        ExporterConfig config,
+        Function<String, KindConfig> findBindingKind);
 
     void detach(
         long exporterId);
