@@ -15,7 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 
@@ -23,7 +26,8 @@ public class TestExporterContext implements ExporterContext
 {
     @Override
     public ExporterHandler attach(
-        ExporterConfig config)
+        ExporterConfig config,
+        Function<String, KindConfig> findBindingKind)
     {
         return new TestExporterHandler();
     }
