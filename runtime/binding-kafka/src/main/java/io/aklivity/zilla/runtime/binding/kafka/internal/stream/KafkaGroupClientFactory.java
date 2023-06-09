@@ -217,12 +217,12 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved;
         final int timeout = kafkaGroupBeginEx.timeout();
-        final String16FW groupId = kafkaGroupBeginEx.groupId();
-        final String16FW protocol = kafkaGroupBeginEx.protocol();
+        final String groupId = kafkaGroupBeginEx.groupId().asString();
+        final String protocol = kafkaGroupBeginEx.protocol().asString();
 
         if (binding != null)
         {
-            resolved = binding.resolve(authorization, null, groupId.asString());
+            resolved = binding.resolve(authorization, null, groupId);
         }
         else
         {
@@ -800,8 +800,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private final MessageConsumer application;
         private final ClusterClient clusterClient;
         private final CoordinatorClient coordinatorClient;
-        private final String16FW groupId;
-        private final String16FW protocol;
+        private final String groupId;
+        private final String protocol;
         private final int timeout;
         private final long originId;
         private final long routedId;
@@ -829,8 +829,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             long initialId,
             long affinity,
             long resolvedId,
-            String16FW groupId,
-            String16FW protocol,
+            String groupId,
+            String protocol,
             int timeout,
             KafkaSaslConfig sasl)
         {
