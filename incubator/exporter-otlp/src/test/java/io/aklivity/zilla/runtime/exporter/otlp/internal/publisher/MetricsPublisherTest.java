@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDe
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
 import io.opentelemetry.api.metrics.LongCounterBuilder;
@@ -86,6 +87,10 @@ public class MetricsPublisherTest
 
         ArgumentCaptor<Consumer<ObservableLongMeasurement>> captor = ArgumentCaptor.forClass(Consumer.class);
         ObservableLongMeasurement measurement = mock(ObservableLongMeasurement.class);
+        Attributes attributes = Attributes.of(
+            AttributeKey.stringKey("namespace"), "ns1",
+            AttributeKey.stringKey("binding"), "binding1"
+        );
 
         // WHEN
         publisher.setup();
@@ -96,7 +101,7 @@ public class MetricsPublisherTest
         verify(longCounterBuilder).setUnit("count");
         verify(longCounterBuilder).buildWithCallback(captor.capture());
         captor.getValue().accept(measurement);
-        verify(measurement).record(42L, Attributes.empty());
+        verify(measurement).record(42L, attributes);
 
         verify(meter).gaugeBuilder("gauge1_client");
         verify(doubleGaugeBuilder).ofLongs();
@@ -104,6 +109,6 @@ public class MetricsPublisherTest
         verify(longGaugeBuilder).setUnit("bytes");
         verify(longGaugeBuilder).buildWithCallback(captor.capture());
         captor.getValue().accept(measurement);
-        verify(measurement).record(77L, Attributes.empty());
+        verify(measurement).record(77L, attributes);
     }
 }

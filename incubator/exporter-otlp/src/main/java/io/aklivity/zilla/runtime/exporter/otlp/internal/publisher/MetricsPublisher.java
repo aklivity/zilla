@@ -20,6 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.Meter;
 
@@ -56,22 +57,34 @@ public class MetricsPublisher
             switch (supplyKind.apply(metricName))
             {
             case "counter":
+            {
                 CounterGaugeRecord counter = (CounterGaugeRecord) record;
+                Attributes attributes = Attributes.of(
+                    AttributeKey.stringKey("namespace"), counter.namespaceName(),
+                    AttributeKey.stringKey("binding"), counter.bindingName()
+                );
                 meter
                     .counterBuilder(supplyName.apply(metricName, counter.bindingName()))
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))
-                    .buildWithCallback(m -> m.record(counter.value(), Attributes.empty()));
+                    .buildWithCallback(m -> m.record(counter.value(), attributes));
                 break;
+            }
             case "gauge":
+            {
                 CounterGaugeRecord gauge = (CounterGaugeRecord) record;
+                Attributes attributes = Attributes.of(
+                    AttributeKey.stringKey("namespace"), gauge.namespaceName(),
+                    AttributeKey.stringKey("binding"), gauge.bindingName()
+                );
                 meter
                     .gaugeBuilder(supplyName.apply(metricName, gauge.bindingName()))
                     .ofLongs()
                     .setDescription(supplyDescription.apply(metricName))
                     .setUnit(supplyUnit.apply(metricName))
-                    .buildWithCallback(m -> m.record(gauge.value(), Attributes.empty()));
+                    .buildWithCallback(m -> m.record(gauge.value(), attributes));
                 break;
+            }
             }
         }
     }
