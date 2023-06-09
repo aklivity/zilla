@@ -114,6 +114,44 @@ write zilla:data.ext ${kafka:dataEx()
 write "message3"
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .filters(2)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:topic", "sensor")
+                                .header("zilla:topic", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message2"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:topic", "sensor")
+                                .header("zilla:topic", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message4"
+write flush
+
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()

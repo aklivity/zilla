@@ -108,6 +108,39 @@ read zilla:data.ext ${kafka:matchDataEx()
 
 read "message3"
 
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .filters(2)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:topic", "sensor")
+                                .header("zilla:topic", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+read "message2"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:topic", "sensor")
+                                .header("zilla:topic", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+read "message4"
 
 connect await MESSAGES_FINISHED
         "zilla://streams/kafka0"
@@ -134,7 +167,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .filters(2)
+                                .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)
@@ -151,7 +184,7 @@ read "message"
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .filters(2)
+                                .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)

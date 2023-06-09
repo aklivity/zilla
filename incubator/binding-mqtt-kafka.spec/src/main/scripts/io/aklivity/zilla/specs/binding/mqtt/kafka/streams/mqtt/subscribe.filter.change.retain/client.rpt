@@ -92,3 +92,26 @@ read zilla:data.ext ${mqtt:matchDataEx()
 
 read "message3"
 
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                 .topic("sensor/two")
+                                 .subscriptionId(2)
+                                 .format("TEXT")
+                                 .build()
+                            .build()}
+
+read "message2"
+
+write notify BUFFERED_MESSAGES_ARRIVED
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                            .build()}
+
+read "message4"
