@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt kafka</scopeNames>
+          <scopeNames>core mqtt kafka protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types</packageName>
         </configuration>
         <executions>

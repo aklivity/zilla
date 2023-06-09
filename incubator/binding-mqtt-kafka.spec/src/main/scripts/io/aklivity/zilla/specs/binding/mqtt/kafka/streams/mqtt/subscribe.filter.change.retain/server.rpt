@@ -99,3 +99,27 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message3"
 write flush
 
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                 .topic("sensor/two")
+                                 .subscriptionId(2)
+                                 .format("TEXT")
+                                 .build()
+                            .build()}
+
+write "message2"
+write flush
+
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                            .build()}
+
+write "message4"
+
+

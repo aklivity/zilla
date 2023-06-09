@@ -21,11 +21,63 @@ write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
+                                .topic("mqtt_retained")
+                                .filter()
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .sequence("two")
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:topic", "sensor")
+                                .header("zilla:topic", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+read "message"
+
+read advised zilla:flush
+
+write close
+read closed
+
+write notify RETAINED_FINISHED
+
+connect await RETAINED_FINISHED
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
                                 .topic("mqtt_messages")
                                 .filter()
                                     .headers("zilla:topic")
                                         .sequence("sensor")
                                         .sequence("one")
+                                        .build()
+                                    .build()
+                                .filter()
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .sequence("two")
                                         .build()
                                     .build()
                                 .evaluation("EAGER")
@@ -52,6 +104,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                             .build()}
 
 read "message"
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .capabilities("FETCH_ONLY")
+                                    .filter()
+                                        .headers("zilla:topic")
+                                            .sequence("sensor")
+                                            .sequence("one")
+                                            .build()
+                                        .build()
+                                    .build()
+                                .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
@@ -89,7 +154,7 @@ write advise zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
-write notify MESSAGES_FINISHED
+write notify RETAIN_FINISHED
 
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
@@ -107,7 +172,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                             .build()}
 
 read "message3"
-
+write notify MESSAGES_FINISHED
 
 connect await MESSAGES_FINISHED
         "zilla://streams/kafka0"
@@ -134,7 +199,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .filters(2)
+                                .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)
@@ -147,23 +212,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                             .build()}
 
 read "message"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .filters(2)
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("sensor/two")
-                                .header("zilla:topic", "sensor")
-                                .header("zilla:topic", "two")
-                                .header("zilla:local", "client")
-                                .header("zilla:format", "TEXT")
-                                .build()
-                            .build()}
-
-read "message2"
 
 read advised zilla:flush
 

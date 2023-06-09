@@ -271,6 +271,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.deferred.filter.change.retain/client",
+        "${kafka}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.buffer/client",
+        "${kafka}/subscribe.filter.change.retain.buffer/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBuffer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.resubscribe/client",
+        "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterFilterChangeResubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception

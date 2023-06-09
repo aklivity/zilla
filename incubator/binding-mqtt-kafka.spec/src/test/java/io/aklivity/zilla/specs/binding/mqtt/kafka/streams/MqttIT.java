@@ -235,9 +235,36 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.retain.as.published/client",
+        "${mqtt}/subscribe.retain.as.published/server"})
+    public void shouldReceiveRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.filter.change.retain/client",
         "${mqtt}/subscribe.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.deferred.filter.change.retain/client",
+        "${mqtt}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChangeDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/client",
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterFilterChangeResubscribe() throws Exception
     {
         k3po.finish();
     }

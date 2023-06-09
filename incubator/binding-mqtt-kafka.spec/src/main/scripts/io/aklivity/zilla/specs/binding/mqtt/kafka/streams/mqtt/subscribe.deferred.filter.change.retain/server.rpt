@@ -74,6 +74,17 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message"
 write flush
 
+write notify FIRST_RETAINED_SENT
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .filter("sensor/one", 1, "AT_MOST_ONCE")
+                                     .filter("sensor/two", 2, "AT_MOST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
+                                     .filter("sensor/three", 3, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .build()
+                                 .build()}
+
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
@@ -85,6 +96,18 @@ write zilla:data.ext ${mqtt:dataEx()
                             .build()}
 
 write "message2"
+write flush
+
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                 .topic("sensor/three")
+                                 .subscriptionId(3)
+                                 .format("TEXT")
+                                 .build()
+                            .build()}
+
+write "message"
 write flush
 
 write zilla:data.ext ${mqtt:dataEx()
