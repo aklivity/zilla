@@ -14,32 +14,33 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Function;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+
+import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.publisher.MetricsPublisher;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.metrics.SdkMeterProvider;
-import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
-import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 public class OltpExporterHandler implements ExporterHandler
 {
-    private static final String CLASS_NAME =  OltpExporterHandler.class.getName();
+    private static final String CLASS_NAME = OltpExporterHandler.class.getName();
     private static final String SCOPE_VERSION = "1.0.0";
 
     private final EngineConfiguration config;
@@ -48,7 +49,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final Duration interval;
     private final Timer timer;
 
-    private SdkMeterProvider meterProvider;
+    //private SdkMeterProvider meterProvider;
 
     public OltpExporterHandler(
         EngineConfiguration config,
@@ -69,7 +70,7 @@ public class OltpExporterHandler implements ExporterHandler
         System.out.println("Hello, World! I am the otlp exporter!");
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
-        Resource resource = Resource.getDefault()
+        /*Resource resource = Resource.getDefault()
             .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "my-zilla-service")));
         // TODO: Ati - set attributes from config
         OtlpGrpcMetricExporter otlpGrpcMetricExporter = OtlpGrpcMetricExporter.builder()
@@ -90,14 +91,14 @@ public class OltpExporterHandler implements ExporterHandler
             .build();
         MetricsPublisher publisher = new MetricsPublisher(metrics, meter, descriptor::kind, descriptor::nameByBinding,
             descriptor::description, descriptor::unit);
-        publisher.setup();
+        publisher.setup();*/
 
-        System.out.println(descriptor.nameByBinding("http.duration", "http_server0"));
+        /*System.out.println(descriptor.nameByBinding("http.duration", "http_server0"));
         System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
         System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
         System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
         System.out.println(descriptor.nameByBinding("http.response.size", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.active.requests", "http_server0"));
+        System.out.println(descriptor.nameByBinding("http.active.requests", "http_server0"));*/
 
         /*String streamActiveReceived = "stream.active.received";
         ObservableLongGauge observableLongGauge = meter
@@ -120,16 +121,19 @@ public class OltpExporterHandler implements ExporterHandler
             .setDescription(descriptor.description(httpRequestSize))
             .setUnit(descriptor.unit(httpRequestSize))
             .ofLongs()
-            .build();
+            .build();*/
 
         TimerTask histogramTask = new TimerTask()
         {
             public void run()
             {
-                histogram1.record(eightyEight(), Attributes.empty());
+                //histogram1.record(eightyEight(), Attributes.empty());
+                System.out.println("TimerTask.run");
+                //send();
+                System.out.println(createJson());
             }
         };
-        timer.schedule(histogramTask, 0, interval.toMillis());*/
+        timer.schedule(histogramTask, 0, interval.toMillis());
     }
 
     @Override
@@ -141,15 +145,83 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void stop()
     {
-        meterProvider.close();
+        //meterProvider.close();
         System.out.println("----------------");
         System.out.println("handler stopped.");
         //timer.cancel();
         //System.out.println("Stopped.");
     }
 
-    private void resolveBindingKind(String bindingName)
+    private void send()
     {
+        try
+        {
+            URL url = new URL("http://localhost:4318/v1/metrics");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
 
+            OutputStream os = conn.getOutputStream();
+            os.write(createJson().getBytes());
+            os.flush();
+            os.close();
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            conn.disconnect();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private String createJson()
+    {
+        AttributeConfig attribute = new AttributeConfig("service.namespace", "example");
+        JsonArray attributes = Json.createArrayBuilder()
+            .add(attributeToJson(attribute))
+            .build();
+        JsonObject resource = Json.createObjectBuilder()
+            .add("attributes", attributes)
+            .build();
+        JsonObject resourceMetrics = Json.createObjectBuilder()
+            .add("resource", resource)
+            .build();
+        JsonArray resourceMetricsArray = Json.createArrayBuilder()
+            .add(resourceMetrics)
+            .build();
+        JsonObject scope = Json.createObjectBuilder()
+            .add("name", CLASS_NAME)
+            .add("version", SCOPE_VERSION)
+            .build();
+        JsonArray metricsArray = Json.createArrayBuilder()
+            .build();
+        JsonObject scopeMetrics = Json.createObjectBuilder()
+            .add("scope", scope)
+            .add("metrics", metricsArray)
+            .build();
+        JsonArray scopeMetricsArray = Json.createArrayBuilder()
+            .add(scopeMetrics)
+            .build();
+        JsonObject jsonObject = Json.createObjectBuilder()
+            .add("resourceMetrics", resourceMetricsArray)
+            .add("scopeMetrics", scopeMetricsArray)
+            .build();
+        return jsonObject.toString();
+    }
+
+    private JsonObject attributeToJson(
+        AttributeConfig attributeConfig)
+    {
+        JsonObject value = Json.createObjectBuilder()
+            .add("stringValue", attributeConfig.value)
+            .build();
+        return Json.createObjectBuilder()
+            .add("key", attributeConfig.name)
+            .add("value", value)
+            .build();
     }
 }

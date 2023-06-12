@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
+/*package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -37,7 +37,8 @@ import io.opentelemetry.api.metrics.LongGaugeBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 
-public class MetricsPublisherTest
+public class
+MetricsPublisherTest
 {
     @Test
     public void test()
@@ -112,3 +113,4 @@ public class MetricsPublisherTest
         verify(measurement).record(77L, attributes);
     }
 }
+*/
