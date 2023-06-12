@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -27,7 +26,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -49,7 +47,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheServerGroupFactory implements BindingHandler
+public final class KafkaCacheClientGroupFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -76,7 +74,9 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
+    private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -84,19 +84,19 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
-    private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
 
-    public KafkaCacheServerGroupFactory(
+    public KafkaCacheClientGroupFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
-        Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
+        this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -104,7 +104,6 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
-        this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
     }
 
@@ -144,7 +143,7 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            newStream = new KafkaCacheServerGroupApp(
+            newStream = new KafkaCacheClientGroupApp(
                     sender,
                     originId,
                     routedId,
@@ -398,12 +397,12 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheServerGroupNet
+    final class KafkaCacheClientGroupNet
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaCacheServerGroupApp delegate;
+        private final KafkaCacheClientGroupApp delegate;
 
         private long initialId;
         private long replyId;
@@ -421,8 +420,8 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
-        private KafkaCacheServerGroupNet(
-            KafkaCacheServerGroupApp delegate,
+        private KafkaCacheClientGroupNet(
+            KafkaCacheClientGroupApp delegate,
             long originId,
             long routedId,
             long authorization)
@@ -686,9 +685,9 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheServerGroupApp
+    private final class KafkaCacheClientGroupApp
     {
-        private final KafkaCacheServerGroupNet group;
+        private final KafkaCacheClientGroupNet group;
         private final MessageConsumer sender;
         private final String groupId;
         private final String protocol;
@@ -715,7 +714,7 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        KafkaCacheServerGroupApp(
+        KafkaCacheClientGroupApp(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -727,7 +726,7 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
             String protocol,
             int timeout)
         {
-            this.group =  new KafkaCacheServerGroupNet(this, routedId, resolvedId, authorization);
+            this.group =  new KafkaCacheClientGroupNet(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
