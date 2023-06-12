@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
+/*package io.aklivity.zilla.runtime.exporter.otlp.internal.publisher;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -89,3 +89,4 @@ public class MetricsPublisher
         }
     }
 }
+*/
