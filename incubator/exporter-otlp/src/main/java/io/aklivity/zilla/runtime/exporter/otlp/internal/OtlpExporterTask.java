@@ -39,9 +39,8 @@ public final class OtlpExporterTask extends TimerTask
     @Override
     public void run()
     {
-        System.out.println("OtlpExporterTask.run");
-        //post(serializer.serializeAll());
         System.out.println(serializer.serializeAll());
+        post(serializer.serializeAll());
     }
 
     private void post(
