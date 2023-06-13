@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor.OtlpMetricsDescriptor;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.marshaller.OtlpMetricsDescriptor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;

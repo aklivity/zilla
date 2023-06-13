@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor;
+package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import java.util.Map;
 import java.util.function.Function;
