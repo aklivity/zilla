@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -48,21 +49,18 @@ public final class OtlpExporterTask extends TimerTask
     {
         try
         {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
-            OutputStream os = conn.getOutputStream();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+            OutputStream os = connection.getOutputStream();
             os.write(json.getBytes());
             os.flush();
             os.close();
-
-            int responseCode = conn.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
-
-            conn.disconnect();
+            connection.getResponseCode();
+            connection.disconnect();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
