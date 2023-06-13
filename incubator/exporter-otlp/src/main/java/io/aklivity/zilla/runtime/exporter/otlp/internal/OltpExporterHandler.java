@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
@@ -37,13 +38,10 @@ public class OltpExporterHandler implements ExporterHandler
 {
 
     private final EngineConfiguration config;
-    //private final OtlpEndpointConfig[] endpoints;
     private final OtlpMetricsDescriptor descriptor;
     private final URL otlpCollectorUrl;
     private final Duration interval;
     private final Timer timer;
-
-    //private SdkMeterProvider meterProvider;
 
     public OltpExporterHandler(
         EngineConfiguration config,
@@ -52,12 +50,13 @@ public class OltpExporterHandler implements ExporterHandler
         Function<String, KindConfig> findBindingKind)
     {
         this.config = config;
-        //this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
         this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, findBindingKind);
+        // options is required, at least one endpoint is required, url must be valid url
+        OtlpEndpointConfig endpoint = exporter.options().endpoints[0];
         URL otlpCollectorUrl = null;
         try
         {
-            otlpCollectorUrl = new URL("http://localhost:4318/v1/metrics"); // TODO: Ati - get this from config
+            otlpCollectorUrl = new URL(endpoint.url);
         }
         catch (MalformedURLException ex)
         {
@@ -71,6 +70,7 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
+        System.out.println(otlpCollectorUrl);
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, descriptor::kind, descriptor::name,
