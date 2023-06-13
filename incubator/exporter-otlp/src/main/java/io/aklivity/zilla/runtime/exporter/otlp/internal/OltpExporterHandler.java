@@ -73,8 +73,8 @@ public class OltpExporterHandler implements ExporterHandler
         System.out.println(otlpCollectorUrl);
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, descriptor::kind, descriptor::name,
-            descriptor::description);
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, descriptor::kind, descriptor::nameByBinding,
+            descriptor::description, descriptor::unit);
         TimerTask task = new OtlpExporterTask(otlpCollectorUrl, serializer);
         timer.schedule(task, 0, interval.toMillis());
     }

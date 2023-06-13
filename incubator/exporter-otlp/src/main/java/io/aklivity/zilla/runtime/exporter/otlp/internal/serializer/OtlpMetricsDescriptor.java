@@ -66,6 +66,10 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         if (result == null)
         {
             result = resolveMetric.apply(internalName).kind().toString().toLowerCase();
+            if ("counter".equals(result))
+            {
+                result = "sum";
+            }
             kinds.put(internalName, result);
         }
         return result;
