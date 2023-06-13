@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -21,6 +23,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
@@ -32,6 +35,8 @@ public class OtlpMetricsSerializer
 {
     private static final String SCOPE_NAME = "OtlpMetricsSerializer";
     private static final String SCOPE_VERSION = "1.0.0";
+    // CUMULATIVE is an AggregationTemporality for a metric aggregator which reports changes since a fixed start time.
+    private static final int CUMULATIVE = 2;
 
     private final MetricsProcessor metricsProcessor;
     private final Function<String, String> supplyKind;
@@ -86,20 +91,32 @@ public class OtlpMetricsSerializer
     private JsonObject serializeCounterGauge(
         CounterGaugeRecord record)
     {
+        long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        JsonArray attributes = attributesToJson(List.of(
+            new AttributeConfig("namespace", record.namespaceName()),
+            new AttributeConfig("binding", record.bindingName())
+        ));
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("asInt", record.value())
+            .add("timeUnixNano", now)
+            .add("attributes", attributes)
             .build();
         JsonArray dataPoints = Json.createArrayBuilder()
             .add(dataPoint)
             .build();
         String kind = supplyKind.apply(record.metricName());
-        JsonObject metricData = Json.createObjectBuilder()
-            .add("dataPoints", dataPoints)
-            .build();
+        JsonObjectBuilder metricData = Json.createObjectBuilder()
+            .add("dataPoints", dataPoints);
+        if ("sum".equals(kind))
+        {
+            metricData
+                .add("aggregationTemporality", CUMULATIVE)
+                .add("isMonotonic", true);
+        }
         return Json.createObjectBuilder()
             .add("name", supplyName.apply(record.metricName(), record.bindingName()))
-            .add("description", supplyDescription.apply(record.metricName()))
             .add("unit", supplyUnit.apply(record.metricName()))
+            .add("description", supplyDescription.apply(record.metricName()))
             .add(kind, metricData)
             .build();
     }
@@ -143,6 +160,17 @@ public class OtlpMetricsSerializer
             .add("resourceMetrics", resourceMetricsArray)
             .build();
         return jsonObject.toString();
+    }
+
+    private JsonArray attributesToJson(
+        List<AttributeConfig> attributes)
+    {
+        JsonArrayBuilder result = Json.createArrayBuilder();
+        for (AttributeConfig attribute : attributes)
+        {
+            result.add(attributeToJson(attribute));
+        }
+        return result.build();
     }
 
     private JsonObject attributeToJson(
