@@ -71,66 +71,12 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        System.out.println("Hello, World! I am the otlp exporter!");
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, descriptor::kind, descriptor::name,
             descriptor::description);
         TimerTask task = new OtlpExporterTask(otlpCollectorUrl, serializer);
         timer.schedule(task, 0, interval.toMillis());
-
-        /*Resource resource = Resource.getDefault()
-            .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "my-zilla-service")));
-        // TODO: Ati - set attributes from config
-        OtlpGrpcMetricExporter otlpGrpcMetricExporter = OtlpGrpcMetricExporter.builder()
-            .setEndpoint("http://localhost:4317") // TODO: Ati - get this from endpoint
-            .build();
-        PeriodicMetricReader metricReader = PeriodicMetricReader.builder(otlpGrpcMetricExporter)
-            .setInterval(interval)
-            .build();
-        meterProvider = SdkMeterProvider.builder()
-            .registerMetricReader(metricReader)
-            .setResource(resource)
-            .build();
-        OpenTelemetry openTelemetry = OpenTelemetrySdk.builder()
-            .setMeterProvider(meterProvider)
-            .buildAndRegisterGlobal();
-        Meter meter = openTelemetry.meterBuilder(CLASS_NAME)
-            .setInstrumentationVersion(SCOPE_VERSION)
-            .build();
-        MetricsPublisher publisher = new MetricsPublisher(metrics, meter, descriptor::kind, descriptor::nameByBinding,
-            descriptor::description, descriptor::unit);
-        publisher.setup();*/
-
-        /*System.out.println(descriptor.nameByBinding("http.duration", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.request.size", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.response.size", "http_server0"));
-        System.out.println(descriptor.nameByBinding("http.active.requests", "http_server0"));*/
-
-        /*String streamActiveReceived = "stream.active.received";
-        ObservableLongGauge observableLongGauge = meter
-            .gaugeBuilder(descriptor.name(streamActiveReceived))
-            .setDescription(descriptor.description(streamActiveReceived))
-            .setUnit(descriptor.unit(streamActiveReceived))
-            .ofLongs()
-            .buildWithCallback(m -> m.record(fortyTwo(), Attributes.empty()));
-
-        String streamClosesReceived = "stream.closes.received";
-        ObservableLongCounter observableLongCounter = meter
-            .counterBuilder(descriptor.name(streamClosesReceived))
-            .setDescription(descriptor.description(streamClosesReceived))
-            .setUnit(descriptor.unit(streamClosesReceived))
-            .buildWithCallback(m -> m.record(seventySeven(), Attributes.empty()));*/
-
-        /*String httpRequestSize = "http.request.size";
-        LongHistogram histogram1 = meter
-            .histogramBuilder(descriptor.name(httpRequestSize))
-            .setDescription(descriptor.description(httpRequestSize))
-            .setUnit(descriptor.unit(httpRequestSize))
-            .ofLongs()
-            .build();*/
     }
 
     @Override
@@ -143,7 +89,5 @@ public class OltpExporterHandler implements ExporterHandler
     public void stop()
     {
         timer.cancel();
-        System.out.println("Stopped.");
     }
-
 }
