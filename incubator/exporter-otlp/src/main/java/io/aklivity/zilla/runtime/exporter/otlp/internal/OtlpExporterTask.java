@@ -53,7 +53,6 @@ public final class OtlpExporterTask extends TimerTask
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
-
             OutputStream os = conn.getOutputStream();
             os.write(json.getBytes());
             os.flush();

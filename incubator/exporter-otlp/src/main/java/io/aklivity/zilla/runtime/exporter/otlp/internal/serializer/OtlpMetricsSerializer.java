@@ -21,7 +21,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.HistogramRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
@@ -29,7 +28,7 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProces
 
 public class OtlpMetricsSerializer
 {
-    private static final String CLASS_NAME = OltpExporterHandler.class.getName();
+    private static final String CLASS_NAME = OtlpMetricsSerializer.class.getName();
     private static final String SCOPE_VERSION = "1.0.0";
 
     private final MetricsProcessor metricsProcessor;
