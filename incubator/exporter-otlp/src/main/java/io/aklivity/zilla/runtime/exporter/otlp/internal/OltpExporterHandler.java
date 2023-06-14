@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Function;
@@ -25,6 +26,7 @@ import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
@@ -36,10 +38,10 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSe
 
 public class OltpExporterHandler implements ExporterHandler
 {
-
     private final EngineConfiguration config;
     private final OtlpMetricsDescriptor descriptor;
     private final URL otlpCollectorUrl;
+    private final List<AttributeConfig> attributes;
     private final Duration interval;
     private final Timer timer;
 
@@ -47,7 +49,8 @@ public class OltpExporterHandler implements ExporterHandler
         EngineConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter,
-        Function<String, KindConfig> findBindingKind)
+        Function<String, KindConfig> findBindingKind,
+        List<AttributeConfig> attributes)
     {
         this.config = config;
         this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, findBindingKind);
@@ -63,6 +66,7 @@ public class OltpExporterHandler implements ExporterHandler
             LangUtil.rethrowUnchecked(ex);
         }
         this.otlpCollectorUrl = otlpCollectorUrl;
+        this.attributes = attributes;
         this.interval = Duration.ofSeconds(5L); // TODO: Ati - get this from config
         this.timer = new Timer();
     }
@@ -70,11 +74,11 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        System.out.println(otlpCollectorUrl);
+        System.out.println(otlpCollectorUrl); // TODO: Ati
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, descriptor::kind, descriptor::nameByBinding,
-            descriptor::description, descriptor::unit);
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, attributes, descriptor::kind,
+            descriptor::nameByBinding, descriptor::description, descriptor::unit);
         TimerTask task = new OtlpExporterTask(otlpCollectorUrl, serializer);
         timer.schedule(task, 0, interval.toMillis());
     }

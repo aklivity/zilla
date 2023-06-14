@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -40,10 +42,11 @@ public class OtlpExporterContext implements ExporterContext
     @Override
     public ExporterHandler attach(
         ExporterConfig exporter,
+        List<AttributeConfig> attributes,
         Function<String, KindConfig> findBindingKind)
     {
         OtlpExporterConfig otlpExporter = new OtlpExporterConfig(exporter);
-        return new OltpExporterHandler(config, context, otlpExporter, findBindingKind);
+        return new OltpExporterHandler(config, context, otlpExporter, findBindingKind, attributes);
     }
 
     @Override
