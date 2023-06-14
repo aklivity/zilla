@@ -1635,7 +1635,10 @@ public final class KafkaMergedFactory implements BindingHandler
             final long latestOffset = partition.latestOffset();
             final long stableOffset = partition.stableOffset();
 
-            nextOffsetsById.put(partitionId, partitionOffset);
+            if (nextOffsetsById.getOrDefault((long) partitionId, 0L) < partitionOffset)
+            {
+                nextOffsetsById.put(partitionId, partitionOffset);
+            }
             initialLatestOffsetsById.put(partitionId, latestOffset);
             initialStableOffsetsById.put(partitionId, stableOffset);
 

@@ -1718,7 +1718,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final KafkaFetchClient client;
 
         private int state;
-        private int flushOrDataFramesSent;
+        private int flushFramesSent;
 
         private long initialSeq;
         private long initialAck;
@@ -1956,7 +1956,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             assert replyAck <= replySeq;
 
-            flushOrDataFramesSent++;
         }
 
         private void doApplicationFlush(
@@ -1972,7 +1971,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             assert replyAck <= replySeq;
 
-            flushOrDataFramesSent++;
+            flushFramesSent++;
         }
 
         private void doApplicationFlushIfNecessary(
@@ -1982,7 +1981,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             if (KafkaState.replyOpening(state) &&
                     client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
                     client.decodableRecords == 0 &&
-                    flushOrDataFramesSent == 0)
+                    flushFramesSent == 0)
             {
                 final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
@@ -2001,7 +2000,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 assert replyAck <= replySeq;
 
-                flushOrDataFramesSent++;
+                flushFramesSent++;
             }
         }
 
