@@ -210,6 +210,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
+    private static final int FIXED_CONTROL_PACKET_HEADER_LENGTH = 2;
 
     private final JsonBuilderFactory json = Json.createBuilderFactory(new HashMap<>());
 
@@ -923,7 +924,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         server.decodePublisherKey = 0;
                         server.decodeablePacketBytes = 0;
                         server.decoder = decodePacketType;
-                        progress = publish.limit();
+                        progress += publish.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
                         break decode;
                     }
                 }
@@ -956,7 +957,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     server.onDecodePublish(traceId, authorization, reserved, payload);
                     server.decodeablePacketBytes = 0;
                     server.decoder = decodePacketType;
-                    progress = publish.limit();
+                    progress += publish.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
                 }
             }
             else
@@ -1016,7 +1017,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 server.onDecodeSubscribe(traceId, authorization, subscribe);
                 server.decoder = decodePacketType;
-                progress = subscribe.limit();
+                progress += subscribe.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
             else
             {
@@ -1059,7 +1060,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 server.onDecodeUnsubscribe(traceId, authorization, unsubscribe);
                 server.decoder = decodePacketType;
-                progress = unsubscribe.limit();
+                progress += unsubscribe.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
             else
             {
@@ -1096,7 +1097,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 server.onDecodePingReq(traceId, authorization, ping);
                 server.decoder = decodePacketType;
-                progress = ping.limit();
+                progress += ping.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
         }
 
@@ -1134,7 +1135,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 server.onDecodeDisconnect(traceId, authorization, disconnect);
                 server.decoder = decodePacketType;
-                progress = disconnect.limit();
+                progress += disconnect.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
             else
             {
@@ -1675,7 +1676,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doCancelConnectTimeout();
 
                 decoder = decodePacketType;
-                progress = connect.limit();
+                progress += connect.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
 
             if (reasonCode != SUCCESS)
@@ -1684,7 +1685,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false);
                 doNetworkEnd(traceId, authorization);
                 decoder = decodeIgnoreAll;
-                progress = connect.limit();
+                progress += connect.remainingLength() + FIXED_CONTROL_PACKET_HEADER_LENGTH;
             }
             return progress;
         }
