@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
+
 import java.util.Map;
 import java.util.function.Function;
 
@@ -65,11 +68,8 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         String result = kinds.get(internalName);
         if (result == null)
         {
-            result = resolveMetric.apply(internalName).kind().toString().toLowerCase();
-            if ("counter".equals(result))
-            {
-                result = "sum";
-            }
+            Metric.Kind kind = resolveMetric.apply(internalName).kind();
+            result = kind == COUNTER ? "sum" : kind.toString().toLowerCase();
             kinds.put(internalName, result);
         }
         return result;
@@ -115,7 +115,8 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         String result = units.get(internalName);
         if (result == null)
         {
-            result = resolveMetric.apply(internalName).unit().toString().toLowerCase();
+            Metric.Unit unit = resolveMetric.apply(internalName).unit();
+            result = unit == COUNT ? "" : unit.toString().toLowerCase();
             units.put(internalName, result);
         }
         return result;
