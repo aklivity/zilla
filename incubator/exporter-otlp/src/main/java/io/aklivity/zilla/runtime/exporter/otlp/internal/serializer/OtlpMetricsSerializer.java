@@ -90,14 +90,14 @@ public class OtlpMetricsSerializer
         CounterGaugeRecord record)
     {
         long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
-        JsonArray attributes = attributesToJson(List.of(
+        JsonArrayBuilder attributesArray = attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
             new AttributeConfig("binding", record.bindingName())
         ));
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("asInt", record.value())
             .add("timeUnixNano", now)
-            .add("attributes", attributes)
+            .add("attributes", attributesArray)
             .build();
         JsonArray dataPoints = Json.createArrayBuilder()
             .add(dataPoint)
@@ -123,7 +123,7 @@ public class OtlpMetricsSerializer
         HistogramRecord record)
     {
         long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
-        JsonArray attributes = attributesToJson(List.of(
+        JsonArrayBuilder attributesArray = attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
             new AttributeConfig("binding", record.bindingName())
         ));
@@ -136,7 +136,7 @@ public class OtlpMetricsSerializer
         Arrays.stream(record.bucketValues()).forEach(bucketCounts::add);
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("timeUnixNano", now)
-            .add("attributes", attributes)
+            .add("attributes", attributesArray)
             .add("min", record.stats()[0])
             .add("max", record.stats()[1])
             .add("sum", record.stats()[2])
@@ -189,15 +189,12 @@ public class OtlpMetricsSerializer
         return jsonObject.toString();
     }
 
-    private JsonArray attributesToJson(
+    private JsonArrayBuilder attributesToJson(
         List<AttributeConfig> attributes)
     {
         JsonArrayBuilder result = Json.createArrayBuilder();
-        for (AttributeConfig attribute : attributes)
-        {
-            result.add(attributeToJson(attribute));
-        }
-        return result.build();
+        attributes.forEach(attribute -> result.add(attributeToJson(attribute)));
+        return result;
     }
 
     private JsonObject attributeToJson(
