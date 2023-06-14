@@ -74,7 +74,6 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        System.out.println(otlpCollectorUrl); // TODO: Ati
         MetricsProcessorFactory factory = new MetricsProcessorFactory(config.directory(), null, null);
         MetricsProcessor metrics = factory.create();
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, attributes, descriptor::kind,
