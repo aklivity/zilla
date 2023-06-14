@@ -20,8 +20,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.TimerTask;
 
-import org.agrona.LangUtil;
-
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public final class OtlpExporterTask extends TimerTask
@@ -62,7 +60,7 @@ public final class OtlpExporterTask extends TimerTask
         }
         catch (IOException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            // do nothing, try again next time
         }
     }
 }
