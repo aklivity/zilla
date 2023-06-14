@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -105,11 +106,11 @@ public class OtlpMetricsSerializer
             .add(dataPoint)
             .build();
         String kind = supplyKind.apply(record.metricName());
-        JsonObjectBuilder metricData = Json.createObjectBuilder()
+        JsonObjectBuilder counterGaugeData = Json.createObjectBuilder()
             .add("dataPoints", dataPoints);
         if ("sum".equals(kind))
         {
-            metricData
+            counterGaugeData
                 .add("aggregationTemporality", CUMULATIVE)
                 .add("isMonotonic", true);
         }
@@ -117,17 +118,46 @@ public class OtlpMetricsSerializer
             .add("name", supplyName.apply(record.metricName(), record.bindingName()))
             .add("unit", supplyUnit.apply(record.metricName()))
             .add("description", supplyDescription.apply(record.metricName()))
-            .add(kind, metricData)
+            .add(kind, counterGaugeData)
             .build();
     }
 
     private JsonObject serializeHistogram(
         HistogramRecord record)
     {
+        long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        JsonArray attributes = attributesToJson(List.of(
+            new AttributeConfig("namespace", record.namespaceName()),
+            new AttributeConfig("binding", record.bindingName())
+        ));
+        record.update();
+        // Histogram buckets are inclusive of their upper boundary, except the last bucket where the boundary is at infinity.
+        JsonArrayBuilder explicitBounds = Json.createArrayBuilder();
+        Arrays.stream(record.bucketLimits()).limit(record.buckets() - 1).forEach(explicitBounds::add);
+        // The number of elements in bucket_counts must be by one greater than the number of elements in explicit_bounds.
+        JsonArrayBuilder bucketCounts = Json.createArrayBuilder();
+        Arrays.stream(record.bucketValues()).forEach(bucketCounts::add);
+        JsonObject dataPoint = Json.createObjectBuilder()
+            .add("timeUnixNano", now)
+            .add("attributes", attributes)
+            .add("min", record.stats()[0])
+            .add("max", record.stats()[1])
+            .add("sum", record.stats()[2])
+            .add("count", record.stats()[3])
+            .add("explicitBounds", explicitBounds)
+            .add("bucketCounts", bucketCounts)
+            .build();
+        JsonArray dataPoints = Json.createArrayBuilder()
+            .add(dataPoint)
+            .build();
+        JsonObjectBuilder histogramData = Json.createObjectBuilder()
+            .add("aggregationTemporality", CUMULATIVE)
+            .add("dataPoints", dataPoints);
         return Json.createObjectBuilder()
             .add("name", supplyName.apply(record.metricName(), record.bindingName()))
             .add("description", supplyDescription.apply(record.metricName()))
             .add("unit", supplyUnit.apply(record.metricName()))
+            .add("histogram", histogramData)
             .build();
     }
 
