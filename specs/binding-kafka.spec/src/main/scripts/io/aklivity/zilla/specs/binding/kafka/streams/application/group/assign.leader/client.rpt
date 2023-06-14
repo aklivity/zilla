@@ -37,3 +37,4 @@ read zilla:data.ext ${kafka:dataEx()
                                  .memberId("consumer-1")
                                  .build()
                              .build()}
+read zilla:data.null

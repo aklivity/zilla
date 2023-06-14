@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Heartb
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.MemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
@@ -124,6 +125,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
     private final JoinGroupResponseFW joinGroupResponseRO = new JoinGroupResponseFW();
+    private final MemberMetadataFW memberMetadataRO = new MemberMetadataFW();
     private final SyncGroupResponseFW syncGroupResponseRO = new SyncGroupResponseFW();
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
@@ -360,7 +362,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        Flyweight extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -373,7 +375,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .extension(extension)
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
@@ -663,10 +665,24 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
+                    progress = joinGroupResponse.limit();
+
+                    metadata:
+                    for (int i = 0; i < joinGroupResponse.memberCount(); i++)
+                    {
+                        final MemberMetadataFW memberMetadata = memberMetadataRO.tryWrap(buffer, progress, limit);
+                        if (memberMetadata != null)
+                        {
+                            progress = memberMetadata.limit();
+                        }
+                        else
+                        {
+                            break metadata;
+                        }
+                    }
                     client.onJoinGroupResponse(traceId, authorization, joinGroupResponse.leader(), joinGroupResponse.memberId());
                 }
 
-                progress = joinGroupResponse.limit();
             }
         }
 
@@ -991,9 +1007,17 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         {
             final int reserved = replyPad;
 
-            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            if (payload.sizeof() > 0)
+            {
+                doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved,
-                payload.value(), payload.offset(), payload.sizeof(), extension);
+                    payload.value(), payload.offset(), payload.sizeof(), extension);
+            }
+            else
+            {
+                doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, replyBudgetId, reserved, extension);
+            }
 
             replySeq += reserved;
 
@@ -2205,6 +2229,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             final HeartbeatRequestFW heartbeatRequest =
                 heartbeatRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
+                    .generatedId(nextRequestId)
                     .memberId(memberId)
                     .build();
 

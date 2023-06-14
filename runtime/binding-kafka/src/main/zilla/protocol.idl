@@ -442,7 +442,8 @@ scope protocol
                 int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
-                octets assignment;
+                uint32 assignmentLength;
+                octets[assignmentLength] assignment;
             }
 
             struct HeartbeatRequest
