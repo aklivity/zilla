@@ -40,6 +40,7 @@ public class OtlpMetricsSerializer
     private static final int CUMULATIVE = 2;
 
     private final MetricsProcessor metricsProcessor;
+    private final List<AttributeConfig> attributes;
     private final Function<String, String> supplyKind;
     private final BiFunction<String, String, String> supplyName;
     private final Function<String, String> supplyDescription;
@@ -47,12 +48,14 @@ public class OtlpMetricsSerializer
 
     public OtlpMetricsSerializer(
         MetricsProcessor metricsProcessor,
+        List<AttributeConfig> attributes,
         Function<String, String> supplyKind,
         BiFunction<String, String, String> supplyName,
         Function<String, String> supplyDescription,
         Function<String, String> supplyUnit)
     {
         this.metricsProcessor = metricsProcessor;
+        this.attributes = attributes;
         this.supplyKind = supplyKind;
         this.supplyName = supplyName;
         this.supplyDescription = supplyDescription;
@@ -61,17 +64,11 @@ public class OtlpMetricsSerializer
 
     public String serializeAll()
     {
-        AttributeConfig attribute = new AttributeConfig("service.namespace", "example"); // TODO: Ati
-        JsonArray attributes = Json.createArrayBuilder()
-            .add(attributeToJson(attribute))
-            .build();
+        JsonArrayBuilder attributesArray = Json.createArrayBuilder();
+        attributes.forEach(attr -> attributesArray.add(attributeToJson(attr)));
         JsonArrayBuilder metricsArray = Json.createArrayBuilder();
-        for (MetricRecord metric : metricsProcessor.getRecords())
-        {
-            JsonObject json = serialize(metric);
-            metricsArray.add(json);
-        }
-        return createJson(attributes, metricsArray.build());
+        metricsProcessor.getRecords().forEach(metric -> metricsArray.add(serialize(metric)));
+        return createJson(attributesArray, metricsArray);
     }
 
     private JsonObject serialize(
@@ -162,8 +159,8 @@ public class OtlpMetricsSerializer
     }
 
     private String createJson(
-        JsonArray attributes,
-        JsonArray metricsArray)
+        JsonArrayBuilder attributes,
+        JsonArrayBuilder metricsArray)
     {
         JsonObject resource = Json.createObjectBuilder()
             .add("attributes", attributes)
