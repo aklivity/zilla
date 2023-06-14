@@ -41,8 +41,8 @@ public class OltpExporterHandler implements ExporterHandler
     private final EngineConfiguration config;
     private final OtlpMetricsDescriptor descriptor;
     private final URL otlpCollectorUrl;
-    private final List<AttributeConfig> attributes;
     private final Duration interval;
+    private final List<AttributeConfig> attributes;
     private final Timer timer;
 
     public OltpExporterHandler(
@@ -66,8 +66,8 @@ public class OltpExporterHandler implements ExporterHandler
             LangUtil.rethrowUnchecked(ex);
         }
         this.otlpCollectorUrl = otlpCollectorUrl;
+        this.interval = Duration.ofSeconds(exporter.options().interval);
         this.attributes = attributes;
-        this.interval = Duration.ofSeconds(5L); // TODO: Ati - get this from config
         this.timer = new Timer();
     }
 

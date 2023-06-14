@@ -31,6 +31,10 @@
                     {
                         "properties":
                         {
+                            "interval":
+                            {
+                                "type": "number"
+                            },
                             "endpoints":
                             {
                                 "type": "array",

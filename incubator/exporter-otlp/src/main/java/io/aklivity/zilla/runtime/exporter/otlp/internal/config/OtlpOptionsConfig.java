@@ -18,11 +18,14 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpOptionsConfig extends OptionsConfig
 {
+    public long interval;
     public OtlpEndpointConfig[] endpoints;
 
     public OtlpOptionsConfig(
+        long interval,
         OtlpEndpointConfig[] endpoints)
     {
+        this.interval = interval;
         this.endpoints = endpoints;
     }
 }
