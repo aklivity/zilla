@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;
 
 public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String INTERVAL_NAME = "interval";
+    private static final long INTERVAL_DEFAULT = 30;
     private static final String ENDPOINTS_NAME = "endpoints";
 
     private final OtlpEndpointAdapter endpoint;
@@ -58,6 +60,10 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         OtlpOptionsConfig otlpOptionsConfig = (OtlpOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
+        if (otlpOptionsConfig.interval != 0)
+        {
+            object.add(INTERVAL_NAME, otlpOptionsConfig.interval);
+        }
         if (otlpOptionsConfig.endpoints != null)
         {
             JsonArrayBuilder entries = Json.createArrayBuilder();
@@ -71,13 +77,15 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        OtlpEndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
+        long interval = object.containsKey(INTERVAL_NAME)
+            ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
+        OtlpEndpointConfig[] endpoints = object.containsKey(ENDPOINTS_NAME)
             ? object.getJsonArray(ENDPOINTS_NAME).stream()
                 .map(i -> (JsonObject) i)
                 .map(endpoint::adaptFromJson)
                 .collect(Collectors.toList())
                 .toArray(OtlpEndpointConfig[]::new)
             : null;
-        return new OtlpOptionsConfig(e);
+        return new OtlpOptionsConfig(interval, endpoints);
     }
 }

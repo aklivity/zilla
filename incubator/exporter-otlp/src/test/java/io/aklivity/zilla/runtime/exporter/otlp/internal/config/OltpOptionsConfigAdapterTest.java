@@ -44,6 +44,7 @@ public class OltpOptionsConfigAdapterTest
         // GIVEN
         String text =
             "{\n" +
+                "\"interval\": 30,\n" +
                 "\"endpoints\":\n" +
                     "[\n" +
                         "{\n" +
@@ -57,6 +58,7 @@ public class OltpOptionsConfigAdapterTest
 
         // THEN
         assertThat(options, not(nullValue()));
+        assertThat(options.interval, equalTo(30L));
         assertThat(options.endpoints[0].url, equalTo("http://localhost:4317"));
     }
 
@@ -65,13 +67,13 @@ public class OltpOptionsConfigAdapterTest
     {
         // GIVEN
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317");
-        OtlpOptionsConfig config = new OtlpOptionsConfig(new OtlpEndpointConfig[]{endpoint});
+        OtlpOptionsConfig config = new OtlpOptionsConfig(30, new OtlpEndpointConfig[]{endpoint});
 
         // WHEN
         String text = jsonb.toJson(config);
 
         // THEN
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"endpoints\":[{\"url\":\"http://localhost:4317\"}]}"));
+        assertThat(text, equalTo("{\"interval\":30,\"endpoints\":[{\"url\":\"http://localhost:4317\"}]}"));
     }
 }
