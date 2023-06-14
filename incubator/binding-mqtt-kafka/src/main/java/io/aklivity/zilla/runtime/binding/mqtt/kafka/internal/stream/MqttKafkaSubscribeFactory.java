@@ -78,7 +78,6 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class MqttKafkaSubscribeFactory implements BindingHandler
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
@@ -593,13 +592,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             long authorization,
             long affinity)
         {
-            if (!MqttKafkaState.replyOpening(state))
-            {
-                state = MqttKafkaState.openingReply(state);
+            state = MqttKafkaState.openingReply(state);
 
-                doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity);
-            }
+            doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity);
         }
 
         private void doMqttData(
@@ -1484,7 +1480,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             doKafkaEnd(traceId, sequence, authorization);
 
             delegate.messages.doKafkaBegin(traceId, authorization, 0);
-
         }
 
         private void onKafkaAbort(

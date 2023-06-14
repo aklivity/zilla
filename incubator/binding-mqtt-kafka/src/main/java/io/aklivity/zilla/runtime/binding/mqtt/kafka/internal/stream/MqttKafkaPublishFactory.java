@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.Extens
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishBeginExFW;
@@ -60,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class MqttKafkaPublishFactory implements BindingHandler
 {
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
@@ -91,6 +93,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
@@ -382,7 +385,14 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 }
                 else
                 {
-                    retained.doKafkaFlush(traceId, authorization, budgetId, reserved);
+                    final KafkaFlushExFW kafkaFlushEx =
+                        kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(kafkaTypeId)
+                            .merged(m -> m.partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
+                                .key(key))
+                            .build();
+                    retained.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
                 }
             }
         }
@@ -530,7 +540,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         {
             replySeq = messages.replySeq;
 
-            doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId, reserved);
+            doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId, reserved,
+                EMPTY_OCTETS);
         }
 
         private void doMqttAbort(
@@ -1029,10 +1040,11 @@ public class MqttKafkaPublishFactory implements BindingHandler
             long traceId,
             long authorization,
             long budgetId,
-            int reserved)
+            int reserved,
+            KafkaFlushExFW extension)
         {
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, reserved);
+                traceId, authorization, budgetId, reserved, extension);
 
             initialSeq += reserved;
 
@@ -1404,7 +1416,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         long traceId,
         long authorization,
         long budgetId,
-        int reserved)
+        int reserved,
+        Flyweight extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -1417,6 +1430,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
