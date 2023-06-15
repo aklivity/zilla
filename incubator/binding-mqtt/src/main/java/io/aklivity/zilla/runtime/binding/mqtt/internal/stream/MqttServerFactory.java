@@ -1201,7 +1201,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
-        private final Map<Integer, Integer> subscribePacketIds;
+        private final Map<String, Integer> subscribePacketIds;
         private final Map<String, Integer> unsubscribePacketIds;
 
         private MqttSessionStream sessionStream;
@@ -1854,8 +1854,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                subscribePacketIds.put(subscriptionId, packetId);
-
                 final List<Subscription> newSubscriptions = new ArrayList<>();
 
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
@@ -1918,6 +1916,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
                     subscription.flags = flags;
+                    subscribePacketIds.put(filter, packetId);
                     newSubscriptions.add(subscription);
                 }
 
@@ -2039,7 +2038,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (session)
                 {
                     List<Subscription> unAckedSubscriptions = sessionStream.unAckedSubscriptions.stream()
-                        .filter(s -> topicFilters.contains(s.filter) && subscribePacketIds.containsKey(s.id))
+                        .filter(s -> topicFilters.contains(s.filter) && subscribePacketIds.containsKey(s.filter))
                         .collect(Collectors.toList());
 
                     if (!unAckedSubscriptions.isEmpty())
@@ -3142,10 +3141,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
                                     .collect(Collectors.toList());
-                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).id))
+                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).filter))
                                 {
-                                    int packetId = subscribePacketIds.get(newSubscriptions.get(0).id);
-                                    newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
+                                    int packetId = subscribePacketIds.get(newSubscriptions.get(0).filter);
+                                    newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.filter));
                                     openSubscribeStreams(packetId, traceId, authorization, newSubscriptions, false);
                                 }
                                 else

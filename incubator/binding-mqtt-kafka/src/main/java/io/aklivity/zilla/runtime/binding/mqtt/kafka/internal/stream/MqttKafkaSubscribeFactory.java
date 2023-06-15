@@ -367,7 +367,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             if (retainAvailable)
             {
-                retainedFilters.removeIf(rf -> !currentFilters.anyMatch(f -> f.subscriptionId() == rf.id));
+                retainedFilters.removeIf(rf -> !currentFilters.anyMatch(f -> f.pattern().asString().equals(rf.filter)));
                 final List<Subscription> newRetainedFilters = new ArrayList<>();
                 currentFilters.forEach(filter ->
                 {
