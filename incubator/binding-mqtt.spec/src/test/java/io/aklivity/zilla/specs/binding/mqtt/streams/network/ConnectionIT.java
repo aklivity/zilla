@@ -364,4 +364,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.subscribe.one.packet/client",
+        "${net}/connect.subscribe.one.packet/server"})
+    public void shouldConnectAndSubscribeAsOneMqttPacket() throws Exception
+    {
+        k3po.finish();
+    }
 }
