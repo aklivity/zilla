@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.otlp.internal.descriptor;
+package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +25,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsDescriptor;
 
 public class OtlpMetricDescriptorTest
 {

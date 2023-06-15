@@ -46,6 +46,9 @@ public class OtlpMetricsSerializer
     private final Function<String, String> supplyDescription;
     private final Function<String, String> supplyUnit;
 
+    // required for testing
+    private long timeStamp;
+
     public OtlpMetricsSerializer(
         MetricsProcessor metricsProcessor,
         List<AttributeConfig> attributes,
@@ -60,6 +63,7 @@ public class OtlpMetricsSerializer
         this.supplyName = supplyName;
         this.supplyDescription = supplyDescription;
         this.supplyUnit = supplyUnit;
+        this.timeStamp = 0;
     }
 
     public String serializeAll()
@@ -69,6 +73,13 @@ public class OtlpMetricsSerializer
         JsonArrayBuilder metricsArray = Json.createArrayBuilder();
         metricsProcessor.getRecords().forEach(metric -> metricsArray.add(serialize(metric)));
         return createJson(attributesArray, metricsArray);
+    }
+
+    // required for testing
+    void timeStamp(
+        long timeStamp)
+    {
+        this.timeStamp = timeStamp;
     }
 
     private JsonObject serialize(
@@ -89,7 +100,7 @@ public class OtlpMetricsSerializer
     private JsonObject serializeCounterGauge(
         CounterGaugeRecord record)
     {
-        long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        long now = timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
         JsonArrayBuilder attributesArray = attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
             new AttributeConfig("binding", record.bindingName())
@@ -122,7 +133,7 @@ public class OtlpMetricsSerializer
     private JsonObject serializeHistogram(
         HistogramRecord record)
     {
-        long now = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        long now = timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
         JsonArrayBuilder attributesArray = attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
             new AttributeConfig("binding", record.bindingName())
