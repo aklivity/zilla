@@ -100,15 +100,10 @@ public class OtlpMetricsSerializer
     private JsonObject serializeCounterGauge(
         CounterGaugeRecord record)
     {
-        long now = timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
-        JsonArrayBuilder attributesArray = attributesToJson(List.of(
-            new AttributeConfig("namespace", record.namespaceName()),
-            new AttributeConfig("binding", record.bindingName())
-        ));
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("asInt", record.value())
-            .add("timeUnixNano", now)
-            .add("attributes", attributesArray)
+            .add("timeUnixNano", now())
+            .add("attributes", attributes(record))
             .build();
         JsonArray dataPoints = Json.createArrayBuilder()
             .add(dataPoint)
@@ -130,14 +125,42 @@ public class OtlpMetricsSerializer
             .build();
     }
 
-    private JsonObject serializeHistogram(
-        HistogramRecord record)
+    private long now()
     {
-        long now = timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
-        JsonArrayBuilder attributesArray = attributesToJson(List.of(
+        return timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+    }
+
+    private JsonArrayBuilder attributes(MetricRecord record)
+    {
+        return attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
             new AttributeConfig("binding", record.bindingName())
         ));
+    }
+
+    private JsonArrayBuilder attributesToJson(
+        List<AttributeConfig> attributes)
+    {
+        JsonArrayBuilder result = Json.createArrayBuilder();
+        attributes.forEach(attribute -> result.add(attributeToJson(attribute)));
+        return result;
+    }
+
+    private JsonObject attributeToJson(
+        AttributeConfig attributeConfig)
+    {
+        JsonObject value = Json.createObjectBuilder()
+            .add("stringValue", attributeConfig.value)
+            .build();
+        return Json.createObjectBuilder()
+            .add("key", attributeConfig.name)
+            .add("value", value)
+            .build();
+    }
+
+    private JsonObject serializeHistogram(
+        HistogramRecord record)
+    {
         record.update();
         // Histogram buckets are inclusive of their upper boundary, except the last bucket where the boundary is at infinity.
         JsonArrayBuilder explicitBounds = Json.createArrayBuilder();
@@ -146,8 +169,8 @@ public class OtlpMetricsSerializer
         JsonArrayBuilder bucketCounts = Json.createArrayBuilder();
         Arrays.stream(record.bucketValues()).forEach(bucketCounts::add);
         JsonObject dataPoint = Json.createObjectBuilder()
-            .add("timeUnixNano", now)
-            .add("attributes", attributesArray)
+            .add("timeUnixNano", now())
+            .add("attributes", attributes(record))
             .add("min", record.stats()[0])
             .add("max", record.stats()[1])
             .add("sum", record.stats()[2])
@@ -200,23 +223,4 @@ public class OtlpMetricsSerializer
         return jsonObject.toString();
     }
 
-    private JsonArrayBuilder attributesToJson(
-        List<AttributeConfig> attributes)
-    {
-        JsonArrayBuilder result = Json.createArrayBuilder();
-        attributes.forEach(attribute -> result.add(attributeToJson(attribute)));
-        return result;
-    }
-
-    private JsonObject attributeToJson(
-        AttributeConfig attributeConfig)
-    {
-        JsonObject value = Json.createObjectBuilder()
-            .add("stringValue", attributeConfig.value)
-            .build();
-        return Json.createObjectBuilder()
-            .add("key", attributeConfig.name)
-            .add("value", value)
-            .build();
-    }
 }
