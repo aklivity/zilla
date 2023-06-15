@@ -22,17 +22,16 @@ accept ${serverAddress}
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
                                    .protocol("session")
-                                   .timeout(300000)
+                                   .timeout(45000)
                                    .build()
                                .build()}
 
 connected
-
 
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
