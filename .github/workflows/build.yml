@@ -39,4 +39,6 @@ jobs:
         name: zilla-dump
         path: |
           incubator/*/target/zilla-itests/
+          incubator/*/target/failsafe-reports/
           runtime/*/target/zilla-itests/
+          runtime/*/target/failsafe-reports/
