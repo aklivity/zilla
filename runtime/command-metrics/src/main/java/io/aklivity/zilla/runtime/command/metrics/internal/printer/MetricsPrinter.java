@@ -18,7 +18,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
@@ -30,7 +30,7 @@ public class MetricsPrinter
     private static final String METRIC_HEADER = "metric";
     private static final String VALUE_HEADER = "value";
 
-    private final MetricsProcessor metricsProcessor;
+    private final MetricsReader metricsReader;
     private final Map<MetricRecord, String> metricValues = new HashMap<>();
 
     private int namespaceWidth;
@@ -39,9 +39,9 @@ public class MetricsPrinter
     private int valueWidth;
 
     public MetricsPrinter(
-        MetricsProcessor metricsProcessor)
+        MetricsReader metricsReader)
     {
-        this.metricsProcessor = metricsProcessor;
+        this.metricsReader = metricsReader;
     }
 
     public void print(
@@ -54,7 +54,7 @@ public class MetricsPrinter
 
     private void formatMetrics()
     {
-        for (MetricRecord metric : metricsProcessor.getRecords())
+        for (MetricRecord metric : metricsReader.getRecords())
         {
             metricValues.put(metric, format(metric));
         }
@@ -67,7 +67,7 @@ public class MetricsPrinter
         metricWidth = METRIC_HEADER.length();
         valueWidth = VALUE_HEADER.length();
 
-        for (MetricRecord metric : metricsProcessor.getRecords())
+        for (MetricRecord metric : metricsReader.getRecords())
         {
             namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
             bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
@@ -82,7 +82,7 @@ public class MetricsPrinter
         String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
             valueWidth + "s\n";
         out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
-        for (MetricRecord metric : metricsProcessor.getRecords())
+        for (MetricRecord metric : metricsReader.getRecords())
         {
             out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metricValues.get(metric));
         }

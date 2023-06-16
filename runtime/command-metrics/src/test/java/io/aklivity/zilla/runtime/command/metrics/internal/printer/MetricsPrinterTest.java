@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
@@ -61,10 +61,10 @@ public class MetricsPrinterTest
         when(histogramRecord.stats()).thenReturn(new long[]{1L, 63L, 64L, 2L, 32L});
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
-        MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
-        when(metricsProcessor.getRecords()).thenReturn(metricRecords);
+        MetricsReader metricsReader = mock(MetricsReader.class);
+        when(metricsReader.getRecords()).thenReturn(metricRecords);
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor);
+        MetricsPrinter printer = new MetricsPrinter(metricsReader);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -83,10 +83,10 @@ public class MetricsPrinterTest
             "namespace    binding    metric    value\n\n";
         List<MetricRecord> metricRecords = List.of();
 
-        MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
-        when(metricsProcessor.getRecords()).thenReturn(metricRecords);
+        MetricsReader metricsReader = mock(MetricsReader.class);
+        when(metricsReader.getRecords()).thenReturn(metricRecords);
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor);
+        MetricsPrinter printer = new MetricsPrinter(metricsReader);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

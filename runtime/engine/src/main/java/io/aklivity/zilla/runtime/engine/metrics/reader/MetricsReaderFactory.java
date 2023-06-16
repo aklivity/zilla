@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics.processor;
+package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
@@ -31,13 +31,13 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.LayoutManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 
-public class MetricsProcessorFactory
+public class MetricsReaderFactory
 {
     private final Path enginePath;
     private final String namespaceName;
     private final String bindingName;
 
-    public MetricsProcessorFactory(
+    public MetricsReaderFactory(
         Path enginePath,
         String namespaceName,
         String bindingName)
@@ -47,7 +47,7 @@ public class MetricsProcessorFactory
         this.bindingName = bindingName;
     }
 
-    public MetricsProcessor create()
+    public MetricsReader create()
     {
         try
         {
@@ -57,7 +57,7 @@ public class MetricsProcessorFactory
                 GAUGE, layoutManager.gaugesLayouts(),
                 HISTOGRAM, layoutManager.histogramsLayouts());
             LabelManager labels = new LabelManager(enginePath);
-            return new MetricsProcessor(layouts, labels, namespaceName, bindingName);
+            return new MetricsReader(layouts, labels, namespaceName, bindingName);
         }
         catch (IOException ex)
         {

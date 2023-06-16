@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics.processor;
+package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
-public class MetricsProcessor
+public class MetricsReader
 {
     private static final long[][] EMPTY = new long[0][0];
 
@@ -44,7 +44,7 @@ public class MetricsProcessor
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
-    public MetricsProcessor(
+    public MetricsReader(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
         LabelManager labels,
         String namespaceName,

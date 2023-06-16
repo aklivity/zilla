@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
@@ -75,8 +75,8 @@ public class MetricsPrinterTest
         when(histogramRecord.stats()).thenReturn(new long[]{1L, 1000L, 2327L, 59L, 39L}); // min, max, sum, cnt, avg
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
-        MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
-        when(metricsProcessor.getRecords()).thenReturn(metricRecords);
+        MetricsReader metricsReader = mock(MetricsReader.class);
+        when(metricsReader.getRecords()).thenReturn(metricRecords);
 
         PrometheusMetricDescriptor descriptor = mock(PrometheusMetricDescriptor.class);
         when(descriptor.name("counter1")).thenReturn("counter1_total");
@@ -91,7 +91,7 @@ public class MetricsPrinterTest
         when(descriptor.kind("histogram1")).thenReturn("histogram");
         when(descriptor.description("histogram1")).thenReturn("description for histogram1");
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor, descriptor::kind, descriptor::name,
+        MetricsPrinter printer = new MetricsPrinter(metricsReader, descriptor::kind, descriptor::name,
             descriptor::description);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -110,10 +110,10 @@ public class MetricsPrinterTest
         String expectedOutput = "";
         List<MetricRecord> metricRecords = List.of();
 
-        MetricsProcessor metricsProcessor = mock(MetricsProcessor.class);
-        when(metricsProcessor.getRecords()).thenReturn(metricRecords);
+        MetricsReader metricsReader = mock(MetricsReader.class);
+        when(metricsReader.getRecords()).thenReturn(metricRecords);
 
-        MetricsPrinter printer = new MetricsPrinter(metricsProcessor, null, null, null);
+        MetricsPrinter printer = new MetricsPrinter(metricsReader, null, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

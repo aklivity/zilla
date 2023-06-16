@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics.processor;
+package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.id;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
@@ -46,7 +46,7 @@ import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
-public class MetricsProcessorTest
+public class MetricsReaderTest
 {
     public static final long BINDING_ID_1_11 = id(1, 11);
     public static final long BINDING_ID_1_12 = id(1, 12);
@@ -166,7 +166,7 @@ public class MetricsProcessorTest
             COUNTER, List.of(countersLayout),
             GAUGE, List.of(gaugesLayout),
             HISTOGRAM, List.of(histogramsLayout));
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
@@ -253,9 +253,9 @@ public class MetricsProcessorTest
             GAUGE, List.of(),
             HISTOGRAM, List.of(histogramsLayout));
 
-        MetricsProcessor metrics1 = new MetricsProcessor(layouts, labels, "ns2", null);
-        MetricsProcessor metrics2 = new MetricsProcessor(layouts, labels, null, "binding2");
-        MetricsProcessor metrics3 = new MetricsProcessor(layouts, labels, "ns1", "binding2");
+        MetricsReader metrics1 = new MetricsReader(layouts, labels, "ns2", null);
+        MetricsReader metrics2 = new MetricsReader(layouts, labels, null, "binding2");
+        MetricsReader metrics3 = new MetricsReader(layouts, labels, "ns1", "binding2");
 
         // WHEN
         List<MetricRecord> records1 = metrics1.getRecords();
@@ -347,7 +347,7 @@ public class MetricsProcessorTest
             COUNTER, List.of(countersLayout0, countersLayout1, countersLayout2),
             GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
             HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -411,7 +411,7 @@ public class MetricsProcessorTest
             COUNTER, List.of(),
             GAUGE, List.of(),
             HISTOGRAM, List.of(histogramsLayout));
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
@@ -451,7 +451,7 @@ public class MetricsProcessorTest
             COUNTER, List.of(),
             GAUGE, List.of(),
             HISTOGRAM, List.of());
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();
@@ -487,7 +487,7 @@ public class MetricsProcessorTest
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
             COUNTER, List.of(countersLayout));
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
 
         // WHEN
         MetricRecord record0 = metrics.findRecord("none", "none", "none");

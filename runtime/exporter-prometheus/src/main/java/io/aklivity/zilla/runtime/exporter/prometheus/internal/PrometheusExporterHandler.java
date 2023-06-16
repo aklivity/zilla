@@ -35,8 +35,8 @@ import com.sun.net.httpserver.HttpServer;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
-import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.MetricsPrinter;
@@ -49,7 +49,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final Map<Integer, HttpServer> servers;
     private final Path engineDirectory;
 
-    private MetricsProcessor metricsProcessor;
+    private MetricsReader metricsReader;
     private MetricsPrinter printer;
 
     public PrometheusExporterHandler(
@@ -66,9 +66,9 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        MetricsProcessorFactory factory = new MetricsProcessorFactory(engineDirectory, null, null);
-        metricsProcessor = factory.create();
-        printer = new MetricsPrinter(metricsProcessor, descriptor::kind, descriptor::name, descriptor::description);
+        MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory, null, null);
+        metricsReader = factory.create();
+        printer = new MetricsPrinter(metricsReader, descriptor::kind, descriptor::name, descriptor::description);
 
         for (PrometheusEndpointConfig endpoint : endpoints)
         {
@@ -101,9 +101,9 @@ public class PrometheusExporterHandler implements ExporterHandler
             HttpServer server = servers.remove(port);
             server.stop(0);
         }
-        if (metricsProcessor != null)
+        if (metricsReader != null)
         {
-            metricsProcessor.close();
+            metricsReader.close();
         }
     }
 
