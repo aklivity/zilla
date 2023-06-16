@@ -24,10 +24,10 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.HistogramRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class OtlpMetricsSeralizerTest
 {

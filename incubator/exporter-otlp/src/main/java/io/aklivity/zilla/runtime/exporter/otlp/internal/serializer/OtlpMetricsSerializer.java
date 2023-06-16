@@ -27,10 +27,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.HistogramRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class OtlpMetricsSerializer
 {
@@ -130,7 +130,8 @@ public class OtlpMetricsSerializer
         return timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
     }
 
-    private JsonArrayBuilder attributes(MetricRecord record)
+    private JsonArrayBuilder attributes(
+        MetricRecord record)
     {
         return attributesToJson(List.of(
             new AttributeConfig("namespace", record.namespaceName()),
@@ -222,5 +223,4 @@ public class OtlpMetricsSerializer
             .build();
         return jsonObject.toString();
     }
-
 }

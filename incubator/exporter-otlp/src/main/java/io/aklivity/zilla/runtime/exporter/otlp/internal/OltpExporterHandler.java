@@ -29,10 +29,10 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessorFactory;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsDescriptor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
