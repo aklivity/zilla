@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -60,21 +59,6 @@ public class MetricsReader
     {
         init();
         return metricRecords;
-    }
-
-    public MetricRecord findRecord(
-        String namespace,
-        String binding,
-        String metric)
-    {
-        Objects.requireNonNull(namespace);
-        Objects.requireNonNull(binding);
-        Objects.requireNonNull(metric);
-        init();
-        return metricRecords.stream()
-            .filter(r -> namespace.equals(r.namespaceName()) && binding.equals(r.bindingName()) && metric.equals(r.metricName()))
-            .findFirst()
-            .orElse(null);
     }
 
     public void close()

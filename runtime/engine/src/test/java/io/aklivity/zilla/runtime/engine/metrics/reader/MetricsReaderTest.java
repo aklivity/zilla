@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -458,69 +457,5 @@ public class MetricsReaderTest
 
         // THEN
         assertThat(records.size(), equalTo(0));
-    }
-
-    @Test
-    public void shouldFindCounterValue()
-    {
-        // GIVEN
-        long[][] counterIds = new long[][]{
-            {BINDING_ID_1_11, METRIC_ID_1_21},
-            {BINDING_ID_1_11, METRIC_ID_1_22},
-            {BINDING_ID_1_12, METRIC_ID_1_21},
-            {BINDING_ID_2_11, METRIC_ID_2_21}
-        };
-        LabelManager labels = mock(LabelManager.class);
-        when(labels.lookupLabel(1)).thenReturn("ns1");
-        when(labels.lookupLabel(2)).thenReturn("ns2");
-        when(labels.lookupLabel(11)).thenReturn("binding1");
-        when(labels.lookupLabel(12)).thenReturn("binding2");
-        when(labels.lookupLabel(21)).thenReturn("counter1");
-        when(labels.lookupLabel(22)).thenReturn("counter2");
-
-        CountersLayout countersLayout = mock(CountersLayout.class);
-        when(countersLayout.getIds()).thenReturn(counterIds);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
-
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(countersLayout));
-        MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
-
-        // WHEN
-        MetricRecord record0 = metrics.findRecord("none", "none", "none");
-        MetricRecord record1 = metrics.findRecord("ns1", "binding1", "counter1");
-        MetricRecord record2 = metrics.findRecord("ns1", "binding1", "counter2");
-        MetricRecord record3 = metrics.findRecord("ns1", "binding2", "counter1");
-        MetricRecord record4 = metrics.findRecord("ns2", "binding1", "counter1");
-
-        // THEN
-        assertThat(record0, nullValue());
-
-        assertThat(record1, instanceOf(CounterGaugeRecord.class));
-        assertThat(record1.namespaceName(), equalTo("ns1"));
-        assertThat(record1.bindingName(), equalTo("binding1"));
-        assertThat(record1.metricName(), equalTo("counter1"));
-        assertThat(((CounterGaugeRecord)record1).value(), equalTo(42L));
-
-        assertThat(record2, instanceOf(CounterGaugeRecord.class));
-        assertThat(record2.namespaceName(), equalTo("ns1"));
-        assertThat(record2.bindingName(), equalTo("binding1"));
-        assertThat(record2.metricName(), equalTo("counter2"));
-        assertThat(((CounterGaugeRecord)record2).value(), equalTo(77L));
-
-        assertThat(record3, instanceOf(CounterGaugeRecord.class));
-        assertThat(record3.namespaceName(), equalTo("ns1"));
-        assertThat(record3.bindingName(), equalTo("binding2"));
-        assertThat(record3.metricName(), equalTo("counter1"));
-        assertThat(((CounterGaugeRecord)record3).value(), equalTo(43L));
-
-        assertThat(record4, instanceOf(CounterGaugeRecord.class));
-        assertThat(record4.namespaceName(), equalTo("ns2"));
-        assertThat(record4.bindingName(), equalTo("binding1"));
-        assertThat(record4.metricName(), equalTo("counter1"));
-        assertThat(((CounterGaugeRecord)record4).value(), equalTo(44L));
     }
 }
