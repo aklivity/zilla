@@ -39,8 +39,8 @@ import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
 import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessorFactory;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.MetricsPrinter;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.PrometheusMetricDescriptor;
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
@@ -85,28 +85,6 @@ public class PrometheusExporterHandler implements ExporterHandler
             server.start();
             servers.put(endpoint.port, server);
         }
-
-        /*try
-        {
-            layouts = Map.of(
-                COUNTER, manager.countersLayouts(),
-                GAUGE, manager.gaugesLayouts(),
-                HISTOGRAM, manager.histogramsLayouts()
-            );
-            metrics = new MetricsProcessor(layouts, context::supplyLocalName, metricDescriptor::kind,
-                metricDescriptor::name, metricDescriptor::description, null, null);
-            for (PrometheusEndpointConfig endpoint : endpoints)
-            {
-                HttpServer server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
-                server.createContext(endpoint.path, new MetricsHttpHandler());
-                server.start();
-                servers.put(endpoint.port, server);
-            }
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }*/
     }
 
     @Override

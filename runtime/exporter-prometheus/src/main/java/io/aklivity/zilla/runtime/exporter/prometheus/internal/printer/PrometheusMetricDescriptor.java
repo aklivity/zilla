@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor;
+package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.BYTES;
@@ -25,7 +25,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 
-public class PrometheusMetricDescriptor implements MetricDescriptor
+public class PrometheusMetricDescriptor
 {
     private final Function<String, Metric> metricResolver;
     private final Map<String, String> names;
@@ -41,7 +41,6 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         this.descriptions = new Object2ObjectHashMap<>();
     }
 
-    @Override
     public String kind(
         String internalName)
     {
@@ -54,7 +53,6 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         return result;
     }
 
-    @Override
     public String name(
         String internalName)
     {
@@ -83,7 +81,6 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         return result;
     }
 
-    @Override
     public String description(
         String internalName)
     {

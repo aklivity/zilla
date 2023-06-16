@@ -29,7 +29,6 @@ import io.aklivity.zilla.runtime.engine.metrics.processor.MetricsProcessor;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
 
 public class MetricsPrinterTest
 {
