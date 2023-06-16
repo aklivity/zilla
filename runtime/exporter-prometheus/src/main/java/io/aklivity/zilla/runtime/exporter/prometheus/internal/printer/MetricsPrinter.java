@@ -92,11 +92,13 @@ public class MetricsPrinter
         long sum = record.stats()[2];
         long count = record.stats()[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
+        long cumulativeValue = 0;
         for (int i = 0; i < record.buckets(); i++)
         {
             String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
+            cumulativeValue += record.bucketValues()[i];
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                extName, limit, record.namespaceName(), record.bindingName(), record.bucketValues()[i]));
+                extName, limit, record.namespaceName(), record.bindingName(), cumulativeValue));
         }
         sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n",
             extName, record.namespaceName(), record.bindingName(), sum));

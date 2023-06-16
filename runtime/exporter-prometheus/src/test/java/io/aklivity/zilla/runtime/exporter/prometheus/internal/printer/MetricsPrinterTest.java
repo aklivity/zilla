@@ -47,9 +47,9 @@ public class MetricsPrinterTest
             "# HELP histogram1 description for histogram1\n" +
             "# TYPE histogram1 histogram\n" +
             "histogram1_bucket{le=\"1\",namespace=\"ns1\",binding=\"binding1\"} 7\n" +
-            "histogram1_bucket{le=\"10\",namespace=\"ns1\",binding=\"binding1\"} 42\n" +
-            "histogram1_bucket{le=\"100\",namespace=\"ns1\",binding=\"binding1\"} 9\n" +
-            "histogram1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 1\n" +
+            "histogram1_bucket{le=\"10\",namespace=\"ns1\",binding=\"binding1\"} 49\n" +
+            "histogram1_bucket{le=\"100\",namespace=\"ns1\",binding=\"binding1\"} 58\n" +
+            "histogram1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 59\n" +
             "histogram1_sum{namespace=\"ns1\",binding=\"binding1\"} 2327\n" +
             "histogram1_count{namespace=\"ns1\",binding=\"binding1\"} 59\n\n\n";
 
