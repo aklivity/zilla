@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSe
 
 public class OltpExporterHandler implements ExporterHandler
 {
+    private static final long DELAY = Duration.ofSeconds(1).toMillis();
+
     private final EngineConfiguration config;
     private final OtlpMetricsDescriptor descriptor;
     private final URL otlpCollectorUrl;
@@ -79,7 +81,7 @@ public class OltpExporterHandler implements ExporterHandler
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, attributes, descriptor::kind,
             descriptor::nameByBinding, descriptor::description, descriptor::unit);
         TimerTask task = new OtlpExporterTask(otlpCollectorUrl, serializer);
-        timer.schedule(task, 0, interval.toMillis());
+        timer.schedule(task, DELAY, interval.toMillis());
     }
 
     @Override
