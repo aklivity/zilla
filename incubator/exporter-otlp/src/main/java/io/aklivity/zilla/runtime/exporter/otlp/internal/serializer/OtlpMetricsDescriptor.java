@@ -24,9 +24,8 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricDescriptor;
 
-public class OtlpMetricsDescriptor implements MetricDescriptor
+public class OtlpMetricsDescriptor
 {
     private static final Map<String, String> SERVER_METRIC_NAMES = Map.of(
         "http.request.size", "http.server.request.size",
@@ -61,7 +60,6 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         this.units = new Object2ObjectHashMap<>();
     }
 
-    @Override
     public String kind(
         String internalName)
     {
@@ -73,13 +71,6 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
             kinds.put(internalName, result);
         }
         return result;
-    }
-
-    @Override
-    public String name(
-        String internalName)
-    {
-        throw new RuntimeException("not implemented");
     }
 
     public String nameByBinding(
@@ -96,7 +87,6 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
         return result != null ? result : internalMetricName;
     }
 
-    @Override
     public String description(
         String internalName)
     {
