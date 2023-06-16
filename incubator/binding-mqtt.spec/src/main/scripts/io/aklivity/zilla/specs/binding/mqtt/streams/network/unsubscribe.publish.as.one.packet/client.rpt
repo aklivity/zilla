@@ -49,13 +49,16 @@ read   [0x90 0x05]                   # SUBACK
        [0x00]                        # properties = none
        [0x00 0x00]                   # reason code
 
-write  [0xa2 0x1b]                   # UNSUBSCRIBE
+write  [0xa2 0x0f]                   # UNSUBSCRIBE
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/one"      # topic filter
-       [0x00 0x0a] "sensor/two"      # topic filter
+       [0x30 0x14]                   # PUBLISH
+       [0x00 0x0a] "sensor/two"      # topic name
+       [0x00]                        # properties
+       "message"                     # payload
 
-read   [0xb0 0x05]                   # UNSUBACK
+read   [0xb0 0x04]                   # UNSUBACK
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
-       [0x00 0x00]                   # reason codes
+       [0x00]                        # reason codes

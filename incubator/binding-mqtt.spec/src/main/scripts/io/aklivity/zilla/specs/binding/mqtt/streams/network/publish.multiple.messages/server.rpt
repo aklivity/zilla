@@ -40,10 +40,10 @@ read  [0x30 0x15]                    # PUBLISH
       [0x00]                         # properties
       "message1"                     # payload
 
-read  [0x30 0x15]                    # PUBLISH
+read  [0x30 0x11]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00]                         # properties
-      "message2"                     # payload
+      "test"                         # payload
 
 read  [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name

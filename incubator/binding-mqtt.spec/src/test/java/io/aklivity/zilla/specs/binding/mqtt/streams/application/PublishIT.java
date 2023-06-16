@@ -47,6 +47,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.one.message.subscribe.as.one.packet/client",
+        "${app}/publish.one.message.subscribe.as.one.packet/server"})
+    public void shouldSendOneMessageSubscribeAsOnePacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception

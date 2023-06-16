@@ -102,4 +102,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.publish.as.one.packet/client",
+        "${net}/unsubscribe.publish.as.one.packet/server"})
+    public void shouldAcknowledgeAndPublishAsOnePacket() throws Exception
+    {
+        k3po.finish();
+    }
 }

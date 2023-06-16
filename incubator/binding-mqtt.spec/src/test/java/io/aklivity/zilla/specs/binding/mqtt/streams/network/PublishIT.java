@@ -56,6 +56,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.multiple.messages.as.one.packet/client",
+        "${net}/publish.multiple.messages.as.one.packet/server"})
+    public void shouldSendMultipleMessagesAsOnePacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${net}/publish.multiple.messages.with.delay/server"})
     public void shouldSendMultipleMessagesWithDelay() throws Exception
@@ -279,6 +288,15 @@ public class PublishIT
         "${net}/subscribe.publish.no.local/client",
         "${net}/subscribe.publish.no.local/server"})
     public void shouldSubscribeThenSendNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.one.message.subscribe.as.one.packet/client",
+        "${net}/publish.one.message.subscribe.as.one.packet/server"})
+    public void shouldPublishOneMessageThenSubscribeAsOnePacket() throws Exception
     {
         k3po.finish();
     }

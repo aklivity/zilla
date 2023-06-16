@@ -28,6 +28,7 @@ write [0x10 0x13]                   # CONNECT
       [0x00 0x3c]                   # keep alive = 60s
       [0x00]                        # properties = none
       [0x00 0x06] "client"          # client id
+
       [0x82 0x12]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x02]                        # properties

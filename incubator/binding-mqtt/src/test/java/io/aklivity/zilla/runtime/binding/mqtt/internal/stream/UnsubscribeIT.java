@@ -92,6 +92,21 @@ public class UnsubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/unsubscribe.publish.as.one.packet/client",
+        "${app}/unsubscribe.publish.as.one.packet/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
+    public void shouldAcknowledgeAndPublishAsOnePacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")

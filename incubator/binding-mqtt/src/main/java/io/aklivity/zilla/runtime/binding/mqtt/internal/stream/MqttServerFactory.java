@@ -134,6 +134,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubackP
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribeFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribePayloadFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUserPropertyFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.DataFW;
@@ -244,6 +245,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnectFW mqttConnectRO = new MqttConnectFW();
+    private final MqttWillFW mqttWillRO = new MqttWillFW();
     private final MqttPublishFW mqttPublishRO = new MqttPublishFW();
     private final MqttSubscribeFW mqttSubscribeRO = new MqttSubscribeFW();
     private final MqttSubscribePayloadFW mqttSubscribePayloadRO = new MqttSubscribePayloadFW();
@@ -866,7 +868,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                progress = server.onDecodeConnect(traceId, authorization, progress, mqttConnect);
+                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect);
             }
 
             if (reasonCode != SUCCESS)
@@ -1002,7 +1004,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttSubscribeFW subscribe = mqttSubscribeRO.tryWrap(buffer, offset, limit);
+            final MqttSubscribeFW subscribe = mqttSubscribeRO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
             if (subscribe == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -1037,7 +1039,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final int offset,
         final int limit)
     {
-        final int length = limit - offset;
+        final int length = server.decodeablePacketBytes;
 
         int progress = offset;
 
@@ -1045,7 +1047,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttUnsubscribeFW unsubscribe = mqttUnsubscribeRO.tryWrap(buffer, offset, limit);
+            final MqttUnsubscribeFW unsubscribe = mqttUnsubscribeRO.tryWrap(buffer, offset,
+                offset + server.decodeablePacketBytes);
             if (unsubscribe == null || unsubscribe.payload().sizeof() == 0 || unsubscribe.packetId() == 0)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -1606,7 +1609,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnect(
             long traceId,
             long authorization,
+            DirectBuffer buffer,
             int progress,
+            int limit,
             MqttConnectFW connect)
         {
             final String16FW clientIdentifier = connect.clientId();
@@ -1647,7 +1652,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 final MqttConnectPayload payload = mqttConnectPayloadRO.reset();
-                payload.decode(connect);
+                progress = connect.limit();
+                progress = payload.decode(buffer, progress, limit, connect.flags());
                 reasonCode = payload.reasonCode;
 
                 if (reasonCode != SUCCESS)
@@ -1675,7 +1681,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doCancelConnectTimeout();
 
                 decoder = decodePacketType;
-                progress = connect.limit();
             }
 
             if (reasonCode != SUCCESS)
@@ -4501,21 +4506,23 @@ public final class MqttServerFactory implements MqttStreamFactory
             return this;
         }
 
-        private void decode(
-            MqttConnectFW connect)
+        private int decode(
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            int flags)
         {
-            final int flags = connect.flags();
-            final OctetsFW payload = connect.payload();
-
-            final DirectBuffer buffer = payload.buffer();
-            final int offset = payload.offset();
-            final int limit = payload.limit();
-
             int progress = offset;
             decode:
             {
                 if (isSetWillFlag(flags))
                 {
+                    final MqttWillFW mqttWill = mqttWillRO.tryWrap(buffer, offset, limit);
+                    if (mqttWill == null)
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
                     final byte qos = (byte) ((flags & WILL_QOS_MASK) >>> 3);
                     if (qos != 0 && qos <= maximumQos)
                     {
@@ -4532,31 +4539,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                         willRetain = (byte) RETAIN_FLAG;
                     }
 
-                    willProperties = mqttPropertiesRO.tryWrap(buffer, progress, limit);
-                    if (willProperties == null || willProperties.length() == 0)
-                    {
-                        reasonCode = MALFORMED_PACKET;
-                        break decode;
-                    }
+                    willProperties = mqttWill.properties();
                     decode(willProperties);
-                    progress = mqttPropertiesRO.limit();
 
-                    willTopic = willTopicRO.tryWrap(buffer, progress, limit);
+                    willTopic = mqttWill.topic();
                     if (willTopic == null || willTopic.asString().isEmpty())
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
                     }
-                    progress = willTopicRO.limit();
 
-                    final DirectBuffer willPayloadBuffer = copyBuffer(buffer, progress, limit);
-                    willPayload = willPayloadRO.tryWrap(willPayloadBuffer, 0, willPayloadBuffer.capacity());
+                    willPayload = mqttWill.payload();
                     if (willPayload == null || willPayload.bytes().sizeof() == 0)
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
                     }
-                    progress = willPayloadRO.limit();
+                    progress = mqttWill.limit();
                 }
 
                 if (isSetUsername(flags))
@@ -4581,6 +4580,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     progress = passwordRO.limit();
                 }
             }
+            return progress;
         }
 
         private void decode(
@@ -4588,6 +4588,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             willUserPropertiesRW.wrap(willUserPropertiesBuffer, 0, willUserPropertiesBuffer.capacity());
 
+            if (properties == null || properties.length() == 0)
+            {
+                return;
+            }
             final OctetsFW propertiesValue = properties.value();
             final DirectBuffer decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
