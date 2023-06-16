@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -22,8 +23,12 @@ import static java.nio.ByteOrder.nativeOrder;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Random;
 
@@ -46,8 +51,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.Engine;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -61,18 +66,33 @@ public class TcpServerBM
     //private long routedId;
 
     {
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-benchmarks");
-        properties.setProperty(ENGINE_STREAMS_BUFFER_CAPACITY.name(), Long.toString(1024L * 1024L * 16L));
+        Properties props = new Properties();
+        props.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-benchmarks");
+        props.setProperty(ENGINE_STREAMS_BUFFER_CAPACITY.name(), Long.toString(1024L * 1024L * 16L));
 
-        final Configuration configuration = new Configuration(properties);
+        final EngineConfiguration config = new EngineConfiguration(props);
+        URL configURL = config.configURL();
+        if ("file".equals(configURL.getProtocol()))
+        {
+            Path configPath = Paths.get(configURL.getPath());
+            if (configPath.endsWith("zilla.yaml") && Files.notExists(configPath))
+            {
+                String configJSON = String.format("file:%s", configPath.resolveSibling("zilla.json"));
+                props.setProperty(ENGINE_CONFIG_URL.name(), configJSON);
+                configPath = Paths.get(config.configURL().getPath());
+                System.out.println("zilla.yaml file not found, loading zilla.json instead");
+            }
+            if (configPath.getFileName().toString().endsWith(".json"))
+            {
+                System.out.println("warning: json syntax is deprecated, migrate to yaml");
+            }
+        }
 
         this.engine = Engine.builder()
-                    .config(configuration)
+                    .config(config)
                     .errorHandler(ex -> ex.printStackTrace(System.err))
                     .build();
     }
-
 
     @Setup(Level.Trial)
     public void reinit() throws Exception
