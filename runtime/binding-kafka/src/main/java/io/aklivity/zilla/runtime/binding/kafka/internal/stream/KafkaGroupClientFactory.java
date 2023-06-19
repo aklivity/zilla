@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
@@ -94,6 +95,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
+    private final FlushFW flushRO = new FlushFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -879,6 +881,10 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onApplicationData(data);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onApplicationFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onApplicationEnd(end);
@@ -930,16 +936,30 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedInitial(state);
 
             clusterClient.doNetworkEnd(traceId, authorization);
+            coordinatorClient.doNetworkEnd(traceId, authorization);
+        }
+
+        private void onApplicationFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+
+            state = KafkaState.closedInitial(state);
+
+            coordinatorClient.doEncodeHeartbeatRequest(traceId, 0);
         }
 
         private void onApplicationAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
 
             state = KafkaState.closedInitial(state);
 
             clusterClient.doNetworkAbortIfNecessary(traceId);
+            coordinatorClient.doNetworkEnd(traceId, authorization);
         }
 
         private void onApplicationWindow(

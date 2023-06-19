@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
@@ -55,6 +56,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
+    private final FlushFW flushRO = new FlushFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -483,7 +485,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doGroupInitialEnd(
+        private void doGroupInitialFlush(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -759,6 +761,10 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onGroupInitialEnd(end);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onGroupInitialFlush(flush);
+                break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onGroupInitialAbort(abort);
@@ -821,6 +827,24 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
             group.doGroupInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
+        private void onGroupInitialFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = KafkaState.closedInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            group.doGroupInitialFlush(traceId);
+        }
+
         private void onGroupInitialEnd(
             EndFW end)
         {
@@ -836,7 +860,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialEnd(traceId);
+            group.doGroupInitialFlush(traceId);
         }
 
         private void onGroupInitialAbort(
