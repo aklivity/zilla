@@ -25,7 +25,4 @@ module io.aklivity.zilla.runtime.binding.tcp
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpConditionConfigAdapter;
-
-    provides jakarta.json.spi.JsonProvider
-        with org.leadpony.joy.yaml.YamlProvider;
 }
