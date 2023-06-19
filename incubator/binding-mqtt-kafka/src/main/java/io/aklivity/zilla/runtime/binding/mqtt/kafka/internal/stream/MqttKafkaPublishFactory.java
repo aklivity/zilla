@@ -115,10 +115,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final String kafkaTopicName;
     private final String kafkaRetainedTopicName;
     private final boolean retainAvailable;
-    private KafkaKeyFW key;
-
-    private OctetsFW[] topicNameHeaders;
-    private OctetsFW clientIdOctets;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -159,30 +155,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
 
-        final OctetsFW extension = begin.extension();
-        final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-
-        assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
-        final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
-        String topicName = mqttPublishBeginEx.topic().asString();
-        assert topicName != null;
-
-        String[] topicHeaders = topicName.split("/");
-        topicNameHeaders = new OctetsFW[topicHeaders.length];
-        for (int i = 0; i < topicHeaders.length; i++)
-        {
-            String16FW topicHeader = new String16FW(topicHeaders[i]);
-            topicNameHeaders[i] = new OctetsFW().wrap(topicHeader.value(), 0, topicHeader.length());
-        }
-        clientIdOctets = new OctetsFW()
-            .wrap(mqttPublishBeginEx.clientId().value(), 0, mqttPublishBeginEx.clientId().length());
-        final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
-        key = new KafkaKeyFW.Builder()
-            .wrap(keyBuffer, 0, keyBuffer.capacity())
-            .length(topicNameBuffer.capacity())
-            .value(topicNameBuffer, 0, topicNameBuffer.capacity())
-            .build();
-
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
         final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
@@ -219,6 +191,11 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private KafkaKeyFW key;
+
+        private OctetsFW[] topicNameHeaders;
+        private OctetsFW clientIdOctets;
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -289,6 +266,30 @@ public class MqttKafkaPublishFactory implements BindingHandler
             state = MqttKafkaState.openingInitial(state);
 
             assert initialAck <= initialSeq;
+
+            final OctetsFW extension = begin.extension();
+            final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+            assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
+            final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
+            String topicName = mqttPublishBeginEx.topic().asString();
+            assert topicName != null;
+
+            String[] topicHeaders = topicName.split("/");
+            topicNameHeaders = new OctetsFW[topicHeaders.length];
+            for (int i = 0; i < topicHeaders.length; i++)
+            {
+                String16FW topicHeader = new String16FW(topicHeaders[i]);
+                topicNameHeaders[i] = new OctetsFW().wrap(topicHeader.value(), 0, topicHeader.length());
+            }
+            clientIdOctets = new OctetsFW()
+                .wrap(mqttPublishBeginEx.clientId().value(), 0, mqttPublishBeginEx.clientId().length());
+            final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
+            key = new KafkaKeyFW.Builder()
+                .wrap(keyBuffer, 0, keyBuffer.capacity())
+                .length(topicNameBuffer.capacity())
+                .value(topicNameBuffer, 0, topicNameBuffer.capacity())
+                .build();
 
             messages.doKafkaBegin(traceId, authorization, affinity);
             if (retainAvailable)

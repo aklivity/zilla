@@ -47,6 +47,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${app}/client.sent.close/client",
+        "${app}/client.sent.close/server"})
+    public void shouldReceiveClientSentClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/connect.max.packet.size.exceeded/client",
         "${app}/connect.max.packet.size.exceeded/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception

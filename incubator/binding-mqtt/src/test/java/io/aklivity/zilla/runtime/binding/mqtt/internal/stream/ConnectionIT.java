@@ -122,6 +122,22 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/disconnect.close.subscribe.and.publish/client",
+        "${app}/disconnect.close.subscribe.and.publish/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
+    public void shouldCloseSubscribeAndPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connect.invalid.protocol.version/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -237,7 +253,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.close/client",
-        "${app}/client.sent.abort/server"})
+        "${app}/client.sent.close/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
