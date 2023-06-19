@@ -108,7 +108,7 @@
         {
             MqttProperties properties;
             string16 topic;
-            Binary payload;
+            Binary payload; //TODO: data fragmentation
         }
 
         struct MqttConnack extends MqttPacketHeader

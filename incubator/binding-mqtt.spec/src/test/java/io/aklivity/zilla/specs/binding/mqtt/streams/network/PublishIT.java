@@ -56,9 +56,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.multiple.messages.as.one.packet/client",
-        "${net}/publish.multiple.messages.as.one.packet/server"})
-    public void shouldSendMultipleMessagesAsOnePacket() throws Exception
+        "${net}/publish.multiple.messages.unfragmented/client",
+        "${net}/publish.multiple.messages.unfragmented/server"})
+    public void shouldSendMultipleMessagesUnfragmented() throws Exception
     {
         k3po.finish();
     }
@@ -294,9 +294,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.one.message.subscribe.as.one.packet/client",
-        "${net}/publish.one.message.subscribe.as.one.packet/server"})
-    public void shouldPublishOneMessageThenSubscribeAsOnePacket() throws Exception
+        "${net}/publish.one.message.subscribe.unfragmented/client",
+        "${net}/publish.one.message.subscribe.unfragmented/server"})
+    public void shouldPublishOneMessageThenSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
     }

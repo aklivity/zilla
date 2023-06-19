@@ -4588,10 +4588,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             willUserPropertiesRW.wrap(willUserPropertiesBuffer, 0, willUserPropertiesBuffer.capacity());
 
-            if (properties == null || properties.length() == 0)
-            {
-                return;
-            }
             final OctetsFW propertiesValue = properties.value();
             final DirectBuffer decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();

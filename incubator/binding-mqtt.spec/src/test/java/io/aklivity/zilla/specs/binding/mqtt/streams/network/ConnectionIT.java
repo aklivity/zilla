@@ -367,8 +367,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.subscribe.one.packet/client",
-        "${net}/connect.subscribe.one.packet/server"})
+        "${net}/connect.subscribe.unfragmented/client",
+        "${net}/connect.subscribe.unfragmented/server"})
     public void shouldConnectAndSubscribeAsOneMqttPacket() throws Exception
     {
         k3po.finish();

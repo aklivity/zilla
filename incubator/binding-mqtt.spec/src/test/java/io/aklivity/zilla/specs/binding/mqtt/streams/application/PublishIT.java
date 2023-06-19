@@ -47,9 +47,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message.subscribe.as.one.packet/client",
-        "${app}/publish.one.message.subscribe.as.one.packet/server"})
-    public void shouldSendOneMessageSubscribeAsOnePacket() throws Exception
+        "${app}/publish.one.message.subscribe.unfragmented/client",
+        "${app}/publish.one.message.subscribe.unfragmented/server"})
+    public void shouldSendOneMessageSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
     }

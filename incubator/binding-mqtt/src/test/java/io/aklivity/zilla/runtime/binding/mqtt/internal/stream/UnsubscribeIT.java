@@ -92,14 +92,14 @@ public class UnsubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/unsubscribe.publish.as.one.packet/client",
-        "${app}/unsubscribe.publish.as.one.packet/server"})
+        "${net}/unsubscribe.publish.unfragmented/client",
+        "${app}/unsubscribe.publish.unfragmented/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldAcknowledgeAndPublishAsOnePacket() throws Exception
+    public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
     {
         k3po.finish();
     }

@@ -539,7 +539,7 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.subscribe.one.packet/client",
+        "${net}/connect.subscribe.unfragmented/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")

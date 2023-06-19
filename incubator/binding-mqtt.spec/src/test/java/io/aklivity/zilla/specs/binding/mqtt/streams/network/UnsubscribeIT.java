@@ -105,9 +105,9 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
-        "${net}/unsubscribe.publish.as.one.packet/client",
-        "${net}/unsubscribe.publish.as.one.packet/server"})
-    public void shouldAcknowledgeAndPublishAsOnePacket() throws Exception
+        "${net}/unsubscribe.publish.unfragmented/client",
+        "${net}/unsubscribe.publish.unfragmented/server"})
+    public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
     {
         k3po.finish();
     }
