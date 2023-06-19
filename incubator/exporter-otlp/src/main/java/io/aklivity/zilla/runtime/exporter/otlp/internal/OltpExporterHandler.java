@@ -14,15 +14,11 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Function;
-
-import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -42,7 +38,7 @@ public class OltpExporterHandler implements ExporterHandler
 
     private final EngineConfiguration config;
     private final OtlpMetricsDescriptor descriptor;
-    private final URL otlpCollectorUrl;
+    private final OtlpEndpointConfig endpoint;
     private final Duration interval;
     private final List<AttributeConfig> attributes;
     private final Timer timer;
@@ -57,17 +53,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.config = config;
         this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, findBindingKind);
         // options is required, at least one endpoint is required, url must be valid url
-        OtlpEndpointConfig endpoint = exporter.options().endpoints[0];
-        URL otlpCollectorUrl = null;
-        try
-        {
-            otlpCollectorUrl = new URL(endpoint.url);
-        }
-        catch (MalformedURLException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-        this.otlpCollectorUrl = otlpCollectorUrl;
+        this.endpoint = exporter.options().endpoints[0];
         this.interval = Duration.ofSeconds(exporter.options().interval);
         this.attributes = attributes;
         this.timer = new Timer();
@@ -80,7 +66,7 @@ public class OltpExporterHandler implements ExporterHandler
         MetricsReader metrics = factory.create();
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, attributes, descriptor::kind,
             descriptor::nameByBinding, descriptor::description, descriptor::unit);
-        TimerTask task = new OtlpExporterTask(otlpCollectorUrl, serializer);
+        TimerTask task = new OtlpExporterTask(endpoint.url, serializer);
         timer.schedule(task, DELAY, interval.toMillis());
     }
 

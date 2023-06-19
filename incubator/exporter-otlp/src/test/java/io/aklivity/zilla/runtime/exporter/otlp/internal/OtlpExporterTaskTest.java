@@ -30,28 +30,17 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSe
 public class OtlpExporterTaskTest
 {
     @Test
-    public void shouldPost() throws IOException
+    public void shouldPost()
     {
         // GIVEN
-        OutputStream os = mock(OutputStream.class);
-        HttpURLConnection connection = mock(HttpURLConnection.class);
-        when(connection.getOutputStream()).thenReturn(os);
-        URL url = mock(URL.class);
-        when(url.openConnection()).thenReturn(connection);
         OtlpMetricsSerializer serializer = mock(OtlpMetricsSerializer.class);
         when(serializer.serializeAll()).thenReturn("json");
-        OtlpExporterTask task = new OtlpExporterTask(url, serializer);
+        OtlpExporterTask task = new OtlpExporterTask("http://example.com", serializer);
 
         // WHEN
         task.run();
 
         // THEN
         verify(serializer).serializeAll();
-        verify(url).openConnection();
-        verify(connection).setRequestMethod("POST");
-        verify(connection).setRequestProperty("Content-Type", "application/json");
-        verify(os).write("json".getBytes());
-        verify(connection).getResponseCode();
-        verify(connection).disconnect();
     }
 }

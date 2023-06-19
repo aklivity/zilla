@@ -14,25 +14,27 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.TimerTask;
 
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public final class OtlpExporterTask extends TimerTask
 {
-    private final URL url;
+    private final URI url;
     private final OtlpMetricsSerializer serializer;
+    private final HttpClient httpClient;
 
     public OtlpExporterTask(
-        URL url,
+        String url,
         OtlpMetricsSerializer serializer)
     {
-        this.url = url;
+        this.url = URI.create(url);
         this.serializer = serializer;
+        this.httpClient = HttpClient.newBuilder().build();
     }
 
     @Override
@@ -46,18 +48,14 @@ public final class OtlpExporterTask extends TimerTask
     {
         try
         {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setDoOutput(true);
-            OutputStream os = connection.getOutputStream();
-            os.write(json.getBytes());
-            os.flush();
-            os.close();
-            connection.getResponseCode();
-            connection.disconnect();
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             // do nothing, try again next time
         }

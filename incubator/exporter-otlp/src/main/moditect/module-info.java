@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.exporter.otlp
 {
+    requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
