@@ -163,18 +163,21 @@ public class OtlpMetricsSeralizerTest
 
         CounterGaugeRecord counterRecord = mock(CounterGaugeRecord.class);
         when(counterRecord.namespaceName()).thenReturn("ns1");
+        when(counterRecord.bindingId()).thenReturn(42);
         when(counterRecord.bindingName()).thenReturn("binding1");
         when(counterRecord.metricName()).thenReturn("counter1");
         when(counterRecord.value()).thenReturn(42L);
 
         CounterGaugeRecord gaugeRecord = mock(CounterGaugeRecord.class);
         when(gaugeRecord.namespaceName()).thenReturn("ns1");
+        when(gaugeRecord.bindingId()).thenReturn(42);
         when(gaugeRecord.bindingName()).thenReturn("binding1");
         when(gaugeRecord.metricName()).thenReturn("gauge1");
         when(gaugeRecord.value()).thenReturn(77L);
 
         HistogramRecord histogramRecord = mock(HistogramRecord.class);
         when(histogramRecord.namespaceName()).thenReturn("ns1");
+        when(histogramRecord.bindingId()).thenReturn(42);
         when(histogramRecord.bindingName()).thenReturn("binding1");
         when(histogramRecord.metricName()).thenReturn("histogram1");
         when(histogramRecord.buckets()).thenReturn(4);
@@ -191,17 +194,17 @@ public class OtlpMetricsSeralizerTest
         );
 
         OtlpMetricsDescriptor descriptor = mock(OtlpMetricsDescriptor.class);
-        when(descriptor.nameByBinding("counter1", "binding1")).thenReturn("counter1");
+        when(descriptor.nameByBinding("counter1", 42)).thenReturn("counter1");
         when(descriptor.kind("counter1")).thenReturn("sum");
         when(descriptor.description("counter1")).thenReturn("description for counter1");
         when(descriptor.unit("counter1")).thenReturn("");
 
-        when(descriptor.nameByBinding("gauge1", "binding1")).thenReturn("gauge1");
+        when(descriptor.nameByBinding("gauge1", 42)).thenReturn("gauge1");
         when(descriptor.kind("gauge1")).thenReturn("gauge");
         when(descriptor.description("gauge1")).thenReturn("description for gauge1");
         when(descriptor.unit("gauge1")).thenReturn("nanoseconds");
 
-        when(descriptor.nameByBinding("histogram1", "binding1")).thenReturn("histogram1");
+        when(descriptor.nameByBinding("histogram1", 42)).thenReturn("histogram1");
         when(descriptor.kind("histogram1")).thenReturn("histogram");
         when(descriptor.description("histogram1")).thenReturn("description for histogram1");
         when(descriptor.unit("histogram1")).thenReturn("bytes");

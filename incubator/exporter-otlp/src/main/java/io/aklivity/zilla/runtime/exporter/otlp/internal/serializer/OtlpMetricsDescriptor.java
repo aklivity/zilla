@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
 
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -45,17 +46,17 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
     );
 
     private final Function<String, Metric> resolveMetric;
-    private final Function<String, KindConfig> findBindingKind;
+    private final IntFunction<KindConfig> resolveKind;
     private final Map<String, String> kinds;
     private final Map<String, String> descriptions;
     private final Map<String, String> units;
 
     public OtlpMetricsDescriptor(
         Function<String, Metric> resolveMetric,
-        Function<String, KindConfig> findBindingKind)
+        IntFunction<KindConfig> resolveKind)
     {
         this.resolveMetric = resolveMetric;
-        this.findBindingKind = findBindingKind;
+        this.resolveKind = resolveKind;
         this.kinds = new Object2ObjectHashMap<>();
         this.descriptions = new Object2ObjectHashMap<>();
         this.units = new Object2ObjectHashMap<>();
@@ -84,10 +85,10 @@ public class OtlpMetricsDescriptor implements MetricDescriptor
 
     public String nameByBinding(
         String internalMetricName,
-        String bindingName)
+        int bindingId)
     {
         String result = null;
-        KindConfig kind = findBindingKind.apply(bindingName);
+        KindConfig kind = resolveKind.apply(bindingId);
         Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
         if (externalNames != null)
         {

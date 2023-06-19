@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -45,11 +45,11 @@ public class OltpExporterHandler implements ExporterHandler
         EngineConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter,
-        Function<String, KindConfig> findBindingKind,
+        IntFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
         this.config = config;
-        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, findBindingKind);
+        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, resolveKind);
         // options is required, at least one endpoint is required, url must be valid url
         this.endpoint = exporter.options().endpoints[0];
         this.interval = Duration.ofSeconds(exporter.options().interval);

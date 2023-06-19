@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.engine.exporter;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -27,7 +27,7 @@ public interface ExporterContext
     ExporterHandler attach(
         ExporterConfig config,
         List<AttributeConfig> attributes,
-        Function<String, KindConfig> findBindingKind);
+        IntFunction<KindConfig> resolveKind);
 
     void detach(
         long exporterId);

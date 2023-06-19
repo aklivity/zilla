@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import jakarta.json.Json;
@@ -31,6 +30,7 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.CounterGaugeR
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.HistogramRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.duplicated.MetricsProcessor;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.utils.ObjectIntFunction;
 
 public class OtlpMetricsSerializer
 {
@@ -42,7 +42,7 @@ public class OtlpMetricsSerializer
     private final MetricsProcessor metricsProcessor;
     private final List<AttributeConfig> attributes;
     private final Function<String, String> supplyKind;
-    private final BiFunction<String, String, String> supplyName;
+    private final ObjectIntFunction<String, String> supplyName;
     private final Function<String, String> supplyDescription;
     private final Function<String, String> supplyUnit;
 
@@ -53,7 +53,7 @@ public class OtlpMetricsSerializer
         MetricsProcessor metricsProcessor,
         List<AttributeConfig> attributes,
         Function<String, String> supplyKind,
-        BiFunction<String, String, String> supplyName,
+        ObjectIntFunction<String, String> supplyName,
         Function<String, String> supplyDescription,
         Function<String, String> supplyUnit)
     {
@@ -118,7 +118,7 @@ public class OtlpMetricsSerializer
                 .add("isMonotonic", true);
         }
         return Json.createObjectBuilder()
-            .add("name", supplyName.apply(record.metricName(), record.bindingName()))
+            .add("name", supplyName.apply(record.metricName(), record.bindingId()))
             .add("unit", supplyUnit.apply(record.metricName()))
             .add("description", supplyDescription.apply(record.metricName()))
             .add(kind, counterGaugeData)
@@ -185,7 +185,7 @@ public class OtlpMetricsSerializer
             .add("aggregationTemporality", CUMULATIVE)
             .add("dataPoints", dataPoints);
         return Json.createObjectBuilder()
-            .add("name", supplyName.apply(record.metricName(), record.bindingName()))
+            .add("name", supplyName.apply(record.metricName(), record.bindingId()))
             .add("description", supplyDescription.apply(record.metricName()))
             .add("unit", supplyUnit.apply(record.metricName()))
             .add("histogram", histogramData)

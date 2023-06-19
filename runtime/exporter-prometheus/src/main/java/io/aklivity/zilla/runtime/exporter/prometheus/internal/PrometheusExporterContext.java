@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -43,7 +43,7 @@ public class PrometheusExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter,
         List<AttributeConfig> attributes,
-        Function<String, KindConfig> findBindingKind)
+        IntFunction<KindConfig> resolveKind)
     {
         PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
         return new PrometheusExporterHandler(config, context, prometheusExporter);

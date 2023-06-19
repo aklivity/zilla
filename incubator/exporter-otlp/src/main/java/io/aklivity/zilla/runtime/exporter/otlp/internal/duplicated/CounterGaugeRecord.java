@@ -50,6 +50,12 @@ public class CounterGaugeRecord implements MetricRecord
     }
 
     @Override
+    public int bindingId()
+    {
+        return bindingId;
+    }
+
+    @Override
     public String bindingName()
     {
         return labelResolver.apply(bindingId);

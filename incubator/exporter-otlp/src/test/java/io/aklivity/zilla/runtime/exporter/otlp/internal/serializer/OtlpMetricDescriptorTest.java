@@ -20,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.junit.Test;
 
@@ -39,13 +40,13 @@ public class OtlpMetricDescriptorTest
         when(metric.description()).thenReturn("description");
         Function<String, Metric> metricResolver = mock(Function.class);
         when(metricResolver.apply("http.request.size")).thenReturn(metric);
-        Function<String, KindConfig> findBindingKind = mock(Function.class);
-        when(findBindingKind.apply("binding_server")).thenReturn(KindConfig.SERVER);
-        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(metricResolver, findBindingKind);
+        IntFunction<KindConfig> resolveKind = mock(IntFunction.class);
+        when(resolveKind.apply(42)).thenReturn(KindConfig.SERVER);
+        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(metricResolver, resolveKind);
 
         // WHEN
         String kind = descriptor.kind("http.request.size");
-        String name = descriptor.nameByBinding("http.request.size", "binding_server");
+        String name = descriptor.nameByBinding("http.request.size", 42);
         String description = descriptor.description("http.request.size");
 
         // THEN
@@ -65,13 +66,13 @@ public class OtlpMetricDescriptorTest
         when(metric.description()).thenReturn("description");
         Function<String, Metric> metricResolver = mock(Function.class);
         when(metricResolver.apply("http.request.size")).thenReturn(metric);
-        Function<String, KindConfig> findBindingKind = mock(Function.class);
-        when(findBindingKind.apply("binding_client")).thenReturn(KindConfig.CLIENT);
-        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(metricResolver, findBindingKind);
+        IntFunction<KindConfig> resolveKind = mock(IntFunction.class);
+        when(resolveKind.apply(42)).thenReturn(KindConfig.CLIENT);
+        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(metricResolver, resolveKind);
 
         // WHEN
         String kind = descriptor.kind("http.request.size");
-        String name = descriptor.nameByBinding("http.request.size", "binding_client");
+        String name = descriptor.nameByBinding("http.request.size", 42);
         String description = descriptor.description("http.request.size");
 
         // THEN

@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -43,10 +43,10 @@ public class OtlpExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter,
         List<AttributeConfig> attributes,
-        Function<String, KindConfig> findBindingKind)
+        IntFunction<KindConfig> resolveKind)
     {
         OtlpExporterConfig otlpExporter = new OtlpExporterConfig(exporter);
-        return new OltpExporterHandler(config, context, otlpExporter, findBindingKind, attributes);
+        return new OltpExporterHandler(config, context, otlpExporter, resolveKind, attributes);
     }
 
     @Override
