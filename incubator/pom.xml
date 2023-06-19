@@ -20,6 +20,7 @@
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-mqtt-kafka.spec</module>
+    <module>exporter-otlp.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
@@ -30,7 +31,6 @@
     <module>command-tune</module>
 
     <module>exporter-otlp</module>
-    <module>exporter-otlp.spec</module>
   </modules>
 
   <dependencyManagement>
