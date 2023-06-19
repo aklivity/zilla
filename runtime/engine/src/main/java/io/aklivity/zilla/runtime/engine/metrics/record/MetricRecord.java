@@ -19,6 +19,8 @@ public interface MetricRecord
 {
     String namespaceName();
 
+    int bindingId();
+
     String bindingName();
 
     String metricName();

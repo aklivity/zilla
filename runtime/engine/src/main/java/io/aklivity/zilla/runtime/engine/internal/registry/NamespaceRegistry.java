@@ -304,7 +304,7 @@ public class NamespaceRegistry
         int exporterId = supplyLabelId.applyAsInt(config.name);
         ExporterContext context = exportersByType.apply(config.type);
         assert context != null : "Missing exporter type: " + config.type;
-        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, this::findBindingKind);
+        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, this::resolveKind);
         ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
         exportersById.put(exporterId, registry);
         registry.attach();
@@ -327,10 +327,9 @@ public class NamespaceRegistry
         return bindingsById.get(bindingId);
     }
 
-    public KindConfig findBindingKind(
-        String bindingName)
+    public KindConfig resolveKind(
+        int bindingId)
     {
-        int bindingId = supplyLabelId.applyAsInt(bindingName);
         BindingRegistry binding = findBinding(bindingId);
         return binding == null ? null : binding.kind();
     }

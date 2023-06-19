@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.junit.Test;
 
@@ -45,11 +45,11 @@ public class OtlpExporterHandlerTest
         OptionsConfig options = new OtlpOptionsConfig(30L, new OtlpEndpointConfig[]{endpoint});
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-        Function<String, KindConfig> findBindingKind = mock(Function.class);
+        IntFunction<KindConfig> resolveKind = mock(IntFunction.class);
         List<AttributeConfig> attributes = List.of();
 
         // WHEN
-        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, findBindingKind, attributes);
+        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, resolveKind, attributes);
 
         // THEN
         assertThat(handler, instanceOf(OltpExporterHandler.class));
