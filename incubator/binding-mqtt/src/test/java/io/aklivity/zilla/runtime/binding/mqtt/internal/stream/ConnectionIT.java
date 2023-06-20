@@ -547,7 +547,7 @@ public class ConnectionIT
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")
-    public void shouldConnectAndSubscribeAsOneMqttPacket() throws Exception
+    public void shouldConnectAndSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
     }
