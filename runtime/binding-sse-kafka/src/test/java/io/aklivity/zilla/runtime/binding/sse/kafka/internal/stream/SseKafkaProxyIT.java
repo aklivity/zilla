@@ -158,6 +158,16 @@ public class SseKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.yaml")
+    @Specification({
+        "${sse}/server.sent.messages.with.null.etag/client",
+        "${kafka}/server.sent.messages.with.null.etag/server"})
+    public void shouldReceiveServerSentMessagesWithNullEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.with.topic.and.event.id.yaml")
     @Specification({
         "${sse}/server.sent.messages.with.key.and.etag/client",

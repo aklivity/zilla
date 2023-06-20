@@ -397,6 +397,7 @@ public final class KafkaFunctions
             String name,
             String value)
         {
+
             if (value == null)
             {
                 nameRO.wrap(name.getBytes(UTF_8));
@@ -1335,6 +1336,11 @@ public final class KafkaFunctions
                                                     .valueLen(valueRO.capacity())
                                                     .value(valueRO, 0, valueRO.capacity()));
                 }
+                return this;
+            }
+
+            public KafkaMergedDataExBuilder headersNull()
+            {
                 return this;
             }
 
