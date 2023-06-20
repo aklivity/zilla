@@ -1806,13 +1806,11 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             int partitionId)
         {
-            final long partitionOffset = nextFetchPartitionOffset(partitionId);
-
             KafkaUnmergedFetchStream leader = findFetchPartitionLeader(partitionId);
 
             if (leader != null)
             {
-                leader.doFetchInitialFlush(traceId, partitionOffset);
+                leader.doFetchInitialFlush(traceId);
             }
         }
 
@@ -2584,16 +2582,11 @@ public final class KafkaMergedFactory implements BindingHandler
         }
 
         private void doFetchInitialFlush(
-            long traceId,
-            long partitionOffset)
+            long traceId)
         {
             KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .fetch(f -> f
-                    .partition(p -> p.partitionId(partitionId)
-                        .partitionOffset(partitionOffset)
-                        .latestOffset(merged.maximumOffset.value()))
-                    .filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf)))))
+                .fetch(f -> f.filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf)))))
                 .build();
 
             doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,

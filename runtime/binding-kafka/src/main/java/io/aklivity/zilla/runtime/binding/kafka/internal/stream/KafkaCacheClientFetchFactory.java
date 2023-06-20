@@ -894,10 +894,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final LongSupplier isolatedOffset;
         private final LongSupplier initialGroupIsolatedOffset;
 
-        private KafkaCacheCursor currentCursor;
-        private KafkaCacheCursor newCursor;
+        private KafkaCacheCursor cursor;
+        private KafkaCacheCursor nextCursor;
         private int state;
         private int flushOrDataFramesSent;
+
         private long replyDebitorIndex = NO_DEBITOR_INDEX;
         private BudgetDebitor replyDebitor;
 
@@ -942,7 +943,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.leaderId = leaderId;
             this.authorization = authorization;
             this.initialOffset = initialOffset;
-            this.currentCursor = cursorFactory.newCursor(condition, deltaType);
+            this.cursor = cursorFactory.newCursor(condition, deltaType);
             this.maximumOffset = maximumOffset;
             this.deltaType = deltaType;
             this.isolation = isolation;
@@ -1023,17 +1024,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaEvaluation evaluation = kafkaFetchFlush.evaluation().get();
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
 
-            newCursor = cursorFactory.newCursor(condition, deltaType);
-            Node segmentNode = group.partition.seekNotAfter(initialOffset);
-            if (segmentNode.sentinel())
-            {
-                segmentNode = segmentNode.next();
-            }
-
-            newCursor.init(segmentNode, currentCursor.offset, currentCursor.latestOffset);
+            nextCursor = cursorFactory.newCursor(condition, deltaType);
+            nextCursor.init(cursor);
             if (messageOffset == 0)
             {
-                currentCursor = newCursor;
+                cursor = nextCursor;
+                nextCursor = null;
             }
         }
 
@@ -1141,7 +1137,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             {
                 segmentNode = segmentNode.next();
             }
-            currentCursor.init(segmentNode, initialOffset, initialGroupLatestOffset);
+            cursor.init(segmentNode, initialOffset, initialGroupLatestOffset);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, leaderId,
@@ -1149,7 +1145,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.topic(group.partition.topic())
                                      .partition(p -> p.partitionId(group.partition.id())
-                                                      .partitionOffset(currentCursor.offset)
+                                                      .partitionOffset(cursor.offset)
                                                       .stableOffset(group.stableOffset)
                                                       .latestOffset(initialGroupLatestOffset))
                                      .isolation(i -> i.set(isolation))
@@ -1170,10 +1166,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             while (KafkaState.replyOpened(state) &&
                 !KafkaState.replyClosing(state) &&
                 (replyMax - (int)(replySeq - replyAck)) >= replyPad &&
-                currentCursor.offset <= group.partitionOffset &&
-                currentCursor.offset <= isolatedOffset.getAsLong())
+                cursor.offset <= group.partitionOffset &&
+                cursor.offset <= isolatedOffset.getAsLong())
             {
-                final KafkaCacheEntryFW nextEntry = currentCursor.next(entryRO);
+                final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
                 if (flushOrDataFramesSent == 0 &&
                     (nextEntry == null && group.partitionOffset >= initialIsolatedOffset ||
@@ -1186,7 +1182,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                     if (maximumOffset == HISTORICAL)
                     {
-                        currentCursor.advance(group.partitionOffset + 1);
+                        cursor.advance(group.partitionOffset + 1);
                     }
                     break;
                 }
@@ -1197,7 +1193,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                     this.messageOffset = 0;
 
-                    currentCursor.advance(nextEntry.offset$() + 1);
+                    cursor.advance(nextEntry.offset$() + 1);
                     continue;
                 }
 
@@ -1208,7 +1204,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     if ((nextEntryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0 ||
                         (nextEntryFlags & CACHE_ENTRY_FLAGS_CONTROL) != 0)
                     {
-                        currentCursor.advance(nextEntry.offset$() + 1);
+                        cursor.advance(nextEntry.offset$() + 1);
                         continue;
                     }
                     break;
@@ -1226,7 +1222,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 doClientReplyData(traceId, nextEntry);
 
                 if (replySeq == replySeqSnapshot ||
-                    maximumOffset == HISTORICAL && currentCursor.offset > initialGroupLatestOffset)
+                    maximumOffset == HISTORICAL && cursor.offset > initialGroupLatestOffset)
                 {
                     break;
                 }
@@ -1236,12 +1232,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 KafkaState.replyOpened(state) &&
                 !KafkaState.replyClosing(state) &&
                 group.partitionOffset >= initialIsolatedOffset &&
-                currentCursor.offset > initialIsolatedOffset)
+                cursor.offset > initialIsolatedOffset)
             {
-                doClientReplyFlush(traceId, currentCursor.offset - 1);
+                doClientReplyFlush(traceId, cursor.offset - 1);
             }
 
-            if (maximumOffset == HISTORICAL && currentCursor.offset > initialGroupLatestOffset)
+            if (maximumOffset == HISTORICAL && cursor.offset > initialGroupLatestOffset)
             {
                 doClientReplyEndIfNecessary(traceId);
             }
@@ -1255,7 +1251,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             final long partitionOffset = nextEntry.offset$();
             final long timestamp = nextEntry.timestamp();
-            final long filters = currentCursor.filters;
+            final long filters = cursor.filters;
             final long ownerId = nextEntry.ownerId();
             final int entryFlags = nextEntry.flags();
             final KafkaKeyFW key = nextEntry.key();
@@ -1271,7 +1267,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long stableOffset = group.stableOffset;
             final long latestOffset = group.latestOffset;
 
-            assert partitionOffset >= currentCursor.offset : String.format("%d >= %d", partitionOffset, currentCursor.offset);
+            assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
             flush:
             if (replyBudget >= reservedMin &&
@@ -1351,7 +1347,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                     this.messageOffset = 0;
 
-                    currentCursor.advance(partitionOffset + 1);
+                    if (nextCursor != null)
+                    {
+                        cursor = nextCursor;
+                        nextCursor = null;
+                    }
+                    cursor.advance(partitionOffset + 1);
                 }
             }
         }
@@ -1497,9 +1498,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             assert replyAck <= replySeq;
             flushOrDataFramesSent++;
 
-            if (newCursor != currentCursor)
+            if (nextCursor != cursor)
             {
-                currentCursor = newCursor;
+                cursor = nextCursor;
             }
         }
 
@@ -1518,7 +1519,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long stableOffset = group.stableOffset;
             final long latestOffset = group.latestOffset;
 
-            assert partitionOffset >= currentCursor.offset : String.format("%d >= %d", partitionOffset, currentCursor.offset);
+            assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, ex -> ex
@@ -1540,7 +1541,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            currentCursor.advance(partitionOffset + 1);
+            cursor.advance(partitionOffset + 1);
 
             flushOrDataFramesSent++;
         }
@@ -1581,7 +1582,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             cleanupDebitorIfNecessary();
-            currentCursor.close();
+            cursor.close();
         }
 
         private void doClientReplyAbort(
@@ -1591,7 +1592,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             cleanupDebitorIfNecessary();
-            currentCursor.close();
+            cursor.close();
         }
 
         private void doClientReplyEndIfNecessary(
@@ -1604,7 +1605,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
             cleanupDebitorIfNecessary();
-            currentCursor.close();
+            cursor.close();
         }
 
         private void doClientReplyAbortIfNecessary(
@@ -1617,7 +1618,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
             cleanupDebitorIfNecessary();
-            currentCursor.close();
+            cursor.close();
         }
 
         private void onClientReplyWindow(
@@ -1670,7 +1671,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
             cleanupDebitorIfNecessary();
-            currentCursor.close();
+            cursor.close();
 
             group.onClientFanoutMemberClosed(traceId, this);
 
