@@ -18,6 +18,7 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
+
 accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
@@ -34,25 +35,41 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
+                                .qos("AT_MOST_ONCE")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
                                 .build()
                             .build()}
 
-read "message1"
+read "message"
 
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
+                                .qos("AT_MOST_ONCE")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
                                 .build()
                             .build()}
 
-read "test"
+read "message2"
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .topic("sensor/one")
-                                .build()
-                            .build()}
+accepted
 
-read "message3"
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .filter("sensor/two", 1)
+                                 .build()
+                             .build()}
+
+connected
+

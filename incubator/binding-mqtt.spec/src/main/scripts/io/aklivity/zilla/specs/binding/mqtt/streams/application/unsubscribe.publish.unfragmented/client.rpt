@@ -16,41 +16,49 @@
 
 connect "zilla://streams/app0"
          option zilla:window 8192
-         option zilla:transmission "duplex"
+         option zilla:transmission "duplex"      
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                              .publish()
+                             .subscribe()
                                 .clientId("client")
-                                .topic("sensor/one")
+                                .filter("sensor/one", 1)
+                                .filter("sensor/two", 1)
                                 .build()
                              .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                    .filter("sensor/two", 1)
+                                    .build()
+                                 .build()}
+
+write notify SUBSCRIBED
+
+connect await SUBSCRIBED
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
+                                .clientId("client")
+                                .topic("sensor/two")
                                 .build()
                              .build()}
-
-write "message1"
+connected
 
 write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .topic("sensor/one")
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .topic("sensor/two")
                                 .build()
-                             .build()}
+                            .build()}
 
-write "test"
+write "message"
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .topic("sensor/one")
-                                .build()
-                             .build()}
 
-write "message3"

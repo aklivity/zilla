@@ -19,12 +19,12 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
+                              .typeId(zilla:id("mqtt"))
                               .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
                                 .build()
-                             .build()}
+                              .build()}
 
 connected
 
@@ -32,25 +32,45 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
+                                .qos("AT_MOST_ONCE")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
                                 .build()
                              .build()}
 
-write "message1"
+write "message"
 
 write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
                                 .topic("sensor/one")
+                                .qos("AT_MOST_ONCE")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
                                 .build()
+                            .build()}
+
+write "message2"
+
+write notify PUBLISHED
+
+connect await PUBLISHED
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .filter("sensor/two", 1)
+                                 .build()
                              .build()}
 
-write "test"
-
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .topic("sensor/one")
-                                .build()
-                             .build()}
-
-write "message3"
+connected
