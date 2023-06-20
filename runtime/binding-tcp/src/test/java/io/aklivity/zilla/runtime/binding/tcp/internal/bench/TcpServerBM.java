@@ -65,9 +65,6 @@ public class TcpServerBM
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-benchmarks");
         properties.setProperty(ENGINE_STREAMS_BUFFER_CAPACITY.name(), Long.toString(1024L * 1024L * 16L));
 
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-benchmarks");
-        properties.setProperty(ENGINE_STREAMS_BUFFER_CAPACITY.name(), Long.toString(1024L * 1024L * 16L));
-
         final Configuration configuration = new Configuration(properties);
 
         this.engine = Engine.builder()
