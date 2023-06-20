@@ -73,7 +73,6 @@ public class TcpServerBM
                     .build();
     }
 
-
     @Setup(Level.Trial)
     public void reinit() throws Exception
     {

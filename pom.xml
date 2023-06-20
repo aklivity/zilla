@@ -470,6 +470,14 @@
                 </manifestEntries>
               </transformer>
             </transformers>
+            <filters>
+              <filter>
+                <artifact>*:*</artifact>
+                <excludes>
+                  <exclude>**/module-info.class</exclude>
+                </excludes>
+              </filter>
+            </filters>
           </configuration>
           <executions>
             <execution>
