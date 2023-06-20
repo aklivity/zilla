@@ -1987,6 +1987,79 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateFetchFlushExtensionWithFilter()
+    {
+        KafkaValueMatchFW valueMatchRO = new KafkaValueMatchFW();
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .fetch()
+                .filter()
+                    .headers("name")
+                        .sequence("one", "two")
+                        .skip(1)
+                        .sequence("four")
+                        .skipMany()
+                        .build()
+                    .build()
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
+
+        final MutableInteger filterCount = new MutableInteger();
+        fetchFlushEx.filters().forEach(f -> filterCount.value++);
+        assertEquals(1, filterCount.value);
+        assertNotNull(fetchFlushEx.filters()
+            .matchFirst(f -> f.conditions()
+                .matchFirst(c -> c.kind() == HEADERS.value() &&
+                    "name".equals(c.headers().name()
+                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null));
+        assertNotNull(fetchFlushEx.filters()
+            .matchFirst(f -> f.conditions()
+                .matchFirst(c ->
+                {
+                    boolean matches;
+                    final Array32FW<KafkaValueMatchFW> values = c.headers().values();
+                    final DirectBuffer items = values.items();
+
+                    int progress = 0;
+
+                    valueMatchRO.wrap(items, progress, items.capacity());
+                    progress = valueMatchRO.limit();
+                    matches = "one".equals(valueMatchRO.value()
+                        .value()
+                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+
+                    valueMatchRO.wrap(items, progress, items.capacity());
+                    progress = valueMatchRO.limit();
+                    matches &= "two".equals(valueMatchRO.value()
+                        .value()
+                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+
+                    valueMatchRO.wrap(items, progress, items.capacity());
+                    progress = valueMatchRO.limit();
+                    matches &= KafkaSkip.SKIP == valueMatchRO.skip().get();
+
+                    valueMatchRO.wrap(items, progress, items.capacity());
+                    progress = valueMatchRO.limit();
+                    matches &= "four".equals(valueMatchRO.value()
+                        .value()
+                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+
+                    valueMatchRO.wrap(items, progress, items.capacity());
+                    progress = valueMatchRO.limit();
+                    matches &= KafkaSkip.SKIP_MANY == valueMatchRO.skip().get();
+
+                    return c.kind() == HEADERS.value() && matches;
+                }) != null));
+
+    }
+
+    @Test
     public void shouldGenerateFetchFlushExtensionWithLatestOffset()
     {
         byte[] build = KafkaFunctions.flushEx()
@@ -4037,6 +4110,40 @@ public class KafkaFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
+    @Test
+    public void shouldMatchMergedFlushExtensionFilters() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .merged()
+                .filter()
+                    .key("key")
+                    .header("name", "value")
+                    .build()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
     @Test(expected = Exception.class)
     public void shouldNotMatchMergedFlushExtensionTypeId() throws Exception
     {
@@ -4148,6 +4255,46 @@ public class KafkaFunctionsTest
                             .result(r -> r.set(KafkaTransactionResult.ABORT))
                             .producerId(1)))
                 .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFetchFlushExtensionWithFilter() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+                .fetch()
+                .filter()
+                    .key("key")
+                    .header("name", "value")
+                    .build()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .fetch(f -> f
+                .partition(p -> p
+                    .partitionId(0)
+                    .partitionOffset(0L)
+                    .stableOffset(0L)
+                    .latestOffset(1L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8))))))
+                .build())
+            .build();
 
         assertNotNull(matcher.match(byteBuf));
     }

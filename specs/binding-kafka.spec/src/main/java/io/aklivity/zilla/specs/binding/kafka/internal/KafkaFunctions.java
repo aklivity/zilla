@@ -1766,6 +1766,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFilterBuilder<KafkaFetchFlushExBuilder> filter()
+            {
+                return new KafkaFilterBuilder<>()
+                {
+                    @Override
+                    protected KafkaFetchFlushExBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        fetchFlushExRW.filtersItem(fb -> set(fb, filter));
+                        return KafkaFetchFlushExBuilder.this;
+                    }
+                };
+            }
+
             public KafkaFlushExBuilder build()
             {
                 final KafkaFetchFlushExFW fetchFlushEx = fetchFlushExRW.build();
@@ -2738,6 +2752,8 @@ public final class KafkaFunctions
             private KafkaOffsetFW.Builder partitionRW;
             private Array32FW.Builder<KafkaTransactionFW.Builder, KafkaTransactionFW> transactionRW;
 
+            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+
             private KafkaFetchFlushExMatcherBuilder()
             {
             }
@@ -2791,6 +2807,27 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFilterBuilder<KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder> filter()
+            {
+                if (filtersRW == null)
+                {
+                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        filtersRW.item(fb -> set(fb, filter));
+                        return KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder.this;
+                    }
+                };
+            }
+
             public KafkaFlushExMatcherBuilder build()
             {
                 return KafkaFlushExMatcherBuilder.this;
@@ -2801,7 +2838,8 @@ public final class KafkaFunctions
             {
                 final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
                 return matchPartition(fetchFlushEx) &&
-                       matchTransaction(fetchFlushEx);
+                       matchTransaction(fetchFlushEx) &&
+                       matchFilters(fetchFlushEx);
             }
 
             private boolean matchPartition(
@@ -2816,11 +2854,19 @@ public final class KafkaFunctions
                 return transactionRW == null || transactionRW.build().equals(fetchFlushEx.transactions());
             }
 
+            private boolean matchFilters(
+                final KafkaFetchFlushExFW fetchFlushEx)
+            {
+                return filtersRW == null || filtersRW.build().equals(fetchFlushEx.filters());
+            }
+
         }
 
         public final class KafkaMergedFlushExMatcherBuilder
         {
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
+
+            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
@@ -2867,6 +2913,27 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFilterBuilder<KafkaMergedFlushExMatcherBuilder> filter()
+            {
+                if (filtersRW == null)
+                {
+                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaMergedFlushExMatcherBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        filtersRW.item(fb -> set(fb, filter));
+                        return KafkaMergedFlushExMatcherBuilder.this;
+                    }
+                };
+            }
+
             public KafkaFlushExMatcherBuilder build()
             {
                 return KafkaFlushExMatcherBuilder.this;
@@ -2876,13 +2943,20 @@ public final class KafkaFunctions
                 KafkaFlushExFW flushEx)
             {
                 final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
-                return matchProgress(mergedFlushEx);
+                return matchProgress(mergedFlushEx) &&
+                    matchFilters(mergedFlushEx);
             }
 
             private boolean matchProgress(
                 final KafkaMergedFlushExFW mergedFlushEx)
             {
                 return progressRW == null || progressRW.build().equals(mergedFlushEx.progress());
+            }
+
+            private boolean matchFilters(
+                final KafkaMergedFlushExFW mergedFlushEx)
+            {
+                return filtersRW == null || filtersRW.build().equals(mergedFlushEx.filters());
             }
         }
     }
