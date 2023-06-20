@@ -264,7 +264,6 @@
               <include>com.github.biboudis:jmh-profilers</include>
             </includes>
           </artifactSet>
-          <includeDependencies>true</includeDependencies>
         </configuration>
       </plugin>
     </plugins>
