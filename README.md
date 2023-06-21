@@ -40,21 +40,23 @@ Zilla is designed on the fundamental principle that every data flow is a stream,
 ### Kafka Proxies
 Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
 
-- [**HTTP ⇄ Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
-  Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
+- [**REST ⇄ Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
+  Transforms HTTP 1.1/HTTP 2 requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. Enables exposing Kafka topics and services via an application-centric REST API (as opposed to a topic-centric, system-level API as with the Confluent REST Proxy). JWT authentication supported.
 - [**SSE ← Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
   Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable data streaming/pushing down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
 - [**Kafka → gRPC**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-grpc-kafka.html) & [**gRPC ⇄ Kafka**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-kafka-grpc.html) — 
   Transforms Kafka streams to gRPC streams and vice-versa. Support for both Kafka to gRPC server streaming (reliable and unreliable) as well as correlated request-response.
 
 ### Other
-- [x] **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
-- [x] **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
-- [x] **SSL/TLS** — support for TLS virtual hosting.
+- [x] **Realtime Cache** — local cache synchronized with Kafka for specific topics, even when no clients are currently connected. Stateless, recovers automatically, consistent across different Zilla instances without peer communication.
+- [x] **Filtering** — local cache indexes message key and headers upon retrieval from Kafka, supporting efficient filtered reads from cached topics.
+- [x] **Fan-in, fan-out** — local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
+- [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
 - [x] [**Kubernetes Deployment**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — deploy Zilla via a Helm Chart with metrics-driven autoscaling.
 - [x] [**Prometheus Integration**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — export Zilla metrics to Prometheus for observability.
 - [x] **Kafka Security** — connect Zilla to Kafka over PLAINTEXT, TLS/SSL, TLS/SSL with Client Certificates, SASL/PLAIN, and SASL/SCRAM. 
 - [x] **Declartive YAML Configuration** — no coding required, API mappings and endpoints inside Zilla are declaratively configured via YAML.
+- [x] **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
 
 <div align="center">
   </br>

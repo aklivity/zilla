@@ -294,6 +294,8 @@ scope kafka
         {
             KafkaOffset partition;
             KafkaTransaction[] transactions;
+            KafkaFilter[] filters; // ORed
+            KafkaEvaluation evaluation = LAZY;
         }
 
         struct KafkaProduceFlushEx

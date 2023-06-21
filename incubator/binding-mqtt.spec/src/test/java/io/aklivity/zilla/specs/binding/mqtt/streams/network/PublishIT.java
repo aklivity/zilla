@@ -56,6 +56,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.multiple.messages.unfragmented/client",
+        "${net}/publish.multiple.messages.unfragmented/server"})
+    public void shouldSendMultipleMessagesUnfragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${net}/publish.multiple.messages.with.delay/server"})
     public void shouldSendMultipleMessagesWithDelay() throws Exception
@@ -279,6 +288,15 @@ public class PublishIT
         "${net}/subscribe.publish.no.local/client",
         "${net}/subscribe.publish.no.local/server"})
     public void shouldSubscribeThenSendNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.one.message.subscribe.unfragmented/client",
+        "${net}/publish.one.message.subscribe.unfragmented/server"})
+    public void shouldPublishOneMessageThenSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
     }

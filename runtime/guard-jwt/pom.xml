@@ -46,7 +46,7 @@
     <dependency>
       <groupId>org.bitbucket.b_c</groupId>
       <artifactId>jose4j</artifactId>
-      <version>0.7.10</version>
+      <version>0.9.3</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

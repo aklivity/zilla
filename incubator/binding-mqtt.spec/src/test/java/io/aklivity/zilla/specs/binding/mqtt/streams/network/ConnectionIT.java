@@ -364,4 +364,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.subscribe.unfragmented/client",
+        "${net}/connect.subscribe.unfragmented/server"})
+    public void shouldConnectAndSubscribeUnfragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

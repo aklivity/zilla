@@ -535,4 +535,20 @@ public class ConnectionIT
         k3po.notifyBarrier("WAIT_2_SECONDS");
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.subscribe.unfragmented/client",
+        "${app}/subscribe.topic.filter.single.exact/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
+    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")
+    public void shouldConnectAndSubscribeUnfragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

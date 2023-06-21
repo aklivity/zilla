@@ -192,6 +192,12 @@ public class CacheMergedIT
         k3po.awaitBarrier("RECEIVED_MESSAGE_B2");
         k3po.notifyBarrier("SEND_MESSAGE_A3");
         k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B3");
+        k3po.notifyBarrier("SEND_MESSAGE_A4");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B4");
+        k3po.notifyBarrier("SEND_MESSAGE_A5");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B5");
+        k3po.notifyBarrier("SEND_MESSAGE_A6");
         k3po.finish();
     }
 
@@ -277,7 +283,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
@@ -289,6 +294,12 @@ public class CacheMergedIT
         k3po.awaitBarrier("RECEIVED_MESSAGE_B2");
         k3po.notifyBarrier("SEND_MESSAGE_A3");
         k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B3");
+        k3po.notifyBarrier("SEND_MESSAGE_A4");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B4");
+        k3po.notifyBarrier("SEND_MESSAGE_A5");
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B5");
+        k3po.notifyBarrier("SEND_MESSAGE_A6");
         k3po.finish();
     }
 
@@ -474,6 +485,17 @@ public class CacheMergedIT
         k3po.start();
         k3po.awaitBarrier("RECEIVED_MESSAGE");
         k3po.notifyBarrier("RESET_UNMERGED_FETCH_INITIAL");
+        k3po.finish();
+    }
+
+    @Ignore("requires k3po parallel reads")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.change/client",
+        "${app}/unmerged.fetch.filter.change/server"})
+    public void shouldReceiveMessagesWithFilterChange() throws Exception
+    {
         k3po.finish();
     }
 
