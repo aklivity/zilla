@@ -396,13 +396,20 @@ public final class Engine implements AutoCloseable
             int metricId = supplyLabelId.applyAsInt(metric);
             long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
             long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
-            // TODO: Ati - replace this with for loop with longs
-            List<LongSupplier> counterSuppliers = dispatchers.stream()
-                .map(d -> d.supplyCounter(namespacedBindingId, namespacedMetricId))
-                .collect(toList());
-            return () -> counterSuppliers.stream()
-                .map(LongSupplier::getAsLong)
-                .reduce(0L, Long::sum);
+            return () -> aggregateCounterValue(namespacedBindingId, namespacedMetricId);
+        }
+
+        private long aggregateCounterValue(
+            long namespacedBindingId,
+            long namespacedMetricId)
+        {
+            long result = 0;
+            for (DispatchAgent dispatchAgent : dispatchers)
+            {
+                LongSupplier counterReader = dispatchAgent.supplyCounter(namespacedBindingId, namespacedMetricId);
+                result += counterReader.getAsLong();
+            }
+            return result;
         }
 
         // required for testing
