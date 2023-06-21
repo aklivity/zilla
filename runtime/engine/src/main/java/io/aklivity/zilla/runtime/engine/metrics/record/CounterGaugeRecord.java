@@ -70,6 +70,9 @@ public class CounterGaugeRecord implements MetricRecord
 
     public long value()
     {
+        // TODO: Ati - replace this with for loop with longs
+        // store LongSupplier reader with the for loop
+        // call site: reader.getAsLong()
         return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
     }
 

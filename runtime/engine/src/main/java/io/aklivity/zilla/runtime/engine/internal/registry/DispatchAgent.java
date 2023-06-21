@@ -1600,6 +1600,16 @@ public class DispatchAgent implements EngineContext, Agent
         return dispatcher;
     }
 
+    @Override
+    // TODO: Ati - check if these should be int's instead of Strings; rename to scalar??
+    public LongSupplier counter(
+        String namespace,
+        String binding,
+        String metric)
+    {
+        return null;
+    }
+
     private final class ElektronSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW = withInitial(DispatchAgent::newSignalRW);

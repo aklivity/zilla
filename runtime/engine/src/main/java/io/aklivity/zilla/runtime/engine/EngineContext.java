@@ -124,4 +124,20 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
+
+    // TODO: Ati - id's instead of strings
+    LongSupplier counter(
+        String namespace,
+        String binding,
+        String metric);
+
+    /*LongSupplier gauge(
+        String namespace,
+        String binding,
+        String metric);
+
+    LongSupplier[] histogram(
+        String namespace,
+        String binding,
+        String metric);*/
 }

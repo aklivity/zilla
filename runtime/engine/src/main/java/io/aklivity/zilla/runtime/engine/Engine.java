@@ -83,7 +83,7 @@ public final class Engine implements AutoCloseable
     private final Collection<AgentRunner> runners;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
-    private final EngineExtContext context;
+    private final ContextImpl context;
 
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
@@ -262,7 +262,7 @@ public final class Engine implements AutoCloseable
     }
 
     // required for testing
-    public EngineExtContext context()
+    public ContextImpl context()
     {
         return context;
     }
@@ -352,7 +352,8 @@ public final class Engine implements AutoCloseable
         return t;
     }
 
-    private final class ContextImpl implements EngineExtContext
+    // visible for testing
+    public final class ContextImpl implements EngineExtContext
     {
         private final Configuration config;
         private final ErrorHandler errorHandler;
@@ -395,6 +396,7 @@ public final class Engine implements AutoCloseable
             int metricId = supplyLabelId.applyAsInt(metric);
             long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
             long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
+            // TODO: Ati - replace this with for loop with longs
             List<LongSupplier> counterSuppliers = dispatchers.stream()
                 .map(d -> d.supplyCounter(namespacedBindingId, namespacedMetricId))
                 .collect(toList());
@@ -404,7 +406,6 @@ public final class Engine implements AutoCloseable
         }
 
         // required for testing
-        @Override
         public LongConsumer counterWriter(
             String namespace,
             String binding,

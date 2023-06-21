@@ -83,6 +83,7 @@ public class HistogramRecord implements MetricRecord
 
     public void update()
     {
+        // TODO: Ati - store LongSupplier[] readers with the for loop - put in in the EngineContext (like counter)
         for (int i = 0; i < BUCKETS; i++)
         {
             bucketValues[i] = 0;
