@@ -123,6 +123,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -200,6 +201,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
     private final CountersLayout countersLayout;
+    private final Collector collector;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -219,6 +221,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<MetricGroup> metricGroups,
+        Collector collector,
         int index)
     {
         this.localIndex = index;
@@ -375,6 +378,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
+        this.collector = collector;
     }
 
     public static int indexOfId(
@@ -1601,13 +1605,12 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    // TODO: Ati - check if these should be int's instead of Strings; rename to scalar??
+    // TODO: Ati - aggregate the values across cores; check if these should be int's instead of Strings; rename to scalar??
     public LongSupplier counter(
-        String namespace,
-        String binding,
-        String metric)
+        long bindingId,
+        long metricId)
     {
-        return null;
+        return collector.counter(bindingId, metricId);
     }
 
     private final class ElektronSignaler implements Signaler

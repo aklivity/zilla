@@ -73,10 +73,11 @@ import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
-public final class Engine implements AutoCloseable
+public final class Engine implements Collector, AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
@@ -92,6 +93,7 @@ public final class Engine implements AutoCloseable
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
+    private final Collection<DispatchAgent> dispatchers;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -151,9 +153,10 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, metricGroups, coreIndex);
+                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex);
             dispatchers.add(agent);
         }
+        this.dispatchers = dispatchers;
 
         final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
@@ -161,7 +164,7 @@ public final class Engine implements AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers, labels::supplyLabelId);
+        final ContextImpl context = new ContextImpl(config, errorHandler, labels::supplyLabelId);
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
@@ -352,23 +355,68 @@ public final class Engine implements AutoCloseable
         return t;
     }
 
+    public LongSupplier counter(
+        long bindingId,
+        long metricId)
+    {
+        return () -> aggregateCounterValue(bindingId, metricId);
+    }
+
+    private long aggregateCounterValue(
+        long bindingId,
+        long metricId)
+    {
+        long result = 0;
+        for (DispatchAgent dispatchAgent : dispatchers)
+        {
+            LongSupplier counterReader = dispatchAgent.supplyCounter(bindingId, metricId);
+            result += counterReader.getAsLong();
+        }
+        return result;
+    }
+
+    // required for testing
+    public LongConsumer counterWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
+        return dispatcher.supplyCounterWriter(bindingId, metricId);
+    }
+
+    public LongSupplier gauge(
+        long bindingId,
+        long metricId)
+    {
+        // TODO: Ati
+        return null;
+        //return () -> aggregateCounterValue(bindingId, metricId);
+    }
+
+    public LongSupplier[] histogram(
+        long bindingId,
+        long metricId)
+    {
+        // TODO: Ati
+        return null;
+        //return () -> aggregateCounterValue(bindingId, metricId);
+    }
+
     // visible for testing
     public final class ContextImpl implements EngineExtContext
     {
         private final Configuration config;
         private final ErrorHandler errorHandler;
-        private final Collection<DispatchAgent> dispatchers;
         private final ToIntFunction<String> supplyLabelId;
 
         private ContextImpl(
             Configuration config,
             ErrorHandler errorHandler,
-            Collection<DispatchAgent> dispatchers,
             ToIntFunction<String> supplyLabelId)
         {
             this.config = config;
             this.errorHandler = errorHandler;
-            this.dispatchers = dispatchers;
             this.supplyLabelId = supplyLabelId;
         }
 
@@ -396,20 +444,7 @@ public final class Engine implements AutoCloseable
             int metricId = supplyLabelId.applyAsInt(metric);
             long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
             long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
-            return () -> aggregateCounterValue(namespacedBindingId, namespacedMetricId);
-        }
-
-        private long aggregateCounterValue(
-            long namespacedBindingId,
-            long namespacedMetricId)
-        {
-            long result = 0;
-            for (DispatchAgent dispatchAgent : dispatchers)
-            {
-                LongSupplier counterReader = dispatchAgent.supplyCounter(namespacedBindingId, namespacedMetricId);
-                result += counterReader.getAsLong();
-            }
-            return result;
+            return Engine.this.counter(namespacedBindingId, namespacedMetricId);
         }
 
         // required for testing
@@ -424,8 +459,7 @@ public final class Engine implements AutoCloseable
             int metricId = supplyLabelId.applyAsInt(metric);
             long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
             long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
-            DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
-            return dispatcher.supplyCounterWriter(namespacedBindingId, namespacedMetricId);
+            return Engine.this.counterWriter(namespacedBindingId, namespacedMetricId, core);
         }
     }
 }
