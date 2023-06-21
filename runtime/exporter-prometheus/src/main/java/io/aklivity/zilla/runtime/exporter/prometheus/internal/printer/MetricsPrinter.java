@@ -78,7 +78,7 @@ public class MetricsPrinter
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
         return String.format(format, extName, description, extName, kind, extName,
-            record.namespaceName(), record.bindingName(), record.value());
+            record.namespaceName(), record.bindingName(), record.valueReader().getAsLong());
     }
 
     private String formatHistogram(

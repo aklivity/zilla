@@ -166,14 +166,14 @@ public class OtlpMetricsSeralizerTest
         when(counterRecord.bindingId()).thenReturn(42);
         when(counterRecord.bindingName()).thenReturn("binding1");
         when(counterRecord.metricName()).thenReturn("counter1");
-        when(counterRecord.value()).thenReturn(42L);
+        when(counterRecord.valueReader()).thenReturn(() -> 42L);
 
         CounterGaugeRecord gaugeRecord = mock(CounterGaugeRecord.class);
         when(gaugeRecord.namespaceName()).thenReturn("ns1");
         when(gaugeRecord.bindingId()).thenReturn(42);
         when(gaugeRecord.bindingName()).thenReturn("binding1");
         when(gaugeRecord.metricName()).thenReturn("gauge1");
-        when(gaugeRecord.value()).thenReturn(77L);
+        when(gaugeRecord.valueReader()).thenReturn(() -> 77L);
 
         HistogramRecord histogramRecord = mock(HistogramRecord.class);
         when(histogramRecord.namespaceName()).thenReturn("ns1");

@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.metrics.record;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -68,12 +67,19 @@ public class CounterGaugeRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
-    public long value()
+    public LongSupplier valueReader()
     {
-        // TODO: Ati - replace this with for loop with longs
-        // store LongSupplier reader with the for loop
-        // call site: reader.getAsLong()
-        return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
+        return this::aggregateValues;
+    }
+
+    private long aggregateValues()
+    {
+        long result = 0;
+        for (LongSupplier reader: readers)
+        {
+            result += reader.getAsLong();
+        }
+        return result;
     }
 
     @Override

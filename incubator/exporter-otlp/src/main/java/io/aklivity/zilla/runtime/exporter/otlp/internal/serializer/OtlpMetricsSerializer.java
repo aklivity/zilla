@@ -101,7 +101,7 @@ public class OtlpMetricsSerializer
         CounterGaugeRecord record)
     {
         JsonObject dataPoint = Json.createObjectBuilder()
-            .add("asInt", record.value())
+            .add("asInt", record.valueReader().getAsLong())
             .add("timeUnixNano", now())
             .add("attributes", attributes(record))
             .build();

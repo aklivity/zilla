@@ -39,7 +39,7 @@ public class CounterGaugeRecordTest
         CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null);
 
         // WHEN
-        long value = counter.value();
+        long value = counter.valueReader().getAsLong();
 
         // THEN
         assertThat(value, equalTo(200L));
@@ -53,7 +53,7 @@ public class CounterGaugeRecordTest
         CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null);
 
         // WHEN
-        long value = counter.value();
+        long value = counter.valueReader().getAsLong();
 
         // THEN
         assertThat(value, equalTo(0L));
@@ -67,7 +67,7 @@ public class CounterGaugeRecordTest
         CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null);
 
         // WHEN
-        long value = counter.value();
+        long value = counter.valueReader().getAsLong();
 
         // THEN
         assertThat(value, equalTo(0L));

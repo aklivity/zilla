@@ -107,7 +107,7 @@ public class MetricsPrinter
     private String formatCounterGauge(
         CounterGaugeRecord record)
     {
-        return String.valueOf(record.value());
+        return String.valueOf(record.valueReader().getAsLong());
     }
 
     private String formatHistogram(
