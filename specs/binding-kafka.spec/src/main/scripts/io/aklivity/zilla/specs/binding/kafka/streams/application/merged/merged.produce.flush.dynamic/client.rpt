@@ -123,3 +123,4 @@ write advise zilla:flush ${kafka:flushEx()
                                     .capabilities("PRODUCE_ONLY")
                                     .build()
                                 .build()}
+

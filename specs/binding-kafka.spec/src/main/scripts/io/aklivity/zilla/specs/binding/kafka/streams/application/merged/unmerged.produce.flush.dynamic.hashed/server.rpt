@@ -226,9 +226,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                   .key("key9")
                                   .build()
                               .build()}
-read "Hi, world #C1"
+read "Hello, world #C1"
 
-read option zilla:ack 13
+read option zilla:ack 16
 
 read zilla:data.ext ${kafka:matchDataEx()
                               .typeId(zilla:id("kafka"))
@@ -238,6 +238,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                   .key("key9")
                                   .build()
                               .build()}
-read "Hi, world #C2"
+read "Hello, world #C2"
 
-read option zilla:ack 26
+read option zilla:ack 32

@@ -90,7 +90,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .key("key9")
                                  .build()
                              .build()}
-read "Hi, world #C1"
+read "Hello, world #C1"
 
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
@@ -107,7 +107,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .key("key9")
                                  .build()
                              .build()}
-read "Hi, world #C2"
+read "Hello, world #C2"
 
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))

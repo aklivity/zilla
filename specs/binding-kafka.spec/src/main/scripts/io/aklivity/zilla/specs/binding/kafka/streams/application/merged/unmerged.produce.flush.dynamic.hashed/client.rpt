@@ -232,7 +232,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .key("key9")
                                   .build()
                               .build()}
-write "Hi, world #C1"
+write "Hello, world #C1"
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -243,6 +243,6 @@ write zilla:data.ext ${kafka:dataEx()
                                   .key("key9")
                                   .build()
                               .build()}
-write "Hi, world #C2"
+write "Hello, world #C2"
 write flush
 
