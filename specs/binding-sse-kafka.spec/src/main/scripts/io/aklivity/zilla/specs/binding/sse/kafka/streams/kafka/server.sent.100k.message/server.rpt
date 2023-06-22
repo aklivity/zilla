@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property data ${http:randomBytes(100000)}
+
 accept "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
@@ -38,9 +40,9 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(0, 2)
                                 .progress(1, 1)
                                 .key("key")
-                                .headersNull()
+                                .header("header", "value")
                                 .build()
                             .build()}
-write "Hello, world"
+write ${data}
 write flush
 

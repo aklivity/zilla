@@ -1023,6 +1023,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private long initialAck;
         private int initialMax;
 
+        private long replyReplyBudget;
         private long replySeq;
         private long replyAck;
         private int replyMax;
@@ -1339,26 +1340,31 @@ public final class KafkaMergedFactory implements BindingHandler
             final int credit = (replyNoAck - newReplyNoAck) + (maximum - replyMax);
             assert credit >= 0;
 
+            System.out.println(String.format("onMergedReplyWindow %d+%d=%d", replyReplyBudget, credit,
+                replyReplyBudget + credit));
+
             this.replyAck = acknowledge;
             this.replyMax = maximum;
             this.replyMin = minimum;
             this.replyPad = padding;
             this.replyBudgetId = budgetId;
 
-            assert replyAck <= replySeq;
-
-            if (KafkaState.replyOpening(state))
+            if (replyReplyBudget + credit <= replyMax)
             {
-                state = KafkaState.openedReply(state);
-                if (mergedReplyBudgetId == NO_CREDITOR_INDEX)
+                if (KafkaState.replyOpening(state))
                 {
-                    mergedReplyBudgetId = creditor.acquire(replyId, budgetId);
+                    state = KafkaState.openedReply(state);
+                    if (mergedReplyBudgetId == NO_CREDITOR_INDEX)
+                    {
+                        mergedReplyBudgetId = creditor.acquire(replyId, budgetId);
+                    }
                 }
-            }
 
-            if (mergedReplyBudgetId != NO_CREDITOR_INDEX)
-            {
-                creditor.credit(traceId, mergedReplyBudgetId, credit);
+                if (mergedReplyBudgetId != NO_CREDITOR_INDEX)
+                {
+                    creditor.credit(traceId, mergedReplyBudgetId, credit);
+                    replyReplyBudget += credit;
+                }
             }
 
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
@@ -1433,6 +1439,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 {
                     mergedReplyBudgetId = creditor.acquire(replyId, replyBudgetId);
                     creditor.credit(traceId, mergedReplyBudgetId, replyBudget);
+                    replyReplyBudget += replyBudget;
                 }
             }
 
@@ -1525,6 +1532,8 @@ public final class KafkaMergedFactory implements BindingHandler
                     traceId, authorization, replyBudgetId, reserved, flags, payload, newKafkaDataEx);
 
             replySeq += reserved;
+            replyReplyBudget -= reserved;
+            System.out.println(String.format("doMergedReplyData %d", replyReplyBudget));
 
             assert replyAck <= replySeq;
         }
@@ -1619,9 +1628,9 @@ public final class KafkaMergedFactory implements BindingHandler
         }
 
         private void doMergedReplyFlush(
-                long traceId,
-                int reserved,
-                KafkaFlushExFW kafkaFlushEx)
+            long traceId,
+            int reserved,
+            KafkaFlushExFW kafkaFlushEx)
         {
             final KafkaFetchFlushExFW kafkaFetchFlushEx = kafkaFlushEx.fetch();
             kafkaFetchFlushEx.partition().partitionId();
@@ -1652,6 +1661,7 @@ public final class KafkaMergedFactory implements BindingHandler
                         traceId, authorization, reserved, kafkaFlushExFW);
 
                 replySeq += reserved;
+                replyReplyBudget -= reserved;
 
                 assert replyAck <= replySeq;
             }

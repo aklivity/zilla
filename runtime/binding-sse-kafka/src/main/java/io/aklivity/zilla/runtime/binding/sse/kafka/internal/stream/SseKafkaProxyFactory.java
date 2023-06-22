@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 {
+    private static final int INIT_FLAG = 0x02;
     private static final String SSE_TYPE_NAME = "sse";
     private static final String KAFKA_TYPE_NAME = "kafka";
 
@@ -634,6 +635,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             replySeq = sequence + reserved;
 
+            System.out.println(String.format("Sse budget ondata %d", replyMax - (int)(replySeq - replyAck)));
+
             assert replyAck <= replySeq;
 
             if (replySeq > replyAck + replyMax)
@@ -648,7 +651,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 final int flags = data.flags();
                 final OctetsFW payload = data.payload();
 
-                if ((flags & 0x02) != 0x00)
+                if ((flags & INIT_FLAG) != 0x00)
                 {
                     final OctetsFW extension = data.extension();
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
@@ -811,6 +814,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding, minimum, capabilities);
+
+            System.out.println(String.format("Sse budget doKafkaWindow %d", replyMax - (int)(replySeq - replyAck)));
         }
     }
 

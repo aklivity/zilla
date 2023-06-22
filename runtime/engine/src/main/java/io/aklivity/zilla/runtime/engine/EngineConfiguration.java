@@ -85,7 +85,7 @@ public class EngineConfiguration extends Configuration
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
         ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity", 1024 * 1024);
         ENGINE_LOAD_BUFFER_CAPACITY = config.property("load.buffer.capacity", 1024 * 8);
-        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity", 1024 * 1024);
+        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",  2097152);
         ENGINE_COMMAND_BUFFER_CAPACITY = config.property("command.buffer.capacity", 1024 * 1024);
         ENGINE_RESPONSE_BUFFER_CAPACITY = config.property("response.buffer.capacity", 1024 * 1024);
         ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);

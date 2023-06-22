@@ -29,7 +29,7 @@ connected
 
 read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
-                         .id(null)
+                         .id("AQQABAIC")
                          .type(null)
                          .build()}
-read "Hello, world"
+read [0..100000]
