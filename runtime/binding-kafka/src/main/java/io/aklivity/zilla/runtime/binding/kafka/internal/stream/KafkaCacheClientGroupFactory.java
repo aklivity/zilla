@@ -67,6 +67,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
@@ -259,8 +260,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
     }
 
-
-    private void doDataNull(
+    private void doFlush(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -270,26 +270,23 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
-        long budgetId,
-        int reserved,
-        Flyweight extension)
+        Consumer<OctetsFW.Builder> extension)
     {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension)
+            .build();
 
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
+
 
     private void doEnd(
         MessageConsumer receiver,
@@ -486,6 +483,18 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
         }
 
         private void doGroupInitialFlush(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+
+                state = KafkaState.closedInitial(state);
+            }
+        }
+
+        private void doGroupInitialEnd(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -860,7 +869,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialFlush(traceId);
+            group.doGroupInitialEnd(traceId);
         }
 
         private void onGroupInitialAbort(
