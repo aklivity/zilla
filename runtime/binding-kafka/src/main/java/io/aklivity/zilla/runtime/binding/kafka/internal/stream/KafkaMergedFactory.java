@@ -1335,7 +1335,7 @@ public final class KafkaMergedFactory implements BindingHandler
             assert maximum >= replyMax;
 
             final int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
-            System.out.println(credit);
+            assert credit >= 0;
 
             this.replyAck = acknowledge;
             this.replyMax = maximum;
