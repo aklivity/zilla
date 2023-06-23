@@ -62,7 +62,6 @@ final class KafkaMergedBudget
         final long budgetSnapshot = budget;
 
         budget += credit;
-        System.out.println("Budget Credit " + budget);
 
         flush(traceId);
 
@@ -101,7 +100,6 @@ final class KafkaMergedBudget
         if (claimed >= minimum)
         {
             budget -= claimed;
-            System.out.println("Budget Claim " + budget);
         }
 
         final int watcherAt = watchers.indexOf(watcherId);

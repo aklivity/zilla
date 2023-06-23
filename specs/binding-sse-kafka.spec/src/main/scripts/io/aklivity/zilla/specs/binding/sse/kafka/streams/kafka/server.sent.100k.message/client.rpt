@@ -18,23 +18,24 @@ connect "zilla://streams/kafka0"
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                 .capabilities("FETCH_ONLY")
-                                 .topic("test")
-                                 .partition(-1, -2)
-                                 .build()
-                             .build()}
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("test")
+                                .partition(-1, -2)
+                                .build()
+                            .build()}
 
 connected
 
 read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .partition(0, 1, 2)
-                               .progress(0, 2)
-                               .progress(1, 1)
-                               .key("key")
-                               .build()
-                           .build()}
-read "Hello, world"
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("key")
+                                .header("header", "value")
+                                .build()
+                            .build()}
+read [0...100000]

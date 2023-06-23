@@ -13,26 +13,28 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property data ${http:randomBytes(100000)}
+
 accept "zilla://streams/sse0"
        option zilla:window 8192
        option zilla:transmission "duplex"
 accepted
 
 read zilla:begin.ext ${sse:beginEx()
-                          .typeId(zilla:id("sse"))
-                          .scheme("http")
-                          .authority("localhost:8080")
-                          .path("/test")
-                          .lastId(null)
-                          .build()}
+                           .typeId(zilla:id("sse"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/test")
+                           .lastId(null)
+                           .build()}
 
 connected
 
-write flush
-
 write zilla:data.ext ${sse:dataEx()
-                          .typeId(zilla:id("sse"))
-                          .id("AQQABAIC/revision=42")
-                          .build()}
-write "Hello, world"
+                         .typeId(zilla:id("sse"))
+                         .id("AQQABAIC")
+                         .type(null)
+                         .build()}
+write ${data}
+write flush
 
