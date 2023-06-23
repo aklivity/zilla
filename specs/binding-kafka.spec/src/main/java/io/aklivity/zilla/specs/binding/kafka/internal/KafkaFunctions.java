@@ -397,7 +397,6 @@ public final class KafkaFunctions
             String name,
             String value)
         {
-
             if (value == null)
             {
                 nameRO.wrap(name.getBytes(UTF_8));
