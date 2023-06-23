@@ -15,7 +15,7 @@
 #
 
 connect "zilla://streams/app0"
-    option zilla:window 12
+    option zilla:window 16
     option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
