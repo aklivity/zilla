@@ -201,6 +201,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
     private final CountersLayout countersLayout;
+    private final GaugesLayout gaugesLayout;
     private final Collector collector;
     private long initialId;
     private long promiseId;
@@ -242,7 +243,7 @@ public class DispatchAgent implements EngineContext, Agent
                 .mode(CREATE_READ_WRITE)
                 .build();
 
-        final GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+        this.gaugesLayout = new GaugesLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
@@ -535,6 +536,14 @@ public class DispatchAgent implements EngineContext, Agent
         long metricId)
     {
         return countersLayout.supplyReader(bindingId, metricId);
+    }
+
+    @Override
+    public LongSupplier supplyGauge(
+        long bindingId,
+        long metricId)
+    {
+        return gaugesLayout.supplyReader(bindingId, metricId);
     }
 
     @Override

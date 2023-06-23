@@ -84,6 +84,10 @@ public interface EngineContext
         long bindingId,
         long metricId);
 
+    LongSupplier supplyGauge(
+        long bindingId,
+        long metricId);
+
     MessageConsumer droppedFrameHandler();
 
     int supplyClientIndex(

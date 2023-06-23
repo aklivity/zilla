@@ -389,9 +389,20 @@ public final class Engine implements Collector, AutoCloseable
         long bindingId,
         long metricId)
     {
-        // TODO: Ati
-        return null;
-        //return () -> aggregateCounterValue(bindingId, metricId);
+        return () -> aggregateGaugeValue(bindingId, metricId);
+    }
+
+    private long aggregateGaugeValue(
+        long bindingId,
+        long metricId)
+    {
+        long result = 0;
+        for (DispatchAgent dispatchAgent : dispatchers)
+        {
+            LongSupplier counterReader = dispatchAgent.supplyGauge(bindingId, metricId);
+            result += counterReader.getAsLong();
+        }
+        return result;
     }
 
     public LongSupplier[] histogram(
