@@ -553,6 +553,21 @@ public class DispatchAgent implements EngineContext, Agent
         return histogramsLayout.supplyReaders(bindingId, metricId);
     }
 
+    public long[][] counterIds()
+    {
+        return countersLayout.getIds();
+    }
+
+    public long[][] gaugeIds()
+    {
+        return gaugesLayout.getIds();
+    }
+
+    public long[][] histogramIds()
+    {
+        return histogramsLayout.getIds();
+    }
+
     @Override
     public MessageConsumer droppedFrameHandler()
     {

@@ -15,22 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
-
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
-import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.LayoutManager;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
 
 public class MetricsReaderFactory
 {
@@ -47,20 +35,8 @@ public class MetricsReaderFactory
 
     public MetricsReader create()
     {
-        try
-        {
-            LayoutManager layoutManager = new LayoutManager(enginePath);
-            Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-                COUNTER, layoutManager.countersLayouts(),
-                GAUGE, layoutManager.gaugesLayouts(),
-                HISTOGRAM, layoutManager.histogramsLayouts());
-            LabelManager labels = new LabelManager(enginePath);
-            return new MetricsReader(layouts, collector, labels);
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-            return null;
-        }
+        // TODO: Ati - NOTE: we can't remove the factory because the LabelManager is in the internal package...
+        LabelManager labels = new LabelManager(enginePath);
+        return new MetricsReader(collector, labels::lookupLabel);
     }
 }

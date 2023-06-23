@@ -15,27 +15,27 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsPrinter
 {
-    private final MetricsReader metricsReader;
+    private final List<MetricRecord> records;
     private final Function<String, String> supplyKind;
     private final Function<String, String> supplyName;
     private final Function<String, String> supplyDescription;
 
     public MetricsPrinter(
-        MetricsReader metricsReader,
+        List<MetricRecord> records,
         Function<String, String> supplyKind,
         Function<String, String> supplyName,
         Function<String, String> supplyDescription)
     {
-        this.metricsReader = metricsReader;
+        this.records = records;
         this.supplyKind = supplyKind;
         this.supplyName = supplyName;
         this.supplyDescription = supplyDescription;
@@ -44,7 +44,7 @@ public class MetricsPrinter
     public void print(
         PrintStream out)
     {
-        for (MetricRecord metric : metricsReader.getRecords())
+        for (MetricRecord metric : records)
         {
             out.println(format(metric));
             out.println();

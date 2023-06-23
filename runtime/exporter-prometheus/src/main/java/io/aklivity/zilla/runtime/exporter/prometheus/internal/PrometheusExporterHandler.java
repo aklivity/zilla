@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.LangUtil;
@@ -38,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
+import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.MetricsPrinter;
@@ -51,7 +53,6 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final Path engineDirectory;
     private final Collector collector;
 
-    private MetricsReader metricsReader;
     private MetricsPrinter printer;
 
     public PrometheusExporterHandler(
@@ -71,8 +72,9 @@ public class PrometheusExporterHandler implements ExporterHandler
     public void start()
     {
         MetricsReaderFactory factory = new MetricsReaderFactory(collector, engineDirectory);
-        metricsReader = factory.create();
-        printer = new MetricsPrinter(metricsReader, descriptor::kind, descriptor::name, descriptor::description);
+        MetricsReader metrics = factory.create();
+        List<MetricRecord> records = metrics.records();
+        printer = new MetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
 
         for (PrometheusEndpointConfig endpoint : endpoints)
         {
@@ -104,10 +106,6 @@ public class PrometheusExporterHandler implements ExporterHandler
         {
             HttpServer server = servers.remove(port);
             server.stop(0);
-        }
-        if (metricsReader != null)
-        {
-            metricsReader.close();
         }
     }
 

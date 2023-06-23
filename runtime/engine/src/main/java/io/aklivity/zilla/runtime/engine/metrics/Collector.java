@@ -30,4 +30,10 @@ public interface Collector
     LongSupplier[] histogram(
         long bindingId,
         long metricId);
+
+    long[][] counterIds();
+
+    long[][] gaugeIds();
+
+    long[][] histogramIds();
 }

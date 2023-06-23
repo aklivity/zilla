@@ -356,6 +356,7 @@ public final class Engine implements Collector, AutoCloseable
         return t;
     }
 
+    @Override
     public LongSupplier counter(
         long bindingId,
         long metricId)
@@ -386,6 +387,7 @@ public final class Engine implements Collector, AutoCloseable
         return dispatcher.supplyCounterWriter(bindingId, metricId);
     }
 
+    @Override
     public LongSupplier gauge(
         long bindingId,
         long metricId)
@@ -406,6 +408,7 @@ public final class Engine implements Collector, AutoCloseable
         return result;
     }
 
+    @Override
     public LongSupplier[] histogram(
         long bindingId,
         long metricId)
@@ -438,6 +441,30 @@ public final class Engine implements Collector, AutoCloseable
             result += readers[index].getAsLong();
         }
         return result;
+    }
+
+    @Override
+    public long[][] counterIds()
+    {
+        // the list of counter ids are expected to be identical in all cores
+        DispatchAgent dispatchAgent = dispatchers.iterator().next();
+        return dispatchAgent.counterIds();
+    }
+
+    @Override
+    public long[][] gaugeIds()
+    {
+        // the list of gauge ids are expected to be identical in all cores
+        DispatchAgent dispatchAgent = dispatchers.iterator().next();
+        return dispatchAgent.gaugeIds();
+    }
+
+    @Override
+    public long[][] histogramIds()
+    {
+        // the list of histogram ids are expected to be identical in all cores
+        DispatchAgent dispatchAgent = dispatchers.iterator().next();
+        return dispatchAgent.histogramIds();
     }
 
     // visible for testing

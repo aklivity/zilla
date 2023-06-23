@@ -72,16 +72,6 @@ public class CounterGaugeRecord implements MetricRecord
         return this.reader;
     }
 
-    /*private long aggregateValues()
-    {
-        long result = 0;
-        for (LongSupplier reader: readers)
-        {
-            result += reader.getAsLong();
-        }
-        return result;
-    }*/
-
     @Override
     public boolean equals(
         Object o)

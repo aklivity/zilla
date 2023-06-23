@@ -26,7 +26,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
@@ -39,7 +38,7 @@ public class OtlpMetricsSerializer
     // CUMULATIVE is an AggregationTemporality for a metric aggregator which reports changes since a fixed start time.
     private static final int CUMULATIVE = 2;
 
-    private final MetricsReader metricsReader;
+    private final List<MetricRecord> records;
     private final List<AttributeConfig> attributes;
     private final Function<String, String> supplyKind;
     private final ObjectIntFunction<String, String> supplyName;
@@ -50,14 +49,14 @@ public class OtlpMetricsSerializer
     private long timeStamp;
 
     public OtlpMetricsSerializer(
-        MetricsReader metricsReader,
+        List<MetricRecord> records,
         List<AttributeConfig> attributes,
         Function<String, String> supplyKind,
         ObjectIntFunction<String, String> supplyName,
         Function<String, String> supplyDescription,
         Function<String, String> supplyUnit)
     {
-        this.metricsReader = metricsReader;
+        this.records = records;
         this.attributes = attributes;
         this.supplyKind = supplyKind;
         this.supplyName = supplyName;
@@ -71,7 +70,7 @@ public class OtlpMetricsSerializer
         JsonArrayBuilder attributesArray = Json.createArrayBuilder();
         attributes.forEach(attr -> attributesArray.add(attributeToJson(attr)));
         JsonArrayBuilder metricsArray = Json.createArrayBuilder();
-        metricsReader.getRecords().forEach(metric -> metricsArray.add(serialize(metric)));
+        records.forEach(metric -> metricsArray.add(serialize(metric)));
         return createJson(attributesArray, metricsArray);
     }
 

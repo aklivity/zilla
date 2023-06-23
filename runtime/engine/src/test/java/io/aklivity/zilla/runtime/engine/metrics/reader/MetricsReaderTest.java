@@ -15,22 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
+import java.util.function.IntFunction;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.LabelManager;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsReaderTest
@@ -441,16 +436,15 @@ public class MetricsReaderTest
     public void shouldReturnEmptyList()
     {
         // GIVEN
-        LabelManager labels = mock(LabelManager.class);
-        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(),
-            GAUGE, List.of(),
-            HISTOGRAM, List.of());
+        IntFunction<String> labelResolver = mock(IntFunction.class);
         Collector collector = mock(Collector.class);
-        MetricsReader metrics = new MetricsReader(layouts, collector, labels);
+        when(collector.counterIds()).thenReturn(new long[][]{});
+        when(collector.gaugeIds()).thenReturn(new long[][]{});
+        when(collector.histogramIds()).thenReturn(new long[][]{});
+        MetricsReader metrics = new MetricsReader(collector, labelResolver);
 
         // WHEN
-        List<MetricRecord> records = metrics.getRecords();
+        List<MetricRecord> records = metrics.records();
 
         // THEN
         assertThat(records.size(), equalTo(0));

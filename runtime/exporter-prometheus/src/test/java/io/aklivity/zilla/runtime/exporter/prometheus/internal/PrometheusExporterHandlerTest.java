@@ -54,6 +54,9 @@ public class PrometheusExporterHandlerTest
         ExporterConfig exporter = new ExporterConfig("test0", "prometheus", options);
         PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
         Collector collector = mock(Collector.class);
+        when(collector.counterIds()).thenReturn(new long[][]{});
+        when(collector.gaugeIds()).thenReturn(new long[][]{});
+        when(collector.histogramIds()).thenReturn(new long[][]{});
         PrometheusExporterHandler handler = new PrometheusExporterHandler(config, context, prometheusExporter, collector);
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest

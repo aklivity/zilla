@@ -24,7 +24,6 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
@@ -186,8 +185,6 @@ public class OtlpMetricsSeralizerTest
         when(histogramRecord.stats()).thenReturn(new long[]{1L, 1000L, 2327L, 59L, 39L}); // min, max, sum, cnt, avg
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
-        MetricsReader metricsReader = mock(MetricsReader.class);
-        when(metricsReader.getRecords()).thenReturn(metricRecords);
 
         List<AttributeConfig> attributes = List.of(
             new AttributeConfig("service.namespace", "example")
@@ -209,7 +206,7 @@ public class OtlpMetricsSeralizerTest
         when(descriptor.description("histogram1")).thenReturn("description for histogram1");
         when(descriptor.unit("histogram1")).thenReturn("bytes");
 
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metricsReader, attributes,
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metricRecords, attributes,
             descriptor::kind, descriptor::nameByBinding, descriptor::description, descriptor::unit);
         serializer.timeStamp(1234567890);
 
@@ -244,10 +241,8 @@ public class OtlpMetricsSeralizerTest
                 "]" +
             "}";
         List<AttributeConfig> attributes = List.of();
-        MetricsReader metricsReader = mock(MetricsReader.class);
-        when(metricsReader.getRecords()).thenReturn(List.of());
         OtlpMetricsDescriptor descriptor = mock(OtlpMetricsDescriptor.class);
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metricsReader, attributes,
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(List.of(), attributes,
             descriptor::kind, descriptor::nameByBinding, descriptor::description, descriptor::unit);
         serializer.timeStamp(1234567890);
 
