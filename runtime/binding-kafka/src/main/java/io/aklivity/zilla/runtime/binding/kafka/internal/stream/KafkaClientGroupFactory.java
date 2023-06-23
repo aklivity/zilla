@@ -82,7 +82,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
     private static final short JOIN_GROUP_API_KEY = 11;
-    private static final short JOIN_GROUP_VERSION = 2;
+    private static final short JOIN_GROUP_VERSION = 5;
     private static final short SYNC_GROUP_API_KEY = 14;
     private static final short SYNC_GROUP_VERSION = 1;
     private static final short LEAVE_GROUP_API_KEY = 13;
@@ -2207,6 +2207,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .sessionTimeoutMillis(delegate.timeout)
                     .rebalanceTimeoutMillis(300000) //TODO: convert it zilla config
                     .memberId(memberId)
+                    .groupInstanceId("unique-id")
                     .protocolType("consumer")
                     .protocolCount(1)
                     .build();

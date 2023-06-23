@@ -365,6 +365,7 @@ scope protocol
                 int32 sessionTimeoutMillis;
                 int32 rebalanceTimeoutMillis;
                 string16 memberId;
+                string16 groupInstanceId = null;
                 string16 protocolType;
                 int32 protocolCount;
             }
