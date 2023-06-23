@@ -635,8 +635,6 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             replySeq = sequence + reserved;
 
-            System.out.println(String.format("Sse budget ondata %d", replyMax - (int)(replySeq - replyAck)));
-
             assert replyAck <= replySeq;
 
             if (replySeq > replyAck + replyMax)
