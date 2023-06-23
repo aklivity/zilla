@@ -2348,8 +2348,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .length(0)
-                .apiKey(HEARTBEAT_API_KEY)
-                .apiVersion(HEARTBEAT_VERSION)
+                .apiKey(LEAVE_GROUP_API_KEY)
+                .apiVersion(LEAVE_GROUP_VERSION)
                 .correlationId(0)
                 .clientId((String) null)
                 .build();
