@@ -1338,9 +1338,7 @@ public final class KafkaMergedFactory implements BindingHandler
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            final int replyNoAck = (int)(replySeq - replyAck);
-            final int newReplyNoAck = (int)(sequence - acknowledge);
-            final int credit = (replyNoAck - newReplyNoAck) + (maximum - replyMax);
+            final int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
             assert credit >= 0;
 
             this.replyAck = acknowledge;
@@ -1623,9 +1621,9 @@ public final class KafkaMergedFactory implements BindingHandler
         }
 
         private void doMergedReplyFlush(
-                long traceId,
-                int reserved,
-                KafkaFlushExFW kafkaFlushEx)
+            long traceId,
+            int reserved,
+            KafkaFlushExFW kafkaFlushEx)
         {
             final KafkaFetchFlushExFW kafkaFetchFlushEx = kafkaFlushEx.fetch();
             kafkaFetchFlushEx.partition().partitionId();

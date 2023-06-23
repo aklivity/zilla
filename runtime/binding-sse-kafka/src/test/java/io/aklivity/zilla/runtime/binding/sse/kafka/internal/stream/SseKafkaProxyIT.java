@@ -158,6 +158,16 @@ public class SseKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.yaml")
+    @Specification({
+        "${sse}/server.sent.100k.message/client",
+        "${kafka}/server.sent.100k.message/server"})
+    public void shouldReceiveServerSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.with.topic.and.event.id.yaml")
     @Specification({
         "${sse}/server.sent.messages.with.key.and.etag/client",
