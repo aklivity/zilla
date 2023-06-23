@@ -203,7 +203,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final CountersLayout countersLayout;
     private final GaugesLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
-    private final Collector collector;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -380,7 +379,6 @@ public class DispatchAgent implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.collector = collector;
     }
 
     public static int indexOfId(
@@ -1621,31 +1619,6 @@ public class DispatchAgent implements EngineContext, Agent
         }
         return dispatcher;
     }
-
-    /*@Override
-    public LongSupplier counter(
-        long bindingId,
-        long metricId)
-    {
-        return collector.counter(bindingId, metricId);
-    }
-
-    @Override
-    public LongSupplier gauge(
-        long bindingId,
-        long metricId)
-    {
-        return collector.gauge(bindingId, metricId);
-    }
-
-    @Override
-    public LongSupplier[] histogram(
-        long bindingId,
-        long metricId)
-    {
-        // TODO: Ati
-        return null;
-    }*/
 
     private final class ElektronSignaler implements Signaler
     {

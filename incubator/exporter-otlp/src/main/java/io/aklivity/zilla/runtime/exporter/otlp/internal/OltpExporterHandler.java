@@ -66,7 +66,7 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        MetricsReaderFactory factory = new MetricsReaderFactory(collector, config.directory(), null, null);
+        MetricsReaderFactory factory = new MetricsReaderFactory(collector, config.directory());
         MetricsReader metrics = factory.create();
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(metrics, attributes, descriptor::kind,
             descriptor::nameByBinding, descriptor::description, descriptor::unit);

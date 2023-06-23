@@ -22,12 +22,10 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
@@ -40,20 +38,16 @@ public class MetricsReader
     private final Collector collector;
     private final Map<Metric.Kind, List<MetricsLayout>> layouts; // TODO: Ati - remove this
     private final LabelManager labels;
-    private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
     public MetricsReader(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
         Collector collector,
-        LabelManager labels,
-        String namespaceName,
-        String bindingName)
+        LabelManager labels)
     {
         this.layouts = layouts;
         this.collector = collector;
         this.labels = labels;
-        this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
     }
 
@@ -78,36 +72,15 @@ public class MetricsReader
         }
     }
 
-    private LongPredicate filterBy(
-        String namespace,
-        String binding)
-    {
-        int namespaceId = namespace != null ? Math.max(labels.supplyLabelId(namespace), 0) : 0;
-        int bindingId = binding != null ? Math.max(labels.supplyLabelId(binding), 0) : 0;
-        long namespacedId = NamespacedId.id(namespaceId, bindingId);
-
-        long mask =
-                (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
-                        (binding != null ? 0x0000_0000_ffff_ffffL : 0x0000_0000_0000_0000L);
-        return id -> (id & mask) == namespacedId;
-    }
-
     private void collectCounters()
     {
         for (long[] counterIds : fetchIds(layouts.get(COUNTER)))
         {
             long bindingId = counterIds[0];
             long metricId = counterIds[1];
-            if (filter.test(bindingId))
-            {
-                /*LongSupplier[] readers = layouts.get(COUNTER).stream()
-                        .map(layout -> layout.supplyReader(bindingId, metricId))
-                        .collect(Collectors.toList())
-                        .toArray(LongSupplier[]::new);*/
-                LongSupplier counterReader = collector.counter(bindingId, metricId);
-                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, counterReader, labels::lookupLabel);
-                metricRecords.add(record);
-            }
+            LongSupplier counterReader = collector.counter(bindingId, metricId);
+            MetricRecord record = new CounterGaugeRecord(bindingId, metricId, counterReader, labels::lookupLabel);
+            metricRecords.add(record);
         }
     }
 
@@ -125,16 +98,9 @@ public class MetricsReader
         {
             long bindingId = gaugeIds[0];
             long metricId = gaugeIds[1];
-            if (filter.test(bindingId))
-            {
-                /*LongSupplier[] readers = layouts.get(GAUGE).stream()
-                        .map(layout -> layout.supplyReader(bindingId, metricId))
-                        .collect(Collectors.toList())
-                        .toArray(LongSupplier[]::new);*/
-                LongSupplier gaugeReader = collector.gauge(bindingId, metricId);
-                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, gaugeReader, labels::lookupLabel);
-                metricRecords.add(record);
-            }
+            LongSupplier gaugeReader = collector.gauge(bindingId, metricId);
+            MetricRecord record = new CounterGaugeRecord(bindingId, metricId, gaugeReader, labels::lookupLabel);
+            metricRecords.add(record);
         }
     }
 
@@ -144,12 +110,9 @@ public class MetricsReader
         {
             long bindingId = histogramIds[0];
             long metricId = histogramIds[1];
-            if (filter.test(bindingId))
-            {
-                LongSupplier[] histogramReaders = collector.histogram(bindingId, metricId);
-                MetricRecord record = new HistogramRecord(bindingId, metricId, histogramReaders, labels::lookupLabel);
-                metricRecords.add(record);
-            }
+            LongSupplier[] histogramReaders = collector.histogram(bindingId, metricId);
+            MetricRecord record = new HistogramRecord(bindingId, metricId, histogramReaders, labels::lookupLabel);
+            metricRecords.add(record);
         }
     }
 }

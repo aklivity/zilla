@@ -70,7 +70,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        MetricsReaderFactory factory = new MetricsReaderFactory(collector, engineDirectory, null, null);
+        MetricsReaderFactory factory = new MetricsReaderFactory(collector, engineDirectory);
         metricsReader = factory.create();
         printer = new MetricsPrinter(metricsReader, descriptor::kind, descriptor::name, descriptor::description);
 

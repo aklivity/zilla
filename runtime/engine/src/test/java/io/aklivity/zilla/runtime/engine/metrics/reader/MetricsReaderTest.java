@@ -447,7 +447,7 @@ public class MetricsReaderTest
             GAUGE, List.of(),
             HISTOGRAM, List.of());
         Collector collector = mock(Collector.class);
-        MetricsReader metrics = new MetricsReader(layouts, collector, labels, null, null);
+        MetricsReader metrics = new MetricsReader(layouts, collector, labels);
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();

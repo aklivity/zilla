@@ -36,19 +36,13 @@ public class MetricsReaderFactory
 {
     private final Collector collector;
     private final Path enginePath;
-    private final String namespaceName;
-    private final String bindingName;
 
     public MetricsReaderFactory(
         Collector collector,
-        Path enginePath,
-        String namespaceName,
-        String bindingName)
+        Path enginePath)
     {
         this.collector = collector;
         this.enginePath = enginePath;
-        this.namespaceName = namespaceName;
-        this.bindingName = bindingName;
     }
 
     public MetricsReader create()
@@ -61,7 +55,7 @@ public class MetricsReaderFactory
                 GAUGE, layoutManager.gaugesLayouts(),
                 HISTOGRAM, layoutManager.histogramsLayouts());
             LabelManager labels = new LabelManager(enginePath);
-            return new MetricsReader(layouts, collector, labels, namespaceName, bindingName);
+            return new MetricsReader(layouts, collector, labels);
         }
         catch (IOException ex)
         {
