@@ -1339,11 +1339,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaMergedDataExBuilder headersNull()
-            {
-                return this;
-            }
-
             public KafkaMergedDataExBuilder headerNull(
                 String name)
             {

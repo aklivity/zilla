@@ -812,8 +812,6 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding, minimum, capabilities);
-
-            System.out.println(String.format("Sse budget doKafkaWindow %d", replyMax - (int)(replySeq - replyAck)));
         }
     }
 
