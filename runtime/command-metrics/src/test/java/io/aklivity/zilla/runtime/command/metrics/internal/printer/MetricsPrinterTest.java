@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;

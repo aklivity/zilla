@@ -32,9 +32,9 @@ import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.printer.MetricsPrinter;
+import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReaderFactory;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
 
 @Command(name = "metrics", description = "Show engine metrics")
 public final class ZillaMetricsCommand extends ZillaCommand
@@ -59,7 +59,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        MetricsReaderFactory factory = new MetricsReaderFactory(null, engineDirectory(), namespace, binding); // TODO: Ati
+        MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
         MetricsReader metricsReader = factory.create();
         MetricsPrinter printer = new MetricsPrinter(metricsReader);
         do

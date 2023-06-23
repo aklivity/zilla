@@ -15,6 +15,12 @@
  */
 module io.aklivity.zilla.runtime.engine
 {
+    // TODO: Ati !!!!!!
+    exports io.aklivity.zilla.runtime.engine.internal to io.aklivity.zilla.runtime.command.metrics;
+    exports io.aklivity.zilla.runtime.engine.internal.layouts.metrics to io.aklivity.zilla.runtime.command.metrics;
+    exports io.aklivity.zilla.runtime.engine.internal.stream to io.aklivity.zilla.runtime.command.metrics;
+    // ^^^ fix this
+
     exports io.aklivity.zilla.runtime.engine;
     exports io.aklivity.zilla.runtime.engine.config;
 
