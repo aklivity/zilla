@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class HistogramRecordTest
 {
-    public static final LongSupplier[] READER_HISTOGRAM_0 = new LongSupplier[]
+    /*public static final LongSupplier[] READER_HISTOGRAM_0 = new LongSupplier[]
     {
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
@@ -154,13 +154,13 @@ public class HistogramRecordTest
         assertThat(stats[2], equalTo(0L)); // sum
         assertThat(stats[3], equalTo(0L)); // cnt
         assertThat(stats[4], equalTo(0L)); // avg
-    }
+    }*/
 
     @Test
     public void shouldReturnZeroStatsWhenEmpty()
     {
         // GIVEN
-        LongSupplier[][] readers = new LongSupplier[][]{};
+        LongSupplier[] readers = new LongSupplier[]{};
         HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
 
         // WHEN

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.reader;
 
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
@@ -131,7 +131,7 @@ public class MetricsReader
         long bindingId,
         long metricId)
     {
-        long result = 0;
+        long result = 0L;
         for (MetricsLayout layout : layouts)
         {
             LongSupplier reader = layout.supplyReader(bindingId, metricId);
@@ -144,17 +144,44 @@ public class MetricsReader
     {
         for (long[] histogramIds : fetchIds(layouts.get(HISTOGRAM)))
         {
-            long packedBindingId = histogramIds[0];
-            long packedMetricId = histogramIds[1];
-            if (filter.test(packedBindingId))
+            long bindingId = histogramIds[0];
+            long metricId = histogramIds[1];
+            if (filter.test(bindingId))
             {
-                LongSupplier[][] readers = layouts.get(HISTOGRAM).stream()
-                        .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
-                        .collect(Collectors.toList())
-                        .toArray(LongSupplier[][]::new);
-                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                LongSupplier[] readers = createHistogramReaders(layouts.get(HISTOGRAM), bindingId, metricId);
+                MetricRecord record = new HistogramRecord(bindingId, metricId, readers, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }
+    }
+
+    private LongSupplier[] createHistogramReaders(
+        List<MetricsLayout> layouts,
+        long bindingId,
+        long metricId)
+    {
+        // TODO: Ati - BUCKETS comes from engine.internal
+        LongSupplier[] result = new LongSupplier[BUCKETS];
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            final int index = i;
+            result[index] = () -> aggregateHistogramBucketValue(layouts, bindingId, metricId, index);
+        }
+        return result;
+    }
+
+    private long aggregateHistogramBucketValue(
+        List<MetricsLayout> layouts,
+        long bindingId,
+        long metricId,
+        int index)
+    {
+        long result = 0L;
+        for (MetricsLayout layout : layouts)
+        {
+            LongSupplier[] readers = layout.supplyReaders(bindingId, metricId);
+            result += readers[index].getAsLong();
+        }
+        return result;
     }
 }

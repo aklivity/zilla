@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
@@ -143,15 +142,12 @@ public class MetricsReader
     {
         for (long[] histogramIds : fetchIds(layouts.get(HISTOGRAM)))
         {
-            long packedBindingId = histogramIds[0];
-            long packedMetricId = histogramIds[1];
-            if (filter.test(packedBindingId))
+            long bindingId = histogramIds[0];
+            long metricId = histogramIds[1];
+            if (filter.test(bindingId))
             {
-                LongSupplier[][] readers = layouts.get(HISTOGRAM).stream()
-                        .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
-                        .collect(Collectors.toList())
-                        .toArray(LongSupplier[][]::new);
-                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                LongSupplier[] histogramReaders = collector.histogram(bindingId, metricId);
+                MetricRecord record = new HistogramRecord(bindingId, metricId, histogramReaders, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }

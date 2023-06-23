@@ -29,7 +29,7 @@ public class HistogramRecord implements MetricRecord
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
-    private final LongSupplier[][] readers;
+    private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
 
     private long[] bucketValues = new long[BUCKETS];
@@ -37,7 +37,7 @@ public class HistogramRecord implements MetricRecord
     public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
-        LongSupplier[][] readers,
+        LongSupplier[] readers,
         IntFunction<String> labelResolver)
     {
         this.namespaceId = namespaceId(packedBindingId);
@@ -83,14 +83,9 @@ public class HistogramRecord implements MetricRecord
 
     public void update()
     {
-        // TODO: Ati - store LongSupplier[] readers with the for loop - put in in the EngineContext (like counter)
         for (int i = 0; i < BUCKETS; i++)
         {
-            bucketValues[i] = 0;
-            for (LongSupplier[] reader : readers)
-            {
-                bucketValues[i] += reader[i].getAsLong();
-            }
+            bucketValues[i] = readers[i].getAsLong();
         }
     }
 

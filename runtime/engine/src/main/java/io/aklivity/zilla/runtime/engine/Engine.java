@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -409,9 +410,34 @@ public final class Engine implements Collector, AutoCloseable
         long bindingId,
         long metricId)
     {
-        // TODO: Ati
-        return null;
-        //return () -> aggregateCounterValue(bindingId, metricId);
+        return createHistogramReaders(bindingId, metricId);
+    }
+
+    private LongSupplier[] createHistogramReaders(
+        long bindingId,
+        long metricId)
+    {
+        LongSupplier[] result = new LongSupplier[BUCKETS];
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            final int index = i;
+            result[index] = () -> aggregateHistogramBucketValue(bindingId, metricId, index);
+        }
+        return result;
+    }
+
+    private long aggregateHistogramBucketValue(
+        long bindingId,
+        long metricId,
+        int index)
+    {
+        long result = 0L;
+        for (DispatchAgent dispatchAgent : dispatchers)
+        {
+            LongSupplier[] readers = dispatchAgent.supplyHistogram(bindingId, metricId);
+            result += readers[index].getAsLong();
+        }
+        return result;
     }
 
     // visible for testing

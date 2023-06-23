@@ -88,6 +88,10 @@ public interface EngineContext
         long bindingId,
         long metricId);
 
+    LongSupplier[] supplyHistogram(
+        long bindingId,
+        long metricId);
+
     MessageConsumer droppedFrameHandler();
 
     int supplyClientIndex(

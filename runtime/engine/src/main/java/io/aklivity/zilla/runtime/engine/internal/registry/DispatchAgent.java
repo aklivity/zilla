@@ -202,6 +202,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ErrorHandler errorHandler;
     private final CountersLayout countersLayout;
     private final GaugesLayout gaugesLayout;
+    private final HistogramsLayout histogramsLayout;
     private final Collector collector;
     private long initialId;
     private long promiseId;
@@ -249,7 +250,7 @@ public class DispatchAgent implements EngineContext, Agent
                 .mode(CREATE_READ_WRITE)
                 .build();
 
-        final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
+        this.histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
@@ -544,6 +545,14 @@ public class DispatchAgent implements EngineContext, Agent
         long metricId)
     {
         return gaugesLayout.supplyReader(bindingId, metricId);
+    }
+
+    @Override
+    public LongSupplier[] supplyHistogram(
+        long bindingId,
+        long metricId)
+    {
+        return histogramsLayout.supplyReaders(bindingId, metricId);
     }
 
     @Override
