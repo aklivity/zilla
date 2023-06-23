@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig;
@@ -45,11 +46,12 @@ public class OtlpExporterHandlerTest
         OptionsConfig options = new OtlpOptionsConfig(30L, new OtlpEndpointConfig[]{endpoint});
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
+        Collector collector = mock(Collector.class);
         IntFunction<KindConfig> resolveKind = mock(IntFunction.class);
         List<AttributeConfig> attributes = List.of();
 
         // WHEN
-        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, resolveKind, attributes);
+        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
 
         // THEN
         assertThat(handler, instanceOf(OltpExporterHandler.class));

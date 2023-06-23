@@ -35,6 +35,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
@@ -48,6 +49,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
     private final Path engineDirectory;
+    private final Collector collector;
 
     private MetricsReader metricsReader;
     private MetricsPrinter printer;
@@ -55,18 +57,20 @@ public class PrometheusExporterHandler implements ExporterHandler
     public PrometheusExporterHandler(
         EngineConfiguration config,
         EngineContext context,
-        PrometheusExporterConfig exporter)
+        PrometheusExporterConfig exporter,
+        Collector collector)
     {
         this.engineDirectory = config.directory();
         this.descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
+        this.collector = collector;
         this.servers = new Int2ObjectHashMap<>();
     }
 
     @Override
     public void start()
     {
-        MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory, null, null);
+        MetricsReaderFactory factory = new MetricsReaderFactory(collector, engineDirectory, null, null);
         metricsReader = factory.create();
         printer = new MetricsPrinter(metricsReader, descriptor::kind, descriptor::name, descriptor::description);
 

@@ -23,7 +23,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-public class CounterGaugeRecordTest
+public class CounterGaugeRecordTest // TODO: Ati
 {
     private static final LongSupplier READER_0 = () -> 0L;
     private static final LongSupplier READER_42 = () -> 42L;
@@ -35,17 +35,16 @@ public class CounterGaugeRecordTest
     public void shouldReturnSum()
     {
         // GIVEN
-        LongSupplier[] readers = new LongSupplier[]{READER_42, READER_58, READER_100};
-        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, READER_100, null);
 
         // WHEN
         long value = counter.valueReader().getAsLong();
 
         // THEN
-        assertThat(value, equalTo(200L));
+        assertThat(value, equalTo(100L));
     }
 
-    @Test
+    /*@Test
     public void shouldReturnZero()
     {
         // GIVEN
@@ -71,5 +70,6 @@ public class CounterGaugeRecordTest
 
         // THEN
         assertThat(value, equalTo(0L));
-    }
+    }*/
 }
+

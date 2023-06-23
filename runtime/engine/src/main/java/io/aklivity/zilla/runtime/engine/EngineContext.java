@@ -129,10 +129,14 @@ public interface EngineContext
     void onExporterDetached(
         long exporterId);
 
-    // TODO: Ati - id's instead of strings ??
-    LongSupplier counter(
+    // TODO: Ati
+    /*LongSupplier counter(
         long bindingId,
         long metricId);
+
+    LongSupplier gauge(
+        long bindingId,
+        long metricId);*/
 
     /*LongSupplier counter(
         String namespace,

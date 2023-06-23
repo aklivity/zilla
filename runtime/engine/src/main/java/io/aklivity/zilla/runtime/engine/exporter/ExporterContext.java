@@ -21,12 +21,14 @@ import java.util.function.IntFunction;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 public interface ExporterContext
 {
     ExporterHandler attach(
         ExporterConfig config,
         List<AttributeConfig> attributes,
+        Collector collector,
         IntFunction<KindConfig> resolveKind);
 
     void detach(

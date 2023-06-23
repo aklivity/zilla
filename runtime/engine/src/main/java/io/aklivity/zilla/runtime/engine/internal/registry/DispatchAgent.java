@@ -373,7 +373,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
                 labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
-                this::supplyMetricWriter, this::detachStreams);
+                this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
@@ -1613,14 +1613,30 @@ public class DispatchAgent implements EngineContext, Agent
         return dispatcher;
     }
 
-    @Override
-    // TODO: Ati - aggregate the values across cores; check if these should be int's instead of Strings; rename to scalar??
+    /*@Override
     public LongSupplier counter(
         long bindingId,
         long metricId)
     {
         return collector.counter(bindingId, metricId);
     }
+
+    @Override
+    public LongSupplier gauge(
+        long bindingId,
+        long metricId)
+    {
+        return collector.gauge(bindingId, metricId);
+    }
+
+    @Override
+    public LongSupplier[] histogram(
+        long bindingId,
+        long metricId)
+    {
+        // TODO: Ati
+        return null;
+    }*/
 
     private final class ElektronSignaler implements Signaler
     {

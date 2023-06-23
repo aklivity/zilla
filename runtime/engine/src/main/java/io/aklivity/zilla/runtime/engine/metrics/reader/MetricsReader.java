@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
@@ -37,19 +38,21 @@ import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 public class MetricsReader
 {
     private static final long[][] EMPTY = new long[0][0];
-
-    private final Map<Metric.Kind, List<MetricsLayout>> layouts;
+    private final Collector collector;
+    private final Map<Metric.Kind, List<MetricsLayout>> layouts; // TODO: Ati - remove this
     private final LabelManager labels;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
     public MetricsReader(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
+        Collector collector,
         LabelManager labels,
         String namespaceName,
         String bindingName)
     {
         this.layouts = layouts;
+        this.collector = collector;
         this.labels = labels;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
@@ -94,15 +97,16 @@ public class MetricsReader
     {
         for (long[] counterIds : fetchIds(layouts.get(COUNTER)))
         {
-            long packedBindingId = counterIds[0];
-            long packedMetricId = counterIds[1];
-            if (filter.test(packedBindingId))
+            long bindingId = counterIds[0];
+            long metricId = counterIds[1];
+            if (filter.test(bindingId))
             {
-                LongSupplier[] readers = layouts.get(COUNTER).stream()
-                        .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
+                /*LongSupplier[] readers = layouts.get(COUNTER).stream()
+                        .map(layout -> layout.supplyReader(bindingId, metricId))
                         .collect(Collectors.toList())
-                        .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                        .toArray(LongSupplier[]::new);*/
+                LongSupplier counterReader = collector.counter(bindingId, metricId);
+                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, counterReader, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }
@@ -120,15 +124,16 @@ public class MetricsReader
     {
         for (long[] gaugeIds : fetchIds(layouts.get(GAUGE)))
         {
-            long packedBindingId = gaugeIds[0];
-            long packedMetricId = gaugeIds[1];
-            if (filter.test(packedBindingId))
+            long bindingId = gaugeIds[0];
+            long metricId = gaugeIds[1];
+            if (filter.test(bindingId))
             {
-                LongSupplier[] readers = layouts.get(GAUGE).stream()
-                        .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
+                /*LongSupplier[] readers = layouts.get(GAUGE).stream()
+                        .map(layout -> layout.supplyReader(bindingId, metricId))
                         .collect(Collectors.toList())
-                        .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                        .toArray(LongSupplier[]::new);*/
+                LongSupplier gaugeReader = collector.gauge(bindingId, metricId);
+                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, gaugeReader, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }

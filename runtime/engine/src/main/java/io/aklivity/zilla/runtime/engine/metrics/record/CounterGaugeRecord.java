@@ -27,19 +27,19 @@ public class CounterGaugeRecord implements MetricRecord
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
-    private final LongSupplier[] readers;
+    private final LongSupplier reader;
     private final IntFunction<String> labelResolver;
 
     public CounterGaugeRecord(
         long packedBindingId,
         long packedMetricId,
-        LongSupplier[] readers,
+        LongSupplier reader,
         IntFunction<String> labelResolver)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
-        this.readers = readers;
+        this.reader = reader;
         this.labelResolver = labelResolver;
     }
 
@@ -69,10 +69,10 @@ public class CounterGaugeRecord implements MetricRecord
 
     public LongSupplier valueReader()
     {
-        return this::aggregateValues;
+        return this.reader;
     }
 
-    private long aggregateValues()
+    /*private long aggregateValues()
     {
         long result = 0;
         for (LongSupplier reader: readers)
@@ -80,7 +80,7 @@ public class CounterGaugeRecord implements MetricRecord
             result += reader.getAsLong();
         }
         return result;
-    }
+    }*/
 
     @Override
     public boolean equals(

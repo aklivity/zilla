@@ -29,19 +29,23 @@ import org.agrona.LangUtil;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.LayoutManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 
 public class MetricsReaderFactory
 {
+    private final Collector collector;
     private final Path enginePath;
     private final String namespaceName;
     private final String bindingName;
 
     public MetricsReaderFactory(
+        Collector collector,
         Path enginePath,
         String namespaceName,
         String bindingName)
     {
+        this.collector = collector;
         this.enginePath = enginePath;
         this.namespaceName = namespaceName;
         this.bindingName = bindingName;
@@ -57,7 +61,7 @@ public class MetricsReaderFactory
                 GAUGE, layoutManager.gaugesLayouts(),
                 HISTOGRAM, layoutManager.histogramsLayouts());
             LabelManager labels = new LabelManager(enginePath);
-            return new MetricsReader(layouts, labels, namespaceName, bindingName);
+            return new MetricsReader(layouts, collector, labels, namespaceName, bindingName);
         }
         catch (IOException ex)
         {

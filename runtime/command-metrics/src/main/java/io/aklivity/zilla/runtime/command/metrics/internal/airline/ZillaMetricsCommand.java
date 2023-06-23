@@ -59,7 +59,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
+        MetricsReaderFactory factory = new MetricsReaderFactory(null, engineDirectory(), namespace, binding); // TODO: Ati
         MetricsReader metricsReader = factory.create();
         MetricsPrinter printer = new MetricsPrinter(metricsReader);
         do
