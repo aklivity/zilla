@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.LongConsumer;
 import java.util.regex.Pattern;
 
 import org.agrona.ErrorHandler;
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -164,12 +166,18 @@ public final class EngineRule implements TestRule
         return requireNonNull(engine.binding(kind));
     }
 
-    public long counter(
-        String name)
+    public EngineExtContext context()
     {
-        ensureDriveStarted();
+        return engine.context();
+    }
 
-        return engine.counter(name);
+    public LongConsumer counterWriter(
+        String namespace,
+        String binding,
+        String metric,
+        int core)
+    {
+        return engine.context().counterWriter(namespace, binding, metric, core);
     }
 
     private EngineConfiguration configuration()

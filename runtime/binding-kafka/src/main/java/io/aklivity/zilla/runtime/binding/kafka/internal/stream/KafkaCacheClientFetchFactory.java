@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
@@ -887,13 +888,14 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final long replyId;
         private final long leaderId;
         private final long authorization;
-        private final KafkaCacheCursor cursor;
         private final KafkaIsolation isolation;
         private final KafkaDeltaType deltaType;
         private final KafkaOffsetType maximumOffset;
         private final LongSupplier isolatedOffset;
         private final LongSupplier initialGroupIsolatedOffset;
 
+        private KafkaCacheCursor cursor;
+        private KafkaCacheCursor nextCursor;
         private int state;
         private int flushOrDataFramesSent;
 
@@ -962,6 +964,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onClientInitialBegin(begin);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onClientInitialFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onClientInitialEnd(end);
@@ -1000,6 +1006,31 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 group.onClientFanoutMemberOpening(traceId, this);
             }
 
+        }
+
+        private void onClientInitialFlush(
+            FlushFW flush)
+        {
+            final OctetsFW extension = flush.extension();
+            final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
+
+            final KafkaFlushExFW kafkaFlushEx = flushEx != null && flushEx.typeId() == kafkaTypeId ?
+                extension.get(kafkaFlushExRO::tryWrap) : null;
+
+            assert kafkaFlushEx != null;
+            assert kafkaFlushEx.kind() == KafkaFlushExFW.KIND_FETCH;
+            final KafkaFetchFlushExFW kafkaFetchFlush = kafkaFlushEx.fetch();
+            final Array32FW<KafkaFilterFW> filters = kafkaFetchFlush.filters();
+            final KafkaEvaluation evaluation = kafkaFetchFlush.evaluation().get();
+            final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
+
+            nextCursor = cursorFactory.newCursor(condition, deltaType);
+            nextCursor.init(cursor);
+            if (messageOffset == 0)
+            {
+                cursor = nextCursor;
+                nextCursor = null;
+            }
         }
 
         private void onClientInitialEnd(
@@ -1316,6 +1347,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                     this.messageOffset = 0;
 
+                    if (nextCursor != null)
+                    {
+                        cursor = nextCursor;
+                        nextCursor = null;
+                    }
                     cursor.advance(partitionOffset + 1);
                 }
             }
@@ -1407,7 +1443,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
-
             flushOrDataFramesSent++;
         }
 
@@ -1424,7 +1459,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
-
             flushOrDataFramesSent++;
         }
 
@@ -1462,8 +1496,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
-
             flushOrDataFramesSent++;
+
+            if (nextCursor != cursor)
+            {
+                cursor = nextCursor;
+            }
         }
 
         private void doClientReplyFlush(

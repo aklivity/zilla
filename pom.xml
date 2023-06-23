@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.47</version>
+  <version>0.9.48</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -470,6 +470,14 @@
                 </manifestEntries>
               </transformer>
             </transformers>
+            <filters>
+              <filter>
+                <artifact>*:*</artifact>
+                <excludes>
+                  <exclude>**/module-info.class</exclude>
+                </excludes>
+              </filter>
+            </filters>
           </configuration>
           <executions>
             <execution>

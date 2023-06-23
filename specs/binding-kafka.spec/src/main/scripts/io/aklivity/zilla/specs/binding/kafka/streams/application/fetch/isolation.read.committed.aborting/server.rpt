@@ -80,6 +80,10 @@ write advise zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
+write await STABLE_OFFSET_TWO
+
+write await STABLE_OFFSET_THREE
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()

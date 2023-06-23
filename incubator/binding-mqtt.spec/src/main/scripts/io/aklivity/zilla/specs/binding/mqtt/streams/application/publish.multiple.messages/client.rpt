@@ -44,7 +44,7 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .build()
                              .build()}
 
-write "message2"
+write "test"
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))

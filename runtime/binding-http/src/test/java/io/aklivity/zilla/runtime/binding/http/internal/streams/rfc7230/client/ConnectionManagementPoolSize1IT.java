@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.client;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAXIMUM_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import org.junit.Ignore;
@@ -30,7 +29,6 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.binding.http.internal.test.HttpCountersRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -53,10 +51,8 @@ public class ConnectionManagementPoolSize1IT
         .external("net0")
         .clean();
 
-    private final HttpCountersRule counters = new HttpCountersRule(engine);
-
     @Rule
-    public final TestRule chain = outerRule(engine).around(counters).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Ignore("GitHub Actions")
     @Test
@@ -156,11 +152,7 @@ public class ConnectionManagementPoolSize1IT
         "${net}/pending.request.second.request.and.abort/server"})
     public void shouldLeaveTransportUntouchedWhenEnqueuedRequestIsAborted() throws Exception
     {
-        assertEquals(0, counters.enqueues());
-        assertEquals(0, counters.dequeues());
         k3po.finish();
-        assertEquals(1, counters.enqueues());
-        assertEquals(1, counters.dequeues());
     }
 
     @Test

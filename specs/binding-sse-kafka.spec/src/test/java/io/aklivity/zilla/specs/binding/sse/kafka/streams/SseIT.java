@@ -178,4 +178,13 @@ public class SseIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.100k.message/client",
+        "${sse}/server.sent.100k.message/server"})
+    public void shouldReceiveServerSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

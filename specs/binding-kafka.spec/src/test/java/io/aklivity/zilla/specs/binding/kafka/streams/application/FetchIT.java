@@ -549,6 +549,24 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.change/client",
+        "${app}/filter.change/server"})
+    public void shouldReceiveMessagesWithFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.change.none/client",
+        "${app}/filter.change.none/server"})
+    public void shouldReceiveMessagesWithFilterChangeNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.headers.one/client",
         "${app}/filter.headers.one/server"})
     public void shouldReceiveMessagesWithHeadersOneFilter() throws Exception

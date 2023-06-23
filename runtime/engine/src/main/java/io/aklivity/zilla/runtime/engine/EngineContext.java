@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
-import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -82,10 +81,8 @@ public interface EngineContext
     BufferPool bufferPool();
 
     LongSupplier supplyCounter(
-        String name);
-
-    LongConsumer supplyAccumulator(
-        String name);
+        long bindingId,
+        long metricId);
 
     MessageConsumer droppedFrameHandler();
 

@@ -181,11 +181,13 @@ public class MetricsProcessor
         long sum = stats[2];
         long count = stats[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
+        long cumulativeValue = 0;
         for (int i = 0; i < BUCKETS; i++)
         {
             String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS.get(i));
+            cumulativeValue += values[i];
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                extName, limit, namespace, binding, values[i]));
+                extName, limit, namespace, binding, cumulativeValue));
         }
         sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, sum));
         sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, count));
