@@ -129,6 +129,13 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
+write advise zilla:flush ${kafka:flushEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .progress(0, 2, 2, 2)
+                                   .build()
+                               .build()}
+
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

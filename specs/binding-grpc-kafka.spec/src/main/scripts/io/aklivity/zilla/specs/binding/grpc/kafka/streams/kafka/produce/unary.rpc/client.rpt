@@ -110,5 +110,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .progress(0, 2, 2, 2)
+                                   .build()
+                               .build()}
+
 write close
 read closed
