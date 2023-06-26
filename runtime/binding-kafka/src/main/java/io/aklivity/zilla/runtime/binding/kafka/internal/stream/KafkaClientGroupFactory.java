@@ -182,6 +182,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
+    private final String groupInstanceId;
+    private final int rebalanceTimeout;
 
     public KafkaClientGroupFactory(
         KafkaConfiguration config,
@@ -200,6 +202,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
+        this.groupInstanceId = config.clientGroupInstanceId();
+        this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
     }
 
     @Override
@@ -2205,9 +2209,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .sessionTimeoutMillis(delegate.timeout)
-                    .rebalanceTimeoutMillis(300000) //TODO: convert it zilla config
+                    .rebalanceTimeoutMillis(rebalanceTimeout)
                     .memberId(memberId)
-                    .groupInstanceId("unique-id")
+                    .groupInstanceId(groupInstanceId)
                     .protocolType("consumer")
                     .protocolCount(1)
                     .build();
