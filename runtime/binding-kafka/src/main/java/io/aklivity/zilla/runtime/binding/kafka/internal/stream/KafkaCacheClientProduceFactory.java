@@ -1194,6 +1194,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onClientInitialData(data);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onClientInitialFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onClientInitialEnd(end);
@@ -1272,6 +1276,25 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             // TODO: defer initialAck until previous DATA frames acked
             final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
             final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
+            doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
+        }
+
+        private void onClientInitialFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            final int noAck = (int) (initialSeq - initialAck);
             doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
         }
 
