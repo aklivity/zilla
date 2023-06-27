@@ -408,6 +408,7 @@ scope protocol
                 string16 groupId;
                 int32 generatedId;
                 string16 memberId;
+                string16 groupInstanceId = null;
                 int32 assignmentCount;
             }
 
@@ -452,6 +453,7 @@ scope protocol
                 string16 groupId;
                 int32 generatedId;
                 string16 memberId;
+                string16 groupInstanceId = null;
             }
 
             struct HeartbeatResponse
@@ -464,7 +466,13 @@ scope protocol
             struct LeaveGroupRequest
             {
                 string16 groupId;
+                int32 memberCount;
+            }
+
+            struct LeaveMember
+            {
                 string16 memberId;
+                string16 groupInstanceId = null;
             }
 
             struct LeaveGroupResponse

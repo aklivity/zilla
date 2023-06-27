@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_GROUP_INSTANCE_ID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,7 +43,7 @@ public class ClientGroupIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS, 0)
+        .configure(KAFKA_CLIENT_GROUP_INSTANCE_ID, "client1")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -58,6 +58,17 @@ public class ClientGroupIT
         "${app}/assign.leader/client",
         "${net}/assign.leader/server"})
     public void shouldCompleteConsumerGroupHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance/client",
+        "${net}/rebalance/server"})
+
+    public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();
     }

@@ -46,7 +46,7 @@ connected
 
 read  53                                # size
       11s                               # join group
-      2s                                # v2
+      5s                                # v5
       (int:newRequestId)
       -1s                               # no client id
       4s "test"                         # consumer group
