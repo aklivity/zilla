@@ -74,5 +74,13 @@ write zilla:data.ext ${kafka:dataEx()
 write '{ "name": "gizmo" }'
 write flush
 
+write advise zilla:flush ${kafka:flushEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .progress(0, 1, 1, 1)
+                                   .progress(1, 1, 1, 1)
+                                   .build()
+                               .build()}
+
 write close
 read closed
