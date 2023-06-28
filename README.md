@@ -10,6 +10,7 @@
   
   [![Build Status][build-status-image]][build-status]
   [![Slack Community][community-image]][community-join]
+  [![Artifact HUB][artifact-hub-shield]][artifact-hub]
   
 </div>
 
@@ -202,6 +203,8 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://www.aklivity.io/slack
+[artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
+[artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
 [zilla-docs]: https://docs.aklivity.io/zilla/latest/
 [zilla-get-started]: https://docs.aklivity.io/zilla/latest/get-started
 [zilla-examples]: https://github.com/aklivity/zilla-examples
