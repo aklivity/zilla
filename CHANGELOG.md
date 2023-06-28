@@ -2,7 +2,26 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.47...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.48...HEAD)
+
+**Implemented enhancements:**
+
+- Kafka merged flush should support filter changes [\#259](https://github.com/aklivity/zilla/issues/259)
+
+**Closed issues:**
+
+- Null pointer when Headers are null [\#281](https://github.com/aklivity/zilla/issues/281)
+
+**Merged pull requests:**
+
+- Remove unnecessary cursor assignment [\#288](https://github.com/aklivity/zilla/pull/288) ([akrambek](https://github.com/akrambek))
+- Eliminate zilla.json warning if file not present [\#286](https://github.com/aklivity/zilla/pull/286) ([jfallows](https://github.com/jfallows))
+- Send kafka flush even if data frames were sent to notify client from HISTORICAL to LIVE transition [\#284](https://github.com/aklivity/zilla/pull/284) ([bmaidics](https://github.com/bmaidics))
+- KafkaMerged acknowledge flush frame [\#258](https://github.com/aklivity/zilla/pull/258) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.48](https://github.com/aklivity/zilla/tree/0.9.48) (2023-06-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.47...0.9.48)
 
 **Implemented enhancements:**
 

@@ -239,9 +239,11 @@ scope kafka
 
         struct KafkaMergedFlushEx
         {
+            KafkaOffset partition;
             KafkaOffset[] progress;
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
+            KafkaKey key;
         }
 
         struct KafkaMetaBeginEx
@@ -299,6 +301,7 @@ scope kafka
         struct KafkaProduceFlushEx
         {
             KafkaOffset partition;
+            KafkaKey key;
             int32 error = 0;
         }
 

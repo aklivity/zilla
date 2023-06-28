@@ -101,6 +101,13 @@ write await SEND_COMMIT
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
+                                    .partition(0, 2, 0, 2)
+                                    .build()
+                                .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
                                     .partition(0, 3, 3, 3)
                                     .transaction("COMMIT", 1)
                                     .build()

@@ -209,6 +209,33 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.flush/client",
+        "${app}/merged.produce.flush/server"})
+    public void shouldProduceMergedFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.flush.dynamic/client",
+        "${app}/merged.produce.flush.dynamic/server"})
+    public void shouldProduceMergedFlushDynamic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.flush.dynamic.hashed/client",
+        "${app}/merged.produce.flush.dynamic.hashed/server"})
+    public void shouldProduceMergedFlushDynamicHashed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.message.value.10k/client",
         "${app}/merged.produce.message.value.10k/server"})
     public void shouldProduceMergedMessageValue10k() throws Exception
@@ -368,6 +395,33 @@ public class MergedIT
         "${app}/unmerged.fetch.partition.leader.aborted/client",
         "${app}/unmerged.fetch.partition.leader.aborted/server"})
     public void shouldFetchUnmergedPartitionLeaderAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.flush/client",
+        "${app}/unmerged.produce.flush/server"})
+    public void shouldProduceUnmergedFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.flush.dynamic/client",
+        "${app}/unmerged.produce.flush.dynamic/server"})
+    public void shouldProduceUnmergedFlushDynamic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.flush.dynamic.hashed/client",
+        "${app}/unmerged.produce.flush.dynamic.hashed/server"})
+    public void shouldProduceUnmergedFlushDynamicHashed() throws Exception
     {
         k3po.finish();
     }

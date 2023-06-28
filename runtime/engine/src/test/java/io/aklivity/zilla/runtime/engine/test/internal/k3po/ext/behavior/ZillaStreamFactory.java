@@ -411,6 +411,14 @@ public final class ZillaStreamFactory
                 channel.readExtBuffer(FLUSH, false).writeBytes(flushExtCopy);
             }
 
+            final int reservedBytes = flush.reserved();
+            if (reservedBytes > 0)
+            {
+                channel.readBytes(sequence, reservedBytes);
+                channel.acknowledgeBytes(reservedBytes);
+                sender.doWindow(channel);
+            }
+
             fireInputAdvised(channel, ADVISORY_FLUSH);
         }
 

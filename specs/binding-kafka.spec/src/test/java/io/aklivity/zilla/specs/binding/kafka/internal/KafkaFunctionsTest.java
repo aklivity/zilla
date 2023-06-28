@@ -75,6 +75,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBegi
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
 
 public class KafkaFunctionsTest
@@ -867,6 +868,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                         .partition(1, 2)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L)
                                          .filter()
@@ -875,6 +877,7 @@ public class KafkaFunctionsTest
                                          .filter()
                                              .header("name", "value")
                                              .build()
+                                         .key("key")
                                          .build()
                                      .build();
 
@@ -889,6 +892,10 @@ public class KafkaFunctionsTest
 
         assertNotNull(mergedFlushEx.progress()
                 .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 1L));
+
+        assertEquals(mergedFlushEx.key().value().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)), "key");
+        assertEquals(mergedFlushEx.partition().partitionId(), 1);
+        assertEquals(mergedFlushEx.partition().partitionOffset(), 2);
 
         final MutableInteger filterCount = new MutableInteger();
         mergedFlushEx.filters().forEach(f -> filterCount.value++);
@@ -914,6 +921,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                         .partition(0, 1L, 1L)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L, 1L, 1L)
                                          .filter()
@@ -922,6 +930,7 @@ public class KafkaFunctionsTest
                                          .filter()
                                              .header("name", "value")
                                              .build()
+                                         .key(null)
                                          .build()
                                     .build();
 
@@ -933,6 +942,10 @@ public class KafkaFunctionsTest
         final MutableInteger partitionsCount = new MutableInteger();
         mergedFlushEx.progress().forEach(f -> partitionsCount.value++);
         assertEquals(1, partitionsCount.value);
+
+        assertEquals(mergedFlushEx.partition().partitionId(), 0);
+        assertEquals(mergedFlushEx.partition().partitionOffset(), 1L);
+        assertEquals(mergedFlushEx.partition().latestOffset(), 1L);
 
         assertNotNull(mergedFlushEx.progress()
                 .matchFirst(p -> p.partitionId() == 0 &&
@@ -3487,6 +3500,50 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchProduceFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .produce()
+                .partition(1, 2)
+                .key("key")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .produce(f -> f.partition(p -> p.partitionId(1).partitionOffset(2))
+                .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchProduceFlushExtensionWithLatestOffset() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .produce()
+                .partition(0, 1L, 1L)
+            .build()
+            .build();
+
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .produce(f ->
+                f.partition(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateProduceDataExtensionWithNullKeyAndNullHeaderValue()
     {
         byte[] build = KafkaFunctions.dataEx()
@@ -3518,6 +3575,50 @@ public class KafkaFunctionsTest
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     Objects.isNull(h.value())));
+    }
+
+    @Test
+    public void shouldGenerateProduceFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .produce()
+                .partition(1, 2)
+                .key("key")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaProduceFlushExFW produceFlushEx = flushEx.produce();
+
+        assertEquals(produceFlushEx.key().value().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)), "key");
+        assertEquals(produceFlushEx.partition().partitionId(), 1);
+        assertEquals(produceFlushEx.partition().partitionOffset(), 2);
+    }
+
+    @Test
+    public void shouldGenerateProduceFlushExtensionWithStableOffset()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .produce()
+                .partition(1, 2, 2)
+                .key(null)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaProduceFlushExFW produceFlushEx = flushEx.produce();
+
+        assertEquals(produceFlushEx.partition().partitionId(), 1);
+        assertEquals(produceFlushEx.partition().partitionOffset(), 2);
+        assertEquals(produceFlushEx.partition().latestOffset(), 2);
     }
 
     @Test
@@ -4028,17 +4129,21 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                .progress(0, 1L)
-                .build()
+                    .partition(1, 2)
+                    .progress(0, 1L)
+                    .key("key")
+                    .build()
                 .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
+                .merged(f -> f.partition(p -> p.partitionId(1).partitionOffset(2))
+                    .progressItem(p -> p
                         .partitionId(0)
-                        .partitionOffset(1L)))
+                        .partitionOffset(1L))
+                    .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4050,8 +4155,9 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                .progress(0, 1L, 1L)
-                .build()
+                    .partition(0, 1L, 1L)
+                    .progress(0, 1L, 1L)
+                    .build()
                 .build();
 
 
@@ -4059,7 +4165,9 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
+                .merged(f ->
+                    f.partition(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
+                    .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L)
                         .latestOffset(1L)))

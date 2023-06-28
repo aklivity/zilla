@@ -41,4 +41,6 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 read '{ "name": "widget" }'
 
+read advised zilla:flush
+
 read closed

@@ -68,5 +68,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read '{ "name": "gizmo" }'
 
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .progress(0, 1, 1, 1)
+                                   .progress(1, 1, 1, 1)
+                                   .build()
+                               .build()}
+
 read closed
 write close
