@@ -43,6 +43,9 @@ read '['
      '{ "name": "gadget" }'
      ','
      '{ "name": "gizmo" }'
-     ']'
+
+read advised zilla:flush
+
+read ']'
 
 read closed

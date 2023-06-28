@@ -127,20 +127,22 @@ public final class ZillaStartCommand extends ZillaCommand
         }
 
         EngineConfiguration config = new EngineConfiguration(props);
+
         URL configURL = config.configURL();
         if ("file".equals(configURL.getProtocol()))
         {
-            Path configPath = Paths.get(configURL.getPath());
+            final Path configPath = Paths.get(configURL.getPath());
+
             if (configPath.endsWith("zilla.yaml") && Files.notExists(configPath))
             {
-                String configJSON = String.format("file:%s", configPath.resolveSibling("zilla.json"));
-                props.setProperty(ENGINE_CONFIG_URL.name(), configJSON);
-                configPath = Paths.get(config.configURL().getPath());
-                System.out.println("zilla.yaml file not found, loading zilla.json instead");
-            }
-            if (configPath.getFileName().toString().endsWith(".json"))
-            {
-                System.out.println("warning: json syntax is deprecated, migrate to yaml");
+                Path configJson = configPath.resolveSibling("zilla.json");
+
+                if (Files.exists(configJson))
+                {
+                    System.out.format("WARNING %s is deprecated, use %s instead\n", configJson, configPath);
+
+                    props.setProperty(ENGINE_CONFIG_URL.name(), String.format("file:%s", configJson));
+                }
             }
         }
 
