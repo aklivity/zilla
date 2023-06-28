@@ -1497,11 +1497,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             assert replyAck <= replySeq;
             flushOrDataFramesSent++;
-
-            if (nextCursor != cursor)
-            {
-                cursor = nextCursor;
-            }
         }
 
         private void doClientReplyFlush(
