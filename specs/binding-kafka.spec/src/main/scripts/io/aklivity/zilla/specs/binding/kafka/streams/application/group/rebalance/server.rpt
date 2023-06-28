@@ -41,3 +41,16 @@ write zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 write flush
+
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("consumer-2")
+                                 .memberId("consumer-1")
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+write close

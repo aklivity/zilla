@@ -469,17 +469,18 @@ scope protocol
                 int32 memberCount;
             }
 
-            struct LeaveMember
-            {
-                string16 memberId;
-                string16 groupInstanceId = null;
-            }
-
             struct LeaveGroupResponse
             {
                 int32 correlationId;
                 int32 throttleTimeMillis;
                 int16 errorCode;
+                int32 memberCount;
+            }
+
+            struct LeaveMember
+            {
+                string16 memberId;
+                string16 groupInstanceId = null;
             }
         }
 

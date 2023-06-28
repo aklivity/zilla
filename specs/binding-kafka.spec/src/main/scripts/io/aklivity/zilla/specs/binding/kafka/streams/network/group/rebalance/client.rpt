@@ -31,7 +31,7 @@ connected
 write  20                                # size
        10s                               # find coordinator
        1s                                # v1
-       (int:newRequestId)
+       ${newRequestId}
        -1s                               # no client id
        7s "session"                      # "session" coordinator key
        [0x00]                            # coordinator group type
@@ -45,7 +45,7 @@ read  35                                 # size
          9s "localhost"                  #host
          9092                            #port
 
-
+write close
 
 read notify ROUTED_BROKER_SERVER
 
@@ -57,19 +57,46 @@ connect await ROUTED_BROKER_SERVER
 
 connected
 
-write  53                                # size
-       11s                               # join group
-       2s                                # v2
-       (int:newRequestId)
-       -1s                               # no client id
-       4s "test"                         # consumer group
-       45000                             # session timeout
-       300000                            # rebalance timeout
-       0s                                # consumer group member
-       8s "consumer"                     # protocol type
-       1                                 # group protocol
-         7s "session"                    # protocol name
-         0                               # metadata
+write 62                                # size
+      11s                               # join group
+      5s                                # v5
+      ${newRequestId}
+      -1s                               # no client id
+      4s "test"                         # consumer group
+      45000                             # session timeout
+      3000                              # rebalance timeout
+      0s                                # consumer group member
+      7s "client1"                      # group instance id
+      8s "consumer"                     # protocol type
+      1                                 # group protocol
+        7s "session"                    # protocol name
+        0                               # metadata
+
+
+read  34                                                # size
+      ${newRequestId}
+      0                                                 # throttle time
+      79s                                               # member id required
+      -1                                                # generated id
+      0s                                                # protocol name
+      0s                                                # leader id
+      10s "consumer-1"                                  # consumer member group id
+      0                                                 # members
+
+write 72                                # size
+      11s                               # join group
+      5s                                # v5
+      ${newRequestId}
+      -1s                               # no client id
+      4s "test"                         # consumer group
+      45000                             # session timeout
+      3000                              # rebalance timeout
+      10s "consumer-1"                  # consumer group member
+      7s "client1"                      # group instance id
+      8s "consumer"                     # protocol type
+      1                                 # group protocol
+        7s "session"                    # protocol name
+        0                               # metadata
 
 
 read  67                                                # size
@@ -84,14 +111,16 @@ read  67                                                # size
          10s "consumer-1"                                  # consumer member group id
          0                                                 # metadata
 
-write 52                                            # size
+
+write 61                                            # size
       14s                                           # sync group
-      5s                                            # v5
-      (int:newRequestId)
+      3s                                            # v3
+      ${newRequestId}
       -1s                                           # no client id
       4s "test"                                     # consumer group
-      1                                             # generation id
+      2                                             # generation id
       10s "consumer-1"                              # consumer member group id
+      7s "client1"                                  # group instance id
       1                                             # assignments
         10s "consumer-1"                             # consumer member group id
         0                                            # metadata
@@ -102,16 +131,100 @@ read  14                                                # size
       0s                                                # no error
       0                                                 # assignment
 
-write 32                                            # size
-      12s                                           # sync group
-      1s                                            # v1
-      (int:newRequestId)
+write 41                                            # size
+      12s                                           # heartbeat
+      3s                                            # 3v
+      ${newRequestId}
       -1s                                           # no client id
       4s "test"                                     # consumer group
-      2                                             # generation id
+      3                                             # generation id
       10s "consumer-1"                              # consumer member group id
+      7s "client1"                                  # group instance id
+
+read 10                                                # size
+      ${newRequestId}
+      0                                                 # throttle time
+      27s                                               # REBALANCE_IN_PROGRESS
+
+write  72                                # size
+       11s                               # join group
+       5s                                # v5
+       ${newRequestId}
+       -1s                               # no client id
+       4s "test"                         # consumer group
+       45000                             # session timeout
+       3000                              # rebalance timeout
+       10s "consumer-1"                  # consumer member group id
+       7s "client1"                      # group instance id
+       8s "consumer"                     # protocol type
+       1                                 # group protocol
+         7s "session"                    # protocol name
+         0                               # metadata
+
+read  83                                                # size
+      ${newRequestId}
+      0                                                 # throttle time
+      0s                                                # no error
+      3                                                 # generated id
+      7s "session"                                      # protocol name
+      10s "consumer-2"                                  # leader id
+      10s "consumer-1"                                  # consumer member group id
+      2                                                 # members
+         10s "consumer-1"                                  # consumer member group id
+         0                                                 # metadata
+         10s "consumer-2"                                  # consumer member group id
+         0                                                 # metadata
+
+write 77                                            # size
+      14s                                           # sync group
+      3s                                            # v3
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      5                                             # generation id
+      10s "consumer-1"                              # consumer member group id
+      7s "client1"                                  # group instance id
+      2                                             # assignments
+        10s "consumer-1"                             # consumer member group id
+        0                                            # metadata
+        10s "consumer-2"                             # consumer member group id
+        0                                            # metadata
+
+read  14                                                # size
+      ${newRequestId}
+      0                                                 # throttle time
+      0s                                                # no error
+      0                                                 # assignment
+
+write 41                                            # size
+      12s                                           # heartbeat
+      3s                                            # 3v
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      6                                             # generation id
+      10s "consumer-1"                              # consumer member group id
+      7s "client1"                                  # group instance id
 
 read  10                                                # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
+
+write 41                                            # size
+      13s                                           # leave group
+      3s                                            # v3
+      ${newRequestId}
+      -1s                                           # no client id
+      4s "test"                                     # consumer group
+      1                                             # assignments
+        10s "consumer-1"                             # consumer member group id
+         7s "client1"                                # group instance id
+
+read  35                                           # size
+      ${newRequestId}
+      0                                            # throttle time
+      0s                                           # no error
+      1                                            # assignments
+        10s "consumer-1"                             # consumer member group id
+         7s "client1"                                # group instance id

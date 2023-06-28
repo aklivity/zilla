@@ -140,6 +140,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final SyncGroupResponseFW syncGroupResponseRO = new SyncGroupResponseFW();
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final LeaveGroupResponseFW leaveGroupResponseRO = new LeaveGroupResponseFW();
+    private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
 
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
@@ -872,17 +873,26 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
-                else if (leaveGroupResponse.errorCode() == ERROR_NONE)
-                {
-                    client.onLeaveGroupResponse(traceId, authorization);
-                }
                 else
                 {
-                    client.decoder = decodeCoordinatorIgnoreAll;
-                    break decode;
-                }
+                    progress = leaveGroupResponse.limit();
 
-                progress = leaveGroupResponse.limit();
+                    members:
+                    for (int i = 0; i < leaveGroupResponse.memberCount(); i++)
+                    {
+                        final LeaveMemberFW member = leaveMemberRO.tryWrap(buffer, progress, limit);
+                        if (member != null)
+                        {
+                            progress = member.limit();
+                        }
+                        else
+                        {
+                            break members;
+                        }
+                    }
+
+                    client.onLeaveGroupResponse(traceId, authorization);
+                }
             }
         }
 
@@ -1125,7 +1135,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             state = KafkaState.closedReply(state);
             doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, clusterClient.authorization, EMPTY_EXTENSION);
+                    traceId, 0, EMPTY_EXTENSION);
         }
 
         private void doApplicationAbort(
@@ -1133,7 +1143,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             state = KafkaState.closedReply(state);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, clusterClient.authorization, EMPTY_EXTENSION);
+                    traceId, 0, EMPTY_EXTENSION);
         }
 
         private void doApplicationWindow(
@@ -2691,7 +2701,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             doNetworkResetIfNecessary(traceId);
 
             delegate.doApplicationEnd(traceId);
-            delegate.doApplicationAbortIfNecessary(traceId);
+            delegate.doApplicationResetIfNecessary(traceId, EMPTY_OCTETS);
 
             cleanupDecodeSlotIfNecessary();
             cleanupEncodeSlotIfNecessary();
