@@ -1067,13 +1067,6 @@ public final class TlsServerFactory implements TlsStreamFactory
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-
-                    // write message offset: last message we wrote to the buffer = wmo
-                    // read message offset: how much we delivered to the mqtt
-                    // 10 + 7, 10 + 8
-                    // wmo = 35, rmo = 0
-                    //
-
                     final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
