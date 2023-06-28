@@ -1045,7 +1045,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedInitial(state);
 
             clusterClient.doNetworkAbortIfNecessary(traceId);
-            coordinatorClient.doNetworkEnd(traceId, authorization);
+            coordinatorClient.doNetworkAbortIfNecessary(traceId);
         }
 
         private void onApplicationWindow(

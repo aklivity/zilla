@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.network;
+package io.aklivity.zilla.specs.binding.kafka.streams.application;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,11 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+
 public class GroupIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/group");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -38,8 +39,8 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/rebalance/client",
-        "${net}/rebalance/server"})
+        "${app}/rebalance/client",
+        "${app}/rebalance/server"})
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();
@@ -47,8 +48,8 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/client.sent.write.abort/client",
-        "${net}/client.sent.write.abort/server"})
+        "${app}/client.sent.write.abort/client",
+        "${app}/client.sent.write.abort/server"})
     public void shouldHandleClientSentWriteAbort() throws Exception
     {
         k3po.finish();

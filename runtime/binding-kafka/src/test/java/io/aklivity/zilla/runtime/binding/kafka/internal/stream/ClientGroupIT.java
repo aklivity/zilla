@@ -55,9 +55,9 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/assign.leader/client",
-        "${net}/assign.leader/server"})
-    public void shouldCompleteConsumerGroupHandshake() throws Exception
+        "${app}/client.sent.write.abort/client",
+        "${net}/client.sent.write.abort/server"})
+    public void shouldHandleClientSentWriteAbort() throws Exception
     {
         k3po.finish();
     }
