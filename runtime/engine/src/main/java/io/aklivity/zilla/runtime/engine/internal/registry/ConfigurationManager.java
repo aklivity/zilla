@@ -75,7 +75,8 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class ConfigurationManager
 {
-    protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
+    private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
+
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
