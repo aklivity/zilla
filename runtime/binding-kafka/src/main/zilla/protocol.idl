@@ -399,6 +399,7 @@ scope protocol
             struct MemberMetadata
             {
                 string16 memberId;
+                string16 groupInstanceId = null;
                 uint32 length;
                 octets[length] metadata;
             }
