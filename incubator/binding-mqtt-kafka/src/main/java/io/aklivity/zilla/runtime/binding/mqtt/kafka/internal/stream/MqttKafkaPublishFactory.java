@@ -112,8 +112,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
-    private final String kafkaTopicName;
-    private final String kafkaRetainedTopicName;
+    private final String kafkaTopic;
+    private final String kafkaRetainedTopic;
     private final boolean retainAvailable;
 
     public MqttKafkaPublishFactory(
@@ -136,8 +136,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
-        this.kafkaTopicName = config.kafkaMessagesTopic();
-        this.kafkaRetainedTopicName = config.kafkaRetainedMessagesTopic();
+        this.kafkaTopic = config.kafkaMessagesTopic();
+        this.kafkaRetainedTopic = config.kafkaRetainedMessagesTopic();
         this.retainAvailable = config.retainAvailable();
     }
 
@@ -709,7 +709,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, kafkaTopicName);
+                traceId, authorization, affinity, kafkaTopic);
         }
 
         private void doKafkaData(
@@ -1016,7 +1016,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             {
                 kafka =
                     newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, kafkaRetainedTopicName);
+                        traceId, authorization, affinity, kafkaRetainedTopic);
             }
         }
 

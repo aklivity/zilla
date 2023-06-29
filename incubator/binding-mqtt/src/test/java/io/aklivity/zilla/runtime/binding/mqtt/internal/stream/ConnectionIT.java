@@ -253,7 +253,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.close/client",
-        "${app}/client.sent.close/server"})
+        "${app}/client.sent.abort/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")

@@ -95,6 +95,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
@@ -1201,8 +1202,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
-        private final Map<String, Integer> subscribePacketIds;
-        private final Map<String, Integer> unsubscribePacketIds;
+        private final Object2IntHashMap<String> subscribePacketIds;
+        private final Object2IntHashMap<String> unsubscribePacketIds;
 
         private MqttSessionStream sessionStream;
 
@@ -1272,8 +1273,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.publishStreams = new Int2ObjectHashMap<>();
             this.subscribeStreams = new Int2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
-            this.subscribePacketIds = new HashMap<>();
-            this.unsubscribePacketIds = new HashMap<>();
+            this.subscribePacketIds = new Object2IntHashMap<>(-1);
+            this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
         }
 
         private void onNetwork(
@@ -1387,7 +1388,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeInitial(state);
 
-                cleanupStreamsUsingEnd(traceId, authorization);
+                cleanupStreamsUsingAbort(traceId, authorization);
 
                 doNetworkEnd(traceId, authorization);
 
@@ -2158,7 +2159,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             MqttEndReasonCode.DISCONNECT));
                 sessionStream.doSessionAppEnd(traceId, authorization, builder.build());
             }
-            cleanupStreamsUsingEnd(traceId, authorization);
+            closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);
         }
 
@@ -2170,7 +2171,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (reasonCode)
             {
             case SESSION_TAKEN_OVER:
-                cleanupStreamsUsingEnd(traceId, authorization);
+                closeStreams(traceId, authorization);
                 break;
             default:
                 cleanupStreamsUsingAbort(traceId, authorization);
@@ -2757,7 +2758,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private void cleanupStreamsUsingEnd(
+        private void closeStreams(
             long traceId,
             long authorization)
         {
