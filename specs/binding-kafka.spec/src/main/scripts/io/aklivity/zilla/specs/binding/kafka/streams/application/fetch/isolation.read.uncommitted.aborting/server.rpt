@@ -99,10 +99,21 @@ write flush
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
+                                    .partition(0, 2, -1, 2)
+                                    .build()
+                                .build()}
+
+write await STABLE_OFFSET_TWO
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
                                     .partition(0, 3, 2, 3)
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}
+
+write await STABLE_OFFSET_THREE
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))

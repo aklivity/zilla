@@ -1,0 +1,76 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/properties/type/enum/-",
+        "value": "prometheus"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "prometheus"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "prometheus"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "endpoints":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "scheme":
+                                        {
+                                            "title": "Scheme",
+                                            "enum":
+                                            [
+                                                "http"
+                                            ]
+                                        },
+                                        "port":
+                                        {
+                                            "title": "Port",
+                                            "type": "int"
+                                        },
+                                        "path":
+                                        {
+                                            "title": "Path",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "scheme",
+                                        "port"
+                                    ],
+                                    "additionalProperties": false
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    }
+]

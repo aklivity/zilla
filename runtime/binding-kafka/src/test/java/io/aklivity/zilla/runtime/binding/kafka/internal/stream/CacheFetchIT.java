@@ -468,6 +468,18 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/filter.sync.with.data/client",
+        "${app}/filter.sync.with.data/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldFetchFilterSyncWithData() throws Exception
+    {
+        partition.append(0L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/filter.key/client",
         "${app}/filter.none/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -683,6 +695,18 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/filter.change/client",
+        "${app}/filter.change.none/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithFilterChange() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/filter.headers.one/client",
         "${app}/filter.none/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -850,7 +874,6 @@ public class CacheFetchIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.yaml")
     @Specification({

@@ -91,10 +91,21 @@ read "Hello, world"
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
+                                    .partition(0, 2, -1, 2)
+                                    .build()
+                                .build()}
+
+read notify STABLE_OFFSET_TWO
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
                                     .partition(0, 3, 2, 3)
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}
+
+read notify STABLE_OFFSET_THREE
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))

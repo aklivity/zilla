@@ -151,4 +151,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.100k.message/client",
+        "${kafka}/server.sent.100k.message/server"})
+    public void shouldReceiveServerSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

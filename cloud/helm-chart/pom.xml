@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+               http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.aklivity.zilla</groupId>
+    <artifactId>cloud</artifactId>
+    <version>develop-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>helm-chart</artifactId>
+  <name>zilla::cloud::helm-chart</name>
+  <packaging>helm</packaging>
+
+  <licenses>
+    <license>
+      <name>Aklivity Community License Agreement</name>
+      <url>https://www.aklivity.io/aklivity-community-license/</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>docker-image</artifactId>
+      <version>${project.version}</version>
+      <type>pom</type>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+          <configuration>
+            <mapping>
+              <tpl>SCRIPT_STYLE</tpl>
+            </mapping>
+          </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.kokuwa.maven</groupId>
+        <artifactId>helm-maven-plugin</artifactId>
+        <version>6.6.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <chartDirectory>src/main/helm</chartDirectory>
+          <chartVersion>${project.version}</chartVersion>
+          <appVersion>${project.version}</appVersion>
+          <skipUpload>true</skipUpload>
+          <uploadRepoStable>
+            <name>github</name>
+            <url>ghcr.io/aklivity/charts</url>
+          </uploadRepoStable>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>deploy</phase>
+            <goals>
+              <goal>push</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jasig.maven</groupId>
+        <artifactId>maven-notice-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

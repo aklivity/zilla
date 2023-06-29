@@ -47,7 +47,6 @@ import java.time.Duration;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -80,8 +79,6 @@ import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
-import org.agrona.concurrent.status.AtomicCounter;
-import org.agrona.concurrent.status.CountersManager;
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -102,14 +99,12 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.internal.Counters;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
@@ -161,12 +156,10 @@ public class DispatchAgent implements EngineContext, Agent
     private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
-    private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
     private final Map<String, MetricGroup> metricGroupsByName;
-    private final MetricsLayout metricsLayout;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
@@ -191,8 +184,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final DefaultBudgetCreditor creditor;
     private final Int2ObjectHashMap<DefaultBudgetDebitor> debitorsByIndex;
 
-    private final Map<String, AtomicCounter> countersByName;
-
     private final Long2ObjectHashMap<Affinity> affinityByBindingId;
 
     private final DeadlineTimerWheel timerWheel;
@@ -208,6 +199,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
+    private final CountersLayout countersLayout;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -241,13 +233,7 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        final MetricsLayout metricsLayout = new MetricsLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics%d", index)))
-                .labelsBufferCapacity(config.counterLabelsBufferCapacity())
-                .valuesBufferCapacity(config.counterValuesBufferCapacity())
-                .build();
-
-        final CountersLayout countersLayout = new CountersLayout.Builder()
+        this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
@@ -284,14 +270,9 @@ public class DispatchAgent implements EngineContext, Agent
                 .build();
 
         this.agentName = String.format("engine/data#%d", index);
-        this.metricsLayout = metricsLayout;
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
-
-        final CountersManager countersManager =
-                new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
-        this.counters = new Counters(countersManager);
 
         this.resolveHost = config.hostResolver();
         this.timestamps = config.timestamps();
@@ -340,7 +321,6 @@ public class DispatchAgent implements EngineContext, Agent
         this.creditor = new DefaultBudgetCreditor(index, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
             signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
-        this.countersByName = new HashMap<>();
 
         Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
         for (Binding binding : bindings)
@@ -547,16 +527,10 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public LongSupplier supplyCounter(
-        String name)
+        long bindingId,
+        long metricId)
     {
-        return () -> supplyAtomicCounter(name).increment() + 1;
-    }
-
-    @Override
-    public LongConsumer supplyAccumulator(
-        String name)
-    {
-        return increment -> supplyAtomicCounter(name).getAndAdd(increment);
+        return countersLayout.supplyReader(bindingId, metricId);
     }
 
     @Override
@@ -641,7 +615,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public int doWork() throws Exception
+    public int doWork()
     {
         int workDone = 0;
 
@@ -720,7 +694,6 @@ public class DispatchAgent implements EngineContext, Agent
         targetsByIndex.forEach((k, v) -> quietClose(v));
 
         quietClose(streamsLayout);
-        quietClose(metricsLayout);
         quietClose(bufferPoolLayout);
 
         debitorsByIndex.forEach((k, v) -> quietClose(v));
@@ -800,17 +773,12 @@ public class DispatchAgent implements EngineContext, Agent
         return metricGroupsByName.get(metricGroupName).supply(metricName);
     }
 
-    public long counter(
-        String name)
+    // required for testing
+    public LongConsumer supplyCounterWriter(
+        long bindingId,
+        long metricId)
     {
-        final LongSupplier counter = counters.readonlyCounter(name);
-        return counter != null ? counter.getAsLong() : 0L;
-    }
-
-    private AtomicCounter supplyAtomicCounter(
-        String name)
-    {
-        return countersByName.computeIfAbsent(name, counters::counter);
+        return countersLayout.supplyWriter(bindingId, metricId);
     }
 
     private void onSystemMessage(

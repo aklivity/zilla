@@ -102,4 +102,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.publish.unfragmented/client",
+        "${net}/unsubscribe.publish.unfragmented/server"})
+    public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

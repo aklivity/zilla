@@ -1,272 +1,290 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "http-kafka"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "http-kafka"
-                },
-                "kind":
-                {
-                    "enum": [ "proxy" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "idempotency":
-                        {
-                            "title": "Idempotency",
-                            "type": "object",
-                            "properties":
-                            {
-                                "header":
-                                {
-                                    "title": "Idempotency Key HTTP Header",
-                                    "type": "string",
-                                    "default": "idempotency-key"
-                                }
-                            },
-                            "required":
-                            [
-                                "header"
-                            ],
-                            "additionalProperties": false
-                        },
-                        "correlation":
-                        {
-                            "title": "Correlation",
-                            "type": "object",
-                            "properties":
-                            {
-                                "headers":
-                                {
-                                    "title": "Correlation Kafka Headers",
-                                    "type": "object",
-                                    "properties":
-                                    {
-                                        "reply-to":
-                                        {
-                                            "title": "Reply-To Kafka Header",
-                                            "type": "string",
-                                            "default": "zilla:reply-to"
-                                        },
-                                        "correlation-id":
-                                        {
-                                            "title": "Correlation-Id Kafka Header",
-                                            "type": "string",
-                                            "default": "zilla:correlation-id"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "required":
-                            [
-                                "headers"
-                            ],
-                            "additionalProperties": false
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "routes":
+                        "const": "http-kafka"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
                 {
-                    "items":
+                    "type":
+                    {
+                        "const": "http-kafka"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy" ]
+                    },
+                    "vault": false,
+                    "options":
                     {
                         "properties":
                         {
-                            "when":
+                            "idempotency":
                             {
-                                "items":
+                                "title": "Idempotency",
+                                "type": "object",
+                                "properties":
                                 {
-                                    "properties":
+                                    "header":
                                     {
-                                        "method":
-                                        {
-                                            "title": "Method",
-                                            "type": "string"
-                                        },
-                                        "path":
-                                        {
-                                            "title": "Path",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "with":
-                            {
-                                "oneOf":
+                                        "title": "Idempotency Key HTTP Header",
+                                        "type": "string",
+                                        "default": "idempotency-key"
+                                    }
+                                },
+                                "required":
                                 [
+                                    "header"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "correlation":
+                            {
+                                "title": "Correlation",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "headers":
                                     {
+                                        "title": "Correlation Kafka Headers",
+                                        "type": "object",
                                         "properties":
                                         {
-                                            "capability":
+                                            "reply-to":
                                             {
-                                                "title": "Capability",
+                                                "title": "Reply-To Kafka Header",
                                                 "type": "string",
-                                                "const": "fetch"
+                                                "default": "zilla:reply-to"
                                             },
-                                            "topic":
+                                            "correlation-id":
                                             {
-                                                "title": "Topic",
-                                                "type": "string"
-                                            },
-                                            "filters":
-                                            {
-                                                "title": "Filters",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "properties":
-                                                    {
-                                                        "key":
-                                                        {
-                                                            "title": "Key",
-                                                            "type": "string"
-                                                        },
-                                                        "headers":
-                                                        {
-                                                            "title": "Headers",
-                                                            "type": "object",
-                                                            "additionalProperties" :
-                                                            {
-                                                                "type": "string"
-                                                            }
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "merge":
-                                            {
-                                                "title": "Merge",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "content-type":
-                                                    {
-                                                        "title": "Content Type",
-                                                        "type": "string",
-                                                        "const": "application/json"
-                                                    },
-                                                    "patch":
-                                                    {
-                                                        "title": "Patch",
-                                                        "type": "object",
-                                                        "properties":
-                                                        {
-                                                            "initial":
-                                                            {
-                                                                "title": "Initial Value",
-                                                                "type": "string",
-                                                                "const": "[]"
-                                                            },
-                                                            "path":
-                                                            {
-                                                                "title": "Path",
-                                                                "type": "string",
-                                                                "const": "/-"
-                                                            }
-                                                        },
-                                                        "required":
-                                                        [
-                                                            "initial", "path"
-                                                        ],
-                                                        "additionalProperties": false
-                                                    }
-                                                },
-                                                "required":
-                                                [
-                                                    "content-type"
-                                                ],
-                                                "additionalProperties": false
+                                                "title": "Correlation-Id Kafka Header",
+                                                "type": "string",
+                                                "default": "zilla:correlation-id"
                                             }
                                         },
                                         "additionalProperties": false
-                                    },
+                                    }
+                                },
+                                "required":
+                                [
+                                    "headers"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
                                     {
                                         "properties":
                                         {
-                                            "capability":
+                                            "method":
                                             {
-                                                "title": "Capability",
-                                                "type": "string",
-                                                "const": "produce"
-                                            },
-                                            "topic":
-                                            {
-                                                "title": "Topic",
+                                                "title": "Method",
                                                 "type": "string"
                                             },
-                                            "acks":
+                                            "path":
                                             {
-                                                "title": "Acks",
-                                                "type": "string",
-                                                "enum": [ "none", "leader_only", "in_sync_replicas" ]
-                                            },
-                                            "key":
-                                            {
-                                                "title": "Key",
+                                                "title": "Path",
                                                 "type": "string"
-                                            },
-                                            "overrides":
-                                            {
-                                                "title": "Headers",
-                                                "type": "object",
-                                                "additionalProperties" :
-                                                {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "reply-to":
-                                            {
-                                                "title": "Reply-To",
-                                                "type": "string"
-                                            },
-                                            "async":
-                                            {
-                                                "title": "Async",
-                                                "type": "object",
-                                                "additionalProperties" :
-                                                {
-                                                    "type": "string"
-                                                }
                                             }
                                         },
-                                        "additionalProperties": false,
-                                        "dependentRequired":
-                                        {
-                                            "async": [ "reply-to" ]
-                                        }
+                                        "additionalProperties": false
                                     }
-                                ],
-                                "required":
-                                [
-                                    "capability",
-                                    "topic"
-                                ]
-                            }
-                        },
-                        "required":
-                        [
-                            "with"
-                        ]
-                    }
+                                },
+                                "with":
+                                {
+                                    "oneOf":
+                                    [
+                                        {
+                                            "properties":
+                                            {
+                                                "capability":
+                                                {
+                                                    "title": "Capability",
+                                                    "type": "string",
+                                                    "const": "fetch"
+                                                },
+                                                "topic":
+                                                {
+                                                    "title": "Topic",
+                                                    "type": "string"
+                                                },
+                                                "filters":
+                                                {
+                                                    "title": "Filters",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "properties":
+                                                        {
+                                                            "key":
+                                                            {
+                                                                "title": "Key",
+                                                                "type": "string"
+                                                            },
+                                                            "headers":
+                                                            {
+                                                                "title": "Headers",
+                                                                "type": "object",
+                                                                "additionalProperties" :
+                                                                {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "merge":
+                                                {
+                                                    "title": "Merge",
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "content-type":
+                                                        {
+                                                            "title": "Content Type",
+                                                            "type": "string",
+                                                            "const": "application/json"
+                                                        },
+                                                        "patch":
+                                                        {
+                                                            "title": "Patch",
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "initial":
+                                                                {
+                                                                    "title": "Initial Value",
+                                                                    "type": "string",
+                                                                    "const": "[]"
+                                                                },
+                                                                "path":
+                                                                {
+                                                                    "title": "Path",
+                                                                    "type": "string",
+                                                                    "const": "/-"
+                                                                }
+                                                            },
+                                                            "required":
+                                                            [
+                                                                "initial", "path"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "required":
+                                                    [
+                                                        "content-type"
+                                                    ],
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "properties":
+                                            {
+                                                "capability":
+                                                {
+                                                    "title": "Capability",
+                                                    "type": "string",
+                                                    "const": "produce"
+                                                },
+                                                "topic":
+                                                {
+                                                    "title": "Topic",
+                                                    "type": "string"
+                                                },
+                                                "acks":
+                                                {
+                                                    "title": "Acks",
+                                                    "type": "string",
+                                                    "enum": [ "none", "leader_only", "in_sync_replicas" ]
+                                                },
+                                                "key":
+                                                {
+                                                    "title": "Key",
+                                                    "type": "string"
+                                                },
+                                                "overrides":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "object",
+                                                    "additionalProperties" :
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "reply-to":
+                                                {
+                                                    "title": "Reply-To",
+                                                    "type": "string"
+                                                },
+                                                "async":
+                                                {
+                                                    "title": "Async",
+                                                    "type": "object",
+                                                    "additionalProperties" :
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "dependentRequired":
+                                            {
+                                                "async": [ "reply-to" ]
+                                            }
+                                        }
+                                    ],
+                                    "required":
+                                    [
+                                        "capability",
+                                        "topic"
+                                    ]
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
+                    },
+                    "exit": false
                 },
-                "exit": false
-            },
-            "required":
-            [
-                "routes"
-            ]
+                "required":
+                [
+                    "routes"
+                ]
+            }
         }
     }
 ]

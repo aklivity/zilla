@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 {
+    private static final int INIT_FLAG = 0x02;
     private static final String SSE_TYPE_NAME = "sse";
     private static final String KAFKA_TYPE_NAME = "kafka";
 
@@ -643,28 +644,33 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             }
             else
             {
+                String8FW encodedId = null;
+                OctetsFW key = null;
                 final int flags = data.flags();
                 final OctetsFW payload = data.payload();
-                final OctetsFW extension = data.extension();
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx =
-                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-                final KafkaMergedDataExFW kafkaMergedDataEx =
-                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
-                final OctetsFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key().value() : null;
-                final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ? kafkaMergedDataEx.headers() : null;
-                final KafkaHeaderFW etag = headers.matchFirst(h -> HEADER_NAME_ETAG.value().equals(h.name().value()));
 
-                String8FW encodedId = null;
-                switch (delegate.resolved.eventId())
+                if ((flags & INIT_FLAG) != 0x00)
                 {
-                case EVENT_ID_KEY64_AND_ETAG:
-                    encodedId = sseEventId.encodeKeyAndProgress(key, progress, etag);
-                    break;
-                case EVENT_ID_ETAG_ONLY:
-                    encodedId = sseEventId.encodeProgressOnly(progress, etag);
-                    break;
+                    final OctetsFW extension = data.extension();
+                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                    final KafkaDataExFW kafkaDataEx =
+                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+                    final KafkaMergedDataExFW kafkaMergedDataEx =
+                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+                    key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key().value() : null;
+                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ? kafkaMergedDataEx.headers() : null;
+                    final KafkaHeaderFW etag = headers.matchFirst(h -> HEADER_NAME_ETAG.value().equals(h.name().value()));
+
+                    switch (delegate.resolved.eventId())
+                    {
+                    case EVENT_ID_KEY64_AND_ETAG:
+                        encodedId = sseEventId.encodeKeyAndProgress(key, progress, etag);
+                        break;
+                    case EVENT_ID_ETAG_ONLY:
+                        encodedId = sseEventId.encodeProgressOnly(progress, etag);
+                        break;
+                    }
                 }
 
                 final String8FW eventType = payload == null ? EVENT_TYPE_DELETE : EVENT_TYPE_MESSAGE;

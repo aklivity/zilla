@@ -1,87 +1,105 @@
 [
     {
         "op": "add",
-        "path": "/$defs/vault/oneOf/-",
+        "path": "/$defs/vault/properties/type/enum/-",
+        "value": "filesystem"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/vault/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "filesystem"
-                },
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "keys":
-                        {
-                            "title": "Keys",
-                            "type": "object",
-                            "properties":
-                            {
-                                "store":
-                                {
-                                    "type": "string"
-                                },
-                                "type":
-                                {
-                                    "type": "string",
-                                    "default": "pkcs12"
-                                },
-                                "password":
-                                {
-                                    "type": "string"
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "trust":
-                        {
-                            "title": "Trust Certificates",
-                            "type": "object",
-                            "properties":
-                            {
-                                "store":
-                                {
-                                    "type": "string"
-                                },
-                                "type":
-                                {
-                                    "type": "string",
-                                    "default": "pkcs12"
-                                },
-                                "password":
-                                {
-                                    "type": "string"
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "signers":
-                        {
-                            "title": "Signer Certificates",
-                            "type": "object",
-                            "properties":
-                            {
-                                "store":
-                                {
-                                    "type": "string"
-                                },
-                                "type":
-                                {
-                                    "type": "string",
-                                    "default": "pkcs12"
-                                },
-                                "password":
-                                {
-                                    "type": "string"
-                                }
-                            },
-                            "additionalProperties": false
-                        }
+                        "const": "filesystem"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "filesystem"
                     },
-                    "additionalProperties": false
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "keys":
+                            {
+                                "title": "Keys",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "store":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "type":
+                                    {
+                                        "type": "string",
+                                        "default": "pkcs12"
+                                    },
+                                    "password":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "trust":
+                            {
+                                "title": "Trust Certificates",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "store":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "type":
+                                    {
+                                        "type": "string",
+                                        "default": "pkcs12"
+                                    },
+                                    "password":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "signers":
+                            {
+                                "title": "Signer Certificates",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "store":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "type":
+                                    {
+                                        "type": "string",
+                                        "default": "pkcs12"
+                                    },
+                                    "password":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    }
                 }
             }
         }

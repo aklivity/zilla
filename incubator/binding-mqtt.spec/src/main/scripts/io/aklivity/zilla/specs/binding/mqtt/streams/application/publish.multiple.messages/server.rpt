@@ -46,7 +46,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                 .build()
                             .build()}
 
-read "message2"
+read "test"
 
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))

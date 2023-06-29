@@ -19,9 +19,9 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
@@ -53,7 +53,7 @@ public final class GuardFactory
     private static GuardFactory instantiate(
         ServiceLoader<GuardFactorySpi> factories)
     {
-        Map<String, GuardFactorySpi> factorySpisByName = new HashMap<>();
+        Map<String, GuardFactorySpi> factorySpisByName = new TreeMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
 
         return new GuardFactory(unmodifiableMap(factorySpisByName));

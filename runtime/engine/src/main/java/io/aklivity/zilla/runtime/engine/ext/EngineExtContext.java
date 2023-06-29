@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.ext;
 
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public interface EngineExtContext
@@ -23,4 +26,16 @@ public interface EngineExtContext
 
     void onError(
         Exception error);
+
+    LongSupplier counter(
+        String namespace,
+        String binding,
+        String metric);
+
+    // required for testing
+    LongConsumer counterWriter(
+        String namespace,
+        String binding,
+        String metric,
+        int core);
 }

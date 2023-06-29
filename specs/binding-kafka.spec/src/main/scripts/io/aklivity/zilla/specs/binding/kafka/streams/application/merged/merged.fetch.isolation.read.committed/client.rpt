@@ -80,6 +80,14 @@ read "Hello, world #B2"
 
 read notify RECEIVED_MESSAGE_B2
 
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .progress(0, 3, 2, 2)
+                                   .progress(1, 3, 2, 2)
+                                   .build()
+                               .build()}
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
@@ -102,6 +110,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world #B3"
+
+read notify RECEIVED_MESSAGE_B3
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -127,6 +137,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #B4"
 
+read notify RECEIVED_MESSAGE_B4
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
@@ -149,6 +161,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world #B5"
+
+read notify RECEIVED_MESSAGE_B5
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))

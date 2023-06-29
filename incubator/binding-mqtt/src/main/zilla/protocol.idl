@@ -102,7 +102,13 @@
             uint16 keepAlive;
             MqttProperties properties;
             string16 clientId;
-            octets payload;
+        }
+
+        struct MqttWill
+        {
+            MqttProperties properties;
+            string16 topic;
+            Binary payload; //TODO: data fragmentation
         }
 
         struct MqttConnack extends MqttPacketHeader

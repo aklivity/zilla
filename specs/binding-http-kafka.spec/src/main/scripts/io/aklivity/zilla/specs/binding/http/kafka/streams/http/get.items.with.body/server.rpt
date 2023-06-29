@@ -41,7 +41,9 @@ write '['
       '{ "name": "gadget" }'
       ','
       '{ "name": "gizmo" }'
-      ']'
-write flush
+
+write advise zilla:flush
+
+write ']'
 
 write close

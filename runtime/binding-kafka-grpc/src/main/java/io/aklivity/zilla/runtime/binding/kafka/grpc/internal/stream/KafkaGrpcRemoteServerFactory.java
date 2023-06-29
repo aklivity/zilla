@@ -158,6 +158,18 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     }
 
     @Override
+    public int originTypeId()
+    {
+        return kafkaTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return grpcTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

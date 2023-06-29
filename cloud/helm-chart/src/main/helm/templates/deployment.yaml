@@ -1,0 +1,127 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helm.fullname" . }}
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "helm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "helm.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          env:
+          {{- range $env := .Values.env }}
+          - name: {{ $env.name }}
+            value: {{ $env.value }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          {{- range $port := .Values.service.ports }}
+            - name: {{ $port.name }}
+              containerPort: {{ $port.port }}
+              protocol: TCP
+          {{- end}}
+          {{- if .Values.livenessProbePort }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.livenessProbePort }}
+          {{- end}}
+          {{- if .Values.readinessProbePort }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.readinessProbePort }}
+          {{- end}}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if index .Values "zilla.yaml" }}
+            - name: zilla
+              mountPath: {{ .Values.configPath }}
+            {{- end }}
+            {{- $configPath := .Values.configPath }}
+            {{- range $name, $configMap := .Values.configMaps }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $configMap.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $secret := .Values.secrets }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $secret.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+            - name: {{ $name }}
+              mountPath: {{ $pvc.mountPath }}
+            {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if index .Values "zilla.yaml" }}
+        - name: zilla
+          configMap:
+            name: zilla
+        {{- end }}
+        {{- range $name, $_ := .Values.configMaps }}
+        - name: {{ $name }}
+          configMap:
+            name: {{ $name }}
+        {{- end }}
+        {{- range $name, $_ := .Values.secrets }}
+        - name: {{ $name }}
+          secret:
+            secretName: {{ $name }}
+        {{- end }}
+        {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+        - name: {{ $name }}
+          persistentVolumeClaim:
+            claimName: {{ $name }}
+        {{- end }}

@@ -1,73 +1,91 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "sse"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "sse"
-                },
-                "kind":
-                {
-                    "enum": [ "client", "server" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "retry":
-                        {
-                            "type": "integer",
-                            "default": 2000
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "routes":
-                {
-                    "items":
-                    {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "path":
-                                        {
-                                            "title": "Path",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "with": false
-                        }
+                        "const": "sse"
                     }
                 }
             },
-            "anyOf":
-            [
+            "then":
+            {
+                "properties":
                 {
-                    "required":
-                    [
-                        "exit"
-                    ]
+                    "type":
+                    {
+                        "const": "sse"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client", "server" ]
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "retry":
+                            {
+                                "type": "integer",
+                                "default": 2000
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "path":
+                                            {
+                                                "title": "Path",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
-            ]
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]

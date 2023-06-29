@@ -1,41 +1,59 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/oneOf/-",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "filesystem"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
-            "properties":
+            "if":
             {
-                "type":
+               "properties":
                 {
-                    "const": "filesystem"
-                },
-                "kind":
-                {
-                    "enum": [ "server" ]
-                },
-                "vault": false,
-                "options":
-                {
-                    "properties":
+                    "type":
                     {
-                        "location":
-                        {
-                            "title": "Location",
-                            "type": "string"
-                        },
-                        "symlinks":
-                        {
-                            "title": "Symbolic Links",
-                            "type": "string",
-                            "enum": [ "follow", "ignore" ],
-                            "default": "ignore"
-                        }
+                        "const": "filesystem"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "filesystem"
                     },
-                    "additionalProperties": false
-                },
-                "routes": false,
-                "exit": false
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "location":
+                            {
+                                "title": "Location",
+                                "type": "string"
+                            },
+                            "symlinks":
+                            {
+                                "title": "Symbolic Links",
+                                "type": "string",
+                                "enum": [ "follow", "ignore" ],
+                                "default": "ignore"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes": false,
+                    "exit": false
+                }
             }
         }
     }

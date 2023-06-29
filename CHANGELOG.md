@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.9.48](https://github.com/aklivity/zilla/tree/0.9.48) (2023-06-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.47...0.9.48)
+
+**Implemented enhancements:**
+
+- Support additional grpc specific metrics [\#233](https://github.com/aklivity/zilla/issues/233)
+
+**Fixed bugs:**
+
+- CacheMergedIT.shouldFetchMergedMessagesWithIsolationReadCommitted fails only on GitHub Actions [\#239](https://github.com/aklivity/zilla/issues/239)
+- CacheFetchIT.shouldReceiveMessagesWithIsolationReadUncommittedWhenAborting fails only on GitHub Actions [\#236](https://github.com/aklivity/zilla/issues/236)
+
+**Merged pull requests:**
+
+- Fix message fragmentation in sse-kafka and flow control in kafka merge [\#283](https://github.com/aklivity/zilla/pull/283) ([akrambek](https://github.com/akrambek))
+- Fix dependencies to run TcpServerBM from command line [\#280](https://github.com/aklivity/zilla/pull/280) ([akrambek](https://github.com/akrambek))
+- Fix bug with histograms in Prometheus exporter [\#278](https://github.com/aklivity/zilla/pull/278) ([attilakreiner](https://github.com/attilakreiner))
+- Include failsafe reports for failed builds [\#276](https://github.com/aklivity/zilla/pull/276) ([aDaemonThread](https://github.com/aDaemonThread))
+- Fix mqtt decoding bug [\#275](https://github.com/aklivity/zilla/pull/275) ([bmaidics](https://github.com/bmaidics))
+- Allow Kafka merged stream to change fetch filters dynamically [\#272](https://github.com/aklivity/zilla/pull/272) ([bmaidics](https://github.com/bmaidics))
+- Bump jose4j from 0.7.10 to 0.9.3 in /runtime/guard-jwt [\#271](https://github.com/aklivity/zilla/pull/271) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix mqtt-kafka subscribe stream initial offset [\#270](https://github.com/aklivity/zilla/pull/270) ([bmaidics](https://github.com/bmaidics))
+- Implement counter value reader in EngineExtContext [\#261](https://github.com/aklivity/zilla/pull/261) ([attilakreiner](https://github.com/attilakreiner))
+- CacheMergedIT.shouldFetchMergedMessagesWithIsolationReadCommitted fix [\#260](https://github.com/aklivity/zilla/pull/260) ([aDaemonThread](https://github.com/aDaemonThread))
+- Cleanup obsolete load counters [\#253](https://github.com/aklivity/zilla/pull/253) ([attilakreiner](https://github.com/attilakreiner))
+- GitHub Actions fix [\#251](https://github.com/aklivity/zilla/pull/251) ([aDaemonThread](https://github.com/aDaemonThread))
+- Update README.md [\#250](https://github.com/aklivity/zilla/pull/250) ([jfallows](https://github.com/jfallows))
+- Fix the requirements versions in helm chart readme [\#249](https://github.com/aklivity/zilla/pull/249) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.47](https://github.com/aklivity/zilla/tree/0.9.47) (2023-05-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.46...0.9.47)
+
+**Merged pull requests:**
+
+- Update README.md of helm-chart [\#248](https://github.com/aklivity/zilla/pull/248) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.46](https://github.com/aklivity/zilla/tree/0.9.46) (2023-05-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.45...0.9.46)
+
+## [0.9.45](https://github.com/aklivity/zilla/tree/0.9.45) (2023-05-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.44...0.9.45)
+
+**Implemented enhancements:**
+
+- Generic helm chart [\#242](https://github.com/aklivity/zilla/issues/242)
+
+**Merged pull requests:**
+
+- Generic helm chart [\#230](https://github.com/aklivity/zilla/pull/230) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.44](https://github.com/aklivity/zilla/tree/0.9.44) (2023-05-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.43...0.9.44)
+
+**Implemented enhancements:**
+
+- Simplify `zilla.yaml` errors on invalid input [\#222](https://github.com/aklivity/zilla/issues/222)
+- MQTT and MQTT-Kafka bindings [\#196](https://github.com/aklivity/zilla/issues/196)
+- Support additional http specific metrics [\#111](https://github.com/aklivity/zilla/issues/111)
+
+**Closed issues:**
+
+- Refactor existing MQTT specs [\#179](https://github.com/aklivity/zilla/issues/179)
+
+**Merged pull requests:**
+
+- Readme Updates [\#247](https://github.com/aklivity/zilla/pull/247) ([llukyanov](https://github.com/llukyanov))
+- Simplify zilla yaml errors [\#245](https://github.com/aklivity/zilla/pull/245) ([jfallows](https://github.com/jfallows))
+- telemetry metrics feature baseline [\#244](https://github.com/aklivity/zilla/pull/244) ([jfallows](https://github.com/jfallows))
+- Fix grpc last message id decoding [\#243](https://github.com/aklivity/zilla/pull/243) ([akrambek](https://github.com/akrambek))
+- Introduce grpc metrics [\#241](https://github.com/aklivity/zilla/pull/241) ([attilakreiner](https://github.com/attilakreiner))
+- Mqtt-kafka binding implementation [\#235](https://github.com/aklivity/zilla/pull/235) ([bmaidics](https://github.com/bmaidics))
+- Add http.active.requests and http.duration metrics [\#227](https://github.com/aklivity/zilla/pull/227) ([attilakreiner](https://github.com/attilakreiner))
+- Introducing Stream Direction to Optimize Metric Collection [\#224](https://github.com/aklivity/zilla/pull/224) ([attilakreiner](https://github.com/attilakreiner))
+- Remove zilla load command [\#223](https://github.com/aklivity/zilla/pull/223) ([attilakreiner](https://github.com/attilakreiner))
+- Minimize performance overhead for metric collection [\#217](https://github.com/aklivity/zilla/pull/217) ([attilakreiner](https://github.com/attilakreiner))
+-  Fix metrics command, find layout files in the engine dir [\#204](https://github.com/aklivity/zilla/pull/204) ([attilakreiner](https://github.com/attilakreiner))
+- Prometheus Exporter [\#203](https://github.com/aklivity/zilla/pull/203) ([attilakreiner](https://github.com/attilakreiner))
+- Engine support to exporters [\#202](https://github.com/aklivity/zilla/pull/202) ([attilakreiner](https://github.com/attilakreiner))
+- Mqtt binding implementation [\#201](https://github.com/aklivity/zilla/pull/201) ([bmaidics](https://github.com/bmaidics))
+- mqtt binding specs [\#191](https://github.com/aklivity/zilla/pull/191) ([bmaidics](https://github.com/bmaidics))
+- Metrics schema, extensibility, storage and command line support [\#173](https://github.com/aklivity/zilla/pull/173) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.43](https://github.com/aklivity/zilla/tree/0.9.43) (2023-05-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.42...0.9.43)
