@@ -58,10 +58,10 @@ public class CacheGroupIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/assign.leader/client",
-        "${app}/assign.leader/server"})
+        "${app}/rebalance/client",
+        "${app}/rebalance/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldAssignLeader() throws Exception
+    public void shouldRebalanceLeader() throws Exception
     {
         k3po.finish();
     }
