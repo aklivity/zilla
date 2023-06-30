@@ -2287,7 +2287,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final SyncGroupRequestFW syncGroupRequest =
                 syncGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
-                    .generatedId(nextRequestId)
+                    .generatedId(1)
                     .memberId(memberId)
                     .groupInstanceId(groupInstanceId)
                     .assignmentCount(members.size())
@@ -2345,7 +2345,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final HeartbeatRequestFW heartbeatRequest =
                 heartbeatRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
-                    .generatedId(nextRequestId)
+                    .generatedId(1)
                     .memberId(memberId)
                     .groupInstanceId(groupInstanceId)
                     .build();
