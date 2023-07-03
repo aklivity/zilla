@@ -14,18 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.RETAIN_AVAILABLE;
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
 
 public class MqttKafkaConfigurationTest
 {
-    public static final String RETAIN_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.retain.available";
 
-    @Test
-    public void shouldVerifyConstants() throws Exception
-    {
-        assertEquals(RETAIN_AVAILABLE.name(), RETAIN_AVAILABLE_NAME);
-    }
 }

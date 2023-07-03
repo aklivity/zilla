@@ -21,7 +21,7 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client1")
@@ -48,7 +48,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client2")
-                                .filter("sensor/one", 1)
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 

@@ -22,14 +22,12 @@ public class MqttKafkaConfiguration extends Configuration
 
     public static final PropertyDef<String> KAFKA_MESSAGES_TOPIC;
     public static final PropertyDef<String> KAFKA_RETAINED_MESSAGES_TOPIC;
-    public static final BooleanPropertyDef RETAIN_AVAILABLE;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt.kafka");
         KAFKA_MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
         KAFKA_RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
-        RETAIN_AVAILABLE = config.property("retain.available", true);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -46,10 +44,5 @@ public class MqttKafkaConfiguration extends Configuration
     public String kafkaRetainedMessagesTopic()
     {
         return KAFKA_RETAINED_MESSAGES_TOPIC.get(this);
-    }
-
-    public boolean retainAvailable()
-    {
-        return RETAIN_AVAILABLE.get(this);
     }
 }

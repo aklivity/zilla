@@ -39,10 +39,10 @@ write [0x82 0x1b]                   # SUBSCRIBE
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x00 0x08] "sensor/#"        # topic filter
-      [0x00]                        # options = at-most-once, send retained
+      [0x20]                        # options = at-most-once
 
       [0x00 0x08] "device/#"        # topic filter
-      [0x00]                        # options = at-most-once, send retained
+      [0x20]                        # options = at-most-once
 
 read  [0x90 0x05]                   # SUBACK
       [0x00 0x01]                   # packet id = 1

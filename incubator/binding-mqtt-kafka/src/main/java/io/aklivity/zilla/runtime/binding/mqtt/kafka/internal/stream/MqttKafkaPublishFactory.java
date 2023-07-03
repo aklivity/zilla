@@ -114,7 +114,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final String16FW textFormat;
     private final String kafkaTopic;
     private final String kafkaRetainedTopic;
-    private final boolean retainAvailable;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -138,7 +137,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
         this.kafkaTopic = config.kafkaMessagesTopic();
         this.kafkaRetainedTopic = config.kafkaRetainedMessagesTopic();
-        this.retainAvailable = config.retainAvailable();
     }
 
     @Override
@@ -196,6 +194,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
         private OctetsFW[] topicNameHeaders;
         private OctetsFW clientIdOctets;
+        private boolean retainAvailable;
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -292,6 +291,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 .build();
 
             messages.doKafkaBegin(traceId, authorization, affinity);
+            this.retainAvailable = (mqttPublishBeginEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0;
             if (retainAvailable)
             {
                 retained.doKafkaBegin(traceId, authorization, affinity);
@@ -1012,12 +1012,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
             initialMax = delegate.initialMax;
             state = MqttKafkaState.openingInitial(state);
 
-            if (retainAvailable)
-            {
-                kafka =
-                    newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, kafkaRetainedTopic);
-            }
+            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, affinity, kafkaRetainedTopic);
         }
 
         private void doKafkaData(

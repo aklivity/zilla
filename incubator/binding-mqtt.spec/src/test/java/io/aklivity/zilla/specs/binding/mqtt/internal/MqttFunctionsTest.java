@@ -220,6 +220,31 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldMatchPublishBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .publish()
+                .clientId("client")
+                .topic("sensor/one")
+                .flags("RETAIN")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .publish(f -> f
+                .clientId("client")
+                .topic("sensor/one")
+                .flags(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchSubscribeBeginExtension() throws Exception
     {
         BytesMatcher matcher = MqttFunctions.matchBeginEx()
@@ -259,7 +284,7 @@ public class MqttFunctionsTest
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
-                .filtersItem(p -> p.subscriptionId(1).qos(0).flags(1).pattern("sensor/one")))
+                .filtersItem(p -> p.subscriptionId(1).qos(0).flags(0).pattern("sensor/one")))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -282,7 +307,7 @@ public class MqttFunctionsTest
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
-                .filtersItem(p -> p.qos(0).flags(1).pattern("sensor/one")))
+                .filtersItem(p -> p.qos(0).flags(0).pattern("sensor/one")))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -410,14 +435,15 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttProduceBeginEx()
+    public void shouldEncodeMqttPublishBeginEx()
     {
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
             .publish()
-            .clientId("client")
-            .topic("sensor/one")
-            .build()
+                .clientId("client")
+                .topic("sensor/one")
+                .flags("RETAIN")
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -426,6 +452,7 @@ public class MqttFunctionsTest
         assertEquals(0, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.publish().clientId().asString());
         assertEquals("sensor/one", mqttBeginEx.publish().topic().asString());
+        assertEquals(1, mqttBeginEx.publish().flags());
     }
 
     @Test
@@ -1268,6 +1295,6 @@ public class MqttFunctionsTest
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
                     0 == f.qos() &&
-                    0b0001 == f.flags()));
+                    0b0000 == f.flags()));
     }
 }

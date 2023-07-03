@@ -137,7 +137,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final MqttKafkaHeaderHelper helper;
     private final String kafkaMessagesTopicName;
     private final String kafkaRetainedTopicName;
-    private final boolean retainAvailable;
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -158,7 +157,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         this.helper = new MqttKafkaHeaderHelper();
         this.kafkaMessagesTopicName = config.kafkaMessagesTopic();
         this.kafkaRetainedTopicName = config.kafkaRetainedMessagesTopic();
-        this.retainAvailable = config.retainAvailable();
     }
 
     @Override
@@ -223,6 +221,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private String clientId;
         private Array32FW<MqttTopicFilterFW> filters;
         private Array32FW<MqttTopicFilterFW> retainedFilters;
+        private boolean retainAvailable;
 
         private MqttSubscribeProxy(
             MessageConsumer mqtt,
@@ -318,6 +317,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 {
                     messagesSubscriptionIds.add(subscriptionId);
                 }
+                if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
+                {
+                    retainAvailable = true;
+                }
             });
 
             final List<Subscription> retainedFilters = new ArrayList<>();
@@ -370,12 +373,18 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             filters = mqttSubscribeFlushEx.filters();
             messagesSubscriptionIds.clear();
 
-            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+            final KafkaFlushExFW kafkaFlushEx =
+                kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m ->
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                     filters.forEach(filter ->
+                    {
+                        if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
+                        {
+                            retainAvailable = true;
+                        }
                         m.filtersItem(f ->
                         {
                             final int subscriptionId = (int) filter.subscriptionId();
@@ -398,7 +407,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                                         .valueLen(valueBuffer.capacity())
                                         .value(valueBuffer, 0, valueBuffer.capacity())))));
                             }
-                        }));
+                        });
+                    });
                 })
                 .build();
 
@@ -452,10 +462,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             assert initialAck <= initialSeq;
 
             doMqttReset(traceId);
-            if (MqttKafkaState.initialOpened(messages.state))
-            {
-                messages.doKafkaAbort(traceId, authorization);
-            }
+
+            messages.doKafkaAbort(traceId, authorization);
             if (retainAvailable)
             {
                 retained.doKafkaAbort(traceId, authorization);
@@ -479,10 +487,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            if (MqttKafkaState.initialOpened(messages.state))
-            {
-                messages.doKafkaEnd(traceId, initialSeq, authorization);
-            }
+
+            messages.doKafkaEnd(traceId, initialSeq, authorization);
             if (retainAvailable)
             {
                 retained.doKafkaEnd(traceId, initialSeq, authorization);
@@ -505,10 +511,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            if (MqttKafkaState.initialOpened(messages.state))
-            {
-                messages.doKafkaAbort(traceId, authorization);
-            }
+
+            messages.doKafkaAbort(traceId, authorization);
             if (retainAvailable)
             {
                 retained.doKafkaAbort(traceId, authorization);
@@ -534,10 +538,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (MqttKafkaState.initialOpened(messages.state))
-            {
-                messages.doKafkaReset(traceId);
-            }
+
+            messages.doKafkaReset(traceId);
             if (retainAvailable)
             {
                 retained.doKafkaReset(traceId);
@@ -571,9 +573,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             mqttSharedBudget = replyMax - (int)(replySeq - replyAck);
 
-            if (retainAvailable &&
-                MqttKafkaState.initialOpening(retained.state) &&
-                !MqttKafkaState.initialClosing(retained.state))
+            if (retainAvailable)
             {
                 retained.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
@@ -581,10 +581,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             {
                 messages.flushData(traceId, authorization, budgetId);
             }
-            if (MqttKafkaState.replyOpening(messages.state))
-            {
-                messages.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
-            }
+            messages.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
         }
 
         private void doMqttBegin(
@@ -829,7 +826,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             long sequence,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (MqttKafkaState.initialOpened(state) && !MqttKafkaState.initialClosed(state))
             {
                 initialSeq = mqtt.initialSeq;
                 initialAck = mqtt.initialAck;
@@ -844,7 +841,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (MqttKafkaState.initialOpened(state) && !MqttKafkaState.initialClosed(state))
             {
                 initialSeq = mqtt.initialSeq;
                 initialAck = mqtt.initialAck;
@@ -1138,7 +1135,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (MqttKafkaState.initialOpened(state) && !MqttKafkaState.replyClosed(state))
             {
                 state = MqttKafkaState.closeReply(state);
 
@@ -1153,24 +1150,27 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             int padding,
             int capabilities)
         {
-            final int replyWin = replyMax - (int)(replySeq - replyAck);
-            final int newReplyWin = mqtt.mqttSharedBudget;
-
-            final int replyCredit = newReplyWin - replyWin;
-
-            if (replyCredit > 0)
+            if (MqttKafkaState.replyOpening(state))
             {
-                final int replyNoAck = (int)(replySeq - replyAck);
-                final int replyAcked = Math.min(replyNoAck, replyCredit);
+                final int replyWin = replyMax - (int) (replySeq - replyAck);
+                final int newReplyWin = mqtt.mqttSharedBudget;
 
-                replyAck += replyAcked;
-                assert replyAck <= replySeq;
+                final int replyCredit = newReplyWin - replyWin;
 
-                replyMax = newReplyWin + (int)(replySeq - replyAck);
-                assert replyMax >= 0;
+                if (replyCredit > 0)
+                {
+                    final int replyNoAck = (int) (replySeq - replyAck);
+                    final int replyAcked = Math.min(replyNoAck, replyCredit);
 
-                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, padding, replyPad, capabilities);
+                    replyAck += replyAcked;
+                    assert replyAck <= replySeq;
+
+                    replyMax = newReplyWin + (int) (replySeq - replyAck);
+                    assert replyMax >= 0;
+
+                    doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, budgetId, padding, replyPad, capabilities);
+                }
             }
         }
     }
@@ -1525,24 +1525,28 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             int padding,
             int capabilities)
         {
-            final int replyWin = replyMax - (int)(replySeq - replyAck);
-            final int newReplyWin = mqtt.mqttSharedBudget;
-
-            final int replyCredit = newReplyWin - replyWin;
-
-            if (replyCredit > 0)
+            if (MqttKafkaState.initialOpening(state) &&
+                !MqttKafkaState.initialClosing(state))
             {
-                final int replyNoAck = (int)(replySeq - replyAck);
-                final int replyAcked = Math.min(replyNoAck, replyCredit);
+                final int replyWin = replyMax - (int) (replySeq - replyAck);
+                final int newReplyWin = mqtt.mqttSharedBudget;
 
-                replyAck += replyAcked;
-                assert replyAck <= replySeq;
+                final int replyCredit = newReplyWin - replyWin;
 
-                replyMax = newReplyWin + (int)(replySeq - replyAck);
-                assert replyMax >= 0;
+                if (replyCredit > 0)
+                {
+                    final int replyNoAck = (int) (replySeq - replyAck);
+                    final int replyAcked = Math.min(replyNoAck, replyCredit);
 
-                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, padding, replyPad, capabilities);
+                    replyAck += replyAcked;
+                    assert replyAck <= replySeq;
+
+                    replyMax = newReplyWin + (int) (replySeq - replyAck);
+                    assert replyMax >= 0;
+
+                    doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, budgetId, padding, replyPad, capabilities);
+                }
             }
         }
     }

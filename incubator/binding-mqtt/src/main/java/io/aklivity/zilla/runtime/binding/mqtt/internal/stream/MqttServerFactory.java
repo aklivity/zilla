@@ -3427,6 +3427,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             publishBuilder.clientId(clientId);
                             publishBuilder.topic(topic);
+                            publishBuilder.flags(retainedMessages);
                         })
                         .build();
 

@@ -19,7 +19,7 @@ accept "zilla://streams/mqtt0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
