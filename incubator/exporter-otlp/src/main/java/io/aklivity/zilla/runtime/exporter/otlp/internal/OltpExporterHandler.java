@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
@@ -38,11 +37,11 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final long DELAY = Duration.ofSeconds(1).toMillis();
 
-    private final EngineConfiguration config;
-    private final OtlpMetricsDescriptor descriptor;
+    private final EngineContext context;
     private final OtlpEndpointConfig endpoint;
     private final Duration interval;
     private final Collector collector;
+    private final IntFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
     private final Timer timer;
 
@@ -54,22 +53,21 @@ public class OltpExporterHandler implements ExporterHandler
         IntFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
-        this.config = config;
-        this.descriptor = new OtlpMetricsDescriptor(context::resolveMetric, resolveKind);
-        // options is required, at least one endpoint is required, url must be valid url
+        this.context = context;
         this.endpoint = exporter.options().endpoints[0];
         this.interval = Duration.ofSeconds(exporter.options().interval);
         this.attributes = attributes;
         this.collector = collector;
+        this.resolveKind = resolveKind;
         this.timer = new Timer();
     }
 
     @Override
     public void start()
     {
-        MetricsReaderFactory factory = new MetricsReaderFactory(collector, config.directory());
-        MetricsReader metrics = factory.create();
+        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         List<MetricRecord> records = metrics.records();
+        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(context::resolveMetric, resolveKind);
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(records, attributes, descriptor::kind,
             descriptor::nameByBinding, descriptor::description, descriptor::unit);
         TimerTask task = new OtlpExporterTask(endpoint.url, serializer);

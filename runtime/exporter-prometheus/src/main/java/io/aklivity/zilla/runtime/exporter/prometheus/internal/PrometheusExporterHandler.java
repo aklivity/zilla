@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +37,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReaderFactory;
 import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
@@ -47,10 +45,10 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.Prometheus
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
+    private final EngineContext context;
     private final PrometheusMetricDescriptor descriptor;
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
-    private final Path engineDirectory;
     private final Collector collector;
 
     private MetricsPrinter printer;
@@ -61,7 +59,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         PrometheusExporterConfig exporter,
         Collector collector)
     {
-        this.engineDirectory = config.directory();
+        this.context = context;
         this.descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
         this.collector = collector;
@@ -71,8 +69,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        MetricsReaderFactory factory = new MetricsReaderFactory(collector, engineDirectory);
-        MetricsReader metrics = factory.create();
+        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         List<MetricRecord> records = metrics.records();
         printer = new MetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
 

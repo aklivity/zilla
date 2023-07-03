@@ -48,11 +48,13 @@ public class OtlpMetricDescriptorTest
         String kind = descriptor.kind("http.request.size");
         String name = descriptor.nameByBinding("http.request.size", 42);
         String description = descriptor.description("http.request.size");
+        String unit = descriptor.unit("http.request.size");
 
         // THEN
         assertThat(kind, equalTo("histogram"));
         assertThat(name, equalTo("http.server.request.size"));
         assertThat(description, equalTo("description"));
+        assertThat(unit, equalTo("bytes"));
     }
 
     @Test
@@ -74,10 +76,12 @@ public class OtlpMetricDescriptorTest
         String kind = descriptor.kind("http.request.size");
         String name = descriptor.nameByBinding("http.request.size", 42);
         String description = descriptor.description("http.request.size");
+        String unit = descriptor.unit("http.request.size");
 
         // THEN
         assertThat(kind, equalTo("histogram"));
         assertThat(name, equalTo("http.client.request.size"));
         assertThat(description, equalTo("description"));
+        assertThat(unit, equalTo("bytes"));
     }
 }
