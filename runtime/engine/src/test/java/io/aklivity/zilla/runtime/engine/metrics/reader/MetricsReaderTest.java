@@ -26,7 +26,6 @@ import java.util.function.IntFunction;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsReaderTest
 {

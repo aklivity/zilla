@@ -26,9 +26,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.utils.ObjectIntFunction;
 
 public class OtlpMetricsSerializer
@@ -85,9 +85,9 @@ public class OtlpMetricsSerializer
         MetricRecord metric)
     {
         JsonObject result = null;
-        if (metric.getClass().equals(CounterGaugeRecord.class))
+        if (metric.getClass().equals(ScalarRecord.class))
         {
-            result = serializeCounterGauge((CounterGaugeRecord) metric);
+            result = serializeScalar((ScalarRecord) metric);
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
@@ -96,8 +96,8 @@ public class OtlpMetricsSerializer
         return result;
     }
 
-    private JsonObject serializeCounterGauge(
-        CounterGaugeRecord record)
+    private JsonObject serializeScalar(
+        ScalarRecord record)
     {
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("asInt", record.valueReader().getAsLong())
@@ -108,11 +108,11 @@ public class OtlpMetricsSerializer
             .add(dataPoint)
             .build();
         String kind = supplyKind.apply(record.metricName());
-        JsonObjectBuilder counterGaugeData = Json.createObjectBuilder()
+        JsonObjectBuilder scalarData = Json.createObjectBuilder()
             .add("dataPoints", dataPoints);
         if ("sum".equals(kind))
         {
-            counterGaugeData
+            scalarData
                 .add("aggregationTemporality", CUMULATIVE)
                 .add("isMonotonic", true);
         }
@@ -120,7 +120,7 @@ public class OtlpMetricsSerializer
             .add("name", supplyName.apply(record.metricName(), record.bindingId()))
             .add("unit", supplyUnit.apply(record.metricName()))
             .add("description", supplyDescription.apply(record.metricName()))
-            .add(kind, counterGaugeData)
+            .add(kind, scalarData)
             .build();
     }
 

@@ -13,8 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics.record;
+package io.aklivity.zilla.runtime.engine.metrics.reader;
 
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
@@ -22,24 +24,26 @@ import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
-public class CounterGaugeRecord implements MetricRecord
+public class HistogramRecord implements MetricRecord
 {
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
-    private final LongSupplier reader;
+    private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
 
-    public CounterGaugeRecord(
+    private long[] bucketValues = new long[BUCKETS];
+
+    public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
-        LongSupplier reader,
+        LongSupplier[] readers,
         IntFunction<String> labelResolver)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
-        this.reader = reader;
+        this.readers = readers;
         this.labelResolver = labelResolver;
     }
 
@@ -67,9 +71,61 @@ public class CounterGaugeRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
-    public LongSupplier valueReader()
+    public int buckets()
     {
-        return this.reader;
+        return BUCKETS;
+    }
+
+    public long[] bucketLimits()
+    {
+        return BUCKET_LIMITS;
+    }
+
+    public void update()
+    {
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            bucketValues[i] = readers[i].getAsLong();
+        }
+    }
+
+    public long[] bucketValues()
+    {
+        return bucketValues;
+    }
+
+    public long[] stats()
+    {
+        long count = 0L;
+        long sum = 0L;
+        int minIndex = -1;
+        int maxIndex = -1;
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            long bucketCount = bucketValues[i];
+            count += bucketCount;
+            sum += bucketCount * getValue(i);
+            if (bucketCount != 0)
+            {
+                maxIndex = i;
+                if (minIndex == -1)
+                {
+                    minIndex = i;
+                }
+            }
+        }
+
+        long minimum = minIndex == -1 ? 0L : getValue(minIndex);
+        long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
+        long average = count == 0L ? 0L : sum / count;
+        return new long[]{minimum, maximum, sum, count, average};
+    }
+
+
+    private long getValue(
+        int index)
+    {
+        return BUCKET_LIMITS[index] - 1;
     }
 
     @Override
@@ -84,7 +140,7 @@ public class CounterGaugeRecord implements MetricRecord
         {
             return false;
         }
-        CounterGaugeRecord that = (CounterGaugeRecord) o;
+        HistogramRecord that = (HistogramRecord) o;
         return namespaceId == that.namespaceId && bindingId == that.bindingId && metricId == that.metricId;
     }
 

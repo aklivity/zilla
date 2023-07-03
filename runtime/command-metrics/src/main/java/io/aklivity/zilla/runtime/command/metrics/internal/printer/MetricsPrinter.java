@@ -19,9 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReader;
-import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 
 public class MetricsPrinter
 {
@@ -93,9 +93,9 @@ public class MetricsPrinter
         MetricRecord metric)
     {
         String result = null;
-        if (metric.getClass().equals(CounterGaugeRecord.class))
+        if (metric.getClass().equals(ScalarRecord.class))
         {
-            result = formatCounterGauge((CounterGaugeRecord) metric);
+            result = formatScalar((ScalarRecord) metric);
         }
         else if (metric.getClass().equals(HistogramRecord.class))
         {
@@ -104,8 +104,8 @@ public class MetricsPrinter
         return result;
     }
 
-    private String formatCounterGauge(
-        CounterGaugeRecord record)
+    private String formatScalar(
+        ScalarRecord record)
     {
         return String.valueOf(record.valueReader().getAsLong());
     }

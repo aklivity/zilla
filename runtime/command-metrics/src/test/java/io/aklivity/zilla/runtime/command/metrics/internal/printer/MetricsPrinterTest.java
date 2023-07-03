@@ -26,9 +26,9 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReader;
-import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 
 public class MetricsPrinterTest
 {
@@ -42,13 +42,13 @@ public class MetricsPrinterTest
             "ns1          binding1    gauge1                                           77\n" +
             "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 2 | avg: 32]\n\n";
 
-        CounterGaugeRecord counterRecord = mock(CounterGaugeRecord.class);
+        ScalarRecord counterRecord = mock(ScalarRecord.class);
         when(counterRecord.namespaceName()).thenReturn("ns1");
         when(counterRecord.bindingName()).thenReturn("binding1");
         when(counterRecord.metricName()).thenReturn("counter1");
         when(counterRecord.valueReader()).thenReturn(() -> 42L);
 
-        CounterGaugeRecord gaugeRecord = mock(CounterGaugeRecord.class);
+        ScalarRecord gaugeRecord = mock(ScalarRecord.class);
         when(gaugeRecord.namespaceName()).thenReturn("ns1");
         when(gaugeRecord.bindingName()).thenReturn("binding1");
         when(gaugeRecord.metricName()).thenReturn("gauge1");

@@ -29,9 +29,9 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 
 public class MetricsReader
 {
@@ -97,7 +97,7 @@ public class MetricsReader
             if (filter.test(bindingId))
             {
                 LongSupplier reader = () -> aggregateScalarValue(layouts.get(COUNTER), bindingId, metricId);
-                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, reader, labels::lookupLabel);
+                MetricRecord record = new ScalarRecord(bindingId, metricId, reader, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }
@@ -120,7 +120,7 @@ public class MetricsReader
             if (filter.test(bindingId))
             {
                 LongSupplier reader = () -> aggregateScalarValue(layouts.get(GAUGE), bindingId, metricId);
-                MetricRecord record = new CounterGaugeRecord(bindingId, metricId, reader, labels::lookupLabel);
+                MetricRecord record = new ScalarRecord(bindingId, metricId, reader, labels::lookupLabel);
                 metricRecords.add(record);
             }
         }

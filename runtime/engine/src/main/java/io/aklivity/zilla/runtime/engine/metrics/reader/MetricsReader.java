@@ -21,9 +21,6 @@ import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.engine.metrics.record.CounterGaugeRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.HistogramRecord;
-import io.aklivity.zilla.runtime.engine.metrics.record.MetricRecord;
 
 public class MetricsReader
 {
@@ -55,7 +52,7 @@ public class MetricsReader
             long bindingId = counterIds[0];
             long metricId = counterIds[1];
             LongSupplier counterReader = collector.counter(bindingId, metricId);
-            MetricRecord record = new CounterGaugeRecord(bindingId, metricId, counterReader, labelResolver);
+            MetricRecord record = new ScalarRecord(bindingId, metricId, counterReader, labelResolver);
             records.add(record);
         }
     }
@@ -67,7 +64,7 @@ public class MetricsReader
             long bindingId = gaugeIds[0];
             long metricId = gaugeIds[1];
             LongSupplier gaugeReader = collector.gauge(bindingId, metricId);
-            MetricRecord record = new CounterGaugeRecord(bindingId, metricId, gaugeReader, labelResolver);
+            MetricRecord record = new ScalarRecord(bindingId, metricId, gaugeReader, labelResolver);
             records.add(record);
         }
     }
