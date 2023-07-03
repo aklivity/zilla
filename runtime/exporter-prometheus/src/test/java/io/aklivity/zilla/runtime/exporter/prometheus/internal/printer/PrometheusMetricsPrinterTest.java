@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 
-public class MetricsPrinterTest
+public class PrometheusMetricsPrinterTest
 {
     @Test
     public void shouldWorkInGenericCase() throws Exception
@@ -88,7 +88,7 @@ public class MetricsPrinterTest
         when(descriptor.kind("histogram1")).thenReturn("histogram");
         when(descriptor.description("histogram1")).thenReturn("description for histogram1");
 
-        MetricsPrinter printer = new MetricsPrinter(metricRecords, descriptor::kind, descriptor::name,
+        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(metricRecords, descriptor::kind, descriptor::name,
             descriptor::description);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -105,7 +105,7 @@ public class MetricsPrinterTest
     {
         // GIVEN
         String expectedOutput = "";
-        MetricsPrinter printer = new MetricsPrinter(List.of(), null, null, null);
+        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(List.of(), null, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

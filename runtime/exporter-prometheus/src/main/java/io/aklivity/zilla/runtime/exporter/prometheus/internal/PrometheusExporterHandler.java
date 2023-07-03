@@ -40,8 +40,8 @@ import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.MetricsPrinter;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.PrometheusMetricDescriptor;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.PrometheusMetricsPrinter;
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
@@ -51,7 +51,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final Map<Integer, HttpServer> servers;
     private final Collector collector;
 
-    private MetricsPrinter printer;
+    private PrometheusMetricsPrinter printer;
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
@@ -71,7 +71,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     {
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         List<MetricRecord> records = metrics.records();
-        printer = new MetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
+        printer = new PrometheusMetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
 
         for (PrometheusEndpointConfig endpoint : endpoints)
         {

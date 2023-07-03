@@ -22,14 +22,14 @@ import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
 
-public class MetricsPrinter
+public class PrometheusMetricsPrinter
 {
     private final List<MetricRecord> records;
     private final Function<String, String> supplyKind;
     private final Function<String, String> supplyName;
     private final Function<String, String> supplyDescription;
 
-    public MetricsPrinter(
+    public PrometheusMetricsPrinter(
         List<MetricRecord> records,
         Function<String, String> supplyKind,
         Function<String, String> supplyName,
