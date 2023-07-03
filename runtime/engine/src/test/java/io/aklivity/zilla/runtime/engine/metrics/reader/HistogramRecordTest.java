@@ -59,8 +59,8 @@ public class HistogramRecordTest
         String bindingName = histogram.bindingName();
         String metricName = histogram.metricName();
         int buckets = histogram.buckets();
-        long value[] = histogram.bucketValues();
-        long stats[] = histogram.stats();
+        long[] value = histogram.bucketValues();
+        long[] stats = histogram.stats();
 
         // THEN
         assertThat(namespaceName, equalTo("namespace1"));
