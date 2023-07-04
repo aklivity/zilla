@@ -4109,7 +4109,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscriptionPayload[i] = SUCCESS;
                     }
 
-                    doEncodeSuback(traceId, authorization, packetId, subscriptionPayload);
+                    if (!MqttState.initialOpened(state))
+                    {
+                        doEncodeSuback(traceId, authorization, packetId, subscriptionPayload);
+                    }
                     if (session && !sessionStream.deferredUnsubscribes.isEmpty())
                     {
                         Iterator<Map.Entry<Integer, List<String>>> iterator =
