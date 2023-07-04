@@ -408,6 +408,16 @@ public final class Engine implements Collector, AutoCloseable
         return result;
     }
 
+    // required for testing
+    public LongConsumer gaugeWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
+        return dispatcher.supplyGaugeWriter(bindingId, metricId);
+    }
+
     @Override
     public LongSupplier[] histogram(
         long bindingId,
@@ -441,6 +451,16 @@ public final class Engine implements Collector, AutoCloseable
             result += readers[index].getAsLong();
         }
         return result;
+    }
+
+    // required for testing
+    public LongConsumer histogramWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
+        return dispatcher.supplyHistogramWriter(bindingId, metricId);
     }
 
     @Override

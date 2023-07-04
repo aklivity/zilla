@@ -816,6 +816,23 @@ public class DispatchAgent implements EngineContext, Agent
         return countersLayout.supplyWriter(bindingId, metricId);
     }
 
+    // required for testing
+    public LongConsumer supplyGaugeWriter(
+        long bindingId,
+        long metricId)
+    {
+        return gaugesLayout.supplyWriter(bindingId, metricId);
+    }
+
+    // required for testing
+    public LongConsumer supplyHistogramWriter(
+        long bindingId,
+        long metricId)
+    {
+        return histogramsLayout.supplyWriter(bindingId, metricId);
+    }
+
+
     private void onSystemMessage(
         int msgTypeId,
         DirectBuffer buffer,
