@@ -62,9 +62,19 @@ public class WsOverHttp2IT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/data.request",
-        "${app}/data.response" })
-    public void shouldEchoData() throws Exception
+        "${net}/echo.binary.data.request",
+        "${app}/echo.binary.data.response" })
+    public void shouldEchoBinaryData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/echo.text.data.request",
+        "${app}/echo.text.data.response" })
+    public void shouldEchoTextData() throws Exception
     {
         k3po.finish();
     }

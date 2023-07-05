@@ -47,9 +47,18 @@ public class WsOverHttp2IT
 
     @Test
     @Specification({
-        "${net}/data.request",
-        "${net}/data.response" })
-    public void shouldEchoData() throws Exception
+        "${net}/echo.binary.data.request",
+        "${net}/echo.binary.data.response" })
+    public void shouldEchoBinaryData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/echo.text.data.request",
+        "${net}/echo.text.data.response" })
+    public void shouldEchoTextData() throws Exception
     {
         k3po.finish();
     }

@@ -14,9 +14,6 @@
 # under the License.
 #
 
-property writeMask ${http:randomBytes(4)}
-property client125 ${http:randomBytesUTF8(125)}
-
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
@@ -47,4 +44,4 @@ read option mask ${readMask}
 read ([0..125] :server125)
 read option mask [0x00 0x00 0x00 0x00]
 
-write [0x82 0x7d] ${server125}
+write [0x81 0x7d] ${server125}
