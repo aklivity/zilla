@@ -29,49 +29,48 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 
-public class GaugesLayoutTest
+public class ScalarsLayoutTest
 {
     @Test
     public void shouldWorkInGenericCase() throws Exception
     {
-        String fileName = "target/zilla-itests/gauges0";
+        String fileName = "target/zilla-itests/counters0";
         Path path = Paths.get(fileName);
-        GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(8192)
                 .mode(CREATE_READ_WRITE)
+                .label("counters")
                 .build();
 
-        LongConsumer writer1 = gaugesLayout.supplyWriter(11L, 42L);
-        LongConsumer writer2 = gaugesLayout.supplyWriter(22L, 77L);
-        LongConsumer writer3 = gaugesLayout.supplyWriter(33L, 88L);
+        LongConsumer writer1 = scalarsLayout.supplyWriter(11L, 42L);
+        LongConsumer writer2 = scalarsLayout.supplyWriter(22L, 77L);
+        LongConsumer writer3 = scalarsLayout.supplyWriter(33L, 88L);
 
-        LongSupplier reader1 = gaugesLayout.supplyReader(11L, 42L);
-        LongSupplier reader2 = gaugesLayout.supplyReader(22L, 77L);
-        LongSupplier reader3 = gaugesLayout.supplyReader(33L, 88L);
+        LongSupplier reader1 = scalarsLayout.supplyReader(11L, 42L);
+        LongSupplier reader2 = scalarsLayout.supplyReader(22L, 77L);
+        LongSupplier reader3 = scalarsLayout.supplyReader(33L, 88L);
 
         assertThat(reader1.getAsLong(), equalTo(0L)); // should be 0L initially
         writer1.accept(1L);
         assertThat(reader1.getAsLong(), equalTo(1L));
-        writer1.accept(-1L);
-        writer2.accept(1L);
-        writer3.accept(1L);
-        writer3.accept(1L);
-        writer3.accept(1L);
-        assertThat(reader1.getAsLong(), equalTo(0L));
-        assertThat(reader2.getAsLong(), equalTo(1L));
-        assertThat(reader3.getAsLong(), equalTo(3L));
+        writer1.accept(1L);
+        writer2.accept(100L);
+        writer3.accept(77L);
+        assertThat(reader1.getAsLong(), equalTo(2L)); // 1 + 1
+        assertThat(reader2.getAsLong(), equalTo(100L));
+        assertThat(reader3.getAsLong(), equalTo(77L));
         writer2.accept(10L);
         writer3.accept(1L);
         writer2.accept(20L);
-        writer3.accept(-1L);
-        writer3.accept(-1L);
-        assertThat(reader2.getAsLong(), equalTo(31L)); // 1 + 10 + 20
-        assertThat(reader3.getAsLong(), equalTo(2L)); // 1 + 1 + 1 - 1 - 1
+        writer3.accept(1L);
+        writer3.accept(1L);
+        assertThat(reader2.getAsLong(), equalTo(130L)); // 100 + 10 + 20
+        assertThat(reader3.getAsLong(), equalTo(80L)); // 77 + 1 + 1 + 1
 
-        gaugesLayout.close();
+        scalarsLayout.close();
         assertTrue(Files.exists(path));
         Files.delete(path);
     }
@@ -79,22 +78,23 @@ public class GaugesLayoutTest
     @Test
     public void shouldThrowExceptionIfBufferIsTooSmall() throws Exception
     {
-        String fileName = "target/zilla-itests/gauges1";
+        String fileName = "target/zilla-itests/counters1";
         Path path = Paths.get(fileName);
-        GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(71) // we'd need 72 bytes here for the 3 records
                 .mode(CREATE_READ_WRITE)
+                .label("counters")
                 .build();
 
-        gaugesLayout.supplyWriter(11L, 42L);
-        gaugesLayout.supplyWriter(22L, 77L);
+        scalarsLayout.supplyWriter(11L, 42L);
+        scalarsLayout.supplyWriter(22L, 77L);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            gaugesLayout.supplyWriter(33L, 88L);
+            scalarsLayout.supplyWriter(33L, 88L);
         });
 
-        gaugesLayout.close();
+        scalarsLayout.close();
         assertTrue(Files.exists(path));
         Files.delete(path);
     }
@@ -102,19 +102,20 @@ public class GaugesLayoutTest
     @Test
     public void shouldGetIds()
     {
-        String fileName = "target/zilla-itests/gauges2";
+        String fileName = "target/zilla-itests/counters2";
         Path path = Paths.get(fileName);
-        GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(8192)
                 .mode(CREATE_READ_WRITE)
+                .label("counters")
                 .build();
 
-        gaugesLayout.supplyWriter(11L, 42L);
-        gaugesLayout.supplyWriter(22L, 77L);
-        gaugesLayout.supplyWriter(33L, 88L);
+        scalarsLayout.supplyWriter(11L, 42L);
+        scalarsLayout.supplyWriter(22L, 77L);
+        scalarsLayout.supplyWriter(33L, 88L);
         long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
 
-        assertThat(gaugesLayout.getIds(), equalTo(expectedIds));
+        assertThat(scalarsLayout.getIds(), equalTo(expectedIds));
     }
 }

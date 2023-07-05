@@ -81,16 +81,16 @@ public class LayoutManager
             Files.isRegularFile(path);
     }
 
-    private CountersLayout newCountersLayout(
+    private ScalarsLayout newCountersLayout(
         Path path)
     {
-        return new CountersLayout.Builder().path(path).mode(READ_ONLY).build();
+        return new ScalarsLayout.Builder().path(path).mode(READ_ONLY).label("counters").build();
     }
 
-    private GaugesLayout newGaugesLayout(
+    private ScalarsLayout newGaugesLayout(
         Path path)
     {
-        return new GaugesLayout.Builder().path(path).mode(READ_ONLY).build();
+        return new ScalarsLayout.Builder().path(path).mode(READ_ONLY).label("gauges").build();
     }
 
     private HistogramsLayout newHistogramsLayout(

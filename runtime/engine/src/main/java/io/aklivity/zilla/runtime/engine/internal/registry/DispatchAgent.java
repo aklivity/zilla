@@ -106,9 +106,8 @@ import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -200,8 +199,8 @@ public class DispatchAgent implements EngineContext, Agent
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
-    private final CountersLayout countersLayout;
-    private final GaugesLayout gaugesLayout;
+    private final ScalarsLayout countersLayout;
+    private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private long initialId;
     private long promiseId;
@@ -237,16 +236,18 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        this.countersLayout = new CountersLayout.Builder()
+        this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
+                .label("counters")
                 .build();
 
-        this.gaugesLayout = new GaugesLayout.Builder()
+        this.gaugesLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)
+                .label("gauges")
                 .build();
 
         this.histogramsLayout = new HistogramsLayout.Builder()

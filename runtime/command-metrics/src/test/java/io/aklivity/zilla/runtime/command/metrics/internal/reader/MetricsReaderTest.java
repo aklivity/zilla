@@ -24,8 +24,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongSupplier;
@@ -33,10 +31,9 @@ import java.util.function.LongSupplier;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
@@ -139,14 +136,14 @@ public class MetricsReaderTest
         when(labels.lookupLabel(31)).thenReturn("gauge1");
         when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        CountersLayout countersLayout = mock(CountersLayout.class);
-        when(countersLayout.getIds()).thenReturn(counterIds);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        ScalarsLayout scalarsLayout = mock(ScalarsLayout.class);
+        when(scalarsLayout.getIds()).thenReturn(counterIds);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(scalarsLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
-        GaugesLayout gaugesLayout = mock(GaugesLayout.class);
+        ScalarsLayout gaugesLayout = mock(ScalarsLayout.class);
         when(gaugesLayout.getIds()).thenReturn(gaugeIds);
         when(gaugesLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_88);
 
@@ -155,7 +152,7 @@ public class MetricsReaderTest
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(countersLayout),
+            COUNTER, List.of(scalarsLayout),
             GAUGE, List.of(gaugesLayout),
             HISTOGRAM, List.of(histogramsLayout));
         MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
@@ -229,19 +226,19 @@ public class MetricsReaderTest
         when(labels.supplyLabelId("ns2")).thenReturn(2);
         when(labels.supplyLabelId("binding2")).thenReturn(12);
 
-        CountersLayout countersLayout = mock(CountersLayout.class);
-        when(countersLayout.getIds()).thenReturn(counterIds);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        ScalarsLayout scalarsLayout = mock(ScalarsLayout.class);
+        when(scalarsLayout.getIds()).thenReturn(counterIds);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(scalarsLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(scalarsLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
         HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(countersLayout),
+            COUNTER, List.of(scalarsLayout),
             GAUGE, List.of(),
             HISTOGRAM, List.of(histogramsLayout));
 
@@ -302,27 +299,27 @@ public class MetricsReaderTest
         when(labels.lookupLabel(31)).thenReturn("gauge1");
         when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        CountersLayout countersLayout0 = mock(CountersLayout.class);
-        when(countersLayout0.getIds()).thenReturn(counterIds);
-        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
-        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
+        ScalarsLayout scalarsLayout0 = mock(ScalarsLayout.class);
+        when(scalarsLayout0.getIds()).thenReturn(counterIds);
+        when(scalarsLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
+        when(scalarsLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
 
-        CountersLayout countersLayout1 = mock(CountersLayout.class);
-        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
+        ScalarsLayout scalarsLayout1 = mock(ScalarsLayout.class);
+        when(scalarsLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(scalarsLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
 
-        CountersLayout countersLayout2 = mock(CountersLayout.class);
-        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
+        ScalarsLayout scalarsLayout2 = mock(ScalarsLayout.class);
+        when(scalarsLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(scalarsLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
 
-        GaugesLayout gaugesLayout0 = mock(GaugesLayout.class);
+        ScalarsLayout gaugesLayout0 = mock(ScalarsLayout.class);
         when(gaugesLayout0.getIds()).thenReturn(gaugeIds);
         when(gaugesLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_40);
 
-        GaugesLayout gaugesLayout1 = mock(GaugesLayout.class);
+        ScalarsLayout gaugesLayout1 = mock(ScalarsLayout.class);
         when(gaugesLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_20);
 
-        GaugesLayout gaugesLayout2 = mock(GaugesLayout.class);
+        ScalarsLayout gaugesLayout2 = mock(ScalarsLayout.class);
         when(gaugesLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_2);
 
         HistogramsLayout histogramsLayout0 = mock(HistogramsLayout.class);
@@ -336,13 +333,11 @@ public class MetricsReaderTest
         when(histogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(countersLayout0, countersLayout1, countersLayout2),
+            COUNTER, List.of(scalarsLayout0, scalarsLayout1, scalarsLayout2),
             GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
             HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
 
         MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
 
         // WHEN
         List<MetricRecord> records = metrics.getRecords();

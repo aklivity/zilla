@@ -30,12 +30,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 
-public final class CountersLayout extends MetricsLayout
+public final class ScalarsLayout extends MetricsLayout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int RECORD_SIZE = 3 * FIELD_SIZE;
 
-    private CountersLayout(
+    private ScalarsLayout(
         AtomicBuffer buffer)
     {
         super(buffer);
@@ -93,11 +93,12 @@ public final class CountersLayout extends MetricsLayout
         return RECORD_SIZE;
     }
 
-    public static final class Builder extends Layout.Builder<CountersLayout>
+    public static final class Builder extends Layout.Builder<ScalarsLayout>
     {
         private long capacity;
         private Path path;
         private Mode mode;
+        private String label;
 
         public Builder capacity(
             long capacity)
@@ -120,17 +121,24 @@ public final class CountersLayout extends MetricsLayout
             return this;
         }
 
+        public Builder label(
+            String label)
+        {
+            this.label = label;
+            return this;
+        }
+
         @Override
-        public CountersLayout build()
+        public ScalarsLayout build()
         {
             final File layoutFile = path.toFile();
             if (mode == Mode.CREATE_READ_WRITE)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
             }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "counters");
+            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, this.label);
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            return new CountersLayout(atomicBuffer);
+            return new ScalarsLayout(atomicBuffer);
         }
     }
 }
