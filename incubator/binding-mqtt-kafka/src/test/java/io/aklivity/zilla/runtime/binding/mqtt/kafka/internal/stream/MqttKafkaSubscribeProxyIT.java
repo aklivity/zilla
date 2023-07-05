@@ -121,6 +121,16 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.options.yaml")
+    @Specification({
+        "${mqtt}/subscribe.one.message/client",
+        "${kafka}/subscribe.one.message.changed.topic.name/server"})
+    public void shouldReceiveOneMessageWithChangedTopicName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",

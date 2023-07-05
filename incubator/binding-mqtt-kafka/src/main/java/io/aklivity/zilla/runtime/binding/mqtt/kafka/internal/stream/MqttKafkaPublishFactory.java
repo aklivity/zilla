@@ -59,8 +59,6 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class MqttKafkaPublishFactory implements BindingHandler
 {
-    //TODO: these defaults should come from the binding config
-    private static final String KAFKA_MESSAGES_TOPIC_NAME = "mqtt_messages";
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
@@ -108,6 +106,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final int kafkaTypeId;
     private final Signaler signaler;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
+
+    private String kafkaMessagesTopic;
     private KafkaKeyFW key;
 
     private OctetsFW[] topicNameHeaders;
@@ -177,8 +177,9 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
-        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
 
+        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
+        kafkaMessagesTopic = binding.messagesTopic();
 
         MessageConsumer newStream = null;
 
@@ -1074,7 +1075,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
-                    .topic(KAFKA_MESSAGES_TOPIC_NAME)
+                    .topic(kafkaMessagesTopic)
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
                     .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
                 .build();
