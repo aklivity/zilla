@@ -136,12 +136,12 @@ public class MetricsReaderTest
         when(labels.lookupLabel(31)).thenReturn("gauge1");
         when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        ScalarsLayout scalarsLayout = mock(ScalarsLayout.class);
-        when(scalarsLayout.getIds()).thenReturn(counterIds);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(scalarsLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        ScalarsLayout countersLayout = mock(ScalarsLayout.class);
+        when(countersLayout.getIds()).thenReturn(counterIds);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
         ScalarsLayout gaugesLayout = mock(ScalarsLayout.class);
         when(gaugesLayout.getIds()).thenReturn(gaugeIds);
@@ -152,7 +152,7 @@ public class MetricsReaderTest
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(scalarsLayout),
+            COUNTER, List.of(countersLayout),
             GAUGE, List.of(gaugesLayout),
             HISTOGRAM, List.of(histogramsLayout));
         MetricsReader metrics = new MetricsReader(layouts, labels, null, null);
@@ -226,19 +226,19 @@ public class MetricsReaderTest
         when(labels.supplyLabelId("ns2")).thenReturn(2);
         when(labels.supplyLabelId("binding2")).thenReturn(12);
 
-        ScalarsLayout scalarsLayout = mock(ScalarsLayout.class);
-        when(scalarsLayout.getIds()).thenReturn(counterIds);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(scalarsLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(scalarsLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        ScalarsLayout countersLayout = mock(ScalarsLayout.class);
+        when(countersLayout.getIds()).thenReturn(counterIds);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
         HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(scalarsLayout),
+            COUNTER, List.of(countersLayout),
             GAUGE, List.of(),
             HISTOGRAM, List.of(histogramsLayout));
 
@@ -299,18 +299,18 @@ public class MetricsReaderTest
         when(labels.lookupLabel(31)).thenReturn("gauge1");
         when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        ScalarsLayout scalarsLayout0 = mock(ScalarsLayout.class);
-        when(scalarsLayout0.getIds()).thenReturn(counterIds);
-        when(scalarsLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
-        when(scalarsLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
+        ScalarsLayout countersLayout0 = mock(ScalarsLayout.class);
+        when(countersLayout0.getIds()).thenReturn(counterIds);
+        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
+        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
 
-        ScalarsLayout scalarsLayout1 = mock(ScalarsLayout.class);
-        when(scalarsLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(scalarsLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
+        ScalarsLayout countersLayout1 = mock(ScalarsLayout.class);
+        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
 
-        ScalarsLayout scalarsLayout2 = mock(ScalarsLayout.class);
-        when(scalarsLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(scalarsLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
+        ScalarsLayout countersLayout2 = mock(ScalarsLayout.class);
+        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
 
         ScalarsLayout gaugesLayout0 = mock(ScalarsLayout.class);
         when(gaugesLayout0.getIds()).thenReturn(gaugeIds);
@@ -333,7 +333,7 @@ public class MetricsReaderTest
         when(histogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
 
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
-            COUNTER, List.of(scalarsLayout0, scalarsLayout1, scalarsLayout2),
+            COUNTER, List.of(countersLayout0, countersLayout1, countersLayout2),
             GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
             HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
 
