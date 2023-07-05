@@ -133,8 +133,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final MqttKafkaHeaderHelper helper;
-    private final String16FW kafkaMessagesTopicName;
-    private final String16FW kafkaRetainedTopicName;
+    private String kafkaRetainedTopicName;
+    private String kafkaMessagesTopic;
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -153,8 +153,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
         this.helper = new MqttKafkaHeaderHelper();
-        this.kafkaMessagesTopicName = new String16FW(config.messagesTopic());
-        this.kafkaRetainedTopicName = new String16FW(config.retainedMessagesTopic());
     }
 
     @Override
@@ -173,8 +171,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
-        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
+        final MqttKafkaRouteConfig resolved = binding != null ?
+            binding.resolve(authorization) : null;
 
+        kafkaMessagesTopic = binding.messagesTopic();
 
         MessageConsumer newStream = null;
 
@@ -1804,7 +1804,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 .merged(m ->
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
-                    m.topic(topic);
+                    m.topic(kafkaMessagesTopic);
                     m.partitionsItem(p ->
                         p.partitionId(offsetType.value())
                         .partitionOffset(offsetType.value()));

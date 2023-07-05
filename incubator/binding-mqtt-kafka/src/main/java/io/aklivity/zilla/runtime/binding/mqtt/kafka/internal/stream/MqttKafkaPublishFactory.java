@@ -111,6 +111,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final String16FW kafkaTopic;
     private final String16FW kafkaRetainedTopic;
     private final int bufferCapacity;
+    private String kafkaMessagesTopic;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -151,7 +152,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
         final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
-
+        kafkaMessagesTopic = binding.messagesTopic();
 
         MessageConsumer newStream = null;
 
@@ -1435,14 +1436,13 @@ public class MqttKafkaPublishFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
-        long affinity,
-        String16FW topic)
+        long affinity)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
-                    .topic(topic)
+                    .topic(kafkaMessagesTopic)
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
                     .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
                 .build();

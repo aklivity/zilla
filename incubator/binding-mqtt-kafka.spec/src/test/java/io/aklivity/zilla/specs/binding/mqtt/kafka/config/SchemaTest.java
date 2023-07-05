@@ -40,4 +40,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithOptions()
+    {
+        JsonObject config = schema.validate("proxy.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

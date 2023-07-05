@@ -161,6 +161,16 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.options.yaml")
+    @Specification({
+        "${mqtt}/publish.one.message/client",
+        "${kafka}/publish.one.message.changed.topic.name/server"})
+    public void shouldSendOneMessageWithChangedTopicName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mqtt}/publish.retained/client",
