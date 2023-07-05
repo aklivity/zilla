@@ -132,28 +132,4 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
-
-    // TODO: Ati
-    /*LongSupplier counter(
-        long bindingId,
-        long metricId);
-
-    LongSupplier gauge(
-        long bindingId,
-        long metricId);*/
-
-    /*LongSupplier counter(
-        String namespace,
-        String binding,
-        String metric);*/
-
-    /*LongSupplier gauge(
-        String namespace,
-        String binding,
-        String metric);*/
-
-    /*LongSupplier[] histogram(
-        String namespace,
-        String binding,
-        String metric);*/
 }

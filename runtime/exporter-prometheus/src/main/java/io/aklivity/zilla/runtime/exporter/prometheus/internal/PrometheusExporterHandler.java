@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.Prometheus
 public class PrometheusExporterHandler implements ExporterHandler
 {
     private final EngineContext context;
-    private final PrometheusMetricDescriptor descriptor;
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
     private final Collector collector;
@@ -60,7 +59,6 @@ public class PrometheusExporterHandler implements ExporterHandler
         Collector collector)
     {
         this.context = context;
-        this.descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
         this.collector = collector;
         this.servers = new Int2ObjectHashMap<>();
@@ -71,6 +69,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     {
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         List<MetricRecord> records = metrics.records();
+        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         printer = new PrometheusMetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
 
         for (PrometheusEndpointConfig endpoint : endpoints)
