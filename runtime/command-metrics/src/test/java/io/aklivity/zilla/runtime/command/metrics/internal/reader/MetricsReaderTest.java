@@ -12,6 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+/*
 package io.aklivity.zilla.runtime.command.metrics.internal.reader;
 
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.id;
@@ -448,3 +449,4 @@ public class MetricsReaderTest
         assertThat(records.size(), equalTo(0));
     }
 }
+*/

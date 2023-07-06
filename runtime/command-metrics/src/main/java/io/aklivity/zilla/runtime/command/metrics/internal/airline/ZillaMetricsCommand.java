@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 
+import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
 
 import com.github.rvesse.airline.annotations.Arguments;
@@ -32,9 +34,10 @@ import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.printer.MetricsPrinter;
-import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReader;
-import io.aklivity.zilla.runtime.command.metrics.internal.reader.MetricsReaderFactory;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 
 @Command(name = "metrics", description = "Show engine metrics")
 public final class ZillaMetricsCommand extends ZillaCommand
@@ -59,18 +62,45 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
-        MetricsReader metricsReader = factory.create();
-        MetricsPrinter printer = new MetricsPrinter(metricsReader);
+        // TODO: Ati - filtering
+        //MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
+        //MetricsReader metricsReader = factory.create();
+        //MetricsPrinter printer = new MetricsPrinter(metricsReader);
+        Engine engine = startEngine();
+        requireNonNull(engine);
+        MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
+        MetricsPrinter printer = new MetricsPrinter(metrics.records());
         do
         {
             printer.print(System.out);
             sleep(interval);
         } while (interval != 0);
-        metricsReader.close();
+        //metricsReader.close();
     }
 
-    private Path engineDirectory()
+    private Engine startEngine()
+    {
+        final Configuration config = engineConfiguration();
+        final ErrorHandler onError = Throwable::printStackTrace;
+
+        try (Engine engine = Engine.builder()
+            .config(config)
+            .errorHandler(onError)
+            .build())
+        {
+            engine.start();
+            System.out.println("engine started"); // TODO: Ati
+            return engine;
+        }
+        catch (Throwable ex)
+        {
+            System.out.println("error");
+            rethrowUnchecked(ex);
+        }
+        return null;
+    }
+
+    private Configuration engineConfiguration()
     {
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
@@ -88,8 +118,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 rethrowUnchecked(ex);
             }
         }
-        EngineConfiguration config = new EngineConfiguration(props);
-        return config.directory();
+        return new EngineConfiguration(props);
     }
 
     private void sleep(

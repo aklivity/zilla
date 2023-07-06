@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+/*
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.READ_ONLY;
@@ -99,3 +100,4 @@ public class LayoutManager
         return new HistogramsLayout.Builder().path(path).mode(READ_ONLY).build();
     }
 }
+*/

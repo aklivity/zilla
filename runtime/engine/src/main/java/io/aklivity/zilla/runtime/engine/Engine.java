@@ -487,6 +487,13 @@ public final class Engine implements Collector, AutoCloseable
         return dispatchAgent.histogramIds();
     }
 
+    public String supplyLocalName(
+        long namespacedId)
+    {
+        DispatchAgent dispatchAgent = dispatchers.iterator().next();
+        return dispatchAgent.supplyLocalName(namespacedId);
+    }
+
     // visible for testing
     public final class ContextImpl implements EngineExtContext
     {
