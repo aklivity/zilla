@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.Resou
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.GroupAssignmentsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.HeartbeatResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupRequestFW;
@@ -131,7 +130,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
     private final ProtocolMetadataFW.Builder protocolMetadataRW = new ProtocolMetadataFW.Builder();
     private final SyncGroupRequestFW.Builder syncGroupRequestRW = new SyncGroupRequestFW.Builder();
-    private final GroupAssignmentsFW.Builder groupAssignmentRW = new GroupAssignmentsFW.Builder();
     private final AssignmentFW.Builder assignmentRW = new AssignmentFW.Builder();
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
@@ -2379,10 +2377,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             for (int i = 0; i < members.size(); i++)
             {
-                final GroupAssignmentsFW groupAssignment =
-                    groupAssignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                final AssignmentFW groupAssignment =
+                    assignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .memberId(members.get(i))
-                        .assignment(assignment)
+                        .value(assignment)
                         .build();
 
                 encodeProgress = groupAssignment.limit();

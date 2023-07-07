@@ -16,9 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongFunction;
-import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -27,7 +25,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -39,9 +36,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
