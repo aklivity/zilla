@@ -270,6 +270,8 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
+        long budgetId,
+        int reserved,
         Consumer<OctetsFW.Builder> extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -281,12 +283,13 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
             .extension(extension)
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
-
 
     private void doEnd(
         MessageConsumer receiver,
@@ -488,7 +491,7 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
             if (!KafkaState.initialClosed(state))
             {
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_EXTENSION);
+                    traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
             }
@@ -920,13 +923,10 @@ public final class KafkaCacheClientGroupFactory implements BindingHandler
         private void doGroupReplyBegin(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
-            {
-                state = KafkaState.openingReply(state);
+            state = KafkaState.openingReply(state);
 
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_EXTENSION);
-            }
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, EMPTY_EXTENSION);
         }
 
         private void doGroupReplyData(

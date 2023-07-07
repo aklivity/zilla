@@ -302,19 +302,23 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
+        long budgetId,
+        int reserved,
         Consumer<OctetsFW.Builder> extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(extension)
-                .build();
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension)
+            .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
@@ -531,7 +535,7 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
             if (!KafkaState.initialClosed(state))
             {
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_EXTENSION);
+                    traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
             }
@@ -951,13 +955,10 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         private void doGroupReplyBegin(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
-            {
-                state = KafkaState.openingReply(state);
+            state = KafkaState.openingReply(state);
 
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_EXTENSION);
-            }
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, EMPTY_EXTENSION);
         }
 
         private void doGroupReplyData(

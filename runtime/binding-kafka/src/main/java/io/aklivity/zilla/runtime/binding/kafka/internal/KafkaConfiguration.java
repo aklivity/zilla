@@ -66,6 +66,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<String> KAFKA_CLIENT_GROUP_INSTANCE_ID;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final PropertyDef<String> KAFKA_CLIENT_ID;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -104,7 +105,8 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
                 KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_INSTANCE_ID = config.property("client.group.instance.id", UUID.randomUUID().toString());
-        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property("client.group.rebalance.timeout", 3000);
+        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property("client.group.rebalance.timeout", 4000);
+        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
         KAFKA_CONFIG = config;
     }
 
@@ -256,6 +258,10 @@ public class KafkaConfiguration extends Configuration
     public String clientGroupInstanceId()
     {
         return KAFKA_CLIENT_GROUP_INSTANCE_ID.get(this);
+    }
+    public String clientId()
+    {
+        return KAFKA_CLIENT_ID.get(this);
     }
 
     public int clientGroupRebalanceTimeout()
