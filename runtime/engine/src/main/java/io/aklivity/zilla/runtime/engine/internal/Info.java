@@ -29,12 +29,21 @@ public final class Info implements AutoCloseable
     private final int workers;
     private final Path info;
 
+    // write mode: write the processId and number of workers to the file
     public Info(
         Path directory,
         int workers)
     {
         this.info = directory.resolve("info");
         this.workers = workers;
+    }
+
+    // read mode: open the file and read the number of workers
+    public Info(
+        Path directory)
+    {
+        this.info = directory.resolve("info");
+        this.workers = readWorkers();
     }
 
     public void reset()
@@ -69,6 +78,28 @@ public final class Info implements AutoCloseable
         catch (IOException ex)
         {
             System.out.printf("Error: %s is not writeable\n", info);
+        }
+    }
+
+    public int workers()
+    {
+        return workers;
+    }
+
+    private int readWorkers()
+    {
+        try
+        {
+            byte[] bytes = Files.readAllBytes(info);
+            ByteBuffer byteBuf = ByteBuffer
+                .wrap(bytes, Long.BYTES, Integer.BYTES)
+                .order(nativeOrder());
+            return byteBuf.getInt();
+        }
+        catch (IOException ex)
+        {
+            System.out.printf("Error: %s is not readable\n", info);
+            return 0;
         }
     }
 
