@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
@@ -63,9 +62,6 @@ public final class ZillaMetricsCommand extends ZillaCommand
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
         // TODO: Ati - filtering
-        //MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
-        //MetricsReader metricsReader = factory.create();
-        //MetricsPrinter printer = new MetricsPrinter(metricsReader);
         Engine engine = engine();
         requireNonNull(engine);
         MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
@@ -76,7 +72,6 @@ public final class ZillaMetricsCommand extends ZillaCommand
             sleep(interval);
         } while (interval != 0);
         close(engine);
-        //metricsReader.close();
     }
 
     private Engine engine()
@@ -91,7 +86,6 @@ public final class ZillaMetricsCommand extends ZillaCommand
             .build())
         {
             engine.start();
-            System.out.println("engine started"); // TODO: Ati
             return engine;
         }
         catch (Throwable ex)
@@ -145,7 +139,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         }
         catch (InterruptedException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            rethrowUnchecked(ex);
         }
     }
 }
