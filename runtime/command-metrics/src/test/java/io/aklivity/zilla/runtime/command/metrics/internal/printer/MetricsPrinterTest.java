@@ -60,9 +60,6 @@ public class MetricsPrinterTest
         when(histogramRecord.stats()).thenReturn(new long[]{1L, 63L, 64L, 2L, 32L});
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
-        //MetricsReader metricsReader = mock(MetricsReader.class);
-        //when(metricsReader.getRecords()).thenReturn(metricRecords);
-
         MetricsPrinter printer = new MetricsPrinter(metricRecords);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -81,10 +78,6 @@ public class MetricsPrinterTest
         String expectedOutput =
             "namespace    binding    metric    value\n\n";
         List<MetricRecord> metricRecords = List.of();
-
-        //MetricsReader metricsReader = mock(MetricsReader.class);
-        //when(metricsReader.getRecords()).thenReturn(metricRecords);
-
         MetricsPrinter printer = new MetricsPrinter(metricRecords);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
