@@ -252,18 +252,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         if (binding != null)
         {
             resolved = binding.resolve(authorization, null, groupId);
-        }
-        else
-        {
-            resolved = null;
-        }
 
-        if (resolved != null)
-        {
-            final long resolvedId = resolved.id;
-            final KafkaSaslConfig sasl = binding.sasl();
+            if (resolved != null)
+            {
+                final long resolvedId = resolved.id;
+                final KafkaSaslConfig sasl = binding.sasl();
 
-            newStream = new KafkaGroupStream(
+                newStream = new KafkaGroupStream(
                     application,
                     originId,
                     routedId,
@@ -274,6 +269,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     protocol,
                     timeout,
                     sasl)::onApplication;
+            }
         }
 
         return newStream;

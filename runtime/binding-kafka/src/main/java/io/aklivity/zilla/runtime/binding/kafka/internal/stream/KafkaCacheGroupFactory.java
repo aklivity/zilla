@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
-public final class KafkaCacheServerGroupFactory implements BindingHandler
+public final class KafkaCacheGroupFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -63,8 +63,6 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
-    private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
-    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -74,7 +72,6 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
-    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -82,19 +79,12 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongSupplier supplyTraceId;
-    private final LongFunction<String> supplyNamespace;
-    private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
-    private final Function<String, KafkaCache> supplyCache;
-    private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
 
-    public KafkaCacheServerGroupFactory(
+    public KafkaCacheGroupFactory(
         KafkaConfiguration config,
         EngineContext context,
-        LongFunction<KafkaBindingConfig> supplyBinding,
-        Function<String, KafkaCache> supplyCache,
-        LongFunction<KafkaCacheRoute> supplyCacheRoute)
+        LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -102,12 +92,7 @@ public final class KafkaCacheServerGroupFactory implements BindingHandler
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyTraceId = context::supplyTraceId;
-        this.supplyNamespace = context::supplyNamespace;
-        this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
-        this.supplyCache = supplyCache;
-        this.supplyCacheRoute = supplyCacheRoute;
     }
 
     @Override

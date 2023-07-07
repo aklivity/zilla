@@ -413,13 +413,6 @@ scope protocol
                 int32 assignmentCount;
             }
 
-            struct GroupAssignments
-            {
-                string16 memberId;
-                uint32 length;
-                octets[length] assignment;
-            }
-
             struct Assignment
             {
                string16 memberId;
