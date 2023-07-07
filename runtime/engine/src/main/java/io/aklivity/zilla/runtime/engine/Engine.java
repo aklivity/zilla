@@ -509,6 +509,13 @@ public final class Engine implements Collector, AutoCloseable
         return dispatchAgent.supplyLocalName(namespacedId);
     }
 
+    public int supplyLabelId(
+        String label)
+    {
+        DispatchAgent dispatchAgent = dispatchers.iterator().next();
+        return dispatchAgent.supplyTypeId(label);
+    }
+
     // visible for testing
     public final class ContextImpl implements EngineExtContext
     {

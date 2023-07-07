@@ -24,6 +24,7 @@ import java.util.function.LongSupplier;
 
 public class ScalarRecord implements MetricRecord
 {
+    private final long namespacedBindingId;
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
@@ -36,6 +37,7 @@ public class ScalarRecord implements MetricRecord
         LongSupplier reader,
         IntFunction<String> labelResolver)
     {
+        this.namespacedBindingId = namespacedBindingId;
         this.namespaceId = namespaceId(namespacedBindingId);
         this.bindingId = localId(namespacedBindingId);
         this.metricId = localId(namespacedMetricId);
@@ -44,15 +46,21 @@ public class ScalarRecord implements MetricRecord
     }
 
     @Override
-    public String namespaceName()
+    public long namespacedBindingId()
     {
-        return labelResolver.apply(namespaceId);
+        return namespacedBindingId;
     }
 
     @Override
     public int bindingId()
     {
         return bindingId;
+    }
+
+    @Override
+    public String namespaceName()
+    {
+        return labelResolver.apply(namespaceId);
     }
 
     @Override

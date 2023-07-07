@@ -26,6 +26,7 @@ import java.util.function.LongSupplier;
 
 public class HistogramRecord implements MetricRecord
 {
+    private final long namespacedBindingId;
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
@@ -35,28 +36,35 @@ public class HistogramRecord implements MetricRecord
     private long[] bucketValues = new long[BUCKETS];
 
     public HistogramRecord(
-        long packedBindingId,
-        long packedMetricId,
+        long namespacedBindingId,
+        long namespacedMetricId,
         LongSupplier[] readers,
         IntFunction<String> labelResolver)
     {
-        this.namespaceId = namespaceId(packedBindingId);
-        this.bindingId = localId(packedBindingId);
-        this.metricId = localId(packedMetricId);
+        this.namespacedBindingId = namespacedBindingId;
+        this.namespaceId = namespaceId(namespacedBindingId);
+        this.bindingId = localId(namespacedBindingId);
+        this.metricId = localId(namespacedMetricId);
         this.readers = readers;
         this.labelResolver = labelResolver;
     }
 
     @Override
-    public String namespaceName()
+    public long namespacedBindingId()
     {
-        return labelResolver.apply(namespaceId);
+        return namespacedBindingId;
     }
 
     @Override
     public int bindingId()
     {
         return bindingId;
+    }
+
+    @Override
+    public String namespaceName()
+    {
+        return labelResolver.apply(namespaceId);
     }
 
     @Override

@@ -17,9 +17,11 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 public interface MetricRecord
 {
-    String namespaceName();
+    long namespacedBindingId();
 
     int bindingId();
+
+    String namespaceName();
 
     String bindingName();
 

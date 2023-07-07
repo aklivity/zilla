@@ -24,6 +24,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.function.LongPredicate;
+import java.util.stream.Collectors;
 
 import org.agrona.ErrorHandler;
 
@@ -36,6 +39,7 @@ import io.aklivity.zilla.runtime.command.metrics.internal.printer.MetricsPrinter
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 
 @Command(name = "metrics", description = "Show engine metrics")
@@ -61,11 +65,12 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        // TODO: Ati - filtering
         Engine engine = engine();
         requireNonNull(engine);
         MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
-        MetricsPrinter printer = new MetricsPrinter(metrics.records());
+        LongPredicate filterPredicate = filterPredicate(namespace, binding, engine::supplyLabelId);
+        List<MetricRecord> records = filter(metrics.records(), filterPredicate);
+        MetricsPrinter printer = new MetricsPrinter(records);
         do
         {
             printer.print(System.out);
@@ -141,5 +146,29 @@ public final class ZillaMetricsCommand extends ZillaCommand
         {
             rethrowUnchecked(ex);
         }
+    }
+
+    private LongPredicate filterPredicate(
+        String namespace,
+        String binding,
+        Function<String, Integer> lookupLabelId)
+    {
+        int namespaceId = namespace != null ? Math.max(lookupLabelId.apply(namespace), 0) : 0;
+        int bindingId = binding != null ? Math.max(lookupLabelId.apply(binding), 0) : 0;
+        long namespacedId = (long) namespaceId << Integer.SIZE | (long) bindingId << 0;
+        long mask =
+            (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
+                (binding != null ? 0x0000_0000_ffff_ffffL : 0x0000_0000_0000_0000L);
+        LongPredicate filter = id -> (id & mask) == namespacedId;
+        return filter;
+    }
+
+    private List<MetricRecord> filter(
+        List<MetricRecord> records,
+        LongPredicate filterPredicate)
+    {
+        return records.stream()
+            .filter(r -> filterPredicate.test(r.namespacedBindingId()))
+            .collect(Collectors.toList());
     }
 }
