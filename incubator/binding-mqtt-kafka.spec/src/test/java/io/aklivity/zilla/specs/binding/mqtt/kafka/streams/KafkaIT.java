@@ -91,8 +91,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/publish.server.sent.retained.abort/client",
-        "${kafka}/publish.server.sent.retained.abort/server"})
+        "${kafka}/publish.retained.server.sent.abort/client",
+        "${kafka}/publish.retained.server.sent.abort/server"})
     public void shouldPublishReceiveServerSentRetainedAbort() throws Exception
     {
         k3po.finish();
@@ -100,8 +100,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/publish.server.sent.retained.flush/client",
-        "${kafka}/publish.server.sent.retained.flush/server"})
+        "${kafka}/publish.retained.server.sent.flush/client",
+        "${kafka}/publish.retained.server.sent.flush/server"})
     public void shouldPublishReceiveServerSentRetainedFlush() throws Exception
     {
         k3po.finish();
@@ -109,8 +109,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/publish.server.sent.retained.reset/client",
-        "${kafka}/publish.server.sent.retained.reset/server"})
+        "${kafka}/publish.retained.server.sent.reset/client",
+        "${kafka}/publish.retained.server.sent.reset/server"})
     public void shouldPublishReceiveServerSentRetainedReset() throws Exception
     {
         k3po.finish();
@@ -118,8 +118,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/publish.server.sent.retained.data/client",
-        "${kafka}/publish.server.sent.retained.data/server"})
+        "${kafka}/publish.retained.server.sent.data/client",
+        "${kafka}/publish.retained.server.sent.data/server"})
     public void shouldPublishAbortWhenServerSentRetainedData() throws Exception
     {
         k3po.finish();

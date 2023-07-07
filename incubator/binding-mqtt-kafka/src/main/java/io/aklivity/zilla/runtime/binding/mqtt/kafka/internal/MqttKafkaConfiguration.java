@@ -37,11 +37,12 @@ public class MqttKafkaConfiguration extends Configuration
         super(MQTT_KAFKA_CONFIG, config);
     }
 
-    public String kafkaMessagesTopic()
+    public String messagesTopic()
     {
         return KAFKA_MESSAGES_TOPIC.get(this);
     }
-    public String kafkaRetainedMessagesTopic()
+
+    public String retainedMessagesTopic()
     {
         return KAFKA_RETAINED_MESSAGES_TOPIC.get(this);
     }

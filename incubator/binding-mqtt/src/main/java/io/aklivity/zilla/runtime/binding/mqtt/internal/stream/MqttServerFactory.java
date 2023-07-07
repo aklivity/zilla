@@ -2762,8 +2762,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            publishStreams.values().forEach(s -> s.cleanupEnd(traceId, authorization));
-            subscribeStreams.values().forEach(s -> s.cleanupEnd(traceId, authorization));
+            publishStreams.values().forEach(s -> s.doPublishAppEnd(traceId, authorization));
+            subscribeStreams.values().forEach(s -> s.doSubscribeAppEnd(traceId, authorization));
             if (sessionStream != null)
             {
                 sessionStream.cleanupEnd(traceId, authorization);
@@ -3605,8 +3605,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
                 }
 
-                if (MqttState.initialClosing(state) &&
-                    !MqttState.initialClosed(state))
+                if (MqttState.initialClosing(state))
                 {
                     doPublishAppEnd(traceId, authorization);
                 }
@@ -3729,8 +3728,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                if (!MqttState.replyClosed(state))
+                if (!MqttState.initialClosed(state))
                 {
+                    doCancelPublishExpiration();
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
                 }
@@ -3773,14 +3773,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doPublishAbort(traceId, authorization);
                 doPublishReset(traceId, authorization);
-                doCancelPublishExpiration();
-            }
-
-            private void cleanupEnd(
-                long traceId,
-                long authorization)
-            {
-                doPublishAppEnd(traceId, authorization);
                 doCancelPublishExpiration();
             }
         }
@@ -3934,7 +3926,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     if (subscriptions.isEmpty())
                     {
-                        cleanupEnd(traceId, authorization);
+                        doSubscribeAppEnd(traceId, authorization);
                     }
                     else
                     {
@@ -4191,13 +4183,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doSubscribeAbort(traceId, authorization);
                 doSubscribeReset(traceId, authorization);
-            }
-
-            private void cleanupEnd(
-                long traceId,
-                long authorization)
-            {
-                doSubscribeAppEnd(traceId, authorization);
             }
 
 

@@ -135,8 +135,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
-        this.kafkaTopic = config.kafkaMessagesTopic();
-        this.kafkaRetainedTopic = config.kafkaRetainedMessagesTopic();
+        this.kafkaTopic = config.messagesTopic();
+        this.kafkaRetainedTopic = config.retainedMessagesTopic();
     }
 
     @Override

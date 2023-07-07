@@ -122,8 +122,8 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/disconnect.close.subscribe.and.publish/client",
-        "${app}/disconnect.close.subscribe.and.publish/server"})
+        "${net}/disconnect.after.subscribe.and.publish/client",
+        "${app}/disconnect.after.subscribe.and.publish/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")

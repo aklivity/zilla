@@ -376,8 +376,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/disconnect.close.subscribe.and.publish/client",
-        "${net}/disconnect.close.subscribe.and.publish/server"})
+        "${net}/disconnect.after.subscribe.and.publish/client",
+        "${net}/disconnect.after.subscribe.and.publish/server"})
     public void shouldCloseSubscribeAndPublish() throws Exception
     {
         k3po.finish();

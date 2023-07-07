@@ -119,8 +119,7 @@ read advised zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
-read await RETAIN1_FINISHED
-read await RETAIN2_FINISHED
+read await RETAIN_FINISHED
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -179,6 +178,25 @@ write "message"
 write flush
 
 write notify FIRST_RETAINED_SENT
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .capabilities("FETCH_ONLY")
+                                    .filter()
+                                        .headers("zilla:topic")
+                                            .sequence("sensor")
+                                            .sequence("two")
+                                            .build()
+                                        .build()
+                                    .filter()
+                                        .headers("zilla:topic")
+                                            .sequence("sensor")
+                                            .sequence("three")
+                                            .build()
+                                        .build()
+                                    .build()
+                                .build()}
 read await SECOND_FLUSH_SENT
 
 write zilla:data.ext ${kafka:dataEx()
@@ -200,37 +218,11 @@ write zilla:data.ext ${kafka:dataEx()
 write "message2"
 write flush
 
-write advise zilla:flush
-
-read closed
-write close
-
-write notify RETAIN1_FINISHED
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt_retained")
-                                .filter()
-                                    .headers("zilla:topic")
-                                        .sequence("sensor")
-                                        .sequence("three")
-                                        .build()
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-connected
-
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .timestamp(kafka:timestamp())
-                                .filters(1)
+                                .filters(2)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
                                 .progress(1, 1)
@@ -250,4 +242,4 @@ write advise zilla:flush
 read closed
 write close
 
-write notify RETAIN2_FINISHED
+write notify RETAIN_FINISHED

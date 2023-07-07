@@ -113,8 +113,8 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mqtt}/publish.server.sent.retained.abort/client",
-        "${kafka}/publish.server.sent.retained.abort/server"})
+        "${mqtt}/publish.retained.server.sent.abort/client",
+        "${kafka}/publish.retained.server.sent.abort/server"})
     public void shouldReceiveServerSentRetainedAbort() throws Exception
     {
         k3po.finish();
@@ -123,8 +123,8 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mqtt}/publish.server.sent.retained.flush/client",
-        "${kafka}/publish.server.sent.retained.flush/server"})
+        "${mqtt}/publish.retained.server.sent.flush/client",
+        "${kafka}/publish.retained.server.sent.flush/server"})
     public void shouldReceiveServerSentRetainedFlush() throws Exception
     {
         k3po.finish();
@@ -133,8 +133,8 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mqtt}/publish.server.sent.retained.reset/client",
-        "${kafka}/publish.server.sent.retained.reset/server"})
+        "${mqtt}/publish.retained.server.sent.reset/client",
+        "${kafka}/publish.retained.server.sent.reset/server"})
     public void shouldReceiveServerSentRetainedReset() throws Exception
     {
         k3po.finish();
@@ -143,8 +143,8 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mqtt}/publish.server.sent.retained.data/client",
-        "${kafka}/publish.server.sent.retained.data/server"})
+        "${mqtt}/publish.retained.server.sent.data/client",
+        "${kafka}/publish.retained.server.sent.data/server"})
     public void shouldAbortWhenServerSentRetainedData() throws Exception
     {
         k3po.finish();
