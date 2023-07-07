@@ -66,7 +66,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         //MetricsReaderFactory factory = new MetricsReaderFactory(engineDirectory(), namespace, binding);
         //MetricsReader metricsReader = factory.create();
         //MetricsPrinter printer = new MetricsPrinter(metricsReader);
-        Engine engine = startEngine();
+        Engine engine = engine();
         requireNonNull(engine);
         MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
         MetricsPrinter printer = new MetricsPrinter(metrics.records());
@@ -75,10 +75,11 @@ public final class ZillaMetricsCommand extends ZillaCommand
             printer.print(System.out);
             sleep(interval);
         } while (interval != 0);
+        close(engine);
         //metricsReader.close();
     }
 
-    private Engine startEngine()
+    private Engine engine()
     {
         final Configuration config = engineConfiguration();
         final ErrorHandler onError = Throwable::printStackTrace;
@@ -86,6 +87,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         try (Engine engine = Engine.builder()
             .config(config)
             .errorHandler(onError)
+            .readOnly()
             .build())
         {
             engine.start();
@@ -119,6 +121,19 @@ public final class ZillaMetricsCommand extends ZillaCommand
             }
         }
         return new EngineConfiguration(props);
+    }
+
+    private void close(
+        Engine engine)
+    {
+        try
+        {
+            engine.close();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
     }
 
     private void sleep(

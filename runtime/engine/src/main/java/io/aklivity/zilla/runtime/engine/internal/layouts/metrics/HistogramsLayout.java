@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
+import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 
@@ -137,6 +138,8 @@ public final class HistogramsLayout extends MetricsLayout
 
     public static final class Builder extends Layout.Builder<HistogramsLayout>
     {
+        public static final String HISTOGRAMS_LABEL = "histograms";
+
         private long capacity;
         private Path path;
         private Mode mode;
@@ -166,11 +169,18 @@ public final class HistogramsLayout extends MetricsLayout
         public HistogramsLayout build()
         {
             final File layoutFile = path.toFile();
+            MappedByteBuffer mappedBuffer;
             if (mode == Mode.CREATE_READ_WRITE)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
+                mappedBuffer = mapExistingFile(layoutFile, HISTOGRAMS_LABEL);
             }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "histograms");
+            else
+            {
+                assert mode == Mode.READ_ONLY;
+
+                mappedBuffer = mapExistingFile(layoutFile, READ_ONLY, HISTOGRAMS_LABEL);
+            }
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new HistogramsLayout(atomicBuffer);
         }

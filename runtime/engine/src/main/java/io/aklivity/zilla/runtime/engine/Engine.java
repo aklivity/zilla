@@ -95,6 +95,7 @@ public final class Engine implements Collector, AutoCloseable
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
     private final Collection<DispatchAgent> dispatchers;
+    private final boolean readOnly;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -105,7 +106,8 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
-        Collection<EngineAffinity> affinities)
+        Collection<EngineAffinity> affinities,
+        boolean readOnly)
     {
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
@@ -154,7 +156,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex);
+                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex, readOnly);
             dispatchers.add(agent);
         }
         this.dispatchers = dispatchers;
@@ -206,6 +208,7 @@ public final class Engine implements Collector, AutoCloseable
         this.extensions = extensions;
         this.context = context;
         this.runners = runners;
+        this.readOnly = readOnly;
     }
 
     public <T> T binding(
@@ -225,7 +228,11 @@ public final class Engine implements Collector, AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = watcherTask.submit();
-        watcherTask.watch(rootConfigURL).get();
+        if (!readOnly)
+        {
+            // ignore the config file in read-only mode
+            watcherTask.watch(rootConfigURL).get();
+        }
     }
 
     @Override

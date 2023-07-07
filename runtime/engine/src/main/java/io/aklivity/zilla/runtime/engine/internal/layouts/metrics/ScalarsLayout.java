@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
+import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 
@@ -132,11 +133,17 @@ public final class ScalarsLayout extends MetricsLayout
         public ScalarsLayout build()
         {
             final File layoutFile = path.toFile();
+            MappedByteBuffer mappedBuffer;
             if (mode == Mode.CREATE_READ_WRITE)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
+                mappedBuffer = mapExistingFile(layoutFile, this.label);
             }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, this.label);
+            else
+            {
+                assert mode == Mode.READ_ONLY;
+                mappedBuffer = mapExistingFile(layoutFile, READ_ONLY, this.label);
+            }
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new ScalarsLayout(atomicBuffer);
         }
