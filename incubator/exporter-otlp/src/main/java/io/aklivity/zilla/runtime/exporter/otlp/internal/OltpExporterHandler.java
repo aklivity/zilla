@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsDescriptor;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public class OltpExporterHandler implements ExporterHandler
@@ -67,9 +66,7 @@ public class OltpExporterHandler implements ExporterHandler
     {
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         List<MetricRecord> records = metrics.records();
-        OtlpMetricsDescriptor descriptor = new OtlpMetricsDescriptor(context::resolveMetric, resolveKind);
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(records, attributes, descriptor::kind,
-            descriptor::nameByBinding, descriptor::description, descriptor::unit);
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(records, attributes, context::resolveMetric, resolveKind);
         TimerTask task = new OtlpExporterTask(endpoint.url, serializer);
         timer.schedule(task, DELAY, interval.toMillis());
     }

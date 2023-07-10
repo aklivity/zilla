@@ -14,10 +14,15 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -25,11 +30,14 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.ScalarRecord;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.utils.ObjectIntFunction;
 
 public class OtlpMetricsSerializer
 {
@@ -37,13 +45,27 @@ public class OtlpMetricsSerializer
     private static final String SCOPE_VERSION = "1.0.0";
     // CUMULATIVE is an AggregationTemporality for a metric aggregator which reports changes since a fixed start time.
     private static final int CUMULATIVE = 2;
+    private static final Map<String, String> SERVER_METRIC_NAMES = Map.of(
+        "http.request.size", "http.server.request.size",
+        "http.response.size", "http.server.response.size",
+        "http.duration", "http.server.duration",
+        "http.active.requests", "http.server.active_requests"
+    );
+    private static final Map<String, String> CLIENT_METRIC_NAMES = Map.of(
+        "http.request.size", "http.client.request.size",
+        "http.response.size", "http.client.response.size",
+        "http.duration", "http.client.duration"
+    );
+    private static final Map<KindConfig, Map<String, String>> KIND_METRIC_NAMES = Map.of(
+        KindConfig.SERVER, SERVER_METRIC_NAMES,
+        KindConfig.CLIENT, CLIENT_METRIC_NAMES
+    );
 
     private final List<MetricRecord> records;
     private final List<AttributeConfig> attributes;
-    private final Function<String, String> supplyKind;
-    private final ObjectIntFunction<String, String> supplyName;
-    private final Function<String, String> supplyDescription;
-    private final Function<String, String> supplyUnit;
+    private final IntFunction<KindConfig> resolveKind;
+    private final Function<String, Metric> resolveMetric;
+    private final OtlpMetricsDescriptor descriptor;
 
     // required for testing
     private long timeStamp;
@@ -51,17 +73,14 @@ public class OtlpMetricsSerializer
     public OtlpMetricsSerializer(
         List<MetricRecord> records,
         List<AttributeConfig> attributes,
-        Function<String, String> supplyKind,
-        ObjectIntFunction<String, String> supplyName,
-        Function<String, String> supplyDescription,
-        Function<String, String> supplyUnit)
+        Function<String, Metric> resolveMetric,
+        IntFunction<KindConfig> resolveKind)
     {
         this.records = records;
         this.attributes = attributes;
-        this.supplyKind = supplyKind;
-        this.supplyName = supplyName;
-        this.supplyDescription = supplyDescription;
-        this.supplyUnit = supplyUnit;
+        this.resolveMetric = resolveMetric;
+        this.resolveKind = resolveKind;
+        descriptor = new OtlpMetricsDescriptor();
         this.timeStamp = 0;
     }
 
@@ -107,7 +126,7 @@ public class OtlpMetricsSerializer
         JsonArray dataPoints = Json.createArrayBuilder()
             .add(dataPoint)
             .build();
-        String kind = supplyKind.apply(record.metricName());
+        String kind = descriptor.kind(record.metricName());
         JsonObjectBuilder scalarData = Json.createObjectBuilder()
             .add("dataPoints", dataPoints);
         if ("sum".equals(kind))
@@ -117,9 +136,9 @@ public class OtlpMetricsSerializer
                 .add("isMonotonic", true);
         }
         return Json.createObjectBuilder()
-            .add("name", supplyName.apply(record.metricName(), record.bindingId()))
-            .add("unit", supplyUnit.apply(record.metricName()))
-            .add("description", supplyDescription.apply(record.metricName()))
+            .add("name", descriptor.nameByBinding(record.metricName(), record.bindingId()))
+            .add("unit", descriptor.unit(record.metricName()))
+            .add("description", descriptor.description(record.metricName()))
             .add(kind, scalarData)
             .build();
     }
@@ -185,9 +204,9 @@ public class OtlpMetricsSerializer
             .add("aggregationTemporality", CUMULATIVE)
             .add("dataPoints", dataPoints);
         return Json.createObjectBuilder()
-            .add("name", supplyName.apply(record.metricName(), record.bindingId()))
-            .add("description", supplyDescription.apply(record.metricName()))
-            .add("unit", supplyUnit.apply(record.metricName()))
+            .add("name", descriptor.nameByBinding(record.metricName(), record.bindingId()))
+            .add("description", descriptor.description(record.metricName()))
+            .add("unit", descriptor.unit(record.metricName()))
             .add("histogram", histogramData)
             .build();
     }
@@ -221,5 +240,71 @@ public class OtlpMetricsSerializer
             .add("resourceMetrics", resourceMetricsArray)
             .build();
         return jsonObject.toString();
+    }
+
+    final class OtlpMetricsDescriptor
+    {
+        private final Map<String, String> kinds;
+        private final Map<String, String> descriptions;
+        private final Map<String, String> units;
+
+        private OtlpMetricsDescriptor()
+        {
+            this.kinds = new Object2ObjectHashMap<>();
+            this.descriptions = new Object2ObjectHashMap<>();
+            this.units = new Object2ObjectHashMap<>();
+        }
+
+        public String kind(
+            String internalName)
+        {
+            String result = kinds.get(internalName);
+            if (result == null)
+            {
+                Metric.Kind kind = resolveMetric.apply(internalName).kind();
+                result = kind == COUNTER ? "sum" : kind.toString().toLowerCase();
+                kinds.put(internalName, result);
+            }
+            return result;
+        }
+
+        public String nameByBinding(
+            String internalMetricName,
+            int bindingId)
+        {
+            String result = null;
+            KindConfig kind = resolveKind.apply(bindingId);
+            Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
+            if (externalNames != null)
+            {
+                result = externalNames.get(internalMetricName);
+            }
+            return result != null ? result : internalMetricName;
+        }
+
+        public String description(
+            String internalName)
+        {
+            String result = descriptions.get(internalName);
+            if (result == null)
+            {
+                result = resolveMetric.apply(internalName).description();
+                descriptions.put(internalName, result);
+            }
+            return result;
+        }
+
+        public String unit(
+            String internalName)
+        {
+            String result = units.get(internalName);
+            if (result == null)
+            {
+                Metric.Unit unit = resolveMetric.apply(internalName).unit();
+                result = unit == COUNT ? "" : unit.toString().toLowerCase();
+                units.put(internalName, result);
+            }
+            return result;
+        }
     }
 }
