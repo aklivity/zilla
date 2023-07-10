@@ -67,9 +67,6 @@ public class OtlpMetricsSerializer
     private final Function<String, Metric> resolveMetric;
     private final OtlpMetricsDescriptor descriptor;
 
-    // required for testing
-    private long timeStamp;
-
     public OtlpMetricsSerializer(
         List<MetricRecord> records,
         List<AttributeConfig> attributes,
@@ -80,8 +77,7 @@ public class OtlpMetricsSerializer
         this.attributes = attributes;
         this.resolveMetric = resolveMetric;
         this.resolveKind = resolveKind;
-        descriptor = new OtlpMetricsDescriptor();
-        this.timeStamp = 0;
+        this.descriptor = new OtlpMetricsDescriptor();
     }
 
     public String serializeAll()
@@ -91,13 +87,6 @@ public class OtlpMetricsSerializer
         JsonArrayBuilder metricsArray = Json.createArrayBuilder();
         records.forEach(metric -> metricsArray.add(serialize(metric)));
         return createJson(attributesArray, metricsArray);
-    }
-
-    // required for testing
-    void timeStamp(
-        long timeStamp)
-    {
-        this.timeStamp = timeStamp;
     }
 
     private JsonObject serialize(
@@ -145,7 +134,7 @@ public class OtlpMetricsSerializer
 
     private long now()
     {
-        return timeStamp != 0 ? timeStamp : TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        return TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
     }
 
     private JsonArrayBuilder attributes(
