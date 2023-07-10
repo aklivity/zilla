@@ -238,7 +238,7 @@ public final class Engine implements Collector, AutoCloseable
         watcherTaskRef = watcherTask.submit();
         if (!readOnly)
         {
-            // ignore the config file in read-only mode
+            // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
             watcherTask.watch(rootConfigURL).get();
         }
     }

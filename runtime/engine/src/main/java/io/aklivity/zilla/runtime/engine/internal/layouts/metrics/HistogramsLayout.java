@@ -178,7 +178,6 @@ public final class HistogramsLayout extends MetricsLayout
             else
             {
                 assert mode == Mode.READ_ONLY;
-
                 mappedBuffer = mapExistingFile(layoutFile, READ_ONLY, HISTOGRAMS_LABEL);
             }
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
