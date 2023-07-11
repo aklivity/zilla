@@ -18,6 +18,7 @@ buildNumber.properties
 *.iml
 *.ipr
 *.iws
+.vscode/
 .DS_Store
 .zpm/
 **/.zilla/engine
