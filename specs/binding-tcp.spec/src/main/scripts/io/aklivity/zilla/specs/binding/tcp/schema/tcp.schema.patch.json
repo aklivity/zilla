@@ -96,6 +96,36 @@
                                                 "title": "CIDR Mask",
                                                 "type": "string",
                                                 "pattern": "^[0-9a-fA-F:.]+/(\\d{1,3})$"
+                                            },
+                                            "port":
+                                            {
+                                                "title": "Port",
+                                                "oneOf":
+                                                [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": "^\\d+(-\\d+)?$"
+                                                    },
+                                                    {
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "oneOf":
+                                                            [
+                                                                {
+                                                                    "type": "integer"
+                                                                },
+                                                                {
+                                                                    "type": "string",
+                                                                    "pattern": "^\\d+(-\\d+)?$"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
                                             }
                                         },
                                         "additionalProperties": false

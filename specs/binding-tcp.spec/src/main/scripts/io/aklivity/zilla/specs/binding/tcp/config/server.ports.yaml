@@ -26,4 +26,9 @@ bindings:
                 - 8080
                 - 8081
                 - 8082-8083
-        exit: app0
+        routes:
+            - when:
+                  - port:
+                    - 8080
+                    - 8081-8083
+              exit: app0
