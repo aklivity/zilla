@@ -241,6 +241,12 @@ public final class EngineRule implements TestRule
         return engine.context().counterWriter(namespace, binding, metric, core);
     }
 
+    public int supplyLabelId(
+        String label)
+    {
+        return engine.supplyLabelId(label);
+    }
+
     private EngineConfiguration configuration()
     {
         if (configuration == null)

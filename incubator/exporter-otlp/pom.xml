@@ -26,8 +26,8 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.3</jacoco.coverage.ratio>
-    <jacoco.missed.count>1</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.80</jacoco.coverage.ratio>
+    <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -154,6 +154,32 @@
               </artifactItems>
               <includes>io/aklivity/zilla/specs/exporter/otlp/schema/otlp.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>unpack-test-resources</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>exporter-otlp.spec</artifactId>
+                  <fileMappers>
+                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                      <pattern>^\Qio/aklivity/zilla/specs/exporter/otlp/\E</pattern>
+                      <replacement>io/aklivity/zilla/runtime/exporter/otlp/internal/</replacement>
+                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>
+                io/aklivity/zilla/specs/exporter/otlp/application/*,
+                io/aklivity/zilla/specs/exporter/otlp/config/*
+              </includes>
+              <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
             </configuration>
           </execution>
         </executions>

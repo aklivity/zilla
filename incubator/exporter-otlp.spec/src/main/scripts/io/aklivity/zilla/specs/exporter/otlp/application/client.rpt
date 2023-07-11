@@ -1,0 +1,106 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "http://localhost:4318/v1/metrics"
+accepted
+connected
+
+read http:method "POST"
+read http:version "HTTP/1.1"
+read http:header "Host" "localhost:4318"
+read
+'{'
+    '"resourceMetrics":['
+        '{'
+            '"resource":{'
+                '"attributes":['
+                    '{'
+                        '"key":"service.namespace",'
+                        '"value":{'
+                            '"stringValue":"example"'
+                        '}'
+                    '}'
+                ']'
+            '},'
+            '"scopeMetrics":['
+                '{'
+                    '"scope":{'
+                        '"name":"OtlpMetricsSerializer",'
+                        '"version":"1.0.0"'
+                    '},'
+                    '"metrics":['
+                        '{'
+                            '"name":"test.counter",'
+                            '"unit":"",'
+                            '"description":"Description for test.counter",'
+                            '"sum":{'
+                                '"dataPoints":['
+                                    '{'
+                                        '"asInt":77,'
+                                        '"timeUnixNano":' [0..19] ','
+                                        '"attributes":['
+                                            '{'
+                                                '"key":"namespace",'
+                                                '"value":{'
+                                                    '"stringValue":"test"'
+                                                '}'
+                                            '},'
+                                            '{'
+                                                '"key":"binding",'
+                                                '"value":{'
+                                                    '"stringValue":"net0"'
+                                                '}'
+                                            '}'
+                                        ']'
+                                    '}'
+                                '],'
+                                '"aggregationTemporality":2,'
+                                '"isMonotonic":true'
+                            '}'
+                        '},'
+                        '{'
+                            '"name":"test.gauge",'
+                            '"unit":"",'
+                            '"description":"Description for test.gauge",'
+                            '"gauge":{'
+                                '"dataPoints":['
+                                    '{'
+                                        '"asInt":66,'
+                                        '"timeUnixNano":' [0..19] ','
+                                        '"attributes":['
+                                            '{'
+                                                '"key":"namespace",'
+                                                '"value":{'
+                                                    '"stringValue":"test"'
+                                                '}'
+                                            '},'
+                                            '{'
+                                                '"key":"binding",'
+                                                '"value":{'
+                                                    '"stringValue":"net0"'
+                                                '}'
+                                            '}'
+                                        ']'
+                                    '}'
+                                ']'
+                            '}'
+                        '}'
+                    ']'
+                '}'
+            ']'
+        '}'
+    ']'
+'}'
+read closed
