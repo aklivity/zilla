@@ -21,6 +21,7 @@ telemetry:
     metrics:
         - test.counter
         - test.gauge
+        - test.histogram
     exporters:
         test0:
             type: otlp
