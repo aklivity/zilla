@@ -53,9 +53,9 @@ public class EngineContextIT
     public void shouldFetchCounterValue()
     {
         // GIVEN
-        LongConsumer writer0 = engine.contextCounterWriter("test", "net0", "test.counter", 0);
-        LongConsumer writer1 = engine.contextCounterWriter("test", "net0", "test.counter", 1);
-        LongConsumer writer2 = engine.contextCounterWriter("test", "net0", "test.counter", 2);
+        LongConsumer writer0 = engine.counterWriter("test", "net0", "test.counter", 0);
+        LongConsumer writer1 = engine.counterWriter("test", "net0", "test.counter", 1);
+        LongConsumer writer2 = engine.counterWriter("test", "net0", "test.counter", 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);

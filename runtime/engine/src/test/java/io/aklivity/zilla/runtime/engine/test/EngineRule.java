@@ -232,7 +232,7 @@ public final class EngineRule implements TestRule
         return engine.histogramWriter(bindingId, metricId, core);
     }
 
-    public LongConsumer contextCounterWriter(
+    public LongConsumer counterWriter(
         String namespace,
         String binding,
         String metric,
