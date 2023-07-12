@@ -15,10 +15,22 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpOptionsConfigAdapter.adaptPortsValueFromJson;
+
+import java.util.stream.IntStream;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import org.agrona.collections.IntHashSet;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
@@ -28,6 +40,7 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
 {
     private static final String CIDR_NAME = "cidr";
     private static final String AUTHORITY_NAME = "authority";
+    private static final String PORT_NAME = "port";
 
     @Override
     public String type()
@@ -53,6 +66,24 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
             object.add(AUTHORITY_NAME, tcpCondition.authority);
         }
 
+        if (tcpCondition.ports != null)
+        {
+            if (tcpCondition.ports.length == 1)
+            {
+                object.add(PORT_NAME, tcpCondition.ports[0]);
+            }
+            else
+            {
+                JsonArrayBuilder ports = Json.createArrayBuilder();
+                for (int port : tcpCondition.ports)
+                {
+                    ports.add(port);
+                }
+
+                object.add(PORT_NAME, ports);
+            }
+        }
+
         return object.build();
     }
 
@@ -62,7 +93,62 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
     {
         String cidr = object.containsKey(CIDR_NAME) ? object.getString(CIDR_NAME) : null;
         String authority = object.containsKey(AUTHORITY_NAME) ? object.getString(AUTHORITY_NAME) : null;
+        JsonValue portsValue = object.containsKey(PORT_NAME) ? object.get(PORT_NAME) : null;
 
-        return new TcpConditionConfig(cidr, authority);
+        int[] ports = null;
+
+        if (portsValue != null)
+        {
+            IntHashSet portsSet = new IntHashSet();
+            switch (portsValue.getValueType())
+            {
+            case ARRAY:
+                JsonArray portsArray = portsValue.asJsonArray();
+                portsArray.forEach(value -> adaptPortsValueFromJson(value, portsSet));
+                break;
+            default:
+                adaptPortsValueFromJson(portsValue, portsSet);
+                break;
+            }
+
+            int[] ports0 = new int[portsSet.size()];
+            MutableInteger index = new MutableInteger();
+            portsSet.forEach(i -> ports0[index.value++] = i);
+            ports = ports0;
+        }
+
+        return new TcpConditionConfig(cidr, authority, ports);
+    }
+
+    static void adaptPortsValueFromJson(
+        JsonValue value,
+        IntHashSet ports)
+    {
+        switch (value.getValueType())
+        {
+        case STRING:
+        {
+            String port = ((JsonString) value).getString();
+            int dashAt = port.indexOf('-');
+            if (dashAt != -1)
+            {
+                int portRangeLow = Integer.parseInt(port.substring(0, dashAt));
+                int portRangeHigh = Integer.parseInt(port.substring(dashAt + 1));
+                IntStream.range(portRangeLow, portRangeHigh + 1).forEach(ports::add);
+            }
+            else
+            {
+                ports.add(Integer.parseInt(port));
+            }
+            break;
+        }
+        case NUMBER:
+        default:
+        {
+            int port = ((JsonNumber) value).intValue();
+            ports.add(port);
+            break;
+        }
+        }
     }
 }
