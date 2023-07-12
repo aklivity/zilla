@@ -23,8 +23,6 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -128,12 +126,12 @@ public final class HistogramsLayout extends MetricsLayout
     // exclusive upper limits of each bucket
     private static long[] generateBucketLimits()
     {
-        List<Long> limits = new ArrayList<>();
+        long[] limits = new long[BUCKETS];
         for (int i = 0; i < BUCKETS; i++)
         {
-            limits.add(1L << (i + 1));
+            limits[i] = 1L << (i + 1);
         }
-        return limits.stream().mapToLong(l -> l).toArray();
+        return limits;
     }
 
     public static final class Builder extends Layout.Builder<HistogramsLayout>
