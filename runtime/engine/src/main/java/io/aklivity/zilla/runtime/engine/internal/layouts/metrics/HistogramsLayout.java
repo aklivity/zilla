@@ -16,12 +16,14 @@
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -140,7 +142,7 @@ public final class HistogramsLayout extends MetricsLayout
 
         private long capacity;
         private Path path;
-        private Mode mode;
+        private boolean readonly;
 
         public Builder capacity(
             long capacity)
@@ -156,10 +158,10 @@ public final class HistogramsLayout extends MetricsLayout
             return this;
         }
 
-        public Builder mode(
-            Mode mode)
+        public Builder readonly(
+            boolean readonly)
         {
-            this.mode = mode;
+            this.readonly = readonly;
             return this;
         }
 
@@ -167,17 +169,12 @@ public final class HistogramsLayout extends MetricsLayout
         public HistogramsLayout build()
         {
             final File layoutFile = path.toFile();
-            MappedByteBuffer mappedBuffer;
-            if (mode == Mode.CREATE_READ_WRITE)
+            if (!readonly)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
-                mappedBuffer = mapExistingFile(layoutFile, HISTOGRAMS_LABEL);
             }
-            else
-            {
-                assert mode == Mode.READ_ONLY;
-                mappedBuffer = mapExistingFile(layoutFile, READ_ONLY, HISTOGRAMS_LABEL);
-            }
+            FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
+            MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, HISTOGRAMS_LABEL);
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new HistogramsLayout(atomicBuffer);
         }

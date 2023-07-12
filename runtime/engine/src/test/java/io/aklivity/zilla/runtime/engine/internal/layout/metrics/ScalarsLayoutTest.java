@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
 
-import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
@@ -41,7 +40,7 @@ public class ScalarsLayoutTest
         ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(8192)
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .label("counters")
                 .build();
 
@@ -83,7 +82,7 @@ public class ScalarsLayoutTest
         ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(71) // we'd need 72 bytes here for the 3 records
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .label("counters")
                 .build();
 
@@ -107,7 +106,7 @@ public class ScalarsLayoutTest
         ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
                 .path(path)
                 .capacity(8192)
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .label("counters")
                 .build();
 

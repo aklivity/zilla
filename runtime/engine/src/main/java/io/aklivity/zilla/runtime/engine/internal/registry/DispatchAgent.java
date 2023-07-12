@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
-import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.READ_ONLY;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
@@ -106,7 +104,6 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
@@ -239,25 +236,24 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        Layout.Mode mode = readonly ? READ_ONLY : CREATE_READ_WRITE;
         this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(mode)
+                .readonly(readonly)
                 .label("counters")
                 .build();
 
         this.gaugesLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(mode)
+                .readonly(readonly)
                 .label("gauges")
                 .build();
 
         this.histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(mode)
+                .readonly(readonly)
                 .build();
 
         metricWriterSuppliers = new Object2ObjectHashMap<>();

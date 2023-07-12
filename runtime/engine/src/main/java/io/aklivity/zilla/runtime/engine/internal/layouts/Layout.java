@@ -17,12 +17,6 @@ package io.aklivity.zilla.runtime.engine.internal.layouts;
 
 public abstract class Layout implements AutoCloseable
 {
-    public enum Mode
-    {
-        CREATE_READ_WRITE,
-        READ_ONLY
-    }
-
     @Override
     public abstract void close();
 

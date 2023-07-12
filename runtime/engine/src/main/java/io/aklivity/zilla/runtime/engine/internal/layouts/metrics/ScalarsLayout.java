@@ -16,11 +16,13 @@
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 
 import java.io.File;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -98,7 +100,7 @@ public final class ScalarsLayout extends MetricsLayout
     {
         private long capacity;
         private Path path;
-        private Mode mode;
+        private boolean readonly;
         private String label;
 
         public Builder capacity(
@@ -115,10 +117,10 @@ public final class ScalarsLayout extends MetricsLayout
             return this;
         }
 
-        public Builder mode(
-            Mode mode)
+        public Builder readonly(
+            boolean readonly)
         {
-            this.mode = mode;
+            this.readonly = readonly;
             return this;
         }
 
@@ -133,17 +135,12 @@ public final class ScalarsLayout extends MetricsLayout
         public ScalarsLayout build()
         {
             final File layoutFile = path.toFile();
-            MappedByteBuffer mappedBuffer;
-            if (mode == Mode.CREATE_READ_WRITE)
+            if (!readonly)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
-                mappedBuffer = mapExistingFile(layoutFile, this.label);
             }
-            else
-            {
-                assert mode == Mode.READ_ONLY;
-                mappedBuffer = mapExistingFile(layoutFile, READ_ONLY, this.label);
-            }
+            FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
+            MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, this.label);
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new ScalarsLayout(atomicBuffer);
         }
