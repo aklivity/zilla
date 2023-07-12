@@ -225,7 +225,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<MetricGroup> metricGroups,
         Collector collector,
         int index,
-        boolean readOnly)
+        boolean readonly)
     {
         this.localIndex = index;
         this.config = config;
@@ -239,7 +239,7 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        Layout.Mode mode = readOnly ? READ_ONLY : CREATE_READ_WRITE;
+        Layout.Mode mode = readonly ? READ_ONLY : CREATE_READ_WRITE;
         this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
@@ -268,14 +268,14 @@ public class DispatchAgent implements EngineContext, Agent
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
                 .streamsCapacity(config.streamsBufferCapacity())
-                .readonly(readOnly)
+                .readonly(readonly)
                 .build();
 
         final BufferPoolLayout bufferPoolLayout = new BufferPoolLayout.Builder()
                 .path(config.directory().resolve(String.format("buffers%d", index)))
                 .slotCapacity(config.bufferSlotCapacity())
                 .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
-                .readonly(readOnly)
+                .readonly(readonly)
                 .build();
 
         this.agentName = String.format("engine/data#%d", index);

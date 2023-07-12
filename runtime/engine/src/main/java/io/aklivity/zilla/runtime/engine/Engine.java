@@ -95,7 +95,7 @@ public final class Engine implements Collector, AutoCloseable
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
     private final Collection<DispatchAgent> dispatchers;
-    private final boolean readOnly;
+    private final boolean readonly;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -107,7 +107,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
-        boolean readOnly)
+        boolean readonly)
     {
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
@@ -119,7 +119,7 @@ public final class Engine implements Collector, AutoCloseable
         }
 
         int workerCount;
-        if (readOnly)
+        if (readonly)
         {
             Info info = new Info(config.directory());
             workerCount = info.workers();
@@ -164,7 +164,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex, readOnly);
+                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex, readonly);
             dispatchers.add(agent);
         }
         this.dispatchers = dispatchers;
@@ -216,7 +216,7 @@ public final class Engine implements Collector, AutoCloseable
         this.extensions = extensions;
         this.context = context;
         this.runners = runners;
-        this.readOnly = readOnly;
+        this.readonly = readonly;
     }
 
     public <T> T binding(
@@ -236,7 +236,7 @@ public final class Engine implements Collector, AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = watcherTask.submit();
-        if (!readOnly)
+        if (!readonly)
         {
             // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
             watcherTask.watch(rootConfigURL).get();

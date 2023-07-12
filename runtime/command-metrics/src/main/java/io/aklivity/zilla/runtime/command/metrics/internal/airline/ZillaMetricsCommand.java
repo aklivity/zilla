@@ -87,7 +87,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         try (Engine engine = Engine.builder()
             .config(config)
             .errorHandler(onError)
-            .readOnly()
+            .readonly()
             .build())
         {
             engine.start();
