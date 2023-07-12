@@ -89,6 +89,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     {
         KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
+
+        KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);
+        clientGroupFactory.onAttached(binding.id);
     }
 
     @Override
@@ -96,6 +99,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+        KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);
+        clientGroupFactory.onDetached(bindingId);
     }
 
     @Override

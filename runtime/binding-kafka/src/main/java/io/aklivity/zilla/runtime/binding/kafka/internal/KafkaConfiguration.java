@@ -67,6 +67,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<String> KAFKA_CLIENT_GROUP_INSTANCE_ID;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
+    public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID_SUPPLIER;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -107,6 +108,8 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_GROUP_INSTANCE_ID = config.property("client.group.instance.id", UUID.randomUUID().toString());
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property("client.group.rebalance.timeout", 4000);
         KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_INSTANCE_ID_SUPPLIER = config.property(InstanceIdSupplier.class, "client.instance.id.supplier",
+            KafkaConfiguration::decodeInstanceIdSupplier, KafkaConfiguration::defaultInstanceIdSupplier);
         KAFKA_CONFIG = config;
     }
 
@@ -259,6 +262,7 @@ public class KafkaConfiguration extends Configuration
     {
         return KAFKA_CLIENT_GROUP_INSTANCE_ID.get(this);
     }
+
     public String clientId()
     {
         return KAFKA_CLIENT_ID.get(this);
@@ -286,6 +290,11 @@ public class KafkaConfiguration extends Configuration
     public Supplier<String> nonceSupplier()
     {
         return KAFKA_CLIENT_SASL_SCRAM_NONCE.get(this)::get;
+    }
+
+    public Supplier<String> clientInstanceIdSupplier()
+    {
+        return KAFKA_CLIENT_INSTANCE_ID_SUPPLIER.get(this)::get;
     }
 
     @FunctionalInterface
@@ -335,5 +344,23 @@ public class KafkaConfiguration extends Configuration
     {
         return () ->
                  new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
+    }
+
+    @FunctionalInterface
+    private interface InstanceIdSupplier extends Supplier<String>
+    {
+    }
+
+    private static InstanceIdSupplier decodeInstanceIdSupplier(
+        Configuration config,
+        String value)
+    {
+        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
+    }
+
+    private static InstanceIdSupplier defaultInstanceIdSupplier(
+        Configuration config)
+    {
+        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 }
