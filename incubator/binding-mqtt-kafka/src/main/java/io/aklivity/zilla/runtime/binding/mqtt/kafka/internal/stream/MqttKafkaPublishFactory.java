@@ -98,10 +98,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer keyBuffer;
-    private final MutableDirectBuffer headerIntValueBuffer;
     private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer kafkaHeadersBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -112,8 +109,9 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
-    private final String kafkaTopic;
-    private final String kafkaRetainedTopic;
+    private final String16FW kafkaTopic;
+    private final String16FW kafkaRetainedTopic;
+    private final int bufferCapacity;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -122,11 +120,9 @@ public class MqttKafkaPublishFactory implements BindingHandler
     {
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.keyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.headerIntValueBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.bufferCapacity = context.writeBuffer().capacity();
+        this.writeBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
+        this.extBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
         this.helper = new MqttKafkaHeaderHelper();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -135,8 +131,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
-        this.kafkaTopic = config.messagesTopic();
-        this.kafkaRetainedTopic = config.retainedMessagesTopic();
+        this.kafkaTopic = new String16FW(config.messagesTopic());
+        this.kafkaRetainedTopic = new String16FW(config.retainedMessagesTopic());
     }
 
     @Override
@@ -176,6 +172,10 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final MutableDirectBuffer keyBuffer;
+        private final MutableDirectBuffer headerIntValueBuffer;
+        private final MutableDirectBuffer kafkaHeadersBuffer;
+
         private final KafkaMessagesProxy messages;
         private final KafkaRetainedProxy retained;
 
@@ -196,6 +196,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private OctetsFW clientIdOctets;
         private boolean retainAvailable;
 
+
         private MqttPublishProxy(
             MessageConsumer mqtt,
             long originId,
@@ -208,6 +209,9 @@ public class MqttKafkaPublishFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.keyBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
+            this.headerIntValueBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
+            this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
             this.messages = new KafkaMessagesProxy(originId, resolvedId, this);
             this.retained = new KafkaRetainedProxy(originId, resolvedId, this);
         }
@@ -338,7 +342,14 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             if (mqttPublishDataEx.expiryInterval() != -1)
             {
-                addHeader(helper.kafkaTimeoutHeaderName, mqttPublishDataEx.expiryInterval() * 1000);
+                headerIntValueBuffer.putInt(0, mqttPublishDataEx.expiryInterval() * 1000, ByteOrder.BIG_ENDIAN);
+                kafkaHeadersRW.item(h ->
+                {
+                    h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
+                    h.name(helper.kafkaTimeoutHeaderName);
+                    h.valueLen(4);
+                    h.value(headerIntValueBuffer, 0, 4);
+                });
             }
 
             if (mqttPublishDataEx.contentType().asString() != null)
@@ -601,20 +612,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 doReset(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
         }
-    }
-
-    private void addHeader(
-        OctetsFW key,
-        int value)
-    {
-        headerIntValueBuffer.putInt(0, value, ByteOrder.BIG_ENDIAN);
-        kafkaHeadersRW.item(h ->
-        {
-            h.nameLen(key.sizeof());
-            h.name(key);
-            h.valueLen(4);
-            h.value(headerIntValueBuffer, 0, 4);
-        });
     }
 
     private void addHeader(
@@ -1444,7 +1441,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
         long traceId,
         long authorization,
         long affinity,
-        String topic)
+        String16FW topic)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())

@@ -120,6 +120,7 @@ read advised zilla:flush ${kafka:flushEx()
                                 .build()}
 
 read await RETAIN_FINISHED
+
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

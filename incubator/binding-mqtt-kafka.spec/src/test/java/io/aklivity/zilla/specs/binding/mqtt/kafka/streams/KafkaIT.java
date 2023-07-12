@@ -244,8 +244,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/subscribe.server.sent.retained.abort/client",
-        "${kafka}/subscribe.server.sent.retained.abort/server"})
+        "${kafka}/subscribe.retained.server.sent.abort/client",
+        "${kafka}/subscribe.retained.server.sent.abort/server"})
     public void shouldSubscribeReceiveServerSentRetainedAbort() throws Exception
     {
         k3po.finish();
@@ -253,8 +253,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/subscribe.server.sent.retained.reset/client",
-        "${kafka}/subscribe.server.sent.retained.reset/server"})
+        "${kafka}/subscribe.retained.server.sent.reset/client",
+        "${kafka}/subscribe.retained.server.sent.reset/server"})
     public void shouldSubscribeReceiveServerSentRetainedReset() throws Exception
     {
         k3po.finish();

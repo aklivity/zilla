@@ -33,7 +33,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .filter("sensor/+/#", 1)
-                                     .filter("sensor/+/1", 2)
+                                     .filter("sensor/+/1", 2, "AT_MOST_ONCE", "NO_LOCAL")
                                      .build()
                                  .build()}
 
