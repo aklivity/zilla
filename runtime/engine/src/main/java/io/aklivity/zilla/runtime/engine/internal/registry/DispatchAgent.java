@@ -402,16 +402,16 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public String supplyNamespace(
-        long bindingId)
+        long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.namespaceId(bindingId));
+        return labels.lookupLabel(NamespacedId.namespaceId(namespacedId));
     }
 
     @Override
     public String supplyLocalName(
-        long bindingId)
+        long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.localId(bindingId));
+        return labels.lookupLabel(NamespacedId.localId(namespacedId));
     }
 
     @Override

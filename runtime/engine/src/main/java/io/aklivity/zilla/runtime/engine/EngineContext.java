@@ -108,10 +108,10 @@ public interface EngineContext
         BindingConfig binding);
 
     String supplyNamespace(
-        long bindingId);
+        long namespacedId);
 
     String supplyLocalName(
-        long bindingId);
+        long namespacedId);
 
     String supplyLocalName(
         int localId);
