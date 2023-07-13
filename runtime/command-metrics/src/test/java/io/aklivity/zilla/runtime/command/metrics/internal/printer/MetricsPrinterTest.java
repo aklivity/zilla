@@ -42,21 +42,21 @@ public class MetricsPrinterTest
             "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 2 | avg: 32]\n\n";
 
         ScalarRecord counterRecord = mock(ScalarRecord.class);
-        when(counterRecord.namespaceName()).thenReturn("ns1");
-        when(counterRecord.bindingName()).thenReturn("binding1");
-        when(counterRecord.metricName()).thenReturn("counter1");
+        when(counterRecord.namespace()).thenReturn("ns1");
+        when(counterRecord.binding()).thenReturn("binding1");
+        when(counterRecord.metric()).thenReturn("counter1");
         when(counterRecord.valueReader()).thenReturn(() -> 42L);
 
         ScalarRecord gaugeRecord = mock(ScalarRecord.class);
-        when(gaugeRecord.namespaceName()).thenReturn("ns1");
-        when(gaugeRecord.bindingName()).thenReturn("binding1");
-        when(gaugeRecord.metricName()).thenReturn("gauge1");
+        when(gaugeRecord.namespace()).thenReturn("ns1");
+        when(gaugeRecord.binding()).thenReturn("binding1");
+        when(gaugeRecord.metric()).thenReturn("gauge1");
         when(gaugeRecord.valueReader()).thenReturn(() -> 77L);
 
         HistogramRecord histogramRecord = mock(HistogramRecord.class);
-        when(histogramRecord.namespaceName()).thenReturn("ns1");
-        when(histogramRecord.bindingName()).thenReturn("binding1");
-        when(histogramRecord.metricName()).thenReturn("histogram1");
+        when(histogramRecord.namespace()).thenReturn("ns1");
+        when(histogramRecord.binding()).thenReturn("binding1");
+        when(histogramRecord.metric()).thenReturn("histogram1");
         when(histogramRecord.stats()).thenReturn(new long[]{1L, 63L, 64L, 2L, 32L});
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);

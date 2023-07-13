@@ -44,9 +44,9 @@ public class ScalarRecordTest
         ScalarRecord scalar = new ScalarRecord(bindingId, metricId, READER_42, labelResolver);
 
         // WHEN
-        String namespaceName = scalar.namespaceName();
-        String bindingName = scalar.bindingName();
-        String metricName = scalar.metricName();
+        String namespaceName = scalar.namespace();
+        String bindingName = scalar.binding();
+        String metricName = scalar.metric();
         long value = scalar.valueReader().getAsLong();
 
         // THEN

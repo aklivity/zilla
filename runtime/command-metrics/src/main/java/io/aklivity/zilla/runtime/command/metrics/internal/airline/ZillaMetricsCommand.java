@@ -168,7 +168,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         LongPredicate filterPredicate)
     {
         return records.stream()
-            .filter(r -> filterPredicate.test(r.namespacedBindingId()))
+            .filter(r -> filterPredicate.test(r.bindingId()))
             .collect(Collectors.toList());
     }
 }

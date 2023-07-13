@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.engine.exporter;
 
 import java.util.List;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -29,7 +29,7 @@ public interface ExporterContext
         ExporterConfig config,
         List<AttributeConfig> attributes,
         Collector collector,
-        IntFunction<KindConfig> resolveKind);
+        LongFunction<KindConfig> resolveKind);
 
     void detach(
         long exporterId);

@@ -53,21 +53,21 @@ public class PrometheusMetricsPrinterTest
             "histogram1_count{namespace=\"ns1\",binding=\"binding1\"} 59\n\n\n";
 
         ScalarRecord counterRecord = mock(ScalarRecord.class);
-        when(counterRecord.namespaceName()).thenReturn("ns1");
-        when(counterRecord.bindingName()).thenReturn("binding1");
-        when(counterRecord.metricName()).thenReturn("counter1");
+        when(counterRecord.namespace()).thenReturn("ns1");
+        when(counterRecord.binding()).thenReturn("binding1");
+        when(counterRecord.metric()).thenReturn("counter1");
         when(counterRecord.valueReader()).thenReturn(() -> 42L);
 
         ScalarRecord gaugeRecord = mock(ScalarRecord.class);
-        when(gaugeRecord.namespaceName()).thenReturn("ns1");
-        when(gaugeRecord.bindingName()).thenReturn("binding1");
-        when(gaugeRecord.metricName()).thenReturn("gauge1");
+        when(gaugeRecord.namespace()).thenReturn("ns1");
+        when(gaugeRecord.binding()).thenReturn("binding1");
+        when(gaugeRecord.metric()).thenReturn("gauge1");
         when(gaugeRecord.valueReader()).thenReturn(() -> 77L);
 
         HistogramRecord histogramRecord = mock(HistogramRecord.class);
-        when(histogramRecord.namespaceName()).thenReturn("ns1");
-        when(histogramRecord.bindingName()).thenReturn("binding1");
-        when(histogramRecord.metricName()).thenReturn("histogram1");
+        when(histogramRecord.namespace()).thenReturn("ns1");
+        when(histogramRecord.binding()).thenReturn("binding1");
+        when(histogramRecord.metric()).thenReturn("histogram1");
         when(histogramRecord.buckets()).thenReturn(4);
         when(histogramRecord.bucketLimits()).thenReturn(new long[]{1, 10, 100, 1000});
         when(histogramRecord.bucketValues()).thenReturn(new long[]{7, 42, 9, 1});

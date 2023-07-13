@@ -332,8 +332,9 @@ public class NamespaceRegistry
     }
 
     public KindConfig resolveKind(
-        int bindingId)
+        long namespacedBindingId)
     {
+        int bindingId = NamespacedId.localId(namespacedBindingId);
         BindingRegistry binding = findBinding(bindingId);
         return binding == null ? null : binding.kind();
     }

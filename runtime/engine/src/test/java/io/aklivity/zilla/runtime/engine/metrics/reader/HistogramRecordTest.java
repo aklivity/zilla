@@ -55,9 +55,9 @@ public class HistogramRecordTest
 
         // WHEN
         histogram.update();
-        String namespaceName = histogram.namespaceName();
-        String bindingName = histogram.bindingName();
-        String metricName = histogram.metricName();
+        String namespaceName = histogram.namespace();
+        String bindingName = histogram.binding();
+        String metricName = histogram.metric();
         int buckets = histogram.buckets();
         long[] value = histogram.bucketValues();
         long[] stats = histogram.stats();

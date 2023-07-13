@@ -70,15 +70,15 @@ public class PrometheusMetricsPrinter
     private String formatScalar(
         ScalarRecord record)
     {
-        String kind = supplyKind.apply(record.metricName());
-        String extName = supplyName.apply(record.metricName());
-        String description = supplyDescription.apply(record.metricName());
+        String kind = supplyKind.apply(record.metric());
+        String extName = supplyName.apply(record.metric());
+        String description = supplyDescription.apply(record.metric());
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
         return String.format(format, extName, description, extName, kind, extName,
-            record.namespaceName(), record.bindingName(), record.valueReader().getAsLong());
+            record.namespace(), record.binding(), record.valueReader().getAsLong());
     }
 
     private String formatHistogram(
@@ -86,9 +86,9 @@ public class PrometheusMetricsPrinter
     {
         record.update();
         StringBuilder sb = new StringBuilder();
-        String kind = supplyKind.apply(record.metricName());
-        String extName = supplyName.apply(record.metricName());
-        String description = supplyDescription.apply(record.metricName());
+        String kind = supplyKind.apply(record.metric());
+        String extName = supplyName.apply(record.metric());
+        String description = supplyDescription.apply(record.metric());
         long sum = record.stats()[2];
         long count = record.stats()[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
@@ -98,12 +98,12 @@ public class PrometheusMetricsPrinter
             String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
             cumulativeValue += record.bucketValues()[i];
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                extName, limit, record.namespaceName(), record.bindingName(), cumulativeValue));
+                extName, limit, record.namespace(), record.binding(), cumulativeValue));
         }
         sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n",
-            extName, record.namespaceName(), record.bindingName(), sum));
+            extName, record.namespace(), record.binding(), sum));
         sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n",
-            extName, record.namespaceName(), record.bindingName(), count));
+            extName, record.namespace(), record.binding(), count));
         return sb.toString();
     }
 }

@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 
 import org.junit.Test;
 
@@ -47,7 +47,7 @@ public class OtlpExporterHandlerTest
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
         Collector collector = mock(Collector.class);
-        IntFunction<KindConfig> resolveKind = mock(IntFunction.class);
+        LongFunction<KindConfig> resolveKind = mock(LongFunction.class);
         List<AttributeConfig> attributes = List.of();
 
         // WHEN

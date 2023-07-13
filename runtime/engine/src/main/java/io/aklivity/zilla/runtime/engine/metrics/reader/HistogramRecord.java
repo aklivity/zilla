@@ -50,31 +50,25 @@ public class HistogramRecord implements MetricRecord
     }
 
     @Override
-    public long namespacedBindingId()
+    public long bindingId()
     {
         return namespacedBindingId;
     }
 
     @Override
-    public int bindingId()
-    {
-        return bindingId;
-    }
-
-    @Override
-    public String namespaceName()
+    public String namespace()
     {
         return labelResolver.apply(namespaceId);
     }
 
     @Override
-    public String bindingName()
+    public String binding()
     {
         return labelResolver.apply(bindingId);
     }
 
     @Override
-    public String metricName()
+    public String metric()
     {
         return labelResolver.apply(metricId);
     }

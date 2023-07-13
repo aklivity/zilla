@@ -69,9 +69,9 @@ public class MetricsPrinter
 
         for (MetricRecord metric : records)
         {
-            namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
-            bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
-            metricWidth = Math.max(metricWidth, metric.metricName().length());
+            namespaceWidth = Math.max(namespaceWidth, metric.namespace().length());
+            bindingWidth = Math.max(bindingWidth, metric.binding().length());
+            metricWidth = Math.max(metricWidth, metric.metric().length());
             valueWidth = Math.max(valueWidth, metricValues.get(metric).length());
         }
     }
@@ -84,7 +84,7 @@ public class MetricsPrinter
         out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
         for (MetricRecord metric : records)
         {
-            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metricValues.get(metric));
+            out.format(format, metric.namespace(), metric.binding(), metric.metric(), metricValues.get(metric));
         }
         out.println();
     }

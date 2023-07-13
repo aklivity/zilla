@@ -22,7 +22,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -44,7 +44,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final URI url;
     private final long interval;
     private final Collector collector;
-    private final IntFunction<KindConfig> resolveKind;
+    private final LongFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
     private final HttpClient httpClient;
 
@@ -58,7 +58,7 @@ public class OltpExporterHandler implements ExporterHandler
         EngineContext context,
         OtlpExporterConfig exporter,
         Collector collector,
-        IntFunction<KindConfig> resolveKind,
+        LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
         this.context = context;
