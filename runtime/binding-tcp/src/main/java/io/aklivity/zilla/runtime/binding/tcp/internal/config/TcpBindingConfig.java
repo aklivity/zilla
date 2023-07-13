@@ -62,7 +62,7 @@ public final class TcpBindingConfig
         InetSocketAddress remote)
     {
         return routes.stream()
-            .filter(r -> r.matches(remote.getAddress()))
+            .filter(r -> r.matches(remote))
             .findFirst()
             .orElse(null);
     }

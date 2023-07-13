@@ -17,15 +17,11 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpOptionsConfigAdapter.adaptPortsValueFromJson;
 
-import java.util.stream.IntStream;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -118,37 +114,5 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
         }
 
         return new TcpConditionConfig(cidr, authority, ports);
-    }
-
-    static void adaptPortsValueFromJson(
-        JsonValue value,
-        IntHashSet ports)
-    {
-        switch (value.getValueType())
-        {
-        case STRING:
-        {
-            String port = ((JsonString) value).getString();
-            int dashAt = port.indexOf('-');
-            if (dashAt != -1)
-            {
-                int portRangeLow = Integer.parseInt(port.substring(0, dashAt));
-                int portRangeHigh = Integer.parseInt(port.substring(dashAt + 1));
-                IntStream.range(portRangeLow, portRangeHigh + 1).forEach(ports::add);
-            }
-            else
-            {
-                ports.add(Integer.parseInt(port));
-            }
-            break;
-        }
-        case NUMBER:
-        default:
-        {
-            int port = ((JsonNumber) value).intValue();
-            ports.add(port);
-            break;
-        }
-        }
     }
 }
