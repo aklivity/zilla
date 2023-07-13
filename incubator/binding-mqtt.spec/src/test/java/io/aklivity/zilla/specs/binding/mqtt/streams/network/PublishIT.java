@@ -260,7 +260,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.retained/client",
         "${net}/publish.retained/server"})
-    public void shouldSendRetainedMessage() throws Exception
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }

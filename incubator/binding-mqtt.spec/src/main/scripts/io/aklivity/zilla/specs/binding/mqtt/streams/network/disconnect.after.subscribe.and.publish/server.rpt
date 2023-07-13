@@ -47,7 +47,7 @@ write [0x90 0x04]                   # SUBACK
       [0x00]                        # properties = none
       [0x00]                        # reason code
 
-read [0x30 0x14]                   # PUBLISH
+read  [0x30 0x14]                   # PUBLISH
       [0x00 0x0a] "sensor/two"      # topic name
       [0x00]                        # properties
       "message"                     # payload

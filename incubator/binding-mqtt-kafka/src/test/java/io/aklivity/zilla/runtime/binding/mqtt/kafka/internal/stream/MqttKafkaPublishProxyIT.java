@@ -115,7 +115,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.retained.server.sent.abort/client",
         "${kafka}/publish.retained.server.sent.abort/server"})
-    public void shouldReceiveServerSentRetainedAbort() throws Exception
+    public void shouldPublishRetainedThenReceiveServerSentAbort() throws Exception
     {
         k3po.finish();
     }
@@ -125,7 +125,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.retained.server.sent.flush/client",
         "${kafka}/publish.retained.server.sent.flush/server"})
-    public void shouldReceiveServerSentRetainedFlush() throws Exception
+    public void shouldPublishRetainedThenReceiveServerSentFlush() throws Exception
     {
         k3po.finish();
     }
@@ -135,7 +135,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.retained.server.sent.reset/client",
         "${kafka}/publish.retained.server.sent.reset/server"})
-    public void shouldReceiveServerSentRetainedReset() throws Exception
+    public void shouldPublishRetainedThenReceiveServerSentReset() throws Exception
     {
         k3po.finish();
     }
@@ -145,7 +145,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.retained.server.sent.data/client",
         "${kafka}/publish.retained.server.sent.data/server"})
-    public void shouldAbortWhenServerSentRetainedData() throws Exception
+    public void shouldPublishRetainedThenAbortWhenServerSentData() throws Exception
     {
         k3po.finish();
     }
@@ -165,7 +165,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.retained/client",
         "${kafka}/publish.retained/server"})
-    public void shouldSendRetainedMessage() throws Exception
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }

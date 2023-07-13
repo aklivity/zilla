@@ -120,7 +120,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/publish.retained/client",
         "${mqtt}/publish.retained/server"})
-    public void shouldSendRetainedMessage() throws Exception
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }
