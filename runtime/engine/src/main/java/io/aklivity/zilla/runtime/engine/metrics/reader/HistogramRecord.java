@@ -17,34 +17,31 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
-import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
 import java.util.Objects;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 public class HistogramRecord implements MetricRecord
 {
-    private final long namespacedBindingId;
+    private final long bindingId;
+    private final long metricId;
     private final int namespaceId;
-    private final int bindingId;
-    private final int metricId;
     private final LongSupplier[] readers;
-    private final IntFunction<String> labelResolver;
+    private final LongFunction<String> labelResolver;
 
     private long[] bucketValues = new long[BUCKETS];
 
     public HistogramRecord(
-        long namespacedBindingId,
-        long namespacedMetricId,
+        long bindingId,
+        long metricId,
         LongSupplier[] readers,
-        IntFunction<String> labelResolver)
+        LongFunction<String> labelResolver)
     {
-        this.namespacedBindingId = namespacedBindingId;
-        this.namespaceId = namespaceId(namespacedBindingId);
-        this.bindingId = localId(namespacedBindingId);
-        this.metricId = localId(namespacedMetricId);
+        this.bindingId = bindingId;
+        this.metricId = metricId;
+        this.namespaceId = namespaceId(bindingId);
         this.readers = readers;
         this.labelResolver = labelResolver;
     }
@@ -52,12 +49,13 @@ public class HistogramRecord implements MetricRecord
     @Override
     public long bindingId()
     {
-        return namespacedBindingId;
+        return bindingId;
     }
 
     @Override
     public String namespace()
     {
+        // implicit int -> long conversion, it's OK
         return labelResolver.apply(namespaceId);
     }
 

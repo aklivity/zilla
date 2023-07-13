@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class MetricsReaderTest
     public void shouldCollectMetrics()
     {
         // GIVEN
-        IntFunction<String> labelResolver = mock(IntFunction.class);
+        LongFunction<String> labelResolver = mock(LongFunction.class);
         Collector collector = mock(Collector.class);
         long bindingId = NamespacedId.id(4, 7);
         long counterId = NamespacedId.id(4, 8);
@@ -81,7 +81,7 @@ public class MetricsReaderTest
     public void shouldReturnEmptyList()
     {
         // GIVEN
-        IntFunction<String> labelResolver = mock(IntFunction.class);
+        LongFunction<String> labelResolver = mock(LongFunction.class);
         Collector collector = mock(Collector.class);
         when(collector.counterIds()).thenReturn(new long[][]{});
         when(collector.gaugeIds()).thenReturn(new long[][]{});

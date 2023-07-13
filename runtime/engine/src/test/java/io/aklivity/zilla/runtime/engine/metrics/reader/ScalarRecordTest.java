@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
@@ -35,12 +35,12 @@ public class ScalarRecordTest
     public void shouldResolveFields()
     {
         // GIVEN
-        IntFunction<String> labelResolver = mock(IntFunction.class);
-        when(labelResolver.apply(77)).thenReturn("namespace1");
-        when(labelResolver.apply(7)).thenReturn("binding1");
-        when(labelResolver.apply(8)).thenReturn("metric1");
+        LongFunction<String> labelResolver = mock(LongFunction.class);
         long bindingId = NamespacedId.id(77, 7);
         long metricId = NamespacedId.id(77, 8);
+        when(labelResolver.apply(77L)).thenReturn("namespace1");
+        when(labelResolver.apply(bindingId)).thenReturn("binding1");
+        when(labelResolver.apply(metricId)).thenReturn("metric1");
         ScalarRecord scalar = new ScalarRecord(bindingId, metricId, READER_42, labelResolver);
 
         // WHEN

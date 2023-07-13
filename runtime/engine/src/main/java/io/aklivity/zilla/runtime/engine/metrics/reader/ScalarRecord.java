@@ -15,32 +15,29 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
-import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
 
 import java.util.Objects;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 public class ScalarRecord implements MetricRecord
 {
-    private final long namespacedBindingId;
+    private final long bindingId;
+    private final long metricId;
     private final int namespaceId;
-    private final int bindingId;
-    private final int metricId;
     private final LongSupplier reader;
-    private final IntFunction<String> labelResolver;
+    private final LongFunction<String> labelResolver;
 
     public ScalarRecord(
-        long namespacedBindingId,
-        long namespacedMetricId,
+        long bindingId,
+        long metricId,
         LongSupplier reader,
-        IntFunction<String> labelResolver)
+        LongFunction<String> labelResolver)
     {
-        this.namespacedBindingId = namespacedBindingId;
-        this.namespaceId = namespaceId(namespacedBindingId);
-        this.bindingId = localId(namespacedBindingId);
-        this.metricId = localId(namespacedMetricId);
+        this.bindingId = bindingId;
+        this.metricId = metricId;
+        this.namespaceId = namespaceId(bindingId);
         this.reader = reader;
         this.labelResolver = labelResolver;
     }
@@ -48,12 +45,13 @@ public class ScalarRecord implements MetricRecord
     @Override
     public long bindingId()
     {
-        return namespacedBindingId;
+        return bindingId;
     }
 
     @Override
     public String namespace()
     {
+        // implicit int -> long conversion, it's OK
         return labelResolver.apply(namespaceId);
     }
 

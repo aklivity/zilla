@@ -113,9 +113,6 @@ public interface EngineContext
     String supplyLocalName(
         long namespacedId);
 
-    String supplyLocalName(
-        int localId);
-
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(

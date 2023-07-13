@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -25,12 +25,12 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 public class MetricsReader
 {
     private final Collector collector;
-    private final IntFunction<String> labelResolver;
+    private final LongFunction<String> labelResolver;
     private final List<MetricRecord> records;
 
     public MetricsReader(
         Collector collector,
-        IntFunction<String> labelResolver)
+        LongFunction<String> labelResolver)
     {
         this.collector = collector;
         this.labelResolver = labelResolver;

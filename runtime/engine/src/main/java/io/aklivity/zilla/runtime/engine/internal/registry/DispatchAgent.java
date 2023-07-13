@@ -415,13 +415,6 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public String supplyLocalName(
-        int localId)
-    {
-        return labels.lookupLabel(localId);
-    }
-
-    @Override
     public int supplyTypeId(
         String name)
     {

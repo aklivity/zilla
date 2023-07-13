@@ -497,10 +497,10 @@ public final class Engine implements Collector, AutoCloseable
     }
 
     public String supplyLocalName(
-        int localId)
+        long namespacedId)
     {
         DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.supplyLocalName(localId);
+        return dispatchAgent.supplyLocalName(namespacedId);
     }
 
     public int supplyLabelId(
