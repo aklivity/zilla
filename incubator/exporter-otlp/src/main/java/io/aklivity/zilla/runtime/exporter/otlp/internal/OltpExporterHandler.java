@@ -118,8 +118,7 @@ public class OltpExporterHandler implements ExporterHandler
     private void handleResponse(
         HttpResponse<String> response)
     {
-        int statusCode = response.statusCode();
-        if (statusCode == HttpURLConnection.HTTP_OK)
+        if (response.statusCode() == HttpURLConnection.HTTP_OK)
         {
             lastSuccess = System.currentTimeMillis();
             warning = false;
