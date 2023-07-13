@@ -118,18 +118,12 @@ public final class Engine implements Collector, AutoCloseable
             tasks = newFixedThreadPool(config.taskParallelism(), this::newTaskThread);
         }
 
-        int workerCount;
-        if (readonly)
-        {
-            Info info = new Info(config.directory());
-            workerCount = info.workers();
-        }
-        else
-        {
-            workerCount = config.workers();
-            Info info = new Info(config.directory(), workerCount);
-            info.reset();
-        }
+        Info info = new Info.Builder()
+            .path(config.directory())
+            .workerCount(config.workers())
+            .readonly(readonly)
+            .build();
+        int workerCount = info.workers();
 
         LabelManager labels = new LabelManager(config.directory());
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();

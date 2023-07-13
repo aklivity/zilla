@@ -30,23 +30,29 @@ public final class Info implements AutoCloseable
     private final Path info;
 
     // write mode: write the processId and number of workers to the file
-    public Info(
+    private Info(
         Path directory,
         int workers)
     {
         this.info = directory.resolve("info");
         this.workers = workers;
+        reset();
     }
 
     // read mode: open the file and read the number of workers
-    public Info(
+    private Info(
         Path directory)
     {
         this.info = directory.resolve("info");
         this.workers = readWorkers();
     }
 
-    public void reset()
+    public int workers()
+    {
+        return workers;
+    }
+
+    private void reset()
     {
         try
         {
@@ -81,11 +87,6 @@ public final class Info implements AutoCloseable
         }
     }
 
-    public int workers()
-    {
-        return workers;
-    }
-
     private int readWorkers()
     {
         try
@@ -106,5 +107,45 @@ public final class Info implements AutoCloseable
     @Override
     public void close() throws Exception
     {
+    }
+
+    public static final class Builder
+    {
+        private Path path;
+        private int workerCount;
+        private boolean readonly;
+
+        public Builder path(
+            Path path)
+        {
+            this.path = path;
+            return this;
+        }
+
+        public Builder workerCount(
+            int workerCount)
+        {
+            this.workerCount = workerCount;
+            return this;
+        }
+
+        public Builder readonly(
+            boolean readonly)
+        {
+            this.readonly = readonly;
+            return this;
+        }
+
+        public Info build()
+        {
+            if (readonly)
+            {
+                return new Info(path);
+            }
+            else
+            {
+                return new Info(path, workerCount);
+            }
+        }
     }
 }
