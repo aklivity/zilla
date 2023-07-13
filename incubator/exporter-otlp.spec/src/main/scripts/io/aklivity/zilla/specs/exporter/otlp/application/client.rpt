@@ -264,3 +264,6 @@ read
     ']'
 '}'
 read closed
+
+write http:status "200" "OK"
+write close
