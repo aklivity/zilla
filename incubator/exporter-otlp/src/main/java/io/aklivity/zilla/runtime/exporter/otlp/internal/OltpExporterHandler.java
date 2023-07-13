@@ -111,7 +111,6 @@ public class OltpExporterHandler implements ExporterHandler
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .build();
         lastAttempt = System.currentTimeMillis();
-        System.out.println(request);
         CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         response.thenAccept(this::handleResponse);
     }
