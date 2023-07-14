@@ -45,12 +45,10 @@ public class OltpOptionsConfigAdapterTest
         String text =
             "{\n" +
                 "\"interval\": 30,\n" +
-                "\"endpoints\":\n" +
-                    "[\n" +
-                        "{\n" +
-                            "\"url\": \"http://localhost:4317\"\n" +
-                        "}\n" +
-                    "]\n" +
+                "\"endpoint\":\n" +
+                    "{\n" +
+                        "\"location\": \"http://localhost:4317\"\n" +
+                    "}\n" +
             "}";
 
         // WHEN
@@ -59,21 +57,29 @@ public class OltpOptionsConfigAdapterTest
         // THEN
         assertThat(options, not(nullValue()));
         assertThat(options.interval, equalTo(30L));
-        assertThat(options.endpoints[0].url, equalTo("http://localhost:4317"));
+        assertThat(options.endpoint.location, equalTo("http://localhost:4317"));
     }
 
     @Test
     public void shouldWriteOptions()
     {
         // GIVEN
+        String expected =
+            "{" +
+                "\"interval\":30," +
+                "\"endpoint\":" +
+                    "{" +
+                        "\"location\":\"http://localhost:4317\"" +
+                    "}" +
+            "}";
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317");
-        OtlpOptionsConfig config = new OtlpOptionsConfig(30, new OtlpEndpointConfig[]{endpoint});
+        OtlpOptionsConfig config = new OtlpOptionsConfig(30, endpoint);
 
         // WHEN
-        String text = jsonb.toJson(config);
+        String json = jsonb.toJson(config);
 
         // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"interval\":30,\"endpoints\":[{\"url\":\"http://localhost:4317\"}]}"));
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expected));
     }
 }

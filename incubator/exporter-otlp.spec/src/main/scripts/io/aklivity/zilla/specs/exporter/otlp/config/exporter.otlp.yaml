@@ -27,8 +27,8 @@ telemetry:
             type: otlp
             options:
                 interval: 1
-                endpoints:
-                    - url: http://localhost:4318/v1/metrics
+                endpoint:
+                    location: http://localhost:4318/v1/metrics
 bindings:
     net0:
         type: test

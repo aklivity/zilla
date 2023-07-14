@@ -43,7 +43,7 @@ public class OtlpExporterHandlerTest
         EngineConfiguration config = mock(EngineConfiguration.class);
         EngineContext context = mock(EngineContext.class);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com");
-        OptionsConfig options = new OtlpOptionsConfig(30L, new OtlpEndpointConfig[]{endpoint});
+        OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
         Collector collector = mock(Collector.class);

@@ -31,7 +31,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
@@ -62,8 +61,7 @@ public class OltpExporterHandler implements ExporterHandler
         List<AttributeConfig> attributes)
     {
         this.context = context;
-        OtlpEndpointConfig endpoint = exporter.options().endpoints[0];
-        this.url = URI.create(endpoint.url);
+        this.url = URI.create(exporter.options().endpoint.location);
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;

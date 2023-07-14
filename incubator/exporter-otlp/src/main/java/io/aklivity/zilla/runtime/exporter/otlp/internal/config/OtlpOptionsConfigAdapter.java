@@ -16,11 +16,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -33,7 +29,8 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
 {
     private static final String INTERVAL_NAME = "interval";
     private static final long INTERVAL_DEFAULT = 30;
-    private static final String ENDPOINTS_NAME = "endpoints";
+    private static final String ENDPOINT_NAME = "endpoint";
+    private static final String LOCATION_NAME = "location";
 
     private final OtlpEndpointAdapter endpoint;
 
@@ -64,11 +61,14 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         {
             object.add(INTERVAL_NAME, otlpOptionsConfig.interval);
         }
-        if (otlpOptionsConfig.endpoints != null)
+        if (otlpOptionsConfig.endpoint != null)
         {
-            JsonArrayBuilder entries = Json.createArrayBuilder();
-            Arrays.stream(otlpOptionsConfig.endpoints).forEach(v -> entries.add(endpoint.adaptToJson(v)));
-            object.add(ENDPOINTS_NAME, entries);
+            JsonObjectBuilder endpoint = Json.createObjectBuilder();
+            if (otlpOptionsConfig.endpoint.location != null)
+            {
+                endpoint.add(LOCATION_NAME, otlpOptionsConfig.endpoint.location);
+            }
+            object.add(ENDPOINT_NAME, endpoint);
         }
         return object.build();
     }
@@ -79,13 +79,9 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         long interval = object.containsKey(INTERVAL_NAME)
             ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
-        OtlpEndpointConfig[] endpoints = object.containsKey(ENDPOINTS_NAME)
-            ? object.getJsonArray(ENDPOINTS_NAME).stream()
-                .map(i -> (JsonObject) i)
-                .map(endpoint::adaptFromJson)
-                .collect(Collectors.toList())
-                .toArray(OtlpEndpointConfig[]::new)
+        OtlpEndpointConfig endpointConfig = object.containsKey(ENDPOINT_NAME)
+            ? endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME))
             : null;
-        return new OtlpOptionsConfig(interval, endpoints);
+        return new OtlpOptionsConfig(interval, endpointConfig);
     }
 }

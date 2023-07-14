@@ -21,16 +21,16 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
 {
-    private static final String URL_NAME = "url";
+    private static final String LOCATION_NAME = "location";
 
     @Override
     public JsonObject adaptToJson(
         OtlpEndpointConfig endpoint)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
-        if (endpoint.url != null)
+        if (endpoint.location != null)
         {
-            object.add(URL_NAME, endpoint.url);
+            object.add(LOCATION_NAME, endpoint.location);
         }
         return object.build();
     }
@@ -39,7 +39,7 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
     public OtlpEndpointConfig adaptFromJson(
         JsonObject object)
     {
-        String url = object.getString(URL_NAME);
+        String url = object.getString(LOCATION_NAME);
         return new OtlpEndpointConfig(url);
     }
 }

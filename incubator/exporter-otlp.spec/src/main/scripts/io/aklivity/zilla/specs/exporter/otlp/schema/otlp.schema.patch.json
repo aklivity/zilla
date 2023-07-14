@@ -35,26 +35,22 @@
                             {
                                 "type": "number"
                             },
-                            "endpoints":
+                            "endpoint":
                             {
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "properties":
                                 {
-                                    "properties":
+                                    "location":
                                     {
-                                        "url":
-                                        {
-                                            "title": "URL",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required":
-                                    [
-                                        "url"
-                                    ],
-                                    "additionalProperties": false
+                                        "title": "Location",
+                                        "type": "string"
+                                    }
                                 },
-                                "minItems": 1
+                                "required":
+                                [
+                                    "location"
+                                ],
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

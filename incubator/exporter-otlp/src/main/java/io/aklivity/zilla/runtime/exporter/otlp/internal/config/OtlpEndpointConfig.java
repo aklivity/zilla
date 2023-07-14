@@ -18,11 +18,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpEndpointConfig extends OptionsConfig
 {
-    public String url;
+    public String location;
 
     public OtlpEndpointConfig(
-        String url)
+        String location)
     {
-        this.url = url;
+        this.location = location;
     }
 }
