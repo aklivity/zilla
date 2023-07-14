@@ -856,7 +856,6 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .publish()
-                .topic("sensor/one")
                 .qos("AT_MOST_ONCE")
                 .flags("RETAIN")
                 .expiryInterval(20)
@@ -875,7 +874,6 @@ public class MqttFunctionsTest
             .typeId(0x00)
             .publish(p ->
             {
-                p.topic("sensor/one");
                 p.qos(0);
                 p.flags(1);
                 p.expiryInterval(20);
@@ -895,7 +893,6 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .publish()
-                .topic("sensor/one")
                 .qos("AT_MOST_ONCE")
                 .expiryInterval(20)
                 .contentType("message")
@@ -913,7 +910,6 @@ public class MqttFunctionsTest
             .typeId(0x00)
             .publish(p ->
             {
-                p.topic("sensor/one");
                 p.qos(0);
                 p.expiryInterval(20);
                 p.contentType("message");
@@ -932,7 +928,6 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .publish()
-                .topic("sensor/one")
                 .qos("AT_MOST_ONCE")
                 .build()
             .build();
@@ -944,7 +939,6 @@ public class MqttFunctionsTest
             .typeId(0x00)
             .publish(p ->
             {
-                p.topic("sensor/one");
                 p.flags(0);
             })
             .build();
@@ -958,7 +952,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -972,7 +965,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttPublishDataEx.typeId());
-        assertEquals("sensor/one", mqttPublishDataEx.publish().topic().asString());
         assertEquals(15, mqttPublishDataEx.publish().expiryInterval());
         assertEquals("message", mqttPublishDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttPublishDataEx.publish().format().toString());
@@ -991,7 +983,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .userProperty("name", "value")
             .build()
             .build();
@@ -1000,7 +991,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
                 "name".equals(h.key().asString()) &&
@@ -1013,7 +1003,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
                 .publish()
-                .topic("sensor/one")
                 .qos("EXACTLY_ONCE")
                 .flags("RETAIN")
                 .build()
@@ -1023,7 +1012,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertEquals(2, mqttDataEx.publish().qos());
         assertEquals(0b0001, mqttDataEx.publish().flags());
     }
@@ -1054,7 +1042,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .userProperty("name1", "value1")
             .userProperty("name2", "value2")
             .build()
@@ -1064,7 +1051,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
                 "name1".equals(h.key().asString()) &&
@@ -1094,7 +1080,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertNull(mqttDataEx.publish().topic().asString());
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
@@ -1113,7 +1098,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -1126,7 +1110,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
@@ -1156,7 +1139,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertNull(mqttDataEx.publish().topic().asString());
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertNull(mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
@@ -1175,7 +1157,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -1189,7 +1170,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
@@ -1208,7 +1188,6 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-            .topic("sensor/one")
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -1222,7 +1201,6 @@ public class MqttFunctionsTest
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
-        assertEquals("sensor/one", mqttDataEx.publish().topic().asString());
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());

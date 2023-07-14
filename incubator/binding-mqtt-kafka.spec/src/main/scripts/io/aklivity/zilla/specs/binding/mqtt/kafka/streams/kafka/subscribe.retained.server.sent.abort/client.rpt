@@ -35,3 +35,30 @@ write zilla:begin.ext ${kafka:beginEx()
 connected
 
 read aborted
+
+write notify RETAINED_FINISHED
+
+connect await RETAINED_FINISHED
+    "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt_messages")
+                                .filter()
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+read aborted
+

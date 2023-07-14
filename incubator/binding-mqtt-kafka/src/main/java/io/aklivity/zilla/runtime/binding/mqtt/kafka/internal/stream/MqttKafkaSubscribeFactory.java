@@ -117,14 +117,14 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> sendRetainedFiltersRW =
         new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
-    private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filtersRW =
-        new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
 
     private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer subscriptionIdsBuffer;
+    private final MutableDirectBuffer retainFilterBuffer;
     private final BindingHandler streamFactory;
     private final BufferPool bufferPool;
     private final LongUnaryOperator supplyInitialId;
@@ -135,7 +135,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final MqttKafkaHeaderHelper helper;
     private final String16FW kafkaMessagesTopicName;
     private final String16FW kafkaRetainedTopicName;
-    private final int bufferCapacity;
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -144,9 +143,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     {
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
-        this.bufferCapacity = context.writeBuffer().capacity();
-        this.writeBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
-        this.extBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
+        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.retainFilterBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
         this.supplyInitialId = context::supplyInitialId;
@@ -194,7 +194,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final MutableDirectBuffer filtersBuffer;
         private final KafkaMessagesProxy messages;
         private final KafkaRetainedProxy retained;
 
@@ -215,7 +214,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private final IntArrayList retainedSubscriptionIds;
         private final Long2ObjectHashMap<Boolean> retainAsPublished;
         private final List<Subscription> retainedSubscriptions;
-        private Array32FW<MqttTopicFilterFW> filters;
         private String16FW clientId;
         private boolean retainAvailable;
 
@@ -235,7 +233,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
             this.retainAsPublished = new Long2ObjectHashMap<>();
-            this.filtersBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
             this.messages = new KafkaMessagesProxy(originId, resolvedId, this);
             this.retained = new KafkaRetainedProxy(originId, resolvedId, this);
         }
@@ -335,18 +332,9 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             }
             if (retainAvailable && !retainedFilters.isEmpty())
             {
-                filtersRW.wrap(filtersBuffer, 0, filtersBuffer.capacity());
-
-                filters.forEach(f -> filtersRW.item(fb -> fb
-                        .subscriptionId(f.subscriptionId()).qos(f.qos()).flags(f.flags()).pattern(f.pattern())));
-
-                this.filters = filtersRW.build();
                 retained.doKafkaBegin(traceId, authorization, affinity, retainedFilters);
             }
-            else
-            {
-                messages.doKafkaBegin(traceId, authorization, affinity, filters);
-            }
+            messages.doKafkaBegin(traceId, authorization, affinity, filters);
         }
 
         private void onMqttFlush(
@@ -703,7 +691,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
         private final MqttSubscribeProxy mqtt;
-        private final MutableDirectBuffer subscriptionIdsBuffer;
 
         private int dataSlot = NO_SLOT;
         private int messageSlotLimit;
@@ -731,7 +718,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
         }
 
         private void doKafkaBegin(
@@ -1184,8 +1170,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
         private final MqttSubscribeProxy mqtt;
-        private final MutableDirectBuffer subscriptionIdsBuffer;
-        private final MutableDirectBuffer retainFilterBuffer;
 
         private int state;
 
@@ -1208,8 +1192,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.retainFilterBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
-            this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
         }
 
         private void doKafkaBegin(
@@ -1550,8 +1532,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             mqtt.retainedSubscriptionIds.clear();
             doKafkaEnd(traceId, sequence, authorization);
-
-            mqtt.messages.doKafkaBegin(traceId, authorization, 0, mqtt.filters);
         }
 
         private void onKafkaAbort(

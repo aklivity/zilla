@@ -31,7 +31,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .build()
                              .build()}
 
@@ -54,7 +53,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/two")
                                 .build()
                              .build()}
 
@@ -63,7 +61,6 @@ write "message2"
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/two")
                                 .build()
                              .build()}
 

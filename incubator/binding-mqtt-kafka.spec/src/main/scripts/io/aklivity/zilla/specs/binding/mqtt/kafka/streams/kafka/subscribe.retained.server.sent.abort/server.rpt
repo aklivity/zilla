@@ -37,3 +37,24 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 connected
 
 write abort
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt_messages")
+                                .filter()
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+write abort

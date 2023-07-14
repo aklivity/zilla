@@ -447,13 +447,6 @@ public final class MqttFunctions
                 publishDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
-            public MqttPublishDataExBuilder topic(
-                String topic)
-            {
-                publishDataExRW.topic(topic);
-                return this;
-            }
-
             public MqttPublishDataExBuilder qos(
                 String qos)
             {
@@ -1639,7 +1632,6 @@ public final class MqttFunctions
         {
             private MqttBinaryFW.Builder correlationRW;
             private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
-            private String16FW topic;
             private Integer qos;
             private Integer flags;
             private Integer expiryInterval = -1;
@@ -1650,13 +1642,6 @@ public final class MqttFunctions
 
             private MqttPublishDataExMatcherBuilder()
             {
-            }
-
-            public MqttPublishDataExMatcherBuilder topic(
-                String topic)
-            {
-                this.topic = new String16FW(topic);
-                return this;
             }
 
             public MqttPublishDataExMatcherBuilder qos(
@@ -1752,8 +1737,7 @@ public final class MqttFunctions
                 MqttDataExFW dataEx)
             {
                 final MqttPublishDataExFW publishDataEx = dataEx.publish();
-                return matchTopic(publishDataEx) &&
-                    matchQos(publishDataEx) &&
+                return matchQos(publishDataEx) &&
                     matchFlags(publishDataEx) &&
                     matchExpiryInterval(publishDataEx) &&
                     matchContentType(publishDataEx) &&
@@ -1761,12 +1745,6 @@ public final class MqttFunctions
                     matchResponseTopic(publishDataEx) &&
                     matchCorrelation(publishDataEx) &&
                     matchUserProperties(publishDataEx);
-            }
-
-            private boolean matchTopic(
-                final MqttPublishDataExFW data)
-            {
-                return topic == null || topic.equals(data.topic());
             }
 
             private boolean matchQos(

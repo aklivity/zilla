@@ -156,7 +156,6 @@ scope mqtt
         struct MqttPublishDataEx
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
-            string16 topic = null;
             uint8 qos = 0;
             uint8 flags = 0;
             int32 expiryInterval = -1;

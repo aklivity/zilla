@@ -57,7 +57,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.Window
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class MqttKafkaPublishFactory implements BindingHandler
 {
@@ -99,13 +98,13 @@ public class MqttKafkaPublishFactory implements BindingHandler
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer kafkaHeadersBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final MqttKafkaHeaderHelper helper;
     private final int mqttTypeId;
     private final int kafkaTypeId;
-    private final Signaler signaler;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
@@ -123,8 +122,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.bufferCapacity = context.writeBuffer().capacity();
         this.writeBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
         this.extBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
+        this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
         this.helper = new MqttKafkaHeaderHelper();
-        this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -172,10 +171,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final MutableDirectBuffer keyBuffer;
-        private final MutableDirectBuffer headerIntValueBuffer;
-        private final MutableDirectBuffer kafkaHeadersBuffer;
-
         private final KafkaMessagesProxy messages;
         private final KafkaRetainedProxy retained;
 
@@ -209,9 +204,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.keyBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
-            this.headerIntValueBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
-            this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[bufferCapacity]);
             this.messages = new KafkaMessagesProxy(originId, resolvedId, this);
             this.retained = new KafkaRetainedProxy(originId, resolvedId, this);
         }
@@ -288,6 +280,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
             clientIdOctets = new OctetsFW()
                 .wrap(mqttPublishBeginEx.clientId().value(), 0, mqttPublishBeginEx.clientId().length());
             final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
+
+            final MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[topicNameBuffer.capacity() + 4]);
             key = new KafkaKeyFW.Builder()
                 .wrap(keyBuffer, 0, keyBuffer.capacity())
                 .length(topicNameBuffer.capacity())
@@ -342,13 +336,14 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             if (mqttPublishDataEx.expiryInterval() != -1)
             {
-                headerIntValueBuffer.putInt(0, mqttPublishDataEx.expiryInterval() * 1000, ByteOrder.BIG_ENDIAN);
+                final MutableDirectBuffer expiryBuffer = new UnsafeBuffer(new byte[4]);
+                expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval() * 1000, ByteOrder.BIG_ENDIAN);
                 kafkaHeadersRW.item(h ->
                 {
                     h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
                     h.name(helper.kafkaTimeoutHeaderName);
                     h.valueLen(4);
-                    h.value(headerIntValueBuffer, 0, 4);
+                    h.value(expiryBuffer, 0, expiryBuffer.capacity());
                 });
             }
 

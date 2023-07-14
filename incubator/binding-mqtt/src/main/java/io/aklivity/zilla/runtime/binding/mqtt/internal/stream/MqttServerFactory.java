@@ -1792,7 +1792,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .typeId(mqttTypeId)
                 .publish(publishBuilder ->
                 {
-                    publishBuilder.topic(mqttPublishHeaderRO.topic);
                     publishBuilder.qos(mqttPublishHeaderRO.qos);
                     publishBuilder.flags(mqttPublishHeaderRO.flags);
                     publishBuilder.expiryInterval(mqttPublishHeaderRO.expiryInterval);

@@ -31,7 +31,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .qos("AT_MOST_ONCE")
                                 .expiryInterval(15)
                                 .contentType("message")

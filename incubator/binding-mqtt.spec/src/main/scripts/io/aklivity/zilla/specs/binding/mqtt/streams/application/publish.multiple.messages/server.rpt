@@ -33,7 +33,6 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .build()
                             .build()}
 
@@ -42,7 +41,6 @@ read "message1"
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .build()
                             .build()}
 
@@ -51,7 +49,6 @@ read "test"
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .build()
                             .build()}
 
