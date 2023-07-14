@@ -92,6 +92,7 @@ import jakarta.json.JsonBuilderFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
@@ -1202,7 +1203,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
-        private final Object2IntHashMap<String> subscribePacketIds;
+        private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
 
         private MqttSessionStream sessionStream;
@@ -1273,7 +1274,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.publishStreams = new Int2ObjectHashMap<>();
             this.subscribeStreams = new Int2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
-            this.subscribePacketIds = new Object2IntHashMap<>(-1);
+            this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
         }
 
@@ -1916,7 +1917,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
                     subscription.flags = flags;
-                    subscribePacketIds.put(filter, packetId);
+                    //TODO: what if we don't have a subscriptionId
+                    subscribePacketIds.put(subscriptionId, packetId);
                     newSubscriptions.add(subscription);
                 }
 
@@ -2038,7 +2040,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (session)
                 {
                     List<Subscription> unAckedSubscriptions = sessionStream.unAckedSubscriptions.stream()
-                        .filter(s -> topicFilters.contains(s.filter) && subscribePacketIds.containsKey(s.filter))
+                        .filter(s -> topicFilters.contains(s.filter) && subscribePacketIds.containsKey(s.id))
                         .collect(Collectors.toList());
 
                     if (!unAckedSubscriptions.isEmpty())
@@ -3140,10 +3142,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
                                     .collect(Collectors.toList());
-                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).filter))
+                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).id))
                                 {
-                                    int packetId = subscribePacketIds.get(newSubscriptions.get(0).filter);
-                                    newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.filter));
+                                    int packetId = subscribePacketIds.get(newSubscriptions.get(0).id);
+                                    newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
                                     openSubscribeStreams(packetId, traceId, authorization, newSubscriptions, false);
                                 }
                                 else
