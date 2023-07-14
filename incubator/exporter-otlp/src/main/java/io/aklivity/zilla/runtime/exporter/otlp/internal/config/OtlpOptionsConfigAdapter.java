@@ -29,13 +29,16 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
 {
     private static final String INTERVAL_NAME = "interval";
     private static final long INTERVAL_DEFAULT = 30;
+    private static final String SIGNALS_NAME = "signals";
     private static final String ENDPOINT_NAME = "endpoint";
     private static final String LOCATION_NAME = "location";
 
+    private final OtlpSignalsAdapter signals;
     private final OtlpEndpointAdapter endpoint;
 
     public OtlpOptionsConfigAdapter()
     {
+        this.signals = new OtlpSignalsAdapter();
         this.endpoint = new OtlpEndpointAdapter();
     }
 
@@ -61,6 +64,10 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         {
             object.add(INTERVAL_NAME, otlpOptionsConfig.interval);
         }
+        if (otlpOptionsConfig.signals != null)
+        {
+            object.add(SIGNALS_NAME, signals.adaptToJson(otlpOptionsConfig.signals));
+        }
         if (otlpOptionsConfig.endpoint != null)
         {
             JsonObjectBuilder endpoint = Json.createObjectBuilder();
@@ -79,9 +86,12 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         long interval = object.containsKey(INTERVAL_NAME)
             ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
+        OtlpSignalsConfig signalsConfig = object.containsKey(SIGNALS_NAME)
+            ? signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME))
+            : OtlpSignalsConfig.ALL;
         OtlpEndpointConfig endpointConfig = object.containsKey(ENDPOINT_NAME)
             ? endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME))
             : null;
-        return new OtlpOptionsConfig(interval, endpointConfig);
+        return new OtlpOptionsConfig(interval, signalsConfig, endpointConfig);
     }
 }

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.LongFunction;
 
@@ -33,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public class OltpExporterHandler implements ExporterHandler
@@ -42,6 +46,7 @@ public class OltpExporterHandler implements ExporterHandler
     private static final String DEFAULT_METRICS_URI = "/v1/metrics";
 
     private final EngineContext context;
+    private final Set<OtlpSignalsConfig.Signals> signals;
     private final URI metricsUrl;
     private final long interval;
     private final Collector collector;
@@ -64,6 +69,7 @@ public class OltpExporterHandler implements ExporterHandler
     {
         this.context = context;
         this.metricsUrl = createMetricsUrl(exporter.options().endpoint);
+        this.signals = exporter.options().signals.signals;
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;
@@ -74,6 +80,7 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
+        assert signals.contains(METRICS);
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         serializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
         lastAttempt = 0;

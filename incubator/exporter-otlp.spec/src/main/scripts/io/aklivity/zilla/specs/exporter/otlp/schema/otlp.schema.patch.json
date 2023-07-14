@@ -35,6 +35,19 @@
                             {
                                 "type": "number"
                             },
+                            "signals":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "enum":
+                                    [
+                                        "metrics",
+                                        "logs",
+                                        "traces"
+                                    ]
+                                }
+                            },
                             "endpoint":
                             {
                                 "type": "object",

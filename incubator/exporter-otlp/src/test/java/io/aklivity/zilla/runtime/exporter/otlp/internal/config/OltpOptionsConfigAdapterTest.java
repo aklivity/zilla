@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.Set;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -45,6 +49,10 @@ public class OltpOptionsConfigAdapterTest
         String text =
             "{\n" +
                 "\"interval\": 30,\n" +
+                "\"signals\":\n" +
+                    "[\n" +
+                        "metrics\n" +
+                    "],\n" +
                 "\"endpoint\":\n" +
                     "{\n" +
                         "\"location\": \"http://localhost:4317\",\n" +
@@ -62,6 +70,7 @@ public class OltpOptionsConfigAdapterTest
         // THEN
         assertThat(options, not(nullValue()));
         assertThat(options.interval, equalTo(30L));
+        assertThat(options.signals.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo("http://localhost:4317"));
         assertThat(options.endpoint.overrides.metrics, equalTo("/v1/metricsOverride"));
         assertThat(options.endpoint.overrides.logs, equalTo("/v1/logsOverride"));
@@ -75,6 +84,10 @@ public class OltpOptionsConfigAdapterTest
         String expected =
             "{" +
                 "\"interval\":30," +
+                "\"signals\":" +
+                    "[" +
+                        "\"metrics\"" +
+                    "]," +
                 "\"endpoint\":" +
                     "{" +
                         "\"location\":\"http://localhost:4317\"" +
@@ -82,7 +95,8 @@ public class OltpOptionsConfigAdapterTest
             "}";
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v1/metrics", "/v1/logs", null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317", overrides);
-        OtlpOptionsConfig config = new OtlpOptionsConfig(30, endpoint);
+        OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
+        OtlpOptionsConfig config = new OtlpOptionsConfig(30, signals, endpoint);
 
         // WHEN
         String json = jsonb.toJson(config);

@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfi
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOverridesConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig;
 
 public class OtlpExporterHandlerTest
 {
@@ -60,7 +61,7 @@ public class OtlpExporterHandlerTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null, null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
+        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
 
@@ -77,7 +78,7 @@ public class OtlpExporterHandlerTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("http://overridden.com/metrics", null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
+        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
 
@@ -94,7 +95,7 @@ public class OtlpExporterHandlerTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v42/metrix", null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
+        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
 

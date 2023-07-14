@@ -14,21 +14,27 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import java.util.Set;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class OtlpOptionsConfig extends OptionsConfig
+public class OtlpSignalsConfig extends OptionsConfig
 {
-    public long interval;
-    public OtlpSignalsConfig signals;
-    public OtlpEndpointConfig endpoint;
+    public static final OtlpSignalsConfig ALL =
+        new OtlpSignalsConfig(Set.of(Signals.METRICS, Signals.LOGS, Signals.TRACES));
 
-    public OtlpOptionsConfig(
-        long interval,
-        OtlpSignalsConfig signals,
-        OtlpEndpointConfig endpoint)
+    public enum Signals
     {
-        this.interval = interval;
+        METRICS,
+        LOGS,
+        TRACES
+    }
+
+    public Set<Signals> signals;
+
+    public OtlpSignalsConfig(
+        Set<Signals> signals)
+    {
         this.signals = signals;
-        this.endpoint = endpoint;
     }
 }
