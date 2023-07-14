@@ -91,6 +91,42 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.retained.server.sent.abort/client",
+        "${kafka}/publish.retained.server.sent.abort/server"})
+    public void shouldPublishReceiveServerSentRetainedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.retained.server.sent.flush/client",
+        "${kafka}/publish.retained.server.sent.flush/server"})
+    public void shouldPublishReceiveServerSentRetainedFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.retained.server.sent.reset/client",
+        "${kafka}/publish.retained.server.sent.reset/server"})
+    public void shouldPublishReceiveServerSentRetainedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.retained.server.sent.data/client",
+        "${kafka}/publish.retained.server.sent.data/server"})
+    public void shouldPublishAbortWhenServerSentRetainedData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.empty.message/client",
         "${kafka}/publish.empty.message/server"})
     public void shouldSendEmptyMessage() throws Exception
@@ -103,6 +139,15 @@ public class KafkaIT
         "${kafka}/publish.one.message/client",
         "${kafka}/publish.one.message/server"})
     public void shouldSendOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.retained/client",
+        "${kafka}/publish.retained/server"})
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -199,6 +244,60 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.retained.server.sent.abort/client",
+        "${kafka}/subscribe.retained.server.sent.abort/server"})
+    public void shouldSubscribeReceiveServerSentRetainedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.server.sent.reset/client",
+        "${kafka}/subscribe.retained.server.sent.reset/server"})
+    public void shouldSubscribeReceiveServerSentRetainedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain/client",
+        "${kafka}/subscribe.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.deferred.filter.change.retain/client",
+        "${kafka}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.buffer/client",
+        "${kafka}/subscribe.filter.change.retain.buffer/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBuffer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.resubscribe/client",
+        "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterFilterChangeResubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
@@ -229,6 +328,15 @@ public class KafkaIT
         "${kafka}/subscribe.publish.no.local/client",
         "${kafka}/subscribe.publish.no.local/server"})
     public void shouldNotReceiveLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retain/client",
+        "${kafka}/subscribe.retain/server"})
+    public void shouldReceiveRetained() throws Exception
     {
         k3po.finish();
     }

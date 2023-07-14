@@ -30,7 +30,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                              .build()}
@@ -41,7 +40,6 @@ write flush
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                              .build()}
@@ -52,7 +50,6 @@ write flush
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                              .build()}

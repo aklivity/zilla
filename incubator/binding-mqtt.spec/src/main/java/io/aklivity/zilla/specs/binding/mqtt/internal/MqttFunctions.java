@@ -278,6 +278,16 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExBuilder flags(
+                String... flagNames)
+            {
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                publishBeginExRW.flags(flags);
+                return this;
+            }
+
             public MqttBeginExBuilder build()
             {
                 final MqttPublishBeginExFW publishBeginEx = publishBeginExRW.build();
@@ -435,13 +445,6 @@ public final class MqttFunctions
             private MqttPublishDataExBuilder()
             {
                 publishDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
-            }
-
-            public MqttPublishDataExBuilder topic(
-                String topic)
-            {
-                publishDataExRW.topic(topic);
-                return this;
             }
 
             public MqttPublishDataExBuilder qos(
@@ -807,6 +810,15 @@ public final class MqttFunctions
         private Integer kind;
         private Predicate<MqttBeginExFW> caseMatcher;
 
+        public MqttPublishBeginExMatcherBuilder publish()
+        {
+            final MqttPublishBeginExMatcherBuilder matcherBuilder = new MqttPublishBeginExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.PUBLISH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public MqttSubscribeBeginExMatcherBuilder subscribe()
         {
             final MqttSubscribeBeginExMatcherBuilder matcherBuilder = new MqttSubscribeBeginExMatcherBuilder();
@@ -876,6 +888,73 @@ public final class MqttFunctions
             final MqttBeginExFW beginEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(beginEx);
+        }
+
+        public final class MqttPublishBeginExMatcherBuilder
+        {
+            private String16FW clientId;
+            private String16FW topic;
+            private Integer flags;
+
+            private MqttPublishBeginExMatcherBuilder()
+            {
+            }
+            public MqttPublishBeginExMatcherBuilder clientId(
+                String clientId)
+            {
+                this.clientId = new String16FW(clientId);
+                return this;
+            }
+
+            public MqttPublishBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public MqttPublishBeginExMatcherBuilder flags(
+                String... flags)
+            {
+                this.flags = Arrays.stream(flags)
+                    .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                return this;
+            }
+
+
+            public MqttBeginExMatcherBuilder build()
+            {
+                return MqttBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttBeginExFW beginEx)
+            {
+                final MqttPublishBeginExFW publishBeginEx = beginEx.publish();
+                return matchClientId(publishBeginEx) &&
+                    matchTopic(publishBeginEx) &&
+                    matchFlags(publishBeginEx);
+            }
+
+            private boolean matchClientId(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return clientId == null || clientId.equals(publishBeginEx.clientId());
+            }
+
+
+            private boolean matchTopic(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return topic == null || topic.equals(publishBeginEx.topic());
+            }
+
+            private boolean matchFlags(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return flags == null || flags == publishBeginEx.flags();
+            }
         }
 
         public final class MqttSubscribeBeginExMatcherBuilder
@@ -1553,7 +1632,6 @@ public final class MqttFunctions
         {
             private MqttBinaryFW.Builder correlationRW;
             private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
-            private String16FW topic;
             private Integer qos;
             private Integer flags;
             private Integer expiryInterval = -1;
@@ -1564,13 +1642,6 @@ public final class MqttFunctions
 
             private MqttPublishDataExMatcherBuilder()
             {
-            }
-
-            public MqttPublishDataExMatcherBuilder topic(
-                String topic)
-            {
-                this.topic = new String16FW(topic);
-                return this;
             }
 
             public MqttPublishDataExMatcherBuilder qos(
@@ -1666,8 +1737,7 @@ public final class MqttFunctions
                 MqttDataExFW dataEx)
             {
                 final MqttPublishDataExFW publishDataEx = dataEx.publish();
-                return matchTopic(publishDataEx) &&
-                    matchQos(publishDataEx) &&
+                return matchQos(publishDataEx) &&
                     matchFlags(publishDataEx) &&
                     matchExpiryInterval(publishDataEx) &&
                     matchContentType(publishDataEx) &&
@@ -1675,12 +1745,6 @@ public final class MqttFunctions
                     matchResponseTopic(publishDataEx) &&
                     matchCorrelation(publishDataEx) &&
                     matchUserProperties(publishDataEx);
-            }
-
-            private boolean matchTopic(
-                final MqttPublishDataExFW data)
-            {
-                return topic == null || topic.equals(data.topic());
             }
 
             private boolean matchQos(

@@ -92,9 +92,11 @@ import jakarta.json.JsonBuilderFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
@@ -1201,8 +1203,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
-        private final Map<Integer, Integer> subscribePacketIds;
-        private final Map<String, Integer> unsubscribePacketIds;
+        private final Int2IntHashMap subscribePacketIds;
+        private final Object2IntHashMap<String> unsubscribePacketIds;
 
         private MqttSessionStream sessionStream;
 
@@ -1272,8 +1274,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.publishStreams = new Int2ObjectHashMap<>();
             this.subscribeStreams = new Int2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
-            this.subscribePacketIds = new HashMap<>();
-            this.unsubscribePacketIds = new HashMap<>();
+            this.subscribePacketIds = new Int2IntHashMap(-1);
+            this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
         }
 
         private void onNetwork(
@@ -1791,7 +1793,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .typeId(mqttTypeId)
                 .publish(publishBuilder ->
                 {
-                    publishBuilder.topic(mqttPublishHeaderRO.topic);
                     publishBuilder.qos(mqttPublishHeaderRO.qos);
                     publishBuilder.flags(mqttPublishHeaderRO.flags);
                     publishBuilder.expiryInterval(mqttPublishHeaderRO.expiryInterval);
@@ -1854,8 +1855,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                subscribePacketIds.put(subscriptionId, packetId);
-
                 final List<Subscription> newSubscriptions = new ArrayList<>();
 
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
@@ -1918,6 +1917,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
                     subscription.flags = flags;
+                    //TODO: what if we don't have a subscriptionId
+                    subscribePacketIds.put(subscriptionId, packetId);
                     newSubscriptions.add(subscription);
                 }
 
@@ -2149,8 +2150,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttDisconnectFW disconnect)
         {
             state = MqttState.closingInitial(state);
-            publishStreams.values().forEach(s -> s.doPublishNetEnd(traceId, authorization, EMPTY_OCTETS));
-            subscribeStreams.values().forEach(s -> s.doSubscribeNetEnd(traceId, authorization));
             if (session)
             {
                 final MqttEndExFW.Builder builder = mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
@@ -2161,6 +2160,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             MqttEndReasonCode.DISCONNECT));
                 sessionStream.doSessionAppEnd(traceId, authorization, builder.build());
             }
+            closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);
         }
 
@@ -2172,7 +2172,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (reasonCode)
             {
             case SESSION_TAKEN_OVER:
-                cleanupStreamsUsingEnd(traceId, authorization);
+                closeStreams(traceId, authorization);
                 break;
             default:
                 cleanupStreamsUsingAbort(traceId, authorization);
@@ -2759,12 +2759,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private void cleanupStreamsUsingEnd(
+        private void closeStreams(
             long traceId,
             long authorization)
         {
-            publishStreams.values().forEach(s -> s.cleanupEnd(traceId, authorization));
-            subscribeStreams.values().forEach(s -> s.cleanupEnd(traceId, authorization));
+            publishStreams.values().forEach(s -> s.doPublishAppEnd(traceId, authorization));
+            subscribeStreams.values().forEach(s -> s.doSubscribeAppEnd(traceId, authorization));
             if (sessionStream != null)
             {
                 sessionStream.cleanupEnd(traceId, authorization);
@@ -3264,22 +3264,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                doSessionNetEnd(traceId, authorization, EMPTY_OCTETS);
                 doSessionAppEnd(traceId, authorization, EMPTY_OCTETS);
-            }
-
-            private void doSessionNetEnd(
-                long traceId,
-                long authorization,
-                Flyweight extension)
-            {
-                if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
-                {
-                    setInitialClosed();
-
-                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, extension);
-                }
             }
 
             private void doSessionAbort(
@@ -3443,6 +3428,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             publishBuilder.clientId(clientId);
                             publishBuilder.topic(topic);
+                            publishBuilder.flags(retainedMessages);
                         })
                         .build();
 
@@ -3488,21 +3474,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
-                }
-            }
-
-            private void doPublishNetEnd(
-                long traceId,
-                long authorization,
-                Flyweight extension)
-            {
-                if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
-                {
-                    setPublishNetClosed();
-                    publishStreams.remove(topicKey);
-
-                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, extension);
                 }
             }
 
@@ -3635,10 +3606,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
                 }
 
-                if (MqttState.initialClosing(state) &&
-                    !MqttState.initialClosed(state))
+                if (MqttState.initialClosing(state))
                 {
-                    doPublishNetEnd(traceId, authorization, EMPTY_OCTETS);
+                    doPublishAppEnd(traceId, authorization);
                 }
                 else if (decodePublisherKey == topicKey)
                 {
@@ -3688,7 +3658,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long now = System.currentTimeMillis();
                 if (now >= publishExpiresAt)
                 {
-                    doPublishNetEnd(traceId, authorization, EMPTY_OCTETS);
+                    doPublishAppEnd(traceId, authorization);
                 }
                 else
                 {
@@ -3759,10 +3729,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                if (!MqttState.replyClosed(state))
+                if (!MqttState.initialClosed(state))
                 {
-                    setPublishAppClosed();
-                    doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    doCancelPublishExpiration();
+                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
                 }
             }
@@ -3804,15 +3774,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doPublishAbort(traceId, authorization);
                 doPublishReset(traceId, authorization);
-                doCancelPublishExpiration();
-            }
-
-            private void cleanupEnd(
-                long traceId,
-                long authorization)
-            {
-                doPublishNetEnd(traceId, authorization, EMPTY_OCTETS);
-                doPublishAppEnd(traceId, authorization);
                 doCancelPublishExpiration();
             }
         }
@@ -3966,26 +3927,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     if (subscriptions.isEmpty())
                     {
-                        doSubscribeNetEnd(traceId, authorization);
+                        doSubscribeAppEnd(traceId, authorization);
                     }
                     else
                     {
                         doSubscribeFlush(traceId, authorization, 0, null);
                     }
-                }
-            }
-
-            private void doSubscribeNetEnd(
-                long traceId,
-                long authorization)
-            {
-                if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
-                {
-                    setNetClosed();
-                    subscribeStreams.remove(clientKey);
-
-                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, EMPTY_OCTETS);
                 }
             }
 
@@ -4155,7 +4102,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscriptionPayload[i] = SUCCESS;
                     }
 
-                    doEncodeSuback(traceId, authorization, packetId, subscriptionPayload);
+                    if (!MqttState.initialOpened(state))
+                    {
+                        doEncodeSuback(traceId, authorization, packetId, subscriptionPayload);
+                    }
                     if (session && !sessionStream.deferredUnsubscribes.isEmpty())
                     {
                         Iterator<Map.Entry<Integer, List<String>>> iterator =
@@ -4236,14 +4186,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doSubscribeReset(traceId, authorization);
             }
 
-            private void cleanupEnd(
-                long traceId,
-                long authorization)
-            {
-                doSubscribeNetEnd(traceId, authorization);
-                doSubscribeAppEnd(traceId, authorization);
-            }
-
 
             private void doSubscribeWindow(
                 long traceId,
@@ -4289,9 +4231,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
                 {
-                    setNetClosed();
-                    subscribeStreams.remove(clientKey);
-
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
                 }

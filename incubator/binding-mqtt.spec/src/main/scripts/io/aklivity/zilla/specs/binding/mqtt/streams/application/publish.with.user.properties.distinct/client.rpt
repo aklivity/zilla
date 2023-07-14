@@ -30,7 +30,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("/sensors/1")
                                 .userProperty("row1", "1")
                                 .userProperty("row2", "2")
                                 .build()

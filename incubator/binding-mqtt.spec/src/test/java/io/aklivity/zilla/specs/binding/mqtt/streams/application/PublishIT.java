@@ -140,7 +140,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.retained/client",
         "${app}/publish.retained/server"})
-    public void shouldSendRetainedMessage() throws Exception
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }

@@ -373,4 +373,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.after.subscribe.and.publish/client",
+        "${net}/disconnect.after.subscribe.and.publish/server"})
+    public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
+    {
+        k3po.finish();
+    }
 }

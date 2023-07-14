@@ -40,10 +40,10 @@ read   [0x82 0x1f]                   # SUBSCRIBE
        [0x02]                        # properties
        [0x0b 0x01]                   # subscription id = 1
        [0x00 0x0a] "sensor/one"      # topic filter
-       [0x00]                        # options = at-most-once, send retained
+       [0x20]                        # options = at-most-once
 
        [0x00 0x0a] "sensor/two"      # topic filter
-       [0x00]                        # options = at-most-once, send retained
+       [0x20]                        # options = at-most-once
 
 read   [0xa2 0x0f]                   # UNSUBSCRIBE
        [0x00 0x02]                   # packet id = 2

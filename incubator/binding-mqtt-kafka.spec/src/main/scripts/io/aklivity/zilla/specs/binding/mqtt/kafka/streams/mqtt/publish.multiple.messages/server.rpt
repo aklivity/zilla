@@ -19,7 +19,7 @@ accept "zilla://streams/mqtt0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client")
@@ -32,7 +32,6 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                             .build()}
@@ -42,7 +41,6 @@ read "message1"
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                             .build()}
@@ -52,7 +50,6 @@ read "message2"
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                             .build()}

@@ -71,7 +71,7 @@ scope mqtt
     {
         uint32 subscriptionId = 0;
         uint8 qos = 0;
-        uint8 flags = 1;
+        uint8 flags = 0;
         string16 pattern;
     }
 
@@ -129,6 +129,7 @@ scope mqtt
         {
             string16 clientId;
             string16 topic;
+            uint8 flags = 0;
         }
 
         union MqttDataEx switch (uint8) extends core::stream::Extension
@@ -155,7 +156,6 @@ scope mqtt
         struct MqttPublishDataEx
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
-            string16 topic = null;
             uint8 qos = 0;
             uint8 flags = 0;
             int32 expiryInterval = -1;

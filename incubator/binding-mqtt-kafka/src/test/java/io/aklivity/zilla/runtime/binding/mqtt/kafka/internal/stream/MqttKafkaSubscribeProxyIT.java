@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,6 +44,7 @@ public class MqttKafkaSubscribeProxyIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
+        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/kafka/config")
         .external("kafka0")
         .clean();
@@ -113,9 +115,99 @@ public class MqttKafkaSubscribeProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mqtt}/subscribe.retained.server.sent.abort/client",
+        "${kafka}/subscribe.retained.server.sent.abort/server"})
+    public void shouldReceiveServerSentRetainedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.retained.server.sent.reset/client",
+        "${kafka}/subscribe.retained.server.sent.reset/server"})
+    public void shouldReceiveServerSentRetainedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.multiple.message/client",
+        "${kafka}/subscribe.multiple.message/server"})
+    public void shouldReceiveMultipleMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.retain.as.published/client",
+        "${kafka}/subscribe.retain/server"})
+    public void shouldReceiveRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.retain/client",
+        "${kafka}/subscribe.retain/server"})
+    public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain/client",
+        "${kafka}/subscribe.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain/client",
+        "${kafka}/subscribe.filter.change.retain.buffer/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBufferMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.deferred.filter.change.retain/client",
+        "${kafka}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterDeferredFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/client",
+        "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterResubscribe() throws Exception
     {
         k3po.finish();
     }

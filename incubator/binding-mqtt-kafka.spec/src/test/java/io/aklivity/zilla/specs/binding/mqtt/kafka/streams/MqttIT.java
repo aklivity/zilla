@@ -118,6 +118,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.retained/client",
+        "${mqtt}/publish.retained/server"})
+    public void shouldPublishRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.with.user.properties.distinct/client",
         "${mqtt}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
@@ -211,6 +220,51 @@ public class MqttIT
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retain/client",
+        "${mqtt}/subscribe.retain/server"})
+    public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retain.as.published/client",
+        "${mqtt}/subscribe.retain.as.published/server"})
+    public void shouldReceiveRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain/client",
+        "${mqtt}/subscribe.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.deferred.filter.change.retain/client",
+        "${mqtt}/subscribe.deferred.filter.change.retain/server"})
+    public void shouldReceiveRetainedAfterFilterChangeDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/client",
+        "${mqtt}/subscribe.filter.change.retain.resubscribe/server"})
+    public void shouldReceiveRetainedAfterFilterChangeResubscribe() throws Exception
     {
         k3po.finish();
     }

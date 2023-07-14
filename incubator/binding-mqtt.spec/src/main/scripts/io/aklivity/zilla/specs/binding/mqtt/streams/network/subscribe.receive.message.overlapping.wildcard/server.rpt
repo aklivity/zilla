@@ -40,7 +40,7 @@ read  [0x82 0x12]                   # SUBSCRIBE
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x00 0x0a] "sensor/+/#"      # topic filter
-      [0x00]                        # options = at-most-once, send retained
+      [0x20]                        # options = at-most-once
 
 write [0x90 0x04]                   # SUBACK
       [0x00 0x01]                   # packet id = 1
@@ -52,7 +52,7 @@ read  [0x82 0x12]                   # SUBSCRIBE
       [0x02]                        # properties
       [0x0b 0x02]                   # subscription id = 2
       [0x00 0x0a] "sensor/+/1"      # topic filter
-      [0x00]                        # options = at-most-once, send retained
+      [0x20]                        # options = at-most-once
 
 write [0x90 0x04]                   # SUBACK
       [0x00 0x01]                   # packet id = 1

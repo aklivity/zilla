@@ -54,6 +54,7 @@ read advised zilla:flush ${kafka:flushEx()
                                             .skip(1)
                                             .sequence(1)
                                             .build()
+                                        .headerNot("zilla:local", "client")
                                         .build()
                                     .build()
                                 .build()}

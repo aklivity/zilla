@@ -23,6 +23,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
+                                .flags("RETAIN")
                                 .build()
                               .build()}
 
@@ -31,7 +32,6 @@ connected
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .flags("RETAIN")
                                 .build()
                              .build()}

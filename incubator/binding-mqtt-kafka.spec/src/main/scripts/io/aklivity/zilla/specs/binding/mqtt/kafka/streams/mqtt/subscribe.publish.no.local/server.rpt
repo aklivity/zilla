@@ -23,7 +23,7 @@ read zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "AT_MOST_ONCE", "NO_LOCAL", "SEND_RETAINED")
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "NO_LOCAL")
                                 .build()
                               .build()}
 connected
@@ -40,7 +40,7 @@ write "message2"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client")
@@ -52,7 +52,6 @@ connected
 read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .topic("sensor/one")
                                 .format("TEXT")
                                 .build()
                              .build()}

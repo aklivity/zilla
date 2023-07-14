@@ -20,7 +20,7 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
@@ -32,7 +32,6 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .topic("/sensors/1")
                                 .userProperty("row1", "1")
                                 .userProperty("row2", "2")
                                 .build()
