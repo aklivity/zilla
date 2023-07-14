@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 import java.util.function.LongFunction;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -37,20 +38,31 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOverridesConf
 
 public class OtlpExporterHandlerTest
 {
+    private EngineConfiguration config;
+    private EngineContext context;
+    private Collector collector;
+    private LongFunction<KindConfig> resolveKind;
+    private List<AttributeConfig> attributes;
+
+    @Before
+    public void init()
+    {
+        config = mock(EngineConfiguration.class);
+        context = mock(EngineContext.class);
+        collector = mock(Collector.class);
+        resolveKind = mock(LongFunction.class);
+        attributes = List.of();
+    }
+
     @Test
     public void shouldCreateDefaultMetricsUrl()
     {
         // GIVEN
-        EngineConfiguration config = mock(EngineConfiguration.class);
-        EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null, null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-        Collector collector = mock(Collector.class);
-        LongFunction<KindConfig> resolveKind = mock(LongFunction.class);
-        List<AttributeConfig> attributes = List.of();
 
         // WHEN
         OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
@@ -63,16 +75,11 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideAbsoluteMetricsUrl()
     {
         // GIVEN
-        EngineConfiguration config = mock(EngineConfiguration.class);
-        EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("http://overridden.com/metrics", null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-        Collector collector = mock(Collector.class);
-        LongFunction<KindConfig> resolveKind = mock(LongFunction.class);
-        List<AttributeConfig> attributes = List.of();
 
         // WHEN
         OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
@@ -85,16 +92,11 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideRelativeMetricsUrl()
     {
         // GIVEN
-        EngineConfiguration config = mock(EngineConfiguration.class);
-        EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v42/metrix", null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-        Collector collector = mock(Collector.class);
-        LongFunction<KindConfig> resolveKind = mock(LongFunction.class);
-        List<AttributeConfig> attributes = List.of();
 
         // WHEN
         OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
