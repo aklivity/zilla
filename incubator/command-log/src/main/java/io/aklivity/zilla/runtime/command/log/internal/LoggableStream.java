@@ -1334,7 +1334,6 @@ public final class LoggableStream implements AutoCloseable
         MqttPublishDataExFW publish)
     {
         final int deferred = publish.deferred();
-        final String topic = publish.topic().asString();
         final int flags = publish.flags();
         final int expiryInterval = publish.expiryInterval();
         final String contentType = publish.contentType().asString();
@@ -1344,8 +1343,8 @@ public final class LoggableStream implements AutoCloseable
         final Array32FW<MqttUserPropertyFW> properties = publish.properties();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[publish] (%d) %s %d %d %s %s %s %s",
-                deferred, topic, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
+            format("[publish] (%d) %d %d %s %s %s %s",
+                deferred, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
         properties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %s ", u.key(), u.value())));
     }
