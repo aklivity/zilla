@@ -10,6 +10,7 @@
   
   [![Build Status][build-status-image]][build-status]
   [![Slack Community][community-image]][community-join]
+  [![Artifact HUB][artifact-hub-shield]][artifact-hub]
   
 </div>
 
@@ -21,7 +22,7 @@
 </h3>
 
 ## About Zilla
-Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing non-Kafka clients running at the edge (mobile apps, browsers, partner systems, etc.) or inside the datacenter (gRPC services) to Apache Kafka-based microservices and data.
+Zilla is a multi-protocol edge and service proxy, designed for event-driven architectures. It is the most seamless and reliable way of interfacing non-Kafka clients running at the edge (mobile apps, browsers, partner systems, etc.) or inside the datacenter (gRPC services) to Apache Kafka-based microservices and data.
 
 Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
 
@@ -202,6 +203,8 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://www.aklivity.io/slack
+[artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
+[artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
 [zilla-docs]: https://docs.aklivity.io/zilla/latest/
 [zilla-get-started]: https://docs.aklivity.io/zilla/latest/get-started
 [zilla-examples]: https://github.com/aklivity/zilla-examples

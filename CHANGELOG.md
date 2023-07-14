@@ -2,7 +2,23 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.48...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.49...HEAD)
+
+**Implemented enhancements:**
+
+- `kubernetes autoscaling` feature [\#189](https://github.com/aklivity/zilla/issues/189)
+
+**Closed issues:**
+
+- Update image base [\#291](https://github.com/aklivity/zilla/issues/291)
+
+**Merged pull requests:**
+
+- update Helm logo & details and clean up README [\#273](https://github.com/aklivity/zilla/pull/273) ([vordimous](https://github.com/vordimous))
+
+## [0.9.49](https://github.com/aklivity/zilla/tree/0.9.49) (2023-06-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.48...0.9.49)
 
 **Implemented enhancements:**
 
