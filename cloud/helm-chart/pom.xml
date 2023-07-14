@@ -43,6 +43,9 @@
             <mapping>
               <tpl>SCRIPT_STYLE</tpl>
             </mapping>
+            <excludes>
+              <exclude>src/main/helm/artifacthub-repo.yml</exclude>
+            </excludes>
           </configuration>
       </plugin>
       <plugin>
