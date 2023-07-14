@@ -4,7 +4,6 @@
 </div>
 
 </br>
-<h1 align="center">Event-driven API Gateway</h1>
 
 <div align="center">
   
