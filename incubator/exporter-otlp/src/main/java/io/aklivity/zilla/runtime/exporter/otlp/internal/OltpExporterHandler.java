@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
@@ -38,9 +39,10 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final long RETRY_INTERVAL = Duration.ofSeconds(5).toMillis();
     private static final long WARNING_INTERVAL = Duration.ofMinutes(5).toMillis();
+    private static final String DEFAULT_METRICS_URI = "/v1/metrics";
 
     private final EngineContext context;
-    private final URI url;
+    private final URI metricsUrl;
     private final long interval;
     private final Collector collector;
     private final LongFunction<KindConfig> resolveKind;
@@ -61,7 +63,7 @@ public class OltpExporterHandler implements ExporterHandler
         List<AttributeConfig> attributes)
     {
         this.context = context;
-        this.url = URI.create(exporter.options().endpoint.location);
+        this.metricsUrl = createMetricsUrl(exporter.options().endpoint);
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;
@@ -101,11 +103,41 @@ public class OltpExporterHandler implements ExporterHandler
         return 1;
     }
 
+    // required for testing
+    URI metricsUrl()
+    {
+        return metricsUrl;
+    }
+
+    private URI createMetricsUrl(
+        OtlpEndpointConfig endpoint)
+    {
+        URI result;
+        URI location = URI.create(endpoint.location);
+        if (endpoint.overrides != null && endpoint.overrides.metrics != null)
+        {
+            URI metricsOverride = URI.create(endpoint.overrides.metrics);
+            if (metricsOverride.isAbsolute())
+            {
+                result = metricsOverride;
+            }
+            else
+            {
+                result = location.resolve(metricsOverride);
+            }
+        }
+        else
+        {
+            result = location.resolve(DEFAULT_METRICS_URI);
+        }
+        return result;
+    }
+
     private void post()
     {
         String json = serializer.serializeAll();
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(url)
+            .uri(metricsUrl)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .build();

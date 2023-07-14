@@ -19,42 +19,45 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
+public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
 {
-    private static final String LOCATION_NAME = "location";
-    private static final String OVERRIDES_NAME = "overrides";
-
-    private final OtlpOverridesAdapter overrides;
-
-    public OtlpEndpointAdapter()
-    {
-        this.overrides = new OtlpOverridesAdapter();
-    }
+    private static final String METRICS_NAME = "metrics";
+    private static final String LOGS_NAME = "logs";
+    private static final String TRACES_NAME = "traces";
 
     @Override
     public JsonObject adaptToJson(
-        OtlpEndpointConfig endpoint)
+        OtlpOverridesConfig overrides)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
-        if (endpoint.location != null)
+        if (overrides.metrics != null)
         {
-            object.add(LOCATION_NAME, endpoint.location);
+            object.add(METRICS_NAME, overrides.metrics);
         }
-        if (endpoint.overrides != null)
+        if (overrides.logs != null)
         {
-            object.add(OVERRIDES_NAME, overrides.adaptToJson(endpoint.overrides));
+            object.add(LOGS_NAME, overrides.logs);
+        }
+        if (overrides.traces != null)
+        {
+            object.add(TRACES_NAME, overrides.traces);
         }
         return object.build();
     }
 
     @Override
-    public OtlpEndpointConfig adaptFromJson(
+    public OtlpOverridesConfig adaptFromJson(
         JsonObject object)
     {
-        String url = object.getString(LOCATION_NAME);
-        OtlpOverridesConfig overridesConfig = object.containsKey(OVERRIDES_NAME)
-            ? overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME))
+        String metrics = object.containsKey(METRICS_NAME)
+            ? object.getString(METRICS_NAME)
             : null;
-        return new OtlpEndpointConfig(url, overridesConfig);
+        String logs = object.containsKey(LOGS_NAME)
+            ? object.getString(LOGS_NAME)
+            : null;
+        String traces = object.containsKey(TRACES_NAME)
+            ? object.getString(TRACES_NAME)
+            : null;
+        return new OtlpOverridesConfig(metrics, logs, traces);
     }
 }

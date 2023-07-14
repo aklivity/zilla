@@ -16,16 +16,19 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class OtlpEndpointConfig extends OptionsConfig
+public class OtlpOverridesConfig extends OptionsConfig
 {
-    public String location;
-    public OtlpOverridesConfig overrides;
+    public String metrics;
+    public String logs;
+    public String traces;
 
-    public OtlpEndpointConfig(
-        String location,
-        OtlpOverridesConfig overrides)
+    public OtlpOverridesConfig(
+        String metrics,
+        String logs,
+        String traces)
     {
-        this.location = location;
-        this.overrides = overrides;
+        this.metrics = metrics;
+        this.logs = logs;
+        this.traces = traces;
     }
 }

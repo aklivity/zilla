@@ -47,7 +47,12 @@ public class OltpOptionsConfigAdapterTest
                 "\"interval\": 30,\n" +
                 "\"endpoint\":\n" +
                     "{\n" +
-                        "\"location\": \"http://localhost:4317\"\n" +
+                        "\"location\": \"http://localhost:4317\",\n" +
+                        "\"overrides\": \n" +
+                            "{\n" +
+                                "\"metrics\": \"/v1/metricsOverride\",\n" +
+                                "\"logs\": \"/v1/logsOverride\"\n" +
+                            "}\n" +
                     "}\n" +
             "}";
 
@@ -58,6 +63,9 @@ public class OltpOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.interval, equalTo(30L));
         assertThat(options.endpoint.location, equalTo("http://localhost:4317"));
+        assertThat(options.endpoint.overrides.metrics, equalTo("/v1/metricsOverride"));
+        assertThat(options.endpoint.overrides.logs, equalTo("/v1/logsOverride"));
+        assertThat(options.endpoint.overrides.traces, nullValue());
     }
 
     @Test
@@ -72,7 +80,8 @@ public class OltpOptionsConfigAdapterTest
                         "\"location\":\"http://localhost:4317\"" +
                     "}" +
             "}";
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317");
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v1/metrics", "/v1/logs", null);
+        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317", overrides);
         OtlpOptionsConfig config = new OtlpOptionsConfig(30, endpoint);
 
         // WHEN

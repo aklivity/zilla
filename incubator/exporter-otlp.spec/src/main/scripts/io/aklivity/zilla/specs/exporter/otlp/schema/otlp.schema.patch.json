@@ -42,8 +42,26 @@
                                 {
                                     "location":
                                     {
-                                        "title": "Location",
                                         "type": "string"
+                                    },
+                                    "overrides":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "metrics":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "logs":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "traces":
+                                            {
+                                                "type": "string"
+                                            }
+                                        }
                                     }
                                 },
                                 "required":
