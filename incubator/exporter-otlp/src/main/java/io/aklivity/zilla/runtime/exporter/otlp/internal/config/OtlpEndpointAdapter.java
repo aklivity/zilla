@@ -21,6 +21,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
 {
+    private static final String PROTOCOL_NAME = "protocol";
+    private static final String DEFAULT_PROTOCOL = "http";
     private static final String LOCATION_NAME = "location";
     private static final String OVERRIDES_NAME = "overrides";
 
@@ -36,6 +38,10 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
         OtlpEndpointConfig endpoint)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
+        if (endpoint.protocol != null)
+        {
+            object.add(PROTOCOL_NAME, endpoint.protocol);
+        }
         if (endpoint.location != null)
         {
             object.add(LOCATION_NAME, endpoint.location);
@@ -51,10 +57,13 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
     public OtlpEndpointConfig adaptFromJson(
         JsonObject object)
     {
+        String protocol = object.containsKey(PROTOCOL_NAME)
+            ? object.getString(PROTOCOL_NAME)
+            : DEFAULT_PROTOCOL;
         String url = object.getString(LOCATION_NAME);
         OtlpOverridesConfig overridesConfig = object.containsKey(OVERRIDES_NAME)
             ? overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME))
             : null;
-        return new OtlpEndpointConfig(url, overridesConfig);
+        return new OtlpEndpointConfig(protocol, url, overridesConfig);
     }
 }

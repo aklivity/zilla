@@ -44,9 +44,11 @@ public class OltpExporterHandler implements ExporterHandler
     private static final long RETRY_INTERVAL = Duration.ofSeconds(5).toMillis();
     private static final long WARNING_INTERVAL = Duration.ofMinutes(5).toMillis();
     private static final String DEFAULT_METRICS_URI = "/v1/metrics";
+    private static final String HTTP = "http";
 
     private final EngineContext context;
     private final Set<OtlpSignalsConfig.Signals> signals;
+    private final String protocol;
     private final URI metricsUrl;
     private final long interval;
     private final Collector collector;
@@ -70,6 +72,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.context = context;
         this.metricsUrl = createMetricsUrl(exporter.options().endpoint);
         this.signals = exporter.options().signals.signals;
+        this.protocol = exporter.options().endpoint.protocol;
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;
@@ -81,6 +84,8 @@ public class OltpExporterHandler implements ExporterHandler
     public void start()
     {
         assert signals.contains(METRICS);
+        assert HTTP.equals(protocol);
+
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         serializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
         lastAttempt = 0;

@@ -18,13 +18,16 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpEndpointConfig extends OptionsConfig
 {
+    public String protocol;
     public String location;
     public OtlpOverridesConfig overrides;
 
     public OtlpEndpointConfig(
+        String protocol,
         String location,
         OtlpOverridesConfig overrides)
     {
+        this.protocol = protocol;
         this.location = location;
         this.overrides = overrides;
     }

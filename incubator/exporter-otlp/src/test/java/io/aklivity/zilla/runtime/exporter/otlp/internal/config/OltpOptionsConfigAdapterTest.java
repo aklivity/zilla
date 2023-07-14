@@ -90,11 +90,17 @@ public class OltpOptionsConfigAdapterTest
                     "]," +
                 "\"endpoint\":" +
                     "{" +
-                        "\"location\":\"http://localhost:4317\"" +
+                        "\"protocol\":\"http\"," +
+                        "\"location\":\"http://localhost:4317\"," +
+                        "\"overrides\":" +
+                            "{" +
+                                "\"metrics\":\"/v1/metrics\"," +
+                                "\"logs\":\"/v1/logs\"" +
+                            "}" +
                     "}" +
             "}";
         OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v1/metrics", "/v1/logs", null);
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http://localhost:4317", overrides);
+        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://localhost:4317", overrides);
         OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
         OtlpOptionsConfig config = new OtlpOptionsConfig(30, signals, endpoint);
 

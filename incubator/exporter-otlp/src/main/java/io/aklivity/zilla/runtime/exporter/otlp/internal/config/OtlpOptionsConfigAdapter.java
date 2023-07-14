@@ -70,12 +70,7 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         }
         if (otlpOptionsConfig.endpoint != null)
         {
-            JsonObjectBuilder endpoint = Json.createObjectBuilder();
-            if (otlpOptionsConfig.endpoint.location != null)
-            {
-                endpoint.add(LOCATION_NAME, otlpOptionsConfig.endpoint.location);
-            }
-            object.add(ENDPOINT_NAME, endpoint);
+            object.add(ENDPOINT_NAME, endpoint.adaptToJson(otlpOptionsConfig.endpoint));
         }
         return object.build();
     }

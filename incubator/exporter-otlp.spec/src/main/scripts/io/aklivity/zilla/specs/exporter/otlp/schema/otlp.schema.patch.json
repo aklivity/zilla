@@ -53,6 +53,14 @@
                                 "type": "object",
                                 "properties":
                                 {
+                                    "protocol":
+                                    {
+                                        "enum":
+                                        [
+                                            "http",
+                                            "grpc"
+                                        ]
+                                    },
                                     "location":
                                     {
                                         "type": "string"
