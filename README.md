@@ -112,20 +112,20 @@ Hello, world
 
 ### Configure Zilla Kafka Proxies
 Follow the Quickstarts to configure and test Kafka proxies.
-- [REST-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/sse-proxy.html)
-- [SSE-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/rest-proxy.html)
-- [gRPC-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/grpc-proxy.html)
+- [REST-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/rest-proxy.html)
+- [SSE-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/sse-proxy.html)
+- [gRPC-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/grpc-proxy.html)
 
 #### Connect Zilla to your own Kafka
 The above Quickstarts do not require you to run Kafka as they rely on [Zilla Examples](https://github.com/aklivity/zilla-examples), which come pre-packaged with a Kafka broker. Zilla works with all open source and vendor-enhanced Kafka deployments.
-- [Apache Kafka](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/generic.html)
-- [Confluent Cloud](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/confluent-cloud.html)
-- [Redpanda](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/redpanda.html)
-- [Amazon MSK](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/amazon-msk.html)
-- [Aiven](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/aiven.html)
+- [Apache Kafka](https://docs.aklivity.io/zilla/latest/how-tos/connecting-to-kafka/apache-kafka.html)
+- [Confluent Cloud](https://docs.aklivity.io/zilla/latest/how-tos/connecting-to-kafka/confluent-cloud.html)
+- [Redpanda](https://docs.aklivity.io/zilla/latest/how-tos/connecting-to-kafka/redpanda.html)
+- [Amazon MSK](https://docs.aklivity.io/zilla/latest/how-tos/connecting-to-kafka/amazon-msk.html)
+- [Aiven](https://docs.aklivity.io/zilla/latest/how-tos/connecting-to-kafka/aiven.html)
 
 ### The Zilla VSCode Extension
-API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also supports writing and maintaining your configuration with Zilla-specific YAML autocomplete and validation.
+API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/latest/reference/config/zilla-cli.html)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/latest/reference/vscode/) is avaliable. The extension also supports writing and maintaining your configuration with Zilla-specific YAML autocomplete and validation.
 
 <div align="center" float="left">
     <img src="./assets/zilla-vscode-flow-diagram.png">  
