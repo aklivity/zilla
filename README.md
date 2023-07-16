@@ -15,7 +15,7 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Documentation</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/next/get-started/install/"><b>Get Started</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html"><b>Get Started</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull; 
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
