@@ -44,7 +44,6 @@ public class EngineBuilder
     EngineBuilder()
     {
         this.affinities = new LinkedHashSet<>();
-        this.readonly = false;
     }
 
     public EngineBuilder config(
