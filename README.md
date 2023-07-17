@@ -44,20 +44,19 @@ The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.i
 - [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics, correlated. Supports asynchronous interaction, returning immediately with `202`. Accepted plus location to retrieve correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
 - [x] **Oneway** — Produce `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of `HTTP` path if needed.
 - [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of `HTTP` path if needed.
-Returns `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new etag header). Supports prefer: `wait=N` to respond as soon as message becomes available, no need for client polling.
+Returns `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as message becomes available, no need for client polling.
 - [x] **Authorization** — Specific routed requests can be guarded to enforce required client privileges.
-
 
 ### SSE-Kafka Proxying
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of `HTTP` path if needed.
 - [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without needing the client to explicitly acknowledge message receipt.
-- [x] **Continous Authorization** — Supports "challenge" event, triggering client to send up-to-date authorization credentials, such as JWT token, before expiration.
+- [x] **Continous Authorization** — Supports `challenge` event, triggering client to send up-to-date authorization credentials, such as JWT token, before expiration.
 Secure by default, if authorization expires then the response stream is terminated.
-Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single "challenge" event response.
+Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### gRPC-Kafka Proxying
-- [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics, correlated. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, `bidirectional streaming`. Supports synchronous interaction, blocked waiting for a correlated response.
-- [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` metadata to recover from an interrupted stream without message loss, and without needing the client to explicitly acknowledge message receipt.
+- [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics, correlated. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction, blocked waiting for a correlated response.
+- [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and without needing the client to explicitly acknowledge message receipt.
 
 ### Deployment, Performance & Other
 - [x] **Realtime Cache** — Local cache synchronized with Kafka for specific topics, even when no clients are connected. Stateless, recovers automatically and is consistent across different Zilla instances without peer communication.
@@ -139,11 +138,7 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 *Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).*
 
 ## Community 
-Looking to contribute to Zilla? Here are some possibilities:
-- Star this repo and follow us on [Twitter](https://twitter.com/aklivityinc).
-- Create [issues](https://github.com/aklivity/zilla/issues) every time you feel something is missing or goes wrong.
-- Provide [pull requests](https://github.com/aklivity/zilla/pulls) for open issues, especially for those with a good first issue label.
-
+Looking to contribute to Zilla? Check out the [Contributing to Zilla](.github/CONTRIBUTIND.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
 
