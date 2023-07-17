@@ -4,7 +4,7 @@
 
 </br>
 
-<div align="center">
+<div align="center"> 
   
   [![Build Status][build-status-image]][build-status]
   [![Slack Community][community-image]][community-join]
@@ -19,9 +19,8 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-
 ##  A multi-protocol proxy, designed for event-driven architectures
-Zilla abstracts Apache Kafka® for web applications, IoT clients and non-Kafka microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
+Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
 Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
 
@@ -39,9 +38,10 @@ When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet str
 The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
 
 ## <a name="key-features"> Key Features
+
 ### REST-Kafka Proxying
-- [x] **Correlated Request-Response (sync)** —  `HTTP` request-response over a pair of Kafka topics, correlated. Supports synchronous interaction, blocked waiting for a correlated response. 
-- [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics, correlated. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
+- [x] **Correlated Request-Response (sync)** —  `HTTP` request-response over a pair of Kafka topics with correlation. Supports synchronous interaction, blocked waiting for a correlated response. 
+- [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics with correlation. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
 - [x] **Oneway** — Produce an `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of `HTTP` path if needed.
 - [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
 Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as message becomes available, no need for client polling.
@@ -53,7 +53,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### gRPC-Kafka Proxying
-- [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics, correlated. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction, blocked waiting for a correlated response.
+- [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics with correlation. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction with blocked waiting for a correlated response.
 - [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and the client does not need to acknowledge the message receipt.
 
 ### Deployment, Performance & Other
@@ -69,6 +69,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 
 ## <a name="resources"> Resources
+
 ### 📚 Read the docs
 - **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Zilla Examples](https://github.com/aklivity/zilla-examples):** A repo of sample Zilla configurations for different use cases running on Kubernetes.
