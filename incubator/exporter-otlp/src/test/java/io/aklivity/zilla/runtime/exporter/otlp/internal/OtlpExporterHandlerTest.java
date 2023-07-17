@@ -59,7 +59,7 @@ public class OtlpExporterHandlerTest
     public void shouldCreateDefaultMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(null, null, null);
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
@@ -76,7 +76,7 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideAbsoluteMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig("http://overridden.com/metrics", null, null);
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig("http://overridden.com/metrics");
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
@@ -93,7 +93,7 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideRelativeMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v42/metrix", null, null);
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v42/metrix");
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);

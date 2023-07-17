@@ -22,8 +22,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
-    private static final String LOGS_NAME = "logs";
-    private static final String TRACES_NAME = "traces";
 
     @Override
     public JsonObject adaptToJson(
@@ -33,14 +31,6 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
         if (overrides.metrics != null)
         {
             object.add(METRICS_NAME, overrides.metrics);
-        }
-        if (overrides.logs != null)
-        {
-            object.add(LOGS_NAME, overrides.logs);
-        }
-        if (overrides.traces != null)
-        {
-            object.add(TRACES_NAME, overrides.traces);
         }
         return object.build();
     }
@@ -52,12 +42,6 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
         String metrics = object.containsKey(METRICS_NAME)
             ? object.getString(METRICS_NAME)
             : null;
-        String logs = object.containsKey(LOGS_NAME)
-            ? object.getString(LOGS_NAME)
-            : null;
-        String traces = object.containsKey(TRACES_NAME)
-            ? object.getString(TRACES_NAME)
-            : null;
-        return new OtlpOverridesConfig(metrics, logs, traces);
+        return new OtlpOverridesConfig(metrics);
     }
 }

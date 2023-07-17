@@ -73,14 +73,6 @@
                                             "metrics":
                                             {
                                                 "type": "string"
-                                            },
-                                            "logs":
-                                            {
-                                                "type": "string"
-                                            },
-                                            "traces":
-                                            {
-                                                "type": "string"
                                             }
                                         }
                                     }

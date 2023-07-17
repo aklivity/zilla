@@ -19,16 +19,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public class OtlpOverridesConfig extends OptionsConfig
 {
     public String metrics;
-    public String logs;
-    public String traces;
 
     public OtlpOverridesConfig(
-        String metrics,
-        String logs,
-        String traces)
+        String metrics)
     {
         this.metrics = metrics;
-        this.logs = logs;
-        this.traces = traces;
     }
 }
