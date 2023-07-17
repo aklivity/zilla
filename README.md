@@ -137,7 +137,7 @@ Please see the note above [on performance](#performance).
 ### What's on the roadmap for Zilla?
 Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).
 
-## 🌱 Community 
+## <a name="community"> 🌱 Community 
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
