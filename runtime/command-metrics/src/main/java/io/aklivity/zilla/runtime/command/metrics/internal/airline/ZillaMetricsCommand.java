@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -47,10 +46,10 @@ public final class ZillaMetricsCommand extends ZillaCommand
 {
     private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
 
-    @Option(name = { "--namespace" })
+    @Option(name = {"--namespace"})
     public String namespace;
 
-    @Option(name = { "-i", "--interval" })
+    @Option(name = {"-i", "--interval"})
     public int interval;
 
     @Option(name = {"-p", "--properties"},
@@ -64,48 +63,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
     @Override
     public void run()
     {
-        String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        Engine engine = engine();
-        requireNonNull(engine);
-        MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
-        LongPredicate filterPredicate = filterPredicate(namespace, binding, engine::supplyLabelId);
-        List<MetricRecord> records = filter(metrics.records(), filterPredicate);
-        MetricsPrinter printer = new MetricsPrinter(records);
-        do
-        {
-            printer.print(System.out);
-            sleep(interval);
-        } while (interval != 0);
-        close(engine);
-    }
-
-    private Engine engine()
-    {
-        final Configuration config = engineConfiguration();
-        final ErrorHandler onError = Throwable::printStackTrace;
-
-        try (Engine engine = Engine.builder()
-            .config(config)
-            .errorHandler(onError)
-            .readonly()
-            .build())
-        {
-            engine.start();
-            return engine;
-        }
-        catch (Throwable ex)
-        {
-            System.out.println("error");
-            rethrowUnchecked(ex);
-        }
-        return null;
-    }
-
-    private Configuration engineConfiguration()
-    {
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
-
         Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
         if (Files.exists(path) || propertiesPath != null)
         {
@@ -119,33 +78,32 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 rethrowUnchecked(ex);
             }
         }
-        return new EngineConfiguration(props);
-    }
+        final Configuration config = new EngineConfiguration(props);
+        final ErrorHandler onError = Throwable::printStackTrace;
+        final String binding = args != null && args.size() >= 1 ? args.get(0) : null;
 
-    private void close(
-        Engine engine)
-    {
-        try
+        do
         {
-            engine.close();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-    }
-
-    private void sleep(
-        long interval)
-    {
-        try
-        {
-            Thread.sleep(interval * 1000L);
-        }
-        catch (InterruptedException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+            try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(onError)
+                .readonly()
+                .build())
+            {
+                engine.start();
+                MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
+                LongPredicate filterPredicate = filterPredicate(namespace, binding, engine::supplyLabelId);
+                List<MetricRecord> records = filter(metrics.records(), filterPredicate);
+                MetricsPrinter printer = new MetricsPrinter(records);
+                printer.print(System.out);
+            }
+            catch (Throwable ex)
+            {
+                System.out.println("error");
+                rethrowUnchecked(ex);
+            }
+            sleep(interval);
+        } while (interval != 0);
     }
 
     private LongPredicate filterPredicate(
@@ -171,4 +129,18 @@ public final class ZillaMetricsCommand extends ZillaCommand
             .filter(r -> filterPredicate.test(r.bindingId()))
             .collect(Collectors.toList());
     }
+
+    private void sleep(
+        long interval)
+    {
+        try
+        {
+            Thread.sleep(interval * 1000L);
+        }
+        catch (InterruptedException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+    }
+
 }
