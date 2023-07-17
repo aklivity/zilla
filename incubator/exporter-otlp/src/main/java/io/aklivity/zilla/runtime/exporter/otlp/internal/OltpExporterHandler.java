@@ -55,9 +55,9 @@ public class OltpExporterHandler implements ExporterHandler
     private final HttpClient httpClient;
 
     private OtlpMetricsSerializer serializer;
-    private long lastAttempt;
+    private long nextAttempt;
     private long lastSuccess;
-    private boolean warning;
+    private boolean warningLogged;
 
     public OltpExporterHandler(
         EngineConfiguration config,
@@ -86,44 +86,41 @@ public class OltpExporterHandler implements ExporterHandler
 
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         serializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
-        lastAttempt = 0;
         lastSuccess = System.currentTimeMillis();
-        warning = false;
+        nextAttempt = lastSuccess + interval;
     }
 
     @Override
     public int export()
     {
+        int result;
         long now = System.currentTimeMillis();
-        if (now - lastSuccess < interval)
+        if (now < nextAttempt)
         {
-            return 0;
+            result = 0;
         }
-        if (now - lastAttempt < RETRY_INTERVAL)
+        else
         {
-            return 0;
+            String json = serializer.serializeAll();
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(metricsUrl)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+            CompletableFuture<HttpResponse<String>> response =
+                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            response.thenAccept(this::handleResponse);
+            nextAttempt = now + RETRY_INTERVAL;
+            if (!warningLogged && now - lastSuccess > WARNING_INTERVAL)
+            {
+                System.out.format(
+                    "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
+                    Duration.ofMillis(WARNING_INTERVAL).toSeconds());
+                warningLogged = true;
+            }
+            result = 1;
         }
-        if (now - lastSuccess >= WARNING_INTERVAL && !warning)
-        {
-            System.out.format("Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
-                Duration.ofMillis(now - lastSuccess).toSeconds());
-            warning = true;
-        }
-        post();
-        return 1;
-    }
-
-    private void post()
-    {
-        String json = serializer.serializeAll();
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(metricsUrl)
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(json))
-            .build();
-        lastAttempt = System.currentTimeMillis();
-        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-        response.thenAccept(this::handleResponse);
+        return result;
     }
 
     private void handleResponse(
@@ -132,7 +129,8 @@ public class OltpExporterHandler implements ExporterHandler
         if (response.statusCode() == HttpURLConnection.HTTP_OK)
         {
             lastSuccess = System.currentTimeMillis();
-            warning = false;
+            nextAttempt = lastSuccess + interval;
+            warningLogged = false;
         }
     }
 
