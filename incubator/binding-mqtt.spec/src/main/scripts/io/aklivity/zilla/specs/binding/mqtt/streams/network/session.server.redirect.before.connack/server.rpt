@@ -32,6 +32,6 @@ read  [0x10 0x13]                          # CONNECT
 
 write [0x20 0x14]                          # CONNACK
       [0x00]                               # flags = none
-      [0x9c]                               # reason code = Use another server
+      [0x9d]                               # reason code = Use another server
       [0x11]                               # properties
       [0x1c 0x00 0x0e] "localhost:1884"    # server reference

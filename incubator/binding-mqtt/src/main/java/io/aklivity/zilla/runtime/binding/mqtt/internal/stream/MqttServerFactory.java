@@ -33,7 +33,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.USE_ANOTHER_SERVER;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SERVER_MOVED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
@@ -3062,7 +3062,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 byte reasonCode = SUCCESS;
                 if (serverReference != null && serverReference.length() != 0)
                 {
-                    reasonCode = USE_ANOTHER_SERVER;
+                    reasonCode = SERVER_MOVED;
                 }
                 if (!connected)
                 {
