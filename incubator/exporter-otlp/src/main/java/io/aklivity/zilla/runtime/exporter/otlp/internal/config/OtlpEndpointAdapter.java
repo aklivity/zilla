@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import java.net.URI;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -44,7 +46,7 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
         }
         if (endpoint.location != null)
         {
-            object.add(LOCATION_NAME, endpoint.location);
+            object.add(LOCATION_NAME, endpoint.location.toString());
         }
         if (endpoint.overrides != null)
         {
@@ -60,7 +62,7 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
         String protocol = object.containsKey(PROTOCOL_NAME)
             ? object.getString(PROTOCOL_NAME)
             : DEFAULT_PROTOCOL;
-        String url = object.getString(LOCATION_NAME);
+        URI url = URI.create(object.getString(LOCATION_NAME));
         OtlpOverridesConfig overridesConfig = object.containsKey(OVERRIDES_NAME)
             ? overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME))
             : null;

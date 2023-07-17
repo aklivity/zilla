@@ -34,7 +34,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
@@ -43,7 +42,6 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final long RETRY_INTERVAL = Duration.ofSeconds(5).toMillis();
     private static final long WARNING_INTERVAL = Duration.ofMinutes(5).toMillis();
-    private static final String DEFAULT_METRICS_URI = "/v1/metrics";
     private static final String HTTP = "http";
 
     private final EngineContext context;
@@ -70,7 +68,7 @@ public class OltpExporterHandler implements ExporterHandler
         List<AttributeConfig> attributes)
     {
         this.context = context;
-        this.metricsUrl = createMetricsUrl(exporter.options().endpoint);
+        this.metricsUrl = exporter.options().endpoint.resolveMetrics();
         this.signals = exporter.options().signals.signals;
         this.protocol = exporter.options().endpoint.protocol;
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
@@ -113,36 +111,6 @@ public class OltpExporterHandler implements ExporterHandler
         }
         post();
         return 1;
-    }
-
-    // required for testing
-    URI metricsUrl()
-    {
-        return metricsUrl;
-    }
-
-    private URI createMetricsUrl(
-        OtlpEndpointConfig endpoint)
-    {
-        URI result;
-        URI location = URI.create(endpoint.location);
-        if (endpoint.overrides != null && endpoint.overrides.metrics != null)
-        {
-            URI metricsOverride = endpoint.overrides.metrics;
-            if (metricsOverride.isAbsolute())
-            {
-                result = metricsOverride;
-            }
-            else
-            {
-                result = location.resolve(metricsOverride);
-            }
-        }
-        else
-        {
-            result = location.resolve(DEFAULT_METRICS_URI);
-        }
-        return result;
     }
 
     private void post()

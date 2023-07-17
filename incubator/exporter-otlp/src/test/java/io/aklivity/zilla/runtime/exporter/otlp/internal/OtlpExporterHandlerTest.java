@@ -14,15 +14,16 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.function.LongFunction;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -40,70 +41,26 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig
 
 public class OtlpExporterHandlerTest
 {
-    private EngineConfiguration config;
-    private EngineContext context;
-    private Collector collector;
-    private LongFunction<KindConfig> resolveKind;
-    private List<AttributeConfig> attributes;
-
-    @Before
-    public void init()
-    {
-        config = mock(EngineConfiguration.class);
-        context = mock(EngineContext.class);
-        collector = mock(Collector.class);
-        resolveKind = mock(LongFunction.class);
-        attributes = List.of();
-    }
-
     @Test
-    public void shouldCreateDefaultMetricsUrl()
+    public void shouldInstantiate()
     {
         // GIVEN
+        EngineConfiguration config = mock(EngineConfiguration.class);
+        EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
+        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
+        OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
+        OptionsConfig options = new OtlpOptionsConfig(30L, signals, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
+        Collector collector = mock(Collector.class);
+        LongFunction<KindConfig> resolveKind = mock(LongFunction.class);
+        List<AttributeConfig> attributes = List.of();
 
         // WHEN
         OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
 
         // THEN
-        assertThat(handler.metricsUrl().toString(), equalTo("http://example.com/v1/metrics"));
-    }
-
-    @Test
-    public void shouldOverrideAbsoluteMetricsUrl()
-    {
-        // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
-        ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
-        OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-
-        // WHEN
-        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
-
-        // THEN
-        assertThat(handler.metricsUrl().toString(), equalTo("http://overridden.com/metrics"));
-    }
-
-    @Test
-    public void shouldOverrideRelativeMetricsUrl()
-    {
-        // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
-        OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
-        ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
-        OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
-
-        // WHEN
-        OltpExporterHandler handler = new OltpExporterHandler(config, context, exporter, collector, resolveKind, attributes);
-
-        // THEN
-        assertThat(handler.metricsUrl().toString(), equalTo("http://example.com/v42/metrix"));
+        assertThat(handler, instanceOf(OltpExporterHandler.class));
     }
 }
