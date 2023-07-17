@@ -138,7 +138,7 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 *Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).*
 
 ## Community 
-Looking to contribute to Zilla? Check out the [Contributing to Zilla](.github/CONTRIBUTIND.md) guide.
+Looking to contribute to Zilla? Check out the [Contributing to Zilla](./github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
 
