@@ -65,7 +65,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
 
         if (topics != null &&
-            !(TOPICS_DEFAULT.equals(topics)))
+            !TOPICS_DEFAULT.equals(topics))
         {
             JsonObjectBuilder newTopics = Json.createObjectBuilder();
             String8FW sessions = topics.sessions;
@@ -77,14 +77,14 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             String8FW messages = topics.messages;
             if (messages != null &&
-                !(MESSAGES_DEFAULT.equals(messages)))
+                !MESSAGES_DEFAULT.equals(messages))
             {
                 newTopics.add(MESSAGES_NAME, messages.asString());
             }
 
             String8FW retained = topics.retained;
             if (retained != null &&
-                !(RETAINED_DEFAULT.equals(retained)))
+                !RETAINED_DEFAULT.equals(retained))
             {
                 newTopics.add(RETAINED_NAME, retained.asString());
             }
