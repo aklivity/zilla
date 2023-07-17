@@ -120,22 +120,23 @@ BufferBM.single           thrpt   15  15111915.264 ± 294689.110  ops/s
 This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Intel i9 chip` and `16 GB of DDR4 RAM`, showing about `14-15 million messages per second`.
 
 ## <a name="faqs"> FAQs
-**1. Is Zilla production-ready?** </br>
-*Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).* 
 
-**2. Does Zilla only work with Apache Kafka?**</br>
-*Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. Please see the [Zilla Roadmap](https://github.com/orgs/aklivity/projects/4) for more details.*
+### Is Zilla production-ready?
+Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).
 
-**3. Another REST-Kafka Proxy? How is this one different?**</br>
-*Take a look at our [blog post](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka) where we go into detail about how Zilla is different TL;DR Zilla supports creating application-style REST APIs on top of Kafka, as opposed to providing just a system-level HTTP API. This unlocks the ability to do things such as correlated request-response over Kafka topics.*
+### Does Zilla only work with Apache Kafka?
+Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. Please see the [Zilla Roadmap](https://github.com/orgs/aklivity/projects/4) for more details.
 
-**4. What does Zilla's performance look like?**</br>
-*Please see the note above [on performance](#performance).*
+### Another REST-Kafka Proxy? How is this one different?
+Take a look at our [blog post](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka) where we go into detail about how Zilla is different TL;DR Zilla supports creating application-style REST APIs on top of Kafka, as opposed to providing just a system-level HTTP API. This unlocks the ability to do things such as correlated request-response over Kafka topics.
 
-**5. What's on the roadmap for Zilla?**</br>
-*Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).*
+### What does Zilla's performance look like?
+Please see the note above [on performance](#performance).
 
-## Community 
+### What's on the roadmap for Zilla?
+Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).
+
+## 🌱 Community 
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
