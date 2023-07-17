@@ -86,7 +86,7 @@ Multiple SSE streams on the same `HTTP/2` connection and authorized by the same 
 ### <a name="support"> ❓ Get support
 - **[Community Slack](https://www.aklivity.io/slack):** Join technical discussions, ask questions, and meet other users!
 - **[GitHub Issues](https://github.com/aklivity/zilla/issues):** Report bugs or issues with Zilla.
-- **[Make an Inquiry](https://www.aklivity.io/contact):** Submit non-techinal questions and inquires.
+- **[Contact Us](https://www.aklivity.io/contact):** Submit non-techinal questions and inquires.
 
 ## <a name="how-zilla-works"> How Zilla Works
 Inside Zilla, every protocol, whether it is `TCP`, `TLS`, `HTTP`, `Kafka`, `gRPC`, etc., is treated as a stream, so mediating between protocols mainly simplifies to mapping protocol-specific metadata.
