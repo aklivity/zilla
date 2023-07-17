@@ -26,34 +26,25 @@ import java.nio.file.Path;
 
 public final class Info implements AutoCloseable
 {
-    private final int workers;
     private final Path info;
 
-    // write mode: write the processId and number of workers to the file
-    private Info(
-        Path directory,
-        int workers)
-    {
-        this.info = directory.resolve("info");
-        this.workers = workers;
-        reset();
-    }
+    private int workerCount;
 
-    // read mode: open the file and read the number of workers
     private Info(
         Path directory)
     {
         this.info = directory.resolve("info");
-        this.workers = readWorkers();
     }
 
-    public int workers()
+    public int workerCount()
     {
-        return workers;
+        return workerCount;
     }
 
-    private void reset()
+    private void reset(
+        int workerCount)
     {
+        this.workerCount = workerCount;
         try
         {
             Files.deleteIfExists(info);
@@ -67,7 +58,7 @@ public final class Info implements AutoCloseable
                         .wrap(new byte[Long.BYTES + Integer.BYTES])
                         .order(nativeOrder());
                 byteBuf.putLong(processId);
-                byteBuf.putInt(workers);
+                byteBuf.putInt(workerCount);
                 byteBuf.flip();
 
                 while (byteBuf.hasRemaining())
@@ -87,7 +78,7 @@ public final class Info implements AutoCloseable
         }
     }
 
-    private int readWorkers()
+    private void readWorkerCount()
     {
         try
         {
@@ -95,12 +86,11 @@ public final class Info implements AutoCloseable
             ByteBuffer byteBuf = ByteBuffer
                 .wrap(bytes, Long.BYTES, Integer.BYTES)
                 .order(nativeOrder());
-            return byteBuf.getInt();
+            this.workerCount = byteBuf.getInt();
         }
         catch (IOException ex)
         {
             System.out.printf("Error: %s is not readable\n", info);
-            return 0;
         }
     }
 
@@ -138,14 +128,16 @@ public final class Info implements AutoCloseable
 
         public Info build()
         {
+            Info info = new Info(path);
             if (readonly)
             {
-                return new Info(path);
+                info.readWorkerCount();
             }
             else
             {
-                return new Info(path, workerCount);
+                info.reset(workerCount);
             }
+            return info;
         }
     }
 }
