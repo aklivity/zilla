@@ -21,9 +21,9 @@
 
 
 ##  A multi-protocol proxy, designed for event-driven architectures
-Zilla abstracts Apache Kafka® for web applications, IoT clients and non-Kafka microservices. With Zilla, Kafka topics can be securely and reliably exposed via a user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` API.
+Zilla abstracts Apache Kafka® for web applications, IoT clients and non-Kafka microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
-Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Besides protocol meditation, Zilla addresses security enforcement, observability and connection offloading on the data path.
+Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
 
 When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet streamlined event-driven architecture becomes much easier.
 
@@ -36,30 +36,28 @@ When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet str
 - [Community](#community)
 
 ## <a name="quickstart"> Quickstart
-The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. To make it as easy as possible, the Quickstart uses Aklivity’s public `Postman Workspaces` with pre-defined API endpoints and a Docker Compose stack running configured Zilla and Kafka instances.
+The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. The Quickstart uses Aklivity’s public [Postman Workspaces](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
 
 ## <a name="key-features"> Key Features
 ### REST-Kafka Proxying
 - [x] **Correlated Request-Response (sync)** —  `HTTP` request-response over a pair of Kafka topics, correlated. Supports synchronous interaction, blocked waiting for a correlated response. 
-- [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics, correlated. Supports asynchronous interaction, returning immediately with `202`. Accepted plus location to retrieve correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
-- [x] **Oneway** — Produce `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of `HTTP` path if needed.
-- [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of `HTTP` path if needed.
-Returns `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as message becomes available, no need for client polling.
-- [x] **Authorization** — Specific routed requests can be guarded to enforce required client privileges.
+- [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics, correlated. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
+- [x] **Oneway** — Produce an `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of `HTTP` path if needed.
+- [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
+Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as message becomes available, no need for client polling.
+- [x] **Authorization** — Routed requests can be guarded to enforce required client privileges.
 
 ### SSE-Kafka Proxying
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of `HTTP` path if needed.
-- [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without needing the client to explicitly acknowledge message receipt.
-- [x] **Continous Authorization** — Supports `challenge` event, triggering client to send up-to-date authorization credentials, such as JWT token, before expiration.
-Secure by default, if authorization expires then the response stream is terminated.
-Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
+- [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
+- [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### gRPC-Kafka Proxying
 - [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics, correlated. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction, blocked waiting for a correlated response.
-- [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and without needing the client to explicitly acknowledge message receipt.
+- [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and the client does not need to acknowledge the message receipt.
 
 ### Deployment, Performance & Other
-- [x] **Realtime Cache** — Local cache synchronized with Kafka for specific topics, even when no clients are connected. Stateless, recovers automatically and is consistent across different Zilla instances without peer communication.
+- [x] **Realtime Cache** — Local cache synchronized with Kafka for specific topics, even when no clients are connected. The cache is stateless and recovers automatically. It is consistent across different Zilla instances without peer communication.
 - [x] **Filtering** — Local cache indexes message key and headers upon retrieval from Kafka, supporting efficient filtered reads from cached topics.
 - [x] **Fan-in, Fan-out** — Local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
 - [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
@@ -88,7 +86,7 @@ Multiple SSE streams on the same `HTTP/2` connection and authorized by the same 
 - **[Contact Us](https://www.aklivity.io/contact):** Submit non-techinal questions and inquires.
 
 ## <a name="how-zilla-works"> How Zilla Works
-Inside Zilla, every protocol, whether it is `TCP`, `TLS`, `HTTP`, `Kafka`, `gRPC`, etc., is treated as a stream, so mediating between protocols mainly simplifies to mapping protocol-specific metadata.
+Inside Zilla, every protocol, whether it is `TCP`, `TLS`, `HTTP`, `Kafka`, `gRPC`, etc., is treated as a stream, so mediating between protocols simplifies to mapping protocol-specific metadata.
 
 Zilla’s declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point into an event-driven architecture. This “routed graph” can be visualized and maintained with the help of the [Zilla VS Code extension](https://docs.aklivity.io/zilla/latest/reference/vscode/).
 
