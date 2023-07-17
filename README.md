@@ -20,7 +20,7 @@
 </h3>
 
 
-##  A multi-protocol edge and service proxy, designed for event-driven architectures
+##  A multi-protocol proxy, designed for event-driven architectures
 Zilla abstracts Apache Kafka® for web applications, IoT clients and non-Kafka microservices. With Zilla, Kafka topics can be securely and reliably exposed via a user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` API.
 
 Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Besides protocol meditation, Zilla addresses security enforcement, observability and connection offloading on the data path.
