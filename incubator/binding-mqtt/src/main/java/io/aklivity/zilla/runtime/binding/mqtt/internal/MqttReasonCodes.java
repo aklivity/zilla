@@ -57,6 +57,7 @@ public final class MqttReasonCodes
     public static final byte TOPIC_NAME_INVALID = (byte) 0x90;
     public static final byte PAYLOAD_FORMAT_INVALID = (byte) 0x99;
     public static final byte QOS_NOT_SUPPORTED = (byte) 0x9b;
+    public static final byte USE_ANOTHER_SERVER = (byte) 0x9c;
 
     public static final byte PACKET_IDENTIFIER_IN_USE = (byte) 0x91;
     public static final byte PACKET_IDENTIFIER_NOT_FOUND = (byte) 0x92;

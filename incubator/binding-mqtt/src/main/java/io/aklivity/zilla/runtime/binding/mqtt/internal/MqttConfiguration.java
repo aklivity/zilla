@@ -37,6 +37,7 @@ public class MqttConfiguration extends Configuration
     public static final BooleanPropertyDef NO_LOCAL;
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
+    public static final PropertyDef<String> SERVER_REFERENCE;
 
     static
     {
@@ -57,6 +58,7 @@ public class MqttConfiguration extends Configuration
         NO_LOCAL = config.property("no.local", true);
         SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");
+        SERVER_REFERENCE = config.property("server.reference");
         MQTT_CONFIG = config;
     }
 
@@ -139,5 +141,10 @@ public class MqttConfiguration extends Configuration
     public String clientId()
     {
         return CLIENT_ID.get(this);
+    }
+
+    public String serverReference()
+    {
+        return SERVER_REFERENCE.get(this);
     }
 }
