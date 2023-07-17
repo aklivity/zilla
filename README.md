@@ -124,7 +124,7 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 
 ## <a name="faqs"> FAQs
 **1. Is Zilla production-ready?** </br>
-*Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments.* 
+*Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).* 
 
 **2. Does Zilla only work with Apache Kafka?**</br>
 *Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. Please see the [Zilla Roadmap](https://github.com/orgs/aklivity/projects/4) for more details.*
