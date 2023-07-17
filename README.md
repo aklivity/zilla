@@ -141,8 +141,8 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 ## Community 
 Looking to contribute to Zilla? Here are some possibilities:
 - Star this repo and follow us on [Twitter](https://twitter.com/aklivityinc).
-- Create issues every time you feel something is missing or goes wrong.
-- Provide pull requests for open issues, especially for those with a good first issue label.
+- Create [issues](https://github.com/aklivity/zilla/issues) every time you feel something is missing or goes wrong.
+- Provide [pull requests](https://github.com/aklivity/zilla/pulls) for open issues, especially for those with a good first issue label.
 
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
