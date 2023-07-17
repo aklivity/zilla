@@ -128,7 +128,7 @@ public class OltpExporterHandler implements ExporterHandler
         URI location = URI.create(endpoint.location);
         if (endpoint.overrides != null && endpoint.overrides.metrics != null)
         {
-            URI metricsOverride = URI.create(endpoint.overrides.metrics);
+            URI metricsOverride = endpoint.overrides.metrics;
             if (metricsOverride.isAbsolute())
             {
                 result = metricsOverride;

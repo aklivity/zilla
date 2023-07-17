@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.LongFunction;
 
@@ -76,7 +77,7 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideAbsoluteMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig("http://overridden.com/metrics");
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
@@ -93,7 +94,7 @@ public class OtlpExporterHandlerTest
     public void shouldOverrideRelativeMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v42/metrix");
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://example.com", overrides);
         OptionsConfig options = new OtlpOptionsConfig(30L, OtlpSignalsConfig.ALL, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);

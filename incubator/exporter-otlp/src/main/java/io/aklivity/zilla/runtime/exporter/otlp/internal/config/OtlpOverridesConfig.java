@@ -14,14 +14,16 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import java.net.URI;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpOverridesConfig extends OptionsConfig
 {
-    public String metrics;
+    public URI metrics;
 
     public OtlpOverridesConfig(
-        String metrics)
+        URI metrics)
     {
         this.metrics = metrics;
     }

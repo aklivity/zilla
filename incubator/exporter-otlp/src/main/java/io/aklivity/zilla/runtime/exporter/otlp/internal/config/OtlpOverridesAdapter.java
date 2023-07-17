@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import java.net.URI;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -30,7 +32,7 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
         JsonObjectBuilder object = Json.createObjectBuilder();
         if (overrides.metrics != null)
         {
-            object.add(METRICS_NAME, overrides.metrics);
+            object.add(METRICS_NAME, overrides.metrics.toString());
         }
         return object.build();
     }
@@ -39,8 +41,8 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
     public OtlpOverridesConfig adaptFromJson(
         JsonObject object)
     {
-        String metrics = object.containsKey(METRICS_NAME)
-            ? object.getString(METRICS_NAME)
+        URI metrics = object.containsKey(METRICS_NAME)
+            ? URI.create(object.getString(METRICS_NAME))
             : null;
         return new OtlpOverridesConfig(metrics);
     }

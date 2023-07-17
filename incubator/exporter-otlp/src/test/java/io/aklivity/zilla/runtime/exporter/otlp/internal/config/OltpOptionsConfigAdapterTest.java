@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.net.URI;
 import java.util.Set;
 
 import jakarta.json.bind.Jsonb;
@@ -71,7 +72,7 @@ public class OltpOptionsConfigAdapterTest
         assertThat(options.interval, equalTo(30L));
         assertThat(options.signals.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo("http://localhost:4317"));
-        assertThat(options.endpoint.overrides.metrics, equalTo("/v1/metricsOverride"));
+        assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
     }
 
     @Test
@@ -95,7 +96,7 @@ public class OltpOptionsConfigAdapterTest
                             "}" +
                     "}" +
             "}";
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig("/v1/metrics");
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", "http://localhost:4317", overrides);
         OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
         OtlpOptionsConfig config = new OtlpOptionsConfig(30, signals, endpoint);
