@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -42,7 +41,7 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final String HTTP = "http";
 
-    private final EngineConfiguration config;
+    private final OltpExporterConfiguration config;
     private final EngineContext context;
     private final Set<OtlpSignalsConfig.Signals> signals;
     private final String protocol;
@@ -59,7 +58,7 @@ public class OltpExporterHandler implements ExporterHandler
     private boolean warningLogged;
 
     public OltpExporterHandler(
-        EngineConfiguration config,
+        OltpExporterConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter,
         Collector collector,
@@ -110,12 +109,12 @@ public class OltpExporterHandler implements ExporterHandler
             CompletableFuture<HttpResponse<String>> response =
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             response.thenAccept(this::handleResponse);
-            nextAttempt = now + config.exporterRetryInterval();
-            if (!warningLogged && now - lastSuccess > config.exporterWarningInterval())
+            nextAttempt = now + config.retryInterval();
+            if (!warningLogged && now - lastSuccess > config.warningInterval())
             {
                 System.out.format(
                     "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
-                    Duration.ofMillis(config.exporterWarningInterval()).toSeconds());
+                    Duration.ofMillis(config.warningInterval()).toSeconds());
                 warningLogged = true;
             }
             result = 1;

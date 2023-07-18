@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 import java.util.List;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -29,11 +28,11 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfi
 
 public class OtlpExporterContext implements ExporterContext
 {
-    private final EngineConfiguration config;
+    private final OltpExporterConfiguration config;
     private final EngineContext context;
 
     public OtlpExporterContext(
-        EngineConfiguration config,
+        OltpExporterConfiguration config,
         EngineContext context)
     {
         this.config = config;

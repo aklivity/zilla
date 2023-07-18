@@ -26,7 +26,6 @@ import java.util.function.LongFunction;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -45,7 +44,7 @@ public class OtlpExporterHandlerTest
     public void shouldInstantiate()
     {
         // GIVEN
-        EngineConfiguration config = mock(EngineConfiguration.class);
+        OltpExporterConfiguration config = mock(OltpExporterConfiguration.class);
         EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
