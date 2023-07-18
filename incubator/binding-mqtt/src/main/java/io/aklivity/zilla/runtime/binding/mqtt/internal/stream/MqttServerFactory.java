@@ -81,6 +81,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -158,6 +159,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -213,8 +215,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
-
-    private final JsonBuilderFactory json = Json.createBuilderFactory(new HashMap<>());
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -349,6 +349,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final LongFunction<GuardHandler> supplyGuard;
     private final Long2ObjectHashMap<MqttBindingConfig> bindings;
     private final int mqttTypeId;
 
@@ -400,6 +401,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyGuard = context::supplyGuard;
         this.bindings = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
@@ -463,6 +465,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long budgetId = supplyBudgetId.getAsLong();
 
             newStream = new MqttServer(
+                binding,
                 sender,
                 originId,
                 routedId,
@@ -1205,6 +1208,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
+        private final GuardHandler guard;
+        private final Function<Function<String, String>, String> credentials;
 
         private MqttSessionStream sessionStream;
 
@@ -1255,6 +1260,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int state;
 
         private MqttServer(
+            MqttBindingConfig binding,
             MessageConsumer network,
             long originId,
             long routedId,
@@ -1276,6 +1282,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
+            this.guard = resolveGuard(binding);
+            this.credentials = binding.credentials();
         }
 
         private void onNetwork(
@@ -1670,9 +1678,27 @@ public final class MqttServerFactory implements MqttStreamFactory
                 serverDefinedKeepAlive = keepAlive != connect.keepAlive();
                 keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
                 doSignalKeepAliveTimeout();
+
+                long exchangeAuth = authorization;
+                if (guard != null)
+                {
+                    //TODO how to handle password in bytes? Remove creation of map?
+                    final Map<String, String> creds = new HashMap<>()
+                    {{
+                        put("username", payload.username.asString());
+                        put("password", payload.password.bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+                    }};
+                    final String credentialsMatch = credentials.apply(creds::get);
+
+                    if (credentialsMatch != null)
+                    {
+                        exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                    }
+                }
+
                 if (session)
                 {
-                    resolveSession(traceId, authorization, reasonCode, connect, payload);
+                    resolveSession(traceId, exchangeAuth, reasonCode, connect, payload);
                 }
                 else
                 {
@@ -4751,6 +4777,21 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             return flags;
         }
+    }
+
+    private GuardHandler resolveGuard(
+        MqttBindingConfig binding)
+    {
+        GuardHandler guard = null;
+
+        if (binding.options != null &&
+            binding.options.authorization != null)
+        {
+            long guardId = binding.resolveId.applyAsLong(binding.options.authorization.name);
+            guard = supplyGuard.apply(guardId);
+        }
+
+        return guard;
     }
 }
 
