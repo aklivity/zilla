@@ -20,6 +20,7 @@
 </h3>
 
 ##  A multi-protocol proxy, designed for event-driven architectures
+
 Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
 Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
@@ -44,7 +45,7 @@ The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.i
 - [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics with correlation. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
 - [x] **Oneway** — Produce an `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of `HTTP` path if needed.
 - [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
-Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as message becomes available, no need for client polling.
+Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with new `etag` header). Supports `prefer: wait=N` to respond as soon as a message becomes available, no need for client polling.
 - [x] **Authorization** — Routed requests can be guarded to enforce required client privileges.
 
 ### SSE-Kafka Proxying
@@ -67,14 +68,13 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.
 - [x] **Kafka Security** — Connect Zilla to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, `SASL/PLAIN`, and `SASL/SCRAM`.
 
-
 ## <a name="resources"> Resources
 
 ### 📚 Read the docs
 - **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Zilla Examples](https://github.com/aklivity/zilla-examples):** A repo of sample Zilla configurations for different use cases running on Kubernetes.
 - **[Todo Application](https://docs.aklivity.io/zilla/latest/tutorials/todo-app/build.html):** Follow the tutorial and see how Zilla and Kafka can be used to build the quintessential "Todo app," but based on streaming and CQRS.
-- **[Product Roadmap](https://github.com/orgs/aklivity/projects/4/views/1):** Check out our plan for upcoming releases. 
+- **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
 
 ### 📝 Check out blog posts
 - **[Bring your own REST APIs for Apache Kafka](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka):** Zilla enables application-specific REST APIs. See how it's not just another Kafka-REST proxy.
@@ -95,7 +95,6 @@ Zilla’s declarative configuration defines a routed graph of protocol decoders,
 Zilla has been designed from the ground up to be very high-performance. Inside, all data flows over shared memory as streams with back pressure between CPU cores, allowing Zilla to take advantage of modern multi-core hardware. The code base is written in system-level Java and uses low-level, high-performance data structures, with no locks and no object allocation on the data path.
 
 You can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
-
 
 ```
 git clone https://github.com/aklivity/zilla
@@ -126,31 +125,26 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).
 
 ### Does Zilla only work with Apache Kafka?
-Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. See the [Zilla Roadmap](https://github.com/orgs/aklivity/projects/4) for more details.
+Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. See the [Zilla Roadmap][zilla-roadmap] for more details.
 
 ### Another REST-Kafka Proxy? How is this one different?
-Take a look at our [blog post](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka) where we go into detail about how Zilla is different **TL;DR** Zilla supports creating application-style REST APIs on top of Kafka, as opposed to providing just a system-level HTTP API. This unlocks the ability to do things such as correlated request-response over Kafka topics.
+Take a look at our [blog post](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka), where we go into detail about how Zilla is different **TL;DR** Zilla supports creating application-style REST APIs on top of Kafka, as opposed to providing just a system-level HTTP API. Most notably, this unlocks correlated request-response over Kafka topics.
 
 ### What does Zilla's performance look like?
 Please see the note above [on performance](#performance).
 
 ### What's on the roadmap for Zilla?
-Please review the [Zilla Roadamp](https://github.com/orgs/aklivity/projects/4/views/1). If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).
+Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedback, we would love to hear it! Get in touch through any of the [channels](#support).
 
 ## <a name="community"> 🌱 Community 
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
-
+<!-- Links -->
 [build-status-image]: https://github.com/aklivity/zilla/workflows/build/badge.svg
 [build-status]: https://github.com/aklivity/zilla/actions
-
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
-
-[zilla-docs]: https://docs.aklivity.io/zilla/latest/
-[zilla-get-started]: https://docs.aklivity.io/zilla/latest/get-started
-[zilla-examples]: https://github.com/aklivity/zilla-examples
-[zilla-todo-tutorial]: https://docs.aklivity.io/zilla/get-started/build-todo-app
+[zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
