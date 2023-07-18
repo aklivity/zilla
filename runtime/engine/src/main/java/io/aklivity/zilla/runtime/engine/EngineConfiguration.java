@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -65,6 +66,8 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
+    public static final LongPropertyDef ENGINE_EXPORTER_RETRY_INTERVAL;
+    public static final LongPropertyDef ENGINE_EXPORTER_WARNING_INTERVAL;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final IntPropertyDef ENGINE_WORKERS;
@@ -105,6 +108,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
+        ENGINE_EXPORTER_RETRY_INTERVAL = config.property("exporter.retry.interval", SECONDS.toMillis(10L));
+        ENGINE_EXPORTER_WARNING_INTERVAL = config.property("exporter.warning.interval", MINUTES.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
@@ -280,6 +285,16 @@ public class EngineConfiguration extends Configuration
     public long childCleanupLingerMillis()
     {
         return ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS.getAsLong(this);
+    }
+
+    public long exporterRetryInterval()
+    {
+        return ENGINE_EXPORTER_RETRY_INTERVAL.getAsLong(this);
+    }
+
+    public long exporterWarningInterval()
+    {
+        return ENGINE_EXPORTER_WARNING_INTERVAL.getAsLong(this);
     }
 
     public boolean verbose()

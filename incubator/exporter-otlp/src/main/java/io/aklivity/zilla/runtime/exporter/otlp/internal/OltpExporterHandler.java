@@ -40,10 +40,9 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSe
 
 public class OltpExporterHandler implements ExporterHandler
 {
-    private static final long RETRY_INTERVAL = Duration.ofSeconds(5).toMillis();
-    private static final long WARNING_INTERVAL = Duration.ofMinutes(5).toMillis();
     private static final String HTTP = "http";
 
+    private final EngineConfiguration config;
     private final EngineContext context;
     private final Set<OtlpSignalsConfig.Signals> signals;
     private final String protocol;
@@ -67,6 +66,7 @@ public class OltpExporterHandler implements ExporterHandler
         LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
+        this.config = config;
         this.context = context;
         this.metricsUrl = exporter.options().endpoint.resolveMetrics();
         this.signals = exporter.options().signals.signals;
@@ -110,12 +110,12 @@ public class OltpExporterHandler implements ExporterHandler
             CompletableFuture<HttpResponse<String>> response =
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             response.thenAccept(this::handleResponse);
-            nextAttempt = now + RETRY_INTERVAL;
-            if (!warningLogged && now - lastSuccess > WARNING_INTERVAL)
+            nextAttempt = now + config.exporterRetryInterval();
+            if (!warningLogged && now - lastSuccess > config.exporterWarningInterval())
             {
                 System.out.format(
                     "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
-                    Duration.ofMillis(WARNING_INTERVAL).toSeconds());
+                    Duration.ofMillis(config.exporterWarningInterval()).toSeconds());
                 warningLogged = true;
             }
             result = 1;
