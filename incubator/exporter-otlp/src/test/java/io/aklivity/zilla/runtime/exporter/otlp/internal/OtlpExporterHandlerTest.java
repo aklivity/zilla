@@ -50,7 +50,7 @@ public class OtlpExporterHandlerTest
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
-        OptionsConfig options = new OtlpOptionsConfig(30L, 10L, 300L, signals, endpoint);
+        OptionsConfig options = new OtlpOptionsConfig(30L, signals, endpoint);
         ExporterConfig exporterConfig = new ExporterConfig("otlp0", "otlp", options);
         OtlpExporterConfig exporter = new OtlpExporterConfig(exporterConfig);
         Collector collector = mock(Collector.class);

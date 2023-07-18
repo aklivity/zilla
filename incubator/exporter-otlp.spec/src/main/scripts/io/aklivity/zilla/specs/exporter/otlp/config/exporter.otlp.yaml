@@ -26,7 +26,7 @@ telemetry:
         test0:
             type: otlp
             options:
-                publishInterval: 1
+                interval: 1
                 endpoint:
                     location: http://localhost:4318
 bindings:
