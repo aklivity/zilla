@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.LOGS;
 import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.TRACES;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -29,8 +27,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public class OtlpSignalsAdapter implements JsonbAdapter<OtlpSignalsConfig, JsonArray>
 {
     private static final String METRICS_NAME = "metrics";
-    private static final String LOGS_NAME = "logs";
-    private static final String TRACES_NAME = "traces";
 
     @Override
     public JsonArray adaptToJson(
@@ -49,14 +45,6 @@ public class OtlpSignalsAdapter implements JsonbAdapter<OtlpSignalsConfig, JsonA
         if (array.contains(Json.createValue(METRICS_NAME)))
         {
             signals.add(METRICS);
-        }
-        if (array.contains(Json.createValue(LOGS_NAME)))
-        {
-            signals.add(LOGS);
-        }
-        if (array.contains(Json.createValue(TRACES_NAME)))
-        {
-            signals.add(TRACES);
         }
         return new OtlpSignalsConfig(signals);
     }

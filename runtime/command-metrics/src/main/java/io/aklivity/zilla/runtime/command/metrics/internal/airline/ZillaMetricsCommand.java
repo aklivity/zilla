@@ -142,5 +142,4 @@ public final class ZillaMetricsCommand extends ZillaCommand
             rethrowUnchecked(ex);
         }
     }
-
 }

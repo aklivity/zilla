@@ -21,13 +21,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public class OtlpSignalsConfig extends OptionsConfig
 {
     public static final OtlpSignalsConfig ALL =
-        new OtlpSignalsConfig(Set.of(Signals.METRICS, Signals.LOGS, Signals.TRACES));
+        new OtlpSignalsConfig(Set.of(Signals.METRICS));
 
     public enum Signals
     {
         METRICS,
-        LOGS,
-        TRACES
     }
 
     public Set<Signals> signals;
