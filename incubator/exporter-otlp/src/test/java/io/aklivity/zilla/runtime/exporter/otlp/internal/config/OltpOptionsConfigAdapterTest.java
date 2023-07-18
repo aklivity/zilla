@@ -49,7 +49,7 @@ public class OltpOptionsConfigAdapterTest
         // GIVEN
         String text =
             "{\n" +
-                "\"interval\": 30,\n" +
+                "\"publishInterval\": 20,\n" +
                 "\"signals\":\n" +
                     "[\n" +
                         "metrics\n" +
@@ -69,7 +69,9 @@ public class OltpOptionsConfigAdapterTest
 
         // THEN
         assertThat(options, not(nullValue()));
-        assertThat(options.interval, equalTo(30L));
+        assertThat(options.publishInterval, equalTo(20L));
+        assertThat(options.retryInterval, equalTo(10L));
+        assertThat(options.warningInterval, equalTo(300L));
         assertThat(options.signals.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
         assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
@@ -81,7 +83,9 @@ public class OltpOptionsConfigAdapterTest
         // GIVEN
         String expected =
             "{" +
-                "\"interval\":30," +
+                "\"publishInterval\":30," +
+                "\"retryInterval\":10," +
+                "\"warningInterval\":300," +
                 "\"signals\":" +
                     "[" +
                         "\"metrics\"" +
@@ -99,7 +103,7 @@ public class OltpOptionsConfigAdapterTest
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"), overrides);
         OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
-        OtlpOptionsConfig config = new OtlpOptionsConfig(30, signals, endpoint);
+        OtlpOptionsConfig config = new OtlpOptionsConfig(30L, 10L, 300L, signals, endpoint);
 
         // WHEN
         String json = jsonb.toJson(config);

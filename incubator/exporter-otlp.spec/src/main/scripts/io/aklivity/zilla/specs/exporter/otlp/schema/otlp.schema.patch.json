@@ -31,7 +31,15 @@
                     {
                         "properties":
                         {
-                            "interval":
+                            "publishInterval":
+                            {
+                                "type": "number"
+                            },
+                            "retryInterval":
+                            {
+                                "type": "number"
+                            },
+                            "warningInterval":
                             {
                                 "type": "number"
                             },

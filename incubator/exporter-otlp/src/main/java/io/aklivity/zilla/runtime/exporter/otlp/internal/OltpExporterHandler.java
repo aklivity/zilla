@@ -40,15 +40,15 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSe
 
 public class OltpExporterHandler implements ExporterHandler
 {
-    private static final long RETRY_INTERVAL = Duration.ofSeconds(5).toMillis();
-    private static final long WARNING_INTERVAL = Duration.ofMinutes(5).toMillis();
     private static final String HTTP = "http";
 
     private final EngineContext context;
     private final Set<OtlpSignalsConfig.Signals> signals;
     private final String protocol;
     private final URI metricsUrl;
-    private final long interval;
+    private final long publishInterval;
+    private final long retryInterval;
+    private final long warningInterval;
     private final Collector collector;
     private final LongFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
@@ -71,7 +71,9 @@ public class OltpExporterHandler implements ExporterHandler
         this.metricsUrl = exporter.options().endpoint.resolveMetrics();
         this.signals = exporter.options().signals.signals;
         this.protocol = exporter.options().endpoint.protocol;
-        this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
+        this.publishInterval = Duration.ofSeconds(exporter.options().publishInterval).toMillis();
+        this.retryInterval = Duration.ofSeconds(exporter.options().retryInterval).toMillis();
+        this.warningInterval = Duration.ofSeconds(exporter.options().warningInterval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;
         this.attributes = attributes;
@@ -87,7 +89,7 @@ public class OltpExporterHandler implements ExporterHandler
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         serializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
         lastSuccess = System.currentTimeMillis();
-        nextAttempt = lastSuccess + interval;
+        nextAttempt = lastSuccess + publishInterval;
     }
 
     @Override
@@ -110,12 +112,12 @@ public class OltpExporterHandler implements ExporterHandler
             CompletableFuture<HttpResponse<String>> response =
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             response.thenAccept(this::handleResponse);
-            nextAttempt = now + RETRY_INTERVAL;
-            if (!warningLogged && now - lastSuccess > WARNING_INTERVAL)
+            nextAttempt = now + retryInterval;
+            if (!warningLogged && now - lastSuccess > warningInterval)
             {
                 System.out.format(
                     "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
-                    Duration.ofMillis(WARNING_INTERVAL).toSeconds());
+                    Duration.ofMillis(warningInterval).toSeconds());
                 warningLogged = true;
             }
             result = 1;
@@ -129,7 +131,7 @@ public class OltpExporterHandler implements ExporterHandler
         if (response.statusCode() == HttpURLConnection.HTTP_OK)
         {
             lastSuccess = System.currentTimeMillis();
-            nextAttempt = lastSuccess + interval;
+            nextAttempt = lastSuccess + publishInterval;
             warningLogged = false;
         }
     }

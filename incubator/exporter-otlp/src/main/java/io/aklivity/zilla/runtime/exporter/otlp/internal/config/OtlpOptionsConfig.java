@@ -18,16 +18,22 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpOptionsConfig extends OptionsConfig
 {
-    public long interval;
+    public long publishInterval;
+    public long retryInterval;
+    public long warningInterval;
     public OtlpSignalsConfig signals;
     public OtlpEndpointConfig endpoint;
 
     public OtlpOptionsConfig(
-        long interval,
+        long publishInterval,
+        long retryInterval,
+        long warningInterval,
         OtlpSignalsConfig signals,
         OtlpEndpointConfig endpoint)
     {
-        this.interval = interval;
+        this.publishInterval = publishInterval;
+        this.retryInterval = retryInterval;
+        this.warningInterval = warningInterval;
         this.signals = signals;
         this.endpoint = endpoint;
     }

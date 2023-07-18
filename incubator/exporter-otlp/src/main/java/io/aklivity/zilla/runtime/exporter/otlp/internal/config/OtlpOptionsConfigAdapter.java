@@ -27,11 +27,14 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;
 
 public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String INTERVAL_NAME = "interval";
-    private static final long INTERVAL_DEFAULT = 30;
+    private static final String PUBLISH_INTERVAL_NAME = "publishInterval";
+    private static final long PUBLISH_INTERVAL_DEFAULT = 30;
+    private static final String RETRY_INTERVAL_NAME = "retryInterval";
+    private static final long RETRY_INTERVAL_DEFAULT = 10;
+    private static final String WARNING_INTERVAL_NAME = "warningInterval";
+    private static final long WARNING_INTERVAL_DEFAULT = 300;
     private static final String SIGNALS_NAME = "signals";
     private static final String ENDPOINT_NAME = "endpoint";
-    private static final String LOCATION_NAME = "location";
 
     private final OtlpSignalsAdapter signals;
     private final OtlpEndpointAdapter endpoint;
@@ -60,9 +63,17 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         OtlpOptionsConfig otlpOptionsConfig = (OtlpOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
-        if (otlpOptionsConfig.interval != 0)
+        if (otlpOptionsConfig.publishInterval != 0)
         {
-            object.add(INTERVAL_NAME, otlpOptionsConfig.interval);
+            object.add(PUBLISH_INTERVAL_NAME, otlpOptionsConfig.publishInterval);
+        }
+        if (otlpOptionsConfig.retryInterval != 0)
+        {
+            object.add(RETRY_INTERVAL_NAME, otlpOptionsConfig.retryInterval);
+        }
+        if (otlpOptionsConfig.warningInterval != 0)
+        {
+            object.add(WARNING_INTERVAL_NAME, otlpOptionsConfig.warningInterval);
         }
         if (otlpOptionsConfig.signals != null)
         {
@@ -79,14 +90,18 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        long interval = object.containsKey(INTERVAL_NAME)
-            ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
+        long publishInterval = object.containsKey(PUBLISH_INTERVAL_NAME)
+            ? object.getInt(PUBLISH_INTERVAL_NAME) : PUBLISH_INTERVAL_DEFAULT;
+        long retryInterval = object.containsKey(RETRY_INTERVAL_NAME)
+            ? object.getInt(RETRY_INTERVAL_NAME) : RETRY_INTERVAL_DEFAULT;
+        long warningInterval = object.containsKey(WARNING_INTERVAL_NAME)
+            ? object.getInt(WARNING_INTERVAL_NAME) : WARNING_INTERVAL_DEFAULT;
         OtlpSignalsConfig signalsConfig = object.containsKey(SIGNALS_NAME)
             ? signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME))
             : OtlpSignalsConfig.ALL;
         OtlpEndpointConfig endpointConfig = object.containsKey(ENDPOINT_NAME)
             ? endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME))
             : null;
-        return new OtlpOptionsConfig(interval, signalsConfig, endpointConfig);
+        return new OtlpOptionsConfig(publishInterval, retryInterval, warningInterval, signalsConfig, endpointConfig);
     }
 }
