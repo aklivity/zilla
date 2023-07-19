@@ -19,7 +19,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class OltpExporterConfiguration extends Configuration
+public class OltpConfiguration extends Configuration
 {
     public static final LongPropertyDef OTLP_EXPORTER_RETRY_INTERVAL;
     public static final LongPropertyDef OTLP_EXPORTER_WARNING_INTERVAL;
@@ -34,7 +34,7 @@ public class OltpExporterConfiguration extends Configuration
         OTLP_EXPORTER_CONFIG = config;
     }
 
-    public OltpExporterConfiguration(
+    public OltpConfiguration(
         Configuration config)
     {
         super(OTLP_EXPORTER_CONFIG, config);

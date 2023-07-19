@@ -28,11 +28,11 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfi
 
 public class OtlpExporterContext implements ExporterContext
 {
-    private final OltpExporterConfiguration config;
+    private final OltpConfiguration config;
     private final EngineContext context;
 
     public OtlpExporterContext(
-        OltpExporterConfiguration config,
+        OltpConfiguration config,
         EngineContext context)
     {
         this.config = config;

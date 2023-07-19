@@ -44,7 +44,7 @@ public class OtlpExporterHandlerTest
     public void shouldInstantiate()
     {
         // GIVEN
-        OltpExporterConfiguration config = mock(OltpExporterConfiguration.class);
+        OltpConfiguration config = mock(OltpConfiguration.class);
         EngineContext context = mock(EngineContext.class);
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);

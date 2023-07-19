@@ -30,6 +30,6 @@ public class OtlpExporterFactorySpi implements ExporterFactorySpi
     public Exporter create(
         Configuration config)
     {
-        return new OtlpExporter(new OltpExporterConfiguration(config));
+        return new OtlpExporter(new OltpConfiguration(config));
     }
 }

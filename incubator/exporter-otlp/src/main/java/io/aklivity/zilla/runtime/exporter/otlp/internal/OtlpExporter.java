@@ -24,10 +24,10 @@ public class OtlpExporter implements Exporter
 {
     public static final String NAME = "otlp";
 
-    private final OltpExporterConfiguration config;
+    private final OltpConfiguration config;
 
     public OtlpExporter(
-        OltpExporterConfiguration config)
+        OltpConfiguration config)
     {
         this.config = config;
     }

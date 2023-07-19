@@ -41,7 +41,7 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final String HTTP = "http";
 
-    private final OltpExporterConfiguration config;
+    private final OltpConfiguration config;
     private final EngineContext context;
     private final Set<OtlpSignalsConfig.Signals> signals;
     private final String protocol;
@@ -58,7 +58,7 @@ public class OltpExporterHandler implements ExporterHandler
     private boolean warningLogged;
 
     public OltpExporterHandler(
-        OltpExporterConfiguration config,
+        OltpConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter,
         Collector collector,
