@@ -30,5 +30,5 @@ bindings:
             - when:
                   - port:
                     - 8080
-                    - 8081-8083
+                    - 8081-8082
               exit: app0
