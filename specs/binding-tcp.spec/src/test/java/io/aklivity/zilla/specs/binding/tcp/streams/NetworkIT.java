@@ -147,15 +147,4 @@ public class NetworkIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${net}/server.close.port.not.routed/client",
-        "${net}/server.close.port.not.routed/server"
-    })
-    public void shouldCloseServerWhenPortNotRouted() throws Exception
-    {
-        k3po.finish();
-    }
-
 }

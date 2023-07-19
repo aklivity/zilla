@@ -281,6 +281,7 @@ public class ConfigurationManager
         catch (Throwable ex)
         {
             logError(ex.getMessage());
+            ex.printStackTrace();
         }
 
         if (!errors.isEmpty())
