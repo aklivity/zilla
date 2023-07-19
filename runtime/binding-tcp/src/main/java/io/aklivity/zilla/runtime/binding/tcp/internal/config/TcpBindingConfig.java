@@ -59,10 +59,11 @@ public final class TcpBindingConfig
     }
 
     public TcpRouteConfig resolve(
+        InetSocketAddress local,
         InetSocketAddress remote)
     {
         return routes.stream()
-            .filter(r -> r.matches(remote))
+            .filter(r -> r.matches(local))
             .findFirst()
             .orElse(null);
     }

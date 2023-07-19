@@ -180,9 +180,10 @@ public class TcpServerFactory implements TcpStreamFactory
                 channel.setOption(TCP_NODELAY, options.nodelay);
                 channel.setOption(SO_KEEPALIVE, options.keepalive);
 
+                InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
                 InetSocketAddress remote = (InetSocketAddress) channel.getRemoteAddress();
 
-                onAccepted(binding, channel, remote);
+                onAccepted(binding, channel, local, remote);
             }
         }
         catch (Exception ex)
@@ -196,9 +197,10 @@ public class TcpServerFactory implements TcpStreamFactory
     private void onAccepted(
         TcpBindingConfig binding,
         SocketChannel network,
+        InetSocketAddress local,
         InetSocketAddress remote)
     {
-        final TcpRouteConfig route = binding.resolve(remote);
+        final TcpRouteConfig route = binding.resolve(local, remote);
 
         if (route != null)
         {

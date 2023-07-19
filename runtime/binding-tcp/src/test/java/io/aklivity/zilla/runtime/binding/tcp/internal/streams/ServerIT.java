@@ -429,4 +429,15 @@ public class ServerIT
 
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.ports.yaml")
+    @Specification({
+        "${net}/server.close.port.not.routed/client"
+    })
+    public void shouldCloseServerWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
