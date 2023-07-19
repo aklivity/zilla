@@ -2348,11 +2348,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final JoinGroupRequestFW joinGroupRequest =
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
-                    .sessionTimeoutMillis(delegate.timeout)
+                    .sessionTimeoutMillis(60000)
                     .rebalanceTimeoutMillis(rebalanceTimeout)
                     .memberId(memberId)
                     .groupInstanceId(delegate.groupIdentifier.instanceId)
-                    .protocolType("session")
+                    .protocolType("consumer")
                     .protocolCount(1)
                     .build();
 
@@ -2360,7 +2360,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name(delegate.protocol)
+                    .name("sticky")
                     .metadata(EMPTY_OCTETS)
                     .build();
 
@@ -2842,7 +2842,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeHeartbeatRequest;
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + (long) delegate.timeout / 2,
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + 500,
                 originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 
