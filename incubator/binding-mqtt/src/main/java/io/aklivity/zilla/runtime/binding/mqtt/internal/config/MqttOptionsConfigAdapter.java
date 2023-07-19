@@ -15,14 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-
-
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +22,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

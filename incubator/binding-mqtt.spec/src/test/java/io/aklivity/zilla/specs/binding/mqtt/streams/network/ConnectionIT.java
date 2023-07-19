@@ -48,6 +48,42 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.username.authentication.successful/client",
+        "${net}/connect.username.authentication.successful/server"})
+    public void shouldAuthenticateUsernameAndConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.username.authentication.failed/client",
+        "${net}/connect.username.authentication.failed/server"})
+    public void shouldFailUsernameAuthentication() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.password.authentication.successful/client",
+        "${net}/connect.password.authentication.successful/server"})
+    public void shouldAuthenticatePasswordAndConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.password.authentication.failed/client",
+        "${net}/connect.password.authentication.failed/server"})
+    public void shouldFailPasswordAuthentication() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.server.assigned.client.id/client",
         "${net}/connect.server.assigned.client.id/server"})
     public void shouldConnectWithServerAssignedClientId() throws Exception

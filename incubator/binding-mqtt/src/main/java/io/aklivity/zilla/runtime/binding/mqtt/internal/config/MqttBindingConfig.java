@@ -15,11 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.AUTHORIZATION_USERNAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.DEFAULT_CREDENTIALS;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +38,7 @@ public final class MqttBindingConfig
     public final KindConfig kind;
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
-    public final Function<Function<String, String>, String> credentials;
+    public final BiFunction<String, String, String> credentials;
     public final ToLongFunction<String> resolveId;
 
     public MqttBindingConfig(
@@ -51,6 +52,15 @@ public final class MqttBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
             asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+    }
+
+    public MqttRouteConfig resolve(
+        long authorization)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization))
+            .findFirst()
+            .orElse(null);
     }
 
     public MqttRouteConfig resolve(
@@ -74,15 +84,15 @@ public final class MqttBindingConfig
             .orElse(null);
     }
 
-    public Function<Function<String, String>, String> credentials()
+    public BiFunction<String, String, String> credentials()
     {
         return credentials;
     }
 
-    private Function<Function<String, String>, String> asAccessor(
+    private BiFunction<String, String, String> asAccessor(
         MqttCredentialsConfig credentials)
     {
-        Function<Function<String, String>, String> accessor = DEFAULT_CREDENTIALS;
+        BiFunction<String, String, String> accessor = DEFAULT_CREDENTIALS;
         List<MqttPatternConfig> connectPatterns = credentials.connect;
 
         if (connectPatterns != null && !connectPatterns.isEmpty())
@@ -91,32 +101,32 @@ public final class MqttBindingConfig
             String name = config.name;
 
             Matcher connectMatch =
-                Pattern.compile(String.format(
-                        "(;\\s*)?%s=%s",
-                        name,
-                        config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                     .matcher("");
 
-            accessor = orElseIfNull(accessor, hs ->
+            accessor = orElseIfNull(accessor, (username, password) ->
             {
-                String connect = hs.apply("connect");
-                return connect != null && connectMatch.reset(connect).find()
-                    ? connectMatch.group("credentials")
-                    : null;
+                String connect = name.equals(AUTHORIZATION_USERNAME_NAME) ? username : password;
+                String result = null;
+                if (connect != null && connectMatch.reset(connect).matches())
+                {
+                    result = connectMatch.group("credentials");
+                }
+                return result;
             });
         }
 
         return accessor;
     }
 
-    private static Function<Function<String, String>, String> orElseIfNull(
-        Function<Function<String, String>, String> first,
-        Function<Function<String, String>, String> second)
+    private static BiFunction<String, String, String> orElseIfNull(
+        BiFunction<String, String, String> first,
+        BiFunction<String, String, String> second)
     {
-        return hs ->
+        return (x, y) ->
         {
-            String result = first.apply(hs);
-            return result != null ? result : second.apply(hs);
+            String result = first.apply(x, y);
+            return result != null ? result : second.apply(x, y);
         };
     }
 }
