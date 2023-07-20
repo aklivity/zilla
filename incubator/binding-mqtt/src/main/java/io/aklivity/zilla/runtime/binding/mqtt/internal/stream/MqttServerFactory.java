@@ -3588,7 +3588,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 setPublishAppClosed();
 
                 final long traceId = abort.traceId();
-                final long authorization = abort.authorization();
 
                 cleanupAbort(traceId);
             }

@@ -81,7 +81,7 @@ public class ConnectionIT
     @Configuration("server.authorization.username.credentials.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/client",
-        "${app}/publish.one.message/server"})
+        "${app}/connect.authorize.publish.one.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
