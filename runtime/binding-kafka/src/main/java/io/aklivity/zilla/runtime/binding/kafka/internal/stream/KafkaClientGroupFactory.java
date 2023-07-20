@@ -2360,7 +2360,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name("sticky")
+                    .name("session")
                     .metadata(EMPTY_OCTETS)
                     .build();
 
