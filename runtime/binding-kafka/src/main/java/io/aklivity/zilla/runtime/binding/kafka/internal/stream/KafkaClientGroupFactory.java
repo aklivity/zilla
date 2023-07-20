@@ -2380,6 +2380,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
             decoder = decodeJoinGroupResponse;
+
+            delegate.doApplicationBeginIfNecessary(traceId, authorization);
         }
 
         private void doEncodeSyncGroupRequest(
@@ -2801,8 +2803,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.leader = leader;
 
             delegate.groupIdentifier.memberIds.put(delegate.groupId, memberId);
-
-            delegate.doApplicationBeginIfNecessary(traceId, authorization);
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
