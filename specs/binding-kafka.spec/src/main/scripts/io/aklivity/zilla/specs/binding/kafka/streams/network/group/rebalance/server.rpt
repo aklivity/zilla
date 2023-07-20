@@ -53,7 +53,7 @@ read  62                                # size
       -1s                               # no client id
       4s "test"                         # consumer group
       45000                             # session timeout
-      3000                            # rebalance timeout
+      4000                              # rebalance timeout
       0s                                # consumer group member
       7s "client1"                      # group instance id
       8s "consumer"                     # protocol type
@@ -79,7 +79,7 @@ read  72                                # size
       -1s                               # no client id
       4s "test"                         # consumer group
       45000                             # session timeout
-      3000                              # rebalance timeout
+      4000                              # rebalance timeout
       10s "consumer-1"                  # consumer group member
       7s "client1"                      # group instance id
       8s "consumer"                     # protocol type
@@ -99,7 +99,6 @@ write 67                                                # size
       1                                                 # members
          10s "consumer-1"                                  # consumer member group id
          0                                                 # metadata
-
 
 read 61                                            # size
      14s                                           # sync group

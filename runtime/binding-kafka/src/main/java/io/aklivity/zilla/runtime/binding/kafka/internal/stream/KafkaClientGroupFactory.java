@@ -103,6 +103,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short HEARTBEAT_API_KEY = 12;
     private static final short HEARTBEAT_VERSION = 3;
 
+    private static final String UNKNOWN_MEMBER_ID = "";
     private static final byte GROUP_KEY_TYPE = 0x00;
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -717,10 +718,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onNotCoordinatorError(traceId, authorization);
                     progress = joinGroupResponse.limit();
                 }
-                else if (errorCode == ERROR_MEMBER_ID_REQUIRED ||
-                    errorCode == ERROR_UNKNOWN_MEMBER)
+                else if (errorCode == ERROR_UNKNOWN_MEMBER)
                 {
-                    client.onJoinGroupMemberError(traceId, authorization);
+                    client.onJoinGroupUnknownMemberError(traceId, authorization);
+                    progress = joinGroupResponse.limit();
+                }
+                else if (errorCode == ERROR_MEMBER_ID_REQUIRED)
+                {
+                    client.onJoinGroupMemberIdRequiredError(traceId, authorization,
+                        joinGroupResponse.memberId().asString());
                     progress = joinGroupResponse.limit();
                 }
                 else if (errorCode == ERROR_NONE)
@@ -2343,7 +2349,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = requestHeader.limit();
 
-            final String memberId = delegate.groupIdentifier.memberIds.getOrDefault(delegate.groupId, "");
+            final String memberId = delegate.groupIdentifier.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
 
             final JoinGroupRequestFW joinGroupRequest =
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -2781,13 +2787,24 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.onNotCoordinatorError(traceId, authorization);
         }
 
-        private void onJoinGroupMemberError(
+        private void onJoinGroupUnknownMemberError(
             long traceId,
             long authorization)
         {
             nextResponseId++;
 
-            delegate.groupIdentifier.memberIds.put(delegate.groupId, "");
+            delegate.groupIdentifier.memberIds.put(delegate.groupId, UNKNOWN_MEMBER_ID);
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void onJoinGroupMemberIdRequiredError(
+            long traceId,
+            long authorization,
+            String memberId)
+        {
+            nextResponseId++;
+
+            delegate.groupIdentifier.memberIds.put(delegate.groupId, memberId);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
