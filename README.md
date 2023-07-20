@@ -34,6 +34,7 @@ When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet str
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
 - [Community](#community)
+- [License](#license)
 
 ## <a name="quickstart"> Quickstart
 The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
@@ -139,6 +140,10 @@ Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedb
 ## <a name="community"> 🌱 Community 
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
+
+## <a name="license"> License
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a commercialized “as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+
 
 <!-- Links -->
 [build-status-image]: https://github.com/aklivity/zilla/workflows/build/badge.svg
