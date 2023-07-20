@@ -2348,7 +2348,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final JoinGroupRequestFW joinGroupRequest =
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
-                    .sessionTimeoutMillis(60000)
+                    .sessionTimeoutMillis(delegate.timeout)
                     .rebalanceTimeoutMillis(rebalanceTimeout)
                     .memberId(memberId)
                     .groupInstanceId(delegate.groupIdentifier.instanceId)
@@ -2842,7 +2842,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeHeartbeatRequest;
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + 500,
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
                 originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 
