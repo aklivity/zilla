@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
+import io.aklivity.zilla.runtime.engine.schema.Schema;
+import io.aklivity.zilla.runtime.engine.schema.SchemaFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -112,8 +114,16 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
+        final Set<Schema> schemas = new LinkedHashSet<>();
+        final SchemaFactory schemaFactory = SchemaFactory.instantiate();
+        for (String name : schemaFactory.names())
+        {
+            Schema schema = schemaFactory.create(name, config);
+            schemas.add(schema);
+        }
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, schemas, errorHandler, affinities);
     }
 }

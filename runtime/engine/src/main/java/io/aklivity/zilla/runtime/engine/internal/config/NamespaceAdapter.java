@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
@@ -43,18 +44,21 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final String BINDINGS_NAME = "bindings";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
+    private static final String SCHEMAS_NAME = "schemas";
 
     private static final List<NamespaceRef> NAMESPACES_DEFAULT = emptyList();
     private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
     private static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
     private static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
+    private static final List<SchemaConfig> SCHEMAS_DEFAULT = emptyList();
 
     private final NamspaceRefAdapter reference;
     private final TelemetryAdapter telemetry;
     private final BindingConfigsAdapter binding;
     private final VaultAdapter vault;
     private final GuardAdapter guard;
+    private final SchemaAdapter schema;
 
     public NamespaceAdapter(
         ConfigAdapterContext context)
@@ -64,6 +68,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         binding = new BindingConfigsAdapter(context);
         guard = new GuardAdapter(context);
         vault = new VaultAdapter(context);
+        schema = new SchemaAdapter(context);
     }
 
     @Override
@@ -106,6 +111,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             object.add(NAMESPACES_NAME, references);
         }
 
+        if (!SCHEMAS_DEFAULT.equals(config.schemas))
+        {
+            JsonObjectBuilder schemas = Json.createObjectBuilder();
+            config.schemas.forEach(s -> schemas.add(s.name, schema.adaptToJson(s)));
+            object.add(SCHEMAS_NAME, schemas);
+        }
+
         return object.build();
     }
 
@@ -140,7 +152,14 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
                     .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
                     .collect(Collectors.toList())
                 : VAULTS_DEFAULT;
+        List<SchemaConfig> schemas = object.containsKey(SCHEMAS_NAME)
+                ? object.getJsonObject(SCHEMAS_NAME)
+                .entrySet()
+                .stream()
+                .map(e -> schema.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
+                .collect(Collectors.toList())
+                : SCHEMAS_DEFAULT;
 
-        return new NamespaceConfig(name, references, telemetry0, bindings, guards, vaults);
+        return new NamespaceConfig(name, references, telemetry0, bindings, guards, vaults, schemas);
     }
 }

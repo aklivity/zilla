@@ -99,7 +99,8 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null,
+            emptyList(), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -143,7 +144,7 @@ public class NamespaceConfigAdapterTest
     {
         BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, null, emptyList(), null);
         NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), null,
-                singletonList(binding), emptyList(), emptyList());
+                singletonList(binding), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(namespace);
 
@@ -182,7 +183,8 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithGuard()
     {
         GuardConfig guard = new GuardConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), singletonList(guard), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null,
+            emptyList(), singletonList(guard), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -221,7 +223,8 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithVault()
     {
         VaultConfig vault = new VaultConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), singletonList(vault));
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null,
+            emptyList(), emptyList(), singletonList(vault), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -263,7 +266,8 @@ public class NamespaceConfigAdapterTest
                 List.of(new MetricConfig("test", "test.counter")),
                 List.of(new ExporterConfig("test0", "test", new TestExporterOptionsConfig("test42")))
         );
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), telemetry, emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), telemetry,
+            emptyList(), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -305,7 +309,7 @@ public class NamespaceConfigAdapterTest
     {
         NamespaceRef reference = new NamespaceRef("test", emptyMap());
         NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), null,
-                emptyList(), emptyList(), emptyList());
+                emptyList(), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 

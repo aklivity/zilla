@@ -1,0 +1,54 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/schema/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/schema/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "host":
+                            {
+                                "type": "string"
+                            },
+                            "port":
+                            {
+                                "type": "integer"
+                            },
+                            "context":
+                            {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

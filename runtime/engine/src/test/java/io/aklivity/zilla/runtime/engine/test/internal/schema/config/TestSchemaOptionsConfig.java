@@ -13,36 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.schema.config;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+public class TestSchemaOptionsConfig extends OptionsConfig
 {
-    enum Kind
+    public final String host;
+    public final int port;
+    public final String context;
+
+    public TestSchemaOptionsConfig(
+        String host,
+        int port,
+        String context)
     {
-        BINDING,
-        EXPORTER,
-        VAULT,
-        GUARD,
-        SCHEMA
-    }
-
-    Kind kind();
-
-    String type();
-
-    @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
-
-    default void adaptContext(
-        ConfigAdapterContext context)
-    {
+        this.host = host;
+        this.port = port;
+        this.context = context;
     }
 }
