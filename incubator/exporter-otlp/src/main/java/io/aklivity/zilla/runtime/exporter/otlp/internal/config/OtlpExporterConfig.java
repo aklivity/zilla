@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Set;
 
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -26,6 +27,7 @@ public class OtlpExporterConfig
     private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
     private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS);
     private static final String DEFAULT_PROTOCOL = "http";
+    private static final long DEFAULT_INTERVAL = Duration.ofSeconds(30).toMillis();
 
     private final OtlpOptionsConfig options;
 
@@ -33,11 +35,6 @@ public class OtlpExporterConfig
         ExporterConfig exporter)
     {
         this.options = (OtlpOptionsConfig)exporter.options;
-    }
-
-    public OtlpOptionsConfig options()
-    {
-        return options;
     }
 
     public URI resolveMetrics()
@@ -88,6 +85,22 @@ public class OtlpExporterConfig
         else
         {
             result = options.endpoint.protocol;
+        }
+        return result;
+    }
+
+    public long resolveInterval()
+    {
+        assert options != null;
+
+        long result;
+        if (options.interval == 0)
+        {
+            result = DEFAULT_INTERVAL;
+        }
+        else
+        {
+            result = Duration.ofSeconds(options.interval).toMillis();
         }
         return result;
     }

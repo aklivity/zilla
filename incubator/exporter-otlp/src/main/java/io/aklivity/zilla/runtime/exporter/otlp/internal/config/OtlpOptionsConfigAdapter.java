@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;
 public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String INTERVAL_NAME = "interval";
-    private static final long INTERVAL_DEFAULT = 30;
     private static final String SIGNALS_NAME = "signals";
     private static final String ENDPOINT_NAME = "endpoint";
 
@@ -81,7 +80,7 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         JsonObject object)
     {
         long interval = object.containsKey(INTERVAL_NAME)
-            ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
+            ? object.getInt(INTERVAL_NAME) : 0;
         Set<OtlpOptionsConfig.OtlpSignalsConfig> signalsConfig = object.containsKey(SIGNALS_NAME)
             ? signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME))
             : null;
