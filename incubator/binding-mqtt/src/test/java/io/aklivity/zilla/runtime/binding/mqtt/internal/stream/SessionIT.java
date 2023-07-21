@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SERVER_REFERENCE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
@@ -238,6 +239,36 @@ public class SessionIT
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "10")
     public void shouldClientTakeOverSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.redirect.after.connack/client",
+        "${app}/session.server.redirect.after.connack/server"})
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "10")
+    @Configure(name = SERVER_REFERENCE_NAME, value = "localhost:1883")
+    public void shouldRedirectAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.redirect.before.connack/client",
+        "${app}/session.server.redirect.before.connack/server"})
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "10")
+    @Configure(name = SERVER_REFERENCE_NAME, value = "localhost:1883")
+    public void shouldRedirectBeforeConnack() throws Exception
     {
         k3po.finish();
     }

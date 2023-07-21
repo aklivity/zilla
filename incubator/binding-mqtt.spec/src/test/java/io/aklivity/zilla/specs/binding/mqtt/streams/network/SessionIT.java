@@ -146,4 +146,22 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.server.redirect.before.connack/client",
+        "${net}/session.server.redirect.before.connack/server"})
+    public void shouldRedirectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.server.redirect.after.connack/client",
+        "${net}/session.server.redirect.after.connack/server"})
+    public void shouldRedirectAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
