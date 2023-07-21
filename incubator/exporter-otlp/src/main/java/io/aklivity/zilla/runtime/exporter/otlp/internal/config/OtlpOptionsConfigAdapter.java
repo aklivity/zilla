@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.ALL_SIGNALS;
+
+import java.util.Set;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -31,7 +34,6 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final long INTERVAL_DEFAULT = 30;
     private static final String SIGNALS_NAME = "signals";
     private static final String ENDPOINT_NAME = "endpoint";
-    private static final String LOCATION_NAME = "location";
 
     private final OtlpSignalsAdapter signals;
     private final OtlpEndpointAdapter endpoint;
@@ -81,9 +83,9 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         long interval = object.containsKey(INTERVAL_NAME)
             ? object.getInt(INTERVAL_NAME) : INTERVAL_DEFAULT;
-        OtlpSignalsConfig signalsConfig = object.containsKey(SIGNALS_NAME)
+        Set<OtlpOptionsConfig.OtlpSignalsConfig> signalsConfig = object.containsKey(SIGNALS_NAME)
             ? signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME))
-            : OtlpSignalsConfig.ALL;
+            : ALL_SIGNALS;
         OtlpEndpointConfig endpointConfig = object.containsKey(ENDPOINT_NAME)
             ? endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME))
             : null;

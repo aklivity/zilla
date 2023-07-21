@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public class OltpExporterHandler implements ExporterHandler
@@ -43,7 +43,7 @@ public class OltpExporterHandler implements ExporterHandler
 
     private final OltpConfiguration config;
     private final EngineContext context;
-    private final Set<OtlpSignalsConfig.Signals> signals;
+    private final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
     private final String protocol;
     private final URI metricsUrl;
     private final long interval;
@@ -68,7 +68,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.config = config;
         this.context = context;
         this.metricsUrl = exporter.options().endpoint.resolveMetrics();
-        this.signals = exporter.options().signals.signals;
+        this.signals = exporter.options().signals;
         this.protocol = exporter.options().endpoint.protocol;
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;

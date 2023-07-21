@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -24,28 +24,28 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class OtlpSignalsAdapter implements JsonbAdapter<OtlpSignalsConfig, JsonArray>
+public class OtlpSignalsAdapter implements JsonbAdapter<Set<OtlpOptionsConfig.OtlpSignalsConfig>, JsonArray>
 {
     private static final String METRICS_NAME = "metrics";
 
     @Override
     public JsonArray adaptToJson(
-        OtlpSignalsConfig signals)
+        Set<OtlpOptionsConfig.OtlpSignalsConfig> signals)
     {
         JsonArrayBuilder array = Json.createArrayBuilder();
-        signals.signals.forEach(signal -> array.add(Json.createValue(signal.name().toLowerCase())));
+        signals.forEach(signal -> array.add(Json.createValue(signal.name().toLowerCase())));
         return array.build();
     }
 
     @Override
-    public OtlpSignalsConfig adaptFromJson(
+    public Set<OtlpOptionsConfig.OtlpSignalsConfig> adaptFromJson(
         JsonArray array)
     {
-        Set<OtlpSignalsConfig.Signals> signals = new TreeSet<>();
+        Set<OtlpOptionsConfig.OtlpSignalsConfig> signals = new TreeSet<>();
         if (array.contains(Json.createValue(METRICS_NAME)))
         {
             signals.add(METRICS);
         }
-        return new OtlpSignalsConfig(signals);
+        return signals;
     }
 }

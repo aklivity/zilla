@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpSignalsConfig.Signals.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -70,7 +70,7 @@ public class OltpOptionsConfigAdapterTest
         // THEN
         assertThat(options, not(nullValue()));
         assertThat(options.interval, equalTo(30L));
-        assertThat(options.signals.signals, containsInAnyOrder(METRICS));
+        assertThat(options.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
         assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
     }
@@ -98,8 +98,7 @@ public class OltpOptionsConfigAdapterTest
             "}";
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"), overrides);
-        OtlpSignalsConfig signals = new OtlpSignalsConfig(Set.of(METRICS));
-        OtlpOptionsConfig config = new OtlpOptionsConfig(30, signals, endpoint);
+        OtlpOptionsConfig config = new OtlpOptionsConfig(30, Set.of(METRICS), endpoint);
 
         // WHEN
         String json = jsonb.toJson(config);
