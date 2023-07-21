@@ -35,6 +35,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.AUTHORIZATION_CREDENTIALS_PASSWORD_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.AUTHORIZATION_CREDENTIALS_USERNAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -81,8 +83,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -1207,7 +1209,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
         private final GuardHandler guard;
-        private final BiFunction<String, String, String> credentials;
+        private final Function<String, String> credentials;
+        private final String authFieldName;
 
         private MqttSessionStream sessionStream;
 
@@ -1283,6 +1286,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
+            this.authFieldName = binding.authField();
         }
 
         private void onNetwork(
@@ -1678,23 +1682,31 @@ public final class MqttServerFactory implements MqttStreamFactory
                 keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
                 doSignalKeepAliveTimeout();
 
-                long exchangeAuth = authorization;
+                long sessionAuth = authorization;
                 if (guard != null)
                 {
-                    final String username = payload.username != null ? payload.username.asString() : null;
-                    final String password = payload.password != null ?
-                        payload.password.bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)) : null;
-                    final String credentialsMatch = credentials.apply(username, password);
+                    String authField = null;
+                    if (authFieldName.equals(AUTHORIZATION_CREDENTIALS_USERNAME_NAME))
+                    {
+                        authField = payload.username != null ? payload.username.asString() : null;
+                    }
+                    else if (authFieldName.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
+                    {
+                        authField = payload.password != null ?
+                            payload.password.bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)) : null;
+                    }
+
+                    final String credentialsMatch = credentials.apply(authField);
 
                     if (credentialsMatch != null)
                     {
-                        exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                        sessionAuth = guard.reauthorize(initialId, credentialsMatch);
                     }
                 }
 
                 final MqttBindingConfig binding = bindings.get(routedId);
 
-                final MqttRouteConfig resolved = binding != null ? binding.resolve(exchangeAuth) : null;
+                final MqttRouteConfig resolved = binding != null ? binding.resolve(sessionAuth) : null;
 
                 if (resolved == null)
                 {
@@ -1702,10 +1714,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                this.sessionId = exchangeAuth;
+                this.sessionId = sessionAuth;
                 if (session)
                 {
-                    resolveSession(traceId, exchangeAuth, resolved.id, connect, payload);
+                    resolveSession(traceId, sessionAuth, resolved.id, connect, payload);
                 }
                 else
                 {

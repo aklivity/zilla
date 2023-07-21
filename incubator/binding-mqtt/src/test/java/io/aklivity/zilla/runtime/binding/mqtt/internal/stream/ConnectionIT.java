@@ -78,7 +78,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.authorization.username.credentials.yaml")
+    @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/client",
         "${app}/connect.authorize.publish.one.message/server"})
@@ -93,7 +93,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.authorization.username.credentials.yaml")
+    @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.failed/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
@@ -107,7 +107,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.authorization.password.credentials.yaml")
+    @Configuration("server.credentials.password.yaml")
     @Specification({
         "${net}/connect.password.authentication.successful/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
@@ -121,7 +121,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.authorization.password.credentials.yaml")
+    @Configuration("server.credentials.password.yaml")
     @Specification({
         "${net}/connect.password.authentication.failed/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")

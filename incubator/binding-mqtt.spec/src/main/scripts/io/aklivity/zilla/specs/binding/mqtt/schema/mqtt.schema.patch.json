@@ -44,7 +44,7 @@
                                 {
                                     "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                     {
-                                        "title": "Authorization",
+                                        "title": "Guard",
                                         "type": "object",
                                         "properties":
                                         {
@@ -61,7 +61,11 @@
                                                         "additionalProperties":
                                                         {
                                                             "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*"
+                                                            "oneOf":
+                                                            [
+                                                                "username",
+                                                                "password"
+                                                            ]
                                                         }
                                                     }
                                                 },

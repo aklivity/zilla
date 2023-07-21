@@ -34,6 +34,8 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
+    public static final String AUTHORIZATION_CREDENTIALS_USERNAME_NAME = "username";
+    public static final String AUTHORIZATION_CREDENTIALS_PASSWORD_NAME = "password";
 
     @Override
     public Kind kind()
@@ -112,7 +114,6 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
                     List<MqttPatternConfig> newConnect =
                         adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_CONNECT_NAME);
 
-
                     newCredentials = new MqttCredentialsConfig(newConnect);
                 }
 
@@ -135,9 +136,12 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             JsonObject patterns = object.getJsonObject(property);
             for (String name : patterns.keySet())
             {
-                String pattern = patterns.getString(name);
-
-                newPatterns.add(new MqttPatternConfig(name, pattern));
+                if (name.equals(AUTHORIZATION_CREDENTIALS_USERNAME_NAME) ||
+                    name.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
+                {
+                    String pattern = patterns.getString(name);
+                    newPatterns.add(new MqttPatternConfig(name, pattern));
+                }
             }
         }
         return newPatterns;

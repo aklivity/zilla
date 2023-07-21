@@ -17,13 +17,11 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class MqttAuthorizationConfig
 {
-    public static final BiFunction<String, String, String> DEFAULT_CREDENTIALS = (x, y) -> null;
-    public static final String AUTHORIZATION_USERNAME_NAME = "username";
-    public static final String AUTHORIZATION_PASSWORD_NAME = "password";
+    public static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
 
     public final String name;
     public final MqttCredentialsConfig credentials;

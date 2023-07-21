@@ -91,7 +91,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWithAuthorizationOptions()
     {
-        JsonObject config = schema.validate("server.authorization.username.credentials.yaml");
+        JsonObject config = schema.validate("server.credentials.username.yaml");
 
         assertThat(config, not(nullValue()));
     }
