@@ -46,7 +46,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final EngineContext context;
     private final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
     private final String protocol;
-    private final URI metricsUrl;
+    private final URI metricsEndpoint;
     private final long interval;
     private final Collector collector;
     private final LongFunction<KindConfig> resolveKind;
@@ -69,7 +69,7 @@ public class OltpExporterHandler implements ExporterHandler
     {
         this.config = config;
         this.context = context;
-        this.metricsUrl = exporter.options().endpoint.resolveMetrics();
+        this.metricsEndpoint = exporter.resolveMetrics();
         this.signals = exporter.options().signals;
         this.protocol = exporter.options().endpoint.protocol;
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
@@ -101,7 +101,7 @@ public class OltpExporterHandler implements ExporterHandler
         {
             String json = serializer.serializeAll();
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(metricsUrl)
+                .uri(metricsEndpoint)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();

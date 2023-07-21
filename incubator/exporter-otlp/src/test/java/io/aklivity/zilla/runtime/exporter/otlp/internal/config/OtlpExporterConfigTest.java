@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.ALL_SIGNALS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -21,7 +22,9 @@ import java.net.URI;
 
 import org.junit.Test;
 
-public class OtlpEndpointConfigTest
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+
+public class OtlpExporterConfigTest
 {
     @Test
     public void shouldCreateDefaultMetricsUrl()
@@ -29,9 +32,12 @@ public class OtlpEndpointConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN
-        URI metrics = endpoint.resolveMetrics();
+        URI metrics = oltpExporter.resolveMetrics();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v1/metrics")));
@@ -43,9 +49,12 @@ public class OtlpEndpointConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN
-        URI metrics = endpoint.resolveMetrics();
+        URI metrics = oltpExporter.resolveMetrics();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://overridden.com/metrics")));
@@ -57,9 +66,12 @@ public class OtlpEndpointConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN
-        URI metrics = endpoint.resolveMetrics();
+        URI metrics = oltpExporter.resolveMetrics();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v42/metrix")));

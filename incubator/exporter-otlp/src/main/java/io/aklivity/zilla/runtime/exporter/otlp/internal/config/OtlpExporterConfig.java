@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import java.net.URI;
+
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 
 public class OtlpExporterConfig
 {
+    private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
+
     private final OtlpOptionsConfig options;
 
     public OtlpExporterConfig(
@@ -29,5 +33,24 @@ public class OtlpExporterConfig
     public OtlpOptionsConfig options()
     {
         return options;
+    }
+
+    public URI resolveMetrics()
+    {
+        assert options != null;
+        assert options.endpoint != null;
+        assert options.endpoint.location != null;
+
+        URI result;
+        URI location = options.endpoint.location;
+        if (options.endpoint.overrides != null && options.endpoint.overrides.metrics != null)
+        {
+            result = location.resolve(options.endpoint.overrides.metrics);
+        }
+        else
+        {
+            result = location.resolve(DEFAULT_METRICS_PATH);
+        }
+        return result;
     }
 }

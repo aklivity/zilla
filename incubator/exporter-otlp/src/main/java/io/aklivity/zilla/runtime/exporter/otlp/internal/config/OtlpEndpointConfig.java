@@ -20,8 +20,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class OtlpEndpointConfig extends OptionsConfig
 {
-    private static final String DEFAULT_METRICS_URI = "/v1/metrics";
-
     public String protocol;
     public URI location;
     public OtlpOverridesConfig overrides;
@@ -34,19 +32,5 @@ public class OtlpEndpointConfig extends OptionsConfig
         this.protocol = protocol;
         this.location = location;
         this.overrides = overrides;
-    }
-
-    public URI resolveMetrics()
-    {
-        URI result;
-        if (overrides != null && overrides.metrics != null)
-        {
-            result = location.resolve(overrides.metrics);
-        }
-        else
-        {
-            result = location.resolve(DEFAULT_METRICS_URI);
-        }
-        return result;
     }
 }

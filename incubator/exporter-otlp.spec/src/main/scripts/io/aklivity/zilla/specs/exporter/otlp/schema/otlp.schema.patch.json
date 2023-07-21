@@ -83,8 +83,17 @@
                                 "additionalProperties": false
                             }
                         },
+                        "required":
+                        [
+                            "endpoint"
+                        ],
                         "additionalProperties": false
-                    }
+                    },
+                    "required":
+                    [
+                        "options"
+                    ],
+                    "additionalProperties": false
                 }
             }
         }
