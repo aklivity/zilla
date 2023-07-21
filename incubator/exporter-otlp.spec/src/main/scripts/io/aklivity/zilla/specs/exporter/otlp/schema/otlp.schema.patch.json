@@ -57,8 +57,7 @@
                                     {
                                         "enum":
                                         [
-                                            "http",
-                                            "grpc"
+                                            "http"
                                         ]
                                     },
                                     "location":
