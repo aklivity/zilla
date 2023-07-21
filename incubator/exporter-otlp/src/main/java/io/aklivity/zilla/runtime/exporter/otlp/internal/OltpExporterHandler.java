@@ -42,7 +42,8 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final String HTTP = "http";
 
-    private final OltpConfiguration config;
+    private final long retryInterval;
+    private final long warningInterval;
     private final EngineContext context;
     private final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
     private final String protocol;
@@ -67,7 +68,8 @@ public class OltpExporterHandler implements ExporterHandler
         LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
-        this.config = config;
+        this.retryInterval = config.retryInterval();
+        this.warningInterval = config.warningInterval();
         this.context = context;
         this.metricsEndpoint = exporter.resolveMetrics();
         this.signals = exporter.resolveSignals();
@@ -108,12 +110,12 @@ public class OltpExporterHandler implements ExporterHandler
             CompletableFuture<HttpResponse<String>> response =
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             response.thenAccept(responseHandler);
-            nextAttempt = now + config.retryInterval();
-            if (!warningLogged && now - lastSuccess > config.warningInterval())
+            nextAttempt = now + retryInterval;
+            if (!warningLogged && now - lastSuccess > warningInterval)
             {
                 System.out.format(
                     "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
-                    Duration.ofMillis(config.warningInterval()).toSeconds());
+                    Duration.ofMillis(warningInterval).toSeconds());
                 warningLogged = true;
             }
             workDone = 1;
