@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
@@ -81,6 +82,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         final Configuration config = new EngineConfiguration(props);
         final ErrorHandler onError = Throwable::printStackTrace;
         final String binding = args != null && args.size() >= 1 ? args.get(0) : null;
+        final long intervalMillis = Duration.ofSeconds(interval).toMillis();
 
         do
         {
@@ -102,7 +104,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 System.out.println("error");
                 rethrowUnchecked(ex);
             }
-            sleep(interval);
+            sleep(intervalMillis);
         } while (interval != 0);
     }
 
@@ -131,11 +133,11 @@ public final class ZillaMetricsCommand extends ZillaCommand
     }
 
     private void sleep(
-        long interval)
+        long intervalMillis)
     {
         try
         {
-            Thread.sleep(interval * 1000L);
+            Thread.sleep(intervalMillis);
         }
         catch (InterruptedException ex)
         {
