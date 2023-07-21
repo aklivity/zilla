@@ -91,7 +91,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short ERROR_MEMBER_ID_REQUIRED = 79;
     private static final short ERROR_REBALANCE_IN_PROGRESS = 27;
     private static final short SIGNAL_NEXT_REQUEST = 1;
-    private static final short REBALANCE_REQUEST = 2;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
     private static final short JOIN_GROUP_API_KEY = 11;
@@ -1910,8 +1909,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void cleanupNetwork(
             long traceId)
         {
-            doNetworkResetIfNecessary(traceId);
             doNetworkAbortIfNecessary(traceId);
+            doNetworkResetIfNecessary(traceId);
         }
 
         private void cleanupDecodeSlotIfNecessary()
@@ -2185,10 +2184,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
             }
-            else if (signalId == REBALANCE_REQUEST)
-            {
-                doEncodeHeartbeatRequest(traceId, initialBudgetId);
-            }
         }
 
         private void doNetworkBeginIfNecessary(
@@ -2366,7 +2361,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name("session")
+                    .name(delegate.protocol)
                     .metadata(EMPTY_OCTETS)
                     .build();
 
@@ -2530,6 +2525,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final LeaveMemberFW leaveMember = leaveMemberRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .memberId(memberId)
+                .groupInstanceId(delegate.groupIdentifier.instanceId)
                 .build();
 
             encodeProgress = leaveMember.limit();
@@ -2823,9 +2819,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
-
-            signaler.signalAt(currentTimeMillis() + rebalanceTimeout,
-                originId, routedId, initialId, REBALANCE_REQUEST, 0);
         }
 
         private void onSyncGroupResponse(
@@ -2859,7 +2852,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeHeartbeatRequest;
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + 500,
                 originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 

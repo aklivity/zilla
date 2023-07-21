@@ -22,7 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
-                                   .protocol("session")
+                                   .protocol("highlander")
                                    .timeout(45000)
                                    .build()
                                .build()}
@@ -39,11 +39,12 @@ read zilla:data.ext ${kafka:dataEx()
                              .build()}
 read zilla:data.null
 
+write advise zilla:flush
 
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-2")
+                                 .leaderId("consumer-1")
                                  .memberId("consumer-1")
                                  .build()
                              .build()}
