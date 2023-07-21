@@ -166,6 +166,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private final long replyId;
         private final KafkaMessagesProxy messages;
         private final KafkaRetainedProxy retained;
+        private final String16FW kafkaMessagesTopic;
+        private final String16FW kafkaRetainedTopic;
 
         private int state;
 
@@ -183,8 +185,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
         private OctetsFW[] topicNameHeaders;
         private OctetsFW clientIdOctets;
         private boolean retainAvailable;
-        private String kafkaMessagesTopic;
-        private String kafkaRetainedTopic;
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -192,8 +192,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
             long routedId,
             long initialId,
             long resolvedId,
-            String kafkaMessagesTopic,
-            String kafkaRetainedTopic)
+            String16FW kafkaMessagesTopic,
+            String16FW kafkaRetainedTopic)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -692,7 +692,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             long traceId,
             long authorization,
             long affinity,
-            String kafkaMessagesTopic)
+            String16FW kafkaMessagesTopic)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -997,7 +997,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
             long traceId,
             long authorization,
             long affinity,
-            String kafkaRetainedTopic)
+            String16FW kafkaRetainedTopic)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -1436,7 +1436,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
         long traceId,
         long authorization,
         long affinity,
-        String topic)
+        String16FW topic)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())

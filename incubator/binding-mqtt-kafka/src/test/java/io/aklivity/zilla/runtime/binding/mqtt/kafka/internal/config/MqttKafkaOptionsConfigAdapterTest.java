@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaOptionsConfigAdapterTest
 {
@@ -67,9 +67,9 @@ public class MqttKafkaOptionsConfigAdapterTest
     {
         MqttKafkaOptionsConfig options = new MqttKafkaOptionsConfig(
             new MqttKafkaTopicsConfig(
-                new String8FW("sessions"),
-                new String8FW("messages"),
-                new String8FW("retained")));
+                new String16FW("sessions"),
+                new String16FW("messages"),
+                new String16FW("retained")));
 
         String text = jsonb.toJson(options);
 

@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -51,18 +52,18 @@ public class MqttKafkaBindingConfig
             .orElse(null);
     }
 
-    public String messagesTopic()
+    public String16FW messagesTopic()
     {
-        return options.topics.messages.asString();
+        return options.topics.messages;
     }
 
-    public String sessionsTopic()
+    public String16FW sessionsTopic()
     {
-        return options.topics.sessions.asString();
+        return options.topics.sessions;
     }
 
-    public String retainedTopic()
+    public String16FW retainedTopic()
     {
-        return options.topics.retained.asString();
+        return options.topics.retained;
     }
 }

@@ -15,18 +15,18 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
 
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaTopicsConfig
 {
-    public final String8FW sessions;
-    public final String8FW messages;
-    public final String8FW retained;
+    public final String16FW sessions;
+    public final String16FW messages;
+    public final String16FW retained;
 
     public MqttKafkaTopicsConfig(
-        String8FW sessions,
-        String8FW messages,
-        String8FW retained)
+        String16FW sessions,
+        String16FW messages,
+        String16FW retained)
     {
         this.sessions = sessions;
         this.messages = messages;

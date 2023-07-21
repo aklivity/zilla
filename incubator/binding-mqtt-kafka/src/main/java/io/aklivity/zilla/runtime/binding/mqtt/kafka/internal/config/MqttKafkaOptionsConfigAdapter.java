@@ -21,9 +21,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.String8FW;
 
 public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -32,11 +32,10 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
 
-    private static final String8FW SESSIONS_DEFAULT = new String8FW("mqtt_sessions");
-    private static final String8FW MESSAGES_DEFAULT = new String8FW("mqtt_messages");
-    private static final String8FW RETAINED_DEFAULT = new String8FW("mqtt_retained");
-
-    public static final MqttKafkaTopicsConfig TOPICS_DEFAULT =
+    private static final String16FW SESSIONS_DEFAULT = new String16FW("mqtt_sessions");
+    private static final String16FW MESSAGES_DEFAULT = new String16FW("mqtt_messages");
+    private static final String16FW RETAINED_DEFAULT = new String16FW("mqtt_retained");
+    private static final MqttKafkaTopicsConfig TOPICS_DEFAULT =
         new MqttKafkaTopicsConfig(SESSIONS_DEFAULT, MESSAGES_DEFAULT, RETAINED_DEFAULT);
 
     public static final MqttKafkaOptionsConfig DEFAULT =
@@ -68,21 +67,21 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             !TOPICS_DEFAULT.equals(topics))
         {
             JsonObjectBuilder newTopics = Json.createObjectBuilder();
-            String8FW sessions = topics.sessions;
+            String16FW sessions = topics.sessions;
             if (sessions != null &&
                 !(SESSIONS_DEFAULT.equals(sessions)))
             {
                 newTopics.add(SESSIONS_NAME, sessions.asString());
             }
 
-            String8FW messages = topics.messages;
+            String16FW messages = topics.messages;
             if (messages != null &&
                 !MESSAGES_DEFAULT.equals(messages))
             {
                 newTopics.add(MESSAGES_NAME, messages.asString());
             }
 
-            String8FW retained = topics.retained;
+            String16FW retained = topics.retained;
             if (retained != null &&
                 !RETAINED_DEFAULT.equals(retained))
             {
@@ -104,25 +103,25 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(TOPICS_NAME))
         {
             JsonObject topics = object.getJsonObject(TOPICS_NAME);
-            String8FW newSessions = SESSIONS_DEFAULT;
+            String16FW newSessions = SESSIONS_DEFAULT;
 
             if (topics.containsKey(SESSIONS_NAME))
             {
-                newSessions = new String8FW(topics.getString(SESSIONS_NAME));
+                newSessions = new String16FW(topics.getString(SESSIONS_NAME));
             }
 
-            String8FW newMessages = MESSAGES_DEFAULT;
+            String16FW newMessages = MESSAGES_DEFAULT;
 
             if (topics.containsKey(MESSAGES_NAME))
             {
-                newMessages = new String8FW(topics.getString(MESSAGES_NAME));
+                newMessages = new String16FW(topics.getString(MESSAGES_NAME));
             }
 
-            String8FW newRetained = RETAINED_DEFAULT;
+            String16FW newRetained = RETAINED_DEFAULT;
 
             if (topics.containsKey(RETAINED_NAME))
             {
-                newRetained = new String8FW(topics.getString(RETAINED_NAME));
+                newRetained = new String16FW(topics.getString(RETAINED_NAME));
             }
 
             newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
