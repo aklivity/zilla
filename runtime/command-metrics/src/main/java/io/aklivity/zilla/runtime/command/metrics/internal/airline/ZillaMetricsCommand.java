@@ -94,8 +94,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
             {
                 engine.start();
                 MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
-                LongPredicate filterPredicate = filterPredicate(namespace, binding, engine::supplyLabelId);
-                List<MetricRecord> records = filter(metrics.records(), filterPredicate);
+                LongPredicate filter = supplyFilter(namespace, binding, engine::supplyLabelId);
+                List<MetricRecord> records = filter(metrics.records(), filter);
                 MetricsPrinter printer = new MetricsPrinter(records);
                 printer.print(System.out);
             }
@@ -108,7 +108,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         } while (interval != 0);
     }
 
-    private LongPredicate filterPredicate(
+    private LongPredicate supplyFilter(
         String namespace,
         String binding,
         Function<String, Integer> lookupLabelId)
