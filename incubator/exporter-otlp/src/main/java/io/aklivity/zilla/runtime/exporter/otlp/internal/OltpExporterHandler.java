@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -51,6 +52,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final LongFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
     private final HttpClient httpClient;
+    private final Consumer<HttpResponse<String>> responseHandler;
 
     private OtlpMetricsSerializer serializer;
     private long nextAttempt;
@@ -75,6 +77,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.resolveKind = resolveKind;
         this.attributes = attributes;
         this.httpClient = HttpClient.newBuilder().build();
+        this.responseHandler = this::handleResponse;
     }
 
     @Override
@@ -104,7 +107,7 @@ public class OltpExporterHandler implements ExporterHandler
                 .build();
             CompletableFuture<HttpResponse<String>> response =
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-            response.thenAccept(this::handleResponse);
+            response.thenAccept(responseHandler);
             nextAttempt = now + config.retryInterval();
             if (!warningLogged && now - lastSuccess > config.warningInterval())
             {
