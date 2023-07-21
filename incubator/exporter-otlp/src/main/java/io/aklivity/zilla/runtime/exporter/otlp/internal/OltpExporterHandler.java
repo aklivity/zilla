@@ -114,7 +114,7 @@ public class OltpExporterHandler implements ExporterHandler
             if (!warningLogged && now - lastSuccess > warningInterval)
             {
                 System.out.format(
-                    "Warning: Could not successfully publish data to OpenTelemetry Collector for %d seconds.%n",
+                    "Warning: The otlp exporter could not successfully push data to the specified endpoint for %d seconds.%n",
                     Duration.ofMillis(warningInterval).toSeconds());
                 warningLogged = true;
             }
