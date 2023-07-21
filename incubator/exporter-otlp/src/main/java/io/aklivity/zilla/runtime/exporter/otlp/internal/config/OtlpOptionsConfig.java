@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
-
 import java.util.Set;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -26,8 +24,6 @@ public class OtlpOptionsConfig extends OptionsConfig
     {
         METRICS,
     }
-
-    public static final Set<OtlpSignalsConfig> ALL_SIGNALS = Set.of(METRICS);
 
     public long interval;
     public Set<OtlpSignalsConfig> signals;

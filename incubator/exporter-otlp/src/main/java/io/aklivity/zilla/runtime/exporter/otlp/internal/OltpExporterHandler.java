@@ -70,8 +70,8 @@ public class OltpExporterHandler implements ExporterHandler
         this.config = config;
         this.context = context;
         this.metricsEndpoint = exporter.resolveMetrics();
-        this.signals = exporter.options().signals;
-        this.protocol = exporter.options().endpoint.protocol;
+        this.signals = exporter.resolveSignals();
+        this.protocol = exporter.resolveProtocol();
         this.interval = Duration.ofSeconds(exporter.options().interval).toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;

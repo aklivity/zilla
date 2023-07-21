@@ -14,13 +14,18 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+
 import java.net.URI;
+import java.util.Set;
 
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 
 public class OtlpExporterConfig
 {
     private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
+    private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS);
+    private static final String DEFAULT_PROTOCOL = "http";
 
     private final OtlpOptionsConfig options;
 
@@ -50,6 +55,39 @@ public class OtlpExporterConfig
         else
         {
             result = location.resolve(DEFAULT_METRICS_PATH);
+        }
+        return result;
+    }
+
+    public Set<OtlpOptionsConfig.OtlpSignalsConfig> resolveSignals()
+    {
+        assert options != null;
+
+        Set<OtlpOptionsConfig.OtlpSignalsConfig> result;
+        if (options.signals == null)
+        {
+            result = DEFAULT_SIGNALS;
+        }
+        else
+        {
+            result = options.signals;
+        }
+        return result;
+    }
+
+    public String resolveProtocol()
+    {
+        assert options != null;
+        assert options.endpoint != null;
+
+        String result;
+        if (options.endpoint.protocol == null)
+        {
+            result = DEFAULT_PROTOCOL;
+        }
+        else
+        {
+            result = options.endpoint.protocol;
         }
         return result;
     }

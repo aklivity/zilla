@@ -14,11 +14,12 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.ALL_SIGNALS;
+import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.net.URI;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ public class OtlpExporterConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
-        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
@@ -49,7 +50,7 @@ public class OtlpExporterConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
-        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
@@ -66,7 +67,7 @@ public class OtlpExporterConfigTest
         // GIVEN
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
-        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, ALL_SIGNALS, endpoint);
+        OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
