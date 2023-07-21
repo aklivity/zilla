@@ -116,6 +116,7 @@ scope mqtt
         {
             string16 clientId;
             int32 expiry = 0;
+            string16 serverReference = null;
             MqttMessage will;
         }
 
@@ -164,6 +165,11 @@ scope mqtt
             string16 responseTopic = null;
             MqttBinary correlation;
             MqttUserProperty[] properties;
+        }
+
+        struct MqttResetEx extends core::stream::Extension
+        {
+            string16 serverReference = null;
         }
 
         struct MqttEndEx extends core::stream::Extension

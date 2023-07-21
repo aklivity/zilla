@@ -27,6 +27,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PA
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QOS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.RETAIN_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SERVER_MOVED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SESSION_TAKEN_OVER;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SHARED_SUBSCRIPTION_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
@@ -148,6 +149,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
@@ -234,6 +236,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final MqttPublishDataExFW mqttPublishDataExRO = new MqttPublishDataExFW();
     private final MqttDataExFW mqttSubscribeDataExRO = new MqttDataExFW();
+    private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
 
     private final MqttBeginExFW.Builder mqttPublishBeginExRW = new MqttBeginExFW.Builder();
     private final MqttBeginExFW.Builder mqttSubscribeBeginExRW = new MqttBeginExFW.Builder();
@@ -310,6 +313,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
     private final boolean session;
+    private final String serverReference;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -424,6 +428,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
+        this.serverReference = config.serverReference();
     }
 
     @Override
@@ -1721,7 +1726,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false);
+                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
                     connected = true;
                 }
 
@@ -1740,7 +1745,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else if (reasonCode != SUCCESS)
             {
                 doCancelConnectTimeout();
-                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false);
+                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
                 doNetworkEnd(traceId, authorization);
                 decoder = decodeIgnoreAll;
                 progress = connect.limit();
@@ -1765,6 +1770,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     sessionBuilder.clientId(clientId);
                     sessionBuilder.expiry(sessionExpiryInterval);
+                    sessionBuilder.serverReference(serverReference);
                     if (willFlagSet)
                     {
                         final int willFlags = decodeWillFlags(flags);
@@ -2225,11 +2231,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             if (connected)
             {
-                doEncodeDisconnect(traceId, authorization, reasonCode);
+                doEncodeDisconnect(traceId, authorization, reasonCode, null);
             }
             else
             {
-                doEncodeConnack(traceId, authorization, reasonCode, false, false);
+                doEncodeConnack(traceId, authorization, reasonCode, false, false, null);
             }
 
             doNetworkEnd(traceId, authorization);
@@ -2491,7 +2497,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int reasonCode,
             boolean assignedClientId,
-            boolean sessionPresent)
+            boolean sessionPresent,
+            String16FW serverReference)
         {
             int propertiesSize = 0;
 
@@ -2571,6 +2578,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
+            if (serverReference != null)
+            {
+                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    .serverReference(serverReference)
+                    .build();
+                propertiesSize = mqttProperty.limit();
+            }
+
             int flags = sessionPresent ? CONNACK_SESSION_PRESENT : 0x00;
 
             final int propertiesSize0 = propertiesSize;
@@ -2642,14 +2657,28 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doEncodeDisconnect(
             long traceId,
             long authorization,
-            int reasonCode)
+            int reasonCode,
+            String16FW serverReference)
         {
+            int propertiesSize = 0;
+
+            MqttPropertyFW mqttProperty;
+            if (serverReference != null)
+            {
+                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    .serverReference(serverReference)
+                    .build();
+                propertiesSize = mqttProperty.limit();
+            }
+
+            final int propertySize0 = propertiesSize;
             final MqttDisconnectFW disconnect =
                 mqttDisconnectRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0xe0)
-                    .remainingLength(2)
+                    .remainingLength(2 + propertySize0)
                     .reasonCode(reasonCode & 0xff)
-                    .properties(p -> p.length(0).value(EMPTY_OCTETS))
+                    .properties(p -> p.length(propertySize0)
+                        .value(propertyBuffer, 0, propertySize0))
                     .build();
 
             doNetworkData(traceId, authorization, 0L, disconnect);
@@ -3070,10 +3099,24 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
 
-                if (!MqttState.initialOpened(state))
+                final OctetsFW extension = reset.extension();
+                final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
+
+                String16FW serverReference = mqttResetEx.serverReference();
+                byte reasonCode = SUCCESS;
+                if (serverReference != null && serverReference.length() != 0)
+                {
+                    reasonCode = SERVER_MOVED;
+                }
+                if (!connected)
                 {
                     doCancelConnectTimeout();
-                    doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId, false);
+
+                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, serverReference);
+                }
+                else
+                {
+                    doEncodeDisconnect(traceId, authorization, reasonCode, serverReference);
                 }
 
                 setInitialClosed();
@@ -3164,7 +3207,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 sessionPresent = true;
                             }
                         }
-                        doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent);
+                        doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent, null);
                         connected = true;
                     }
                     else

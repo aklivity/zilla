@@ -49,6 +49,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionK
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeDataExFW;
@@ -102,6 +103,12 @@ public final class MqttFunctions
     public static MqttEndExBuilder endEx()
     {
         return new MqttEndExBuilder();
+    }
+
+    @Function
+    public static MqttResetExBuilder resetEx()
+    {
+        return new MqttResetExBuilder();
     }
 
     @Function
@@ -180,6 +187,13 @@ public final class MqttFunctions
                 int expiry)
             {
                 sessionBeginExRW.expiry(expiry);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder serverReference(
+                String serverReference)
+            {
+                sessionBeginExRW.serverReference(serverReference);
                 return this;
             }
 
@@ -631,6 +645,39 @@ public final class MqttFunctions
         }
     }
 
+    public static final class MqttResetExBuilder
+    {
+        private final MqttResetExFW.Builder resetExRW;
+
+        private MqttResetExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.resetExRW = new MqttResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public MqttResetExBuilder serverReference(
+            String serverReference)
+        {
+            resetExRW.serverReference(serverReference);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetEx.offset(), array);
+            return array;
+        }
+    }
+
     public static final class MqttSessionStateBuilder
     {
         private final MqttSessionStateFW.Builder sessionStateRW = new MqttSessionStateFW.Builder();
@@ -1053,7 +1100,7 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
-
+            private String16FW serverReference;
             private Integer expiry;
             private MqttWillMessageMatcherBuilder willMessageMatcher;
 
@@ -1075,6 +1122,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionBeginExMatcherBuilder serverReference(
+                String serverReference)
+            {
+                this.serverReference = new String16FW(serverReference);
+                return this;
+            }
+
             public MqttWillMessageMatcherBuilder will()
             {
                 this.willMessageMatcher = new MqttWillMessageMatcherBuilder();
@@ -1093,6 +1147,7 @@ public final class MqttFunctions
                 final MqttMessageFW willMessage = beginEx.session().will();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
+                    matchServerReference(sessionBeginEx) &&
                     (willMessageMatcher == null || willMessageMatcher.match(willMessage));
             }
 
@@ -1106,6 +1161,12 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return expiry == null || expiry == sessionBeginEx.expiry();
+            }
+
+            private boolean matchServerReference(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return serverReference == null || serverReference.equals(sessionBeginEx.serverReference());
             }
 
             public final class MqttWillMessageMatcherBuilder

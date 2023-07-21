@@ -36,6 +36,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
 {
@@ -62,6 +63,7 @@ public class MqttFunctionsTest
                 .session()
                 .clientId("client")
                 .expiry(30)
+                .serverReference("localhost:1883")
                 .will()
                     .topic("will.client")
                     .delay(20)
@@ -81,6 +83,7 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
+        assertEquals("localhost:1883", mqttBeginEx.session().serverReference().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
         assertEquals("will.client", mqttBeginEx.session().will().topic().asString());
         assertEquals(20, mqttBeginEx.session().will().delay());
@@ -320,6 +323,7 @@ public class MqttFunctionsTest
             .session()
                 .clientId("client")
                 .expiry(10)
+                .serverReference("localhost:1883")
                 .will()
                     .topic("willTopic")
                     .delay(10)
@@ -344,6 +348,7 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
+                .serverReference("localhost:1883")
                 .will(c ->
                 {
                     c.topic("willTopic");
@@ -1247,6 +1252,20 @@ public class MqttFunctionsTest
         MqttEndExFW mqttEndEx = new MqttEndExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0, mqttEndEx.typeId());
         assertEquals(MqttEndReasonCode.KEEP_ALIVE_EXPIRY, mqttEndEx.reasonCode().get());
+    }
+
+    @Test
+    public void shouldEncodeMqttResetEx()
+    {
+        final byte[] array = MqttFunctions.resetEx()
+            .typeId(0)
+            .serverReference("localhost:1883")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0, mqttResetEx.typeId());
+        assertEquals("localhost:1883", mqttResetEx.serverReference().asString());
     }
 
     @Test
