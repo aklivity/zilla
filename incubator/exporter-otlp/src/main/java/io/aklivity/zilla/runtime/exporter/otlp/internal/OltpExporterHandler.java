@@ -92,13 +92,9 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
-        int result;
+        int workDone = 0;
         long now = System.currentTimeMillis();
-        if (now < nextAttempt)
-        {
-            result = 0;
-        }
-        else
+        if (now >= nextAttempt)
         {
             String json = serializer.serializeAll();
             HttpRequest request = HttpRequest.newBuilder()
@@ -117,9 +113,9 @@ public class OltpExporterHandler implements ExporterHandler
                     Duration.ofMillis(config.warningInterval()).toSeconds());
                 warningLogged = true;
             }
-            result = 1;
+            workDone = 1;
         }
-        return result;
+        return workDone;
     }
 
     private void handleResponse(
