@@ -43,6 +43,7 @@ public class OltpExporterHandler implements ExporterHandler
     private static final String HTTP = "http";
 
     private final long retryInterval;
+    private final Duration timeoutInterval;
     private final long warningInterval;
     private final EngineContext context;
     private final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
@@ -59,6 +60,7 @@ public class OltpExporterHandler implements ExporterHandler
     private long nextAttempt;
     private long lastSuccess;
     private boolean warningLogged;
+    private CompletableFuture<HttpResponse<String>> response;
 
     public OltpExporterHandler(
         OltpConfiguration config,
@@ -69,6 +71,7 @@ public class OltpExporterHandler implements ExporterHandler
         List<AttributeConfig> attributes)
     {
         this.retryInterval = config.retryInterval();
+        this.timeoutInterval = config.timeoutInterval();
         this.warningInterval = config.warningInterval();
         this.context = context;
         this.metricsEndpoint = exporter.resolveMetrics();
@@ -101,16 +104,19 @@ public class OltpExporterHandler implements ExporterHandler
         long now = System.currentTimeMillis();
         if (now >= nextAttempt)
         {
-            String json = serializer.serializeAll();
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(metricsEndpoint)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
-            CompletableFuture<HttpResponse<String>> response =
-                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-            response.thenAccept(responseHandler);
-            nextAttempt = now + retryInterval;
+            if (response == null || response.isDone())
+            {
+                String json = serializer.serializeAll();
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(metricsEndpoint)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .timeout(timeoutInterval)
+                    .build();
+                response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+                response.thenAccept(responseHandler);
+                nextAttempt = now + retryInterval;
+            }
             if (!warningLogged && now - lastSuccess > warningInterval)
             {
                 System.out.format(

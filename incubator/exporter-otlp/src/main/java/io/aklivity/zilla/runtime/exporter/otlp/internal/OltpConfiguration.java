@@ -14,14 +14,16 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.time.Duration;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class OltpConfiguration extends Configuration
 {
     public static final LongPropertyDef OTLP_EXPORTER_RETRY_INTERVAL;
+    public static final LongPropertyDef OTLP_EXPORTER_TIMEOUT_INTERVAL;
     public static final LongPropertyDef OTLP_EXPORTER_WARNING_INTERVAL;
 
     private static final ConfigurationDef OTLP_EXPORTER_CONFIG;
@@ -30,7 +32,8 @@ public class OltpConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.exporter.otlp");
         OTLP_EXPORTER_RETRY_INTERVAL = config.property("retry.interval", SECONDS.toMillis(10L));
-        OTLP_EXPORTER_WARNING_INTERVAL = config.property("warning.interval", MINUTES.toMillis(5L));
+        OTLP_EXPORTER_TIMEOUT_INTERVAL = config.property("timeout.interval", SECONDS.toMillis(30L));
+        OTLP_EXPORTER_WARNING_INTERVAL = config.property("warning.interval", SECONDS.toMillis(300L));
         OTLP_EXPORTER_CONFIG = config;
     }
 
@@ -42,11 +45,16 @@ public class OltpConfiguration extends Configuration
 
     public long retryInterval()
     {
-        return OTLP_EXPORTER_RETRY_INTERVAL.getAsLong(this);
+        return Duration.ofSeconds(OTLP_EXPORTER_RETRY_INTERVAL.getAsLong(this)).toMillis();
+    }
+
+    public Duration timeoutInterval()
+    {
+        return Duration.ofSeconds(OTLP_EXPORTER_TIMEOUT_INTERVAL.getAsLong(this));
     }
 
     public long warningInterval()
     {
-        return OTLP_EXPORTER_WARNING_INTERVAL.getAsLong(this);
+        return Duration.ofSeconds(OTLP_EXPORTER_WARNING_INTERVAL.getAsLong(this)).toMillis();
     }
 }
