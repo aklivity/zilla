@@ -24,13 +24,13 @@ public class TestSchemaFactorySpi implements SchemaFactorySpi
     @Override
     public String name()
     {
-        return null;
+        return TestSchema.NAME;
     }
 
     @Override
     public Schema create(
         Configuration config)
     {
-        return null;
+        return new TestSchema(config);
     }
 }

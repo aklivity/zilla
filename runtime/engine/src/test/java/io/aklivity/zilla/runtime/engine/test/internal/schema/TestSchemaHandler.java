@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.schema;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.schema.SchemaHandler;
 
@@ -26,36 +28,48 @@ public class TestSchemaHandler implements SchemaHandler
     }
 
     @Override
-    public void configure()
-    {
-    }
-
-    @Override
-    public void schemaRegistryClient()
-    {
-    }
-
-    @Override
-    public int registerSchema(
-        String schemaString,
+    public <T> T register(
+        String schemaDefinition,
         String subject,
-        int version,
-        int id)
-    {
-        return 1;
-    }
-
-    @Override
-    public <T> T getSchemasBySubjectAndId(
-        String subject,
-        int id)
+        String dataFormat)
     {
         return null;
     }
 
     @Override
-    public <T> T getSchemasById(
-        int id)
+    public List<String> getSchemaTypes()
+    {
+        return null;
+    }
+
+    @Override
+    public List<String> getAllSubjects()
+    {
+        return null;
+    }
+
+    @Override
+    public List<Integer> getAllVersionsBySubject(
+        String subject)
+    {
+        return null;
+    }
+
+    @Override
+    public String getLatestVersionSchema(String subject)
+    {
+        return null;
+    }
+
+    @Override
+    public String getVersionSchema(String subject, int version)
+    {
+        return null;
+    }
+
+    @Override
+    public String getSchemasById(
+        String schemaId)
     {
         return null;
     }

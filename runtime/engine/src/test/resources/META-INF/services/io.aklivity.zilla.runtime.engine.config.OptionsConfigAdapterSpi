@@ -2,3 +2,4 @@ io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptions
 io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigAdapter
 io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultOptionsConfigAdapter
 io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfigAdapter
+io.aklivity.zilla.runtime.engine.test.internal.schema.config.TestSchemaOptionsConfigAdapter

@@ -15,15 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.schema;
 
+import java.util.List;
+
 public interface SchemaHandler
 {
-    void configure();
+    <T> T register(String schemaDefinition, String subject, String dataFormat);
 
-    void schemaRegistryClient();
+    List<String> getSchemaTypes();
 
-    int registerSchema(String schemaString, String subject, int version, int id);
+    List<String> getAllSubjects();
 
-    <T> T getSchemasBySubjectAndId(String subject, int id);
+    List<Integer> getAllVersionsBySubject(String subject);
 
-    <T> T getSchemasById(int id);
+    String getSchemasById(String schemaId);
+
+    String getLatestVersionSchema(String subject);
+
+    String getVersionSchema(String subject, int version);
 }
