@@ -497,6 +497,13 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
+        private void doGroupInitialFlush(
+            long traceId)
+        {
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
+        }
+
         private void doGroupInitialEnd(
             long traceId)
         {
@@ -504,18 +511,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-
-                state = KafkaState.closedInitial(state);
-            }
-        }
-
-        private void doGroupInitialFlush(
-            long traceId)
-        {
-            if (!KafkaState.initialClosed(state))
-            {
-                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
             }
