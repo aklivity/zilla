@@ -71,4 +71,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unknown.member.id/client",
+        "${net}/unknown.member.id/server"})
+    public void shouldHandleUnknownMemberError() throws Exception
+    {
+        k3po.finish();
+    }
 }

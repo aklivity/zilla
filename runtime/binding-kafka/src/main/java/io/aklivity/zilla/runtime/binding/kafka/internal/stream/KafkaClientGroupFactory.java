@@ -2835,6 +2835,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+
+
         }
 
         private void onSyncGroupResponse(
@@ -2852,6 +2854,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .group(g -> g.leaderId(leader).memberId(memberId))
                     .build()
                     .sizeof()));
+
+            if (heartbeatRequestId != NO_CANCEL_ID)
+            {
+                encoder = encodeHeartbeatRequest;
+
+                heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+                    originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void onHeartbeatResponse(
