@@ -72,4 +72,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/no.coordinator.available/client",
+        "${net}/no.coordinator.available/server"})
+    public void shouldHandleNoCoordinatorAvailableError() throws Exception
+    {
+        k3po.finish();
+    }
 }
