@@ -719,12 +719,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else if (errorCode == ERROR_UNKNOWN_MEMBER)
                 {
-                    client.onJoinGroupUnknownMemberError(traceId, authorization);
+                    client.onJoinGroupMemberIdError(traceId, authorization, UNKNOWN_MEMBER_ID);
                     progress = joinGroupResponse.limit();
                 }
                 else if (errorCode == ERROR_MEMBER_ID_REQUIRED)
                 {
-                    client.onJoinGroupMemberIdRequiredError(traceId, authorization,
+                    client.onJoinGroupMemberIdError(traceId, authorization,
                         joinGroupResponse.memberId().asString());
                     progress = joinGroupResponse.limit();
                 }
@@ -749,6 +749,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             break metadata;
                         }
                     }
+
                     client.onJoinGroupResponse(traceId, authorization, joinGroupResponse.leader().asString(),
                         joinGroupResponse.memberId().asString(), errorCode);
                 }
@@ -2808,7 +2809,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        private void onJoinGroupMemberIdRequiredError(
+        private void onJoinGroupMemberIdError(
             long traceId,
             long authorization,
             String memberId)
@@ -2867,7 +2868,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeHeartbeatRequest;
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + 500,
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
                 originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 

@@ -92,4 +92,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/leader/client",
+        "${net}/unknown.member.id/server"})
+    public void shouldHandleUnknownMemberError() throws Exception
+    {
+        k3po.finish();
+    }
 }
