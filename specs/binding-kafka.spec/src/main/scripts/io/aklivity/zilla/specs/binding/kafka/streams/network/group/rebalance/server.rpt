@@ -42,7 +42,7 @@ write 35                                 # size
          9s "localhost"                  #host
          9092                            #port
 
-read aborted
+read closed
 write aborted
 
 accepted
@@ -207,3 +207,6 @@ write 70                                           # size
       1                                            # assignments
         10s "consumer-1"                             # consumer member group id
         42s ${instanceId}                            # group instance id
+
+read closed
+write aborted

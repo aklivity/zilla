@@ -62,4 +62,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/not.coordinator.for.consumer/client",
+        "${net}/not.coordinator.for.consumer/server"})
+    public void shouldHandleNotCoordinatorForConsumerError() throws Exception
+    {
+        k3po.finish();
+    }
 }

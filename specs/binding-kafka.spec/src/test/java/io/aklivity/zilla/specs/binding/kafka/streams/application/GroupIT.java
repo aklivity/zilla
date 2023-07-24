@@ -57,9 +57,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/no.coordinator.available/client",
-        "${app}/no.coordinator.available/server"})
-    public void shouldHandleNoCoordinatorAvailableError() throws Exception
+        "${app}/leader/client",
+        "${app}/leader/server"})
+    public void shouldBecameLeader() throws Exception
     {
         k3po.finish();
     }

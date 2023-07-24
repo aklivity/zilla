@@ -46,7 +46,7 @@ read  35                                 # size
          9s "localhost"                  #host
          9092                            #port
 
-write abort
+write close
 read abort
 
 read notify ROUTED_BROKER_SERVER
@@ -216,3 +216,6 @@ read  70                                           # size
       1                                            # assignments
         10s "consumer-1"                             # consumer member group id
         42s [0..42]                                  # group instance id
+
+write close
+read abort
