@@ -89,4 +89,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unknown.protocol.stream.takeover/client",
+        "${net}/unknown.protocol.stream.takeover/server"})
+    public void shouldNotUnknownProtocolStreamTakeover() throws Exception
+    {
+        k3po.finish();
+    }
 }

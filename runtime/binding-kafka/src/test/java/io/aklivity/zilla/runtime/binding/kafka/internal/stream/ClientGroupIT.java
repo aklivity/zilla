@@ -112,4 +112,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/unknown.protocol.stream.takeover/client",
+        "${net}/unknown.protocol.stream.takeover/server"})
+    public void shouldNotUnknownProtocolStreamTakeover() throws Exception
+    {
+        k3po.finish();
+    }
 }

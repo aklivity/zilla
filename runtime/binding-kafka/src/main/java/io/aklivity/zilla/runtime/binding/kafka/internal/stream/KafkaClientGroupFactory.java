@@ -1305,6 +1305,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
+
+            groupStreams.remove(groupId);
         }
 
         private void streamCleanup(
