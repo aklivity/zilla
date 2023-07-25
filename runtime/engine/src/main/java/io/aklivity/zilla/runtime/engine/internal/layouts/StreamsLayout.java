@@ -31,7 +31,7 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
 
-public final class StreamsLayout extends Layout
+public final class StreamsLayout implements AutoCloseable
 {
     private final RingBuffer streamsBuffer;
 
@@ -66,7 +66,7 @@ public final class StreamsLayout extends Layout
                 headIndex, head, tailIndex, tail);
     }
 
-    public static final class Builder extends Layout.Builder<StreamsLayout>
+    public static final class Builder
     {
         private long streamsCapacity;
         private Path path;
@@ -93,7 +93,6 @@ public final class StreamsLayout extends Layout
             return this;
         }
 
-        @Override
         public StreamsLayout build()
         {
             final File layoutFile = path.toFile();

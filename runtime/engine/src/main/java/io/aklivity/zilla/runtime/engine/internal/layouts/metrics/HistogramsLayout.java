@@ -34,8 +34,6 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
-
 public final class HistogramsLayout extends MetricsLayout
 {
     public static final int BUCKETS = 63;
@@ -136,7 +134,7 @@ public final class HistogramsLayout extends MetricsLayout
         return limits;
     }
 
-    public static final class Builder extends Layout.Builder<HistogramsLayout>
+    public static final class Builder
     {
         public static final String HISTOGRAMS_LABEL = "histograms";
 
@@ -165,7 +163,6 @@ public final class HistogramsLayout extends MetricsLayout
             return this;
         }
 
-        @Override
         public HistogramsLayout build()
         {
             final File layoutFile = path.toFile();

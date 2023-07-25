@@ -31,8 +31,6 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
-
 public final class ScalarsLayout extends MetricsLayout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
@@ -96,7 +94,7 @@ public final class ScalarsLayout extends MetricsLayout
         return RECORD_SIZE;
     }
 
-    public static final class Builder extends Layout.Builder<ScalarsLayout>
+    public static final class Builder
     {
         private long capacity;
         private Path path;
@@ -131,7 +129,6 @@ public final class ScalarsLayout extends MetricsLayout
             return this;
         }
 
-        @Override
         public ScalarsLayout build()
         {
             final File layoutFile = path.toFile();
