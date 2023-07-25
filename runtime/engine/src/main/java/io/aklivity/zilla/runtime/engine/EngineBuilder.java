@@ -114,16 +114,16 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
-        final Set<Catalog> schemas = new LinkedHashSet<>();
+        final Set<Catalog> catalogs = new LinkedHashSet<>();
         final CatalogFactory catalogFactory = CatalogFactory.instantiate();
         for (String name : catalogFactory.names())
         {
             Catalog catalog = catalogFactory.create(name, config);
-            schemas.add(catalog);
+            catalogs.add(catalog);
         }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, schemas, errorHandler, affinities);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, catalogs, errorHandler, affinities);
     }
 }
