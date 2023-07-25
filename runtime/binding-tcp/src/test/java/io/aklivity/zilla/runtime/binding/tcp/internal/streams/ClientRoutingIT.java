@@ -129,11 +129,32 @@ public class ClientRoutingIT
     }
 
     @Test
+    @Configuration("client.ports.yaml")
+    @Specification({
+        "${app}/client.connect.with.port.extension/client",
+        "${net}/client.connect.with.port.extension/server"
+    })
+    public void shouldConnectHostWhenRoutedViaPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.subnet.yaml")
     @Specification({
         "${app}/client.reset.with.no.subnet.match/client"
     })
     public void shouldResetClientWithNoSubnetMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.ports.yaml")
+    @Specification({
+        "${app}/client.rejected.port.not.routed/client"
+    })
+    public void shouldRejectClientWhenPortNotRouted() throws Exception
     {
         k3po.finish();
     }

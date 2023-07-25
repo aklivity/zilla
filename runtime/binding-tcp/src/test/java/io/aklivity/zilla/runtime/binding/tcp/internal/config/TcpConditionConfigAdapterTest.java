@@ -45,7 +45,8 @@ public class TcpConditionConfigAdapterTest
         String text =
                 "{" +
                     "\"cidr\": \"127.0.0.0/24\"," +
-                    "\"authority\": \"*.example.net\"" +
+                    "\"authority\": \"*.example.net\"," +
+                    "\"port\": 8080" +
                 "}";
 
         TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
@@ -53,16 +54,55 @@ public class TcpConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.cidr, equalTo("127.0.0.0/24"));
         assertThat(condition.authority, equalTo("*.example.net"));
+        assertThat(condition.ports, not(nullValue()));
+        assertThat(condition.ports.length, equalTo(1));
+        assertThat(condition.ports[0], equalTo(8080));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        TcpConditionConfig condition = new TcpConditionConfig("127.0.0.0/24", "*.example.net");
+        TcpConditionConfig condition = new TcpConditionConfig("127.0.0.0/24", "*.example.net", new int[] { 8080 });
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"cidr\":\"127.0.0.0/24\",\"authority\":\"*.example.net\"}"));
+        assertThat(text, equalTo("{\"cidr\":\"127.0.0.0/24\",\"authority\":\"*.example.net\",\"port\":8080}"));
+    }
+    @Test
+    public void shouldReadConditionWithPortRange()
+    {
+        String text =
+                "{" +
+                    "\"cidr\": \"127.0.0.0/24\"," +
+                    "\"authority\": \"*.example.net\"," +
+                    "\"port\": 8080-8081" +
+                "}";
+
+        TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.ports, not(nullValue()));
+        assertThat(condition.ports.length, equalTo(2));
+        assertThat(condition.ports[0], equalTo(8080));
+        assertThat(condition.ports[1], equalTo(8081));
+    }
+
+    @Test
+    public void shouldReadConditionWithPortRangeSingleton()
+    {
+        String text =
+                "{" +
+                    "\"cidr\": \"127.0.0.0/24\"," +
+                    "\"authority\": \"*.example.net\"," +
+                    "\"port\": \"8080\"" +
+                "}";
+
+        TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.ports, not(nullValue()));
+        assertThat(condition.ports.length, equalTo(1));
+        assertThat(condition.ports[0], equalTo(8080));
     }
 }

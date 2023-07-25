@@ -14,21 +14,5 @@
 # under the License.
 #
 
----
-name: test
-bindings:
-    net0:
-        type: tcp
-        kind: server
-        options:
-            host: 0.0.0.0
-            port:
-                - 8080
-                - 8081
-                - 8082-8083
-        routes:
-            - when:
-                  - port:
-                    - 8080
-                    - 8081-8082
-              exit: app0
+connect "tcp://localhost:8082"
+connected
