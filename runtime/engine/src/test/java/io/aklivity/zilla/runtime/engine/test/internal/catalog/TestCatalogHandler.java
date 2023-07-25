@@ -13,16 +13,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.schema;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.schema.SchemaHandler;
 
-public class TestSchemaHandler implements SchemaHandler
+public class TestCatalogHandler implements CatalogHandler
 {
-    public TestSchemaHandler(
+    public TestCatalogHandler(
         SchemaConfig schema)
     {
     }

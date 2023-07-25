@@ -58,6 +58,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -74,7 +75,6 @@ import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.schema.Schema;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
@@ -102,7 +102,7 @@ public final class Engine implements AutoCloseable
         Collection<Guard> guards,
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
-        Collection<Schema> schemas,
+        Collection<Catalog> catalogs,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities)
     {
@@ -153,7 +153,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, metricGroups, coreIndex);
+                        bindings, exporters, guards, vaults, catalogs, metricGroups, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -171,7 +171,7 @@ public final class Engine implements AutoCloseable
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(schemas.stream().map(Schema::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));

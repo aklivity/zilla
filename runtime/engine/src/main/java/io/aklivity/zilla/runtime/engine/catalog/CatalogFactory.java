@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.schema;
+package io.aklivity.zilla.runtime.engine.catalog;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
@@ -25,13 +25,13 @@ import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public final class SchemaFactory
+public final class CatalogFactory
 {
-    private final Map<String, SchemaFactorySpi> factorySpis;
+    private final Map<String, CatalogFactorySpi> factorySpis;
 
-    public static SchemaFactory instantiate()
+    public static CatalogFactory instantiate()
     {
-        return instantiate(load(SchemaFactorySpi.class));
+        return instantiate(load(CatalogFactorySpi.class));
     }
 
     public Iterable<String> names()
@@ -39,28 +39,28 @@ public final class SchemaFactory
         return factorySpis.keySet();
     }
 
-    public Schema create(
+    public Catalog create(
         String name,
         Configuration config)
     {
         requireNonNull(name, "name");
 
-        SchemaFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized vault name: " + name);
+        CatalogFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized vault name: " + name);
 
         return factorySpi.create(config);
     }
 
-    private static SchemaFactory instantiate(
-        ServiceLoader<SchemaFactorySpi> factories)
+    private static CatalogFactory instantiate(
+        ServiceLoader<CatalogFactorySpi> factories)
     {
-        Map<String, SchemaFactorySpi> factorySpisByName = new TreeMap<>();
+        Map<String, CatalogFactorySpi> factorySpisByName = new TreeMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
 
-        return new SchemaFactory(unmodifiableMap(factorySpisByName));
+        return new CatalogFactory(unmodifiableMap(factorySpisByName));
     }
 
-    private SchemaFactory(
-        Map<String, SchemaFactorySpi> factorySpis)
+    private CatalogFactory(
+        Map<String, CatalogFactorySpi> factorySpis)
     {
         this.factorySpis = factorySpis;
     }

@@ -13,18 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.schema;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
-import java.net.URL;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-
-public interface Schema
+public class TestCatalogFactorySpi implements CatalogFactorySpi
 {
-    String name();
+    @Override
+    public String name()
+    {
+        return TestCatalog.NAME;
+    }
 
-    SchemaContext supply(
-        EngineContext context);
-
-    URL type();
+    @Override
+    public Catalog create(
+        Configuration config)
+    {
+        return new TestCatalog(config);
+    }
 }

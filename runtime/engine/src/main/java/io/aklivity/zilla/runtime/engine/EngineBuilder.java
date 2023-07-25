@@ -25,14 +25,14 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
-import io.aklivity.zilla.runtime.engine.schema.Schema;
-import io.aklivity.zilla.runtime.engine.schema.SchemaFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -114,12 +114,12 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
-        final Set<Schema> schemas = new LinkedHashSet<>();
-        final SchemaFactory schemaFactory = SchemaFactory.instantiate();
-        for (String name : schemaFactory.names())
+        final Set<Catalog> schemas = new LinkedHashSet<>();
+        final CatalogFactory catalogFactory = CatalogFactory.instantiate();
+        for (String name : catalogFactory.names())
         {
-            Schema schema = schemaFactory.create(name, config);
-            schemas.add(schema);
+            Catalog catalog = catalogFactory.create(name, config);
+            schemas.add(catalog);
         }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");

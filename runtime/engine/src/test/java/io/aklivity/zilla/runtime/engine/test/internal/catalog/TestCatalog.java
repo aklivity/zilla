@@ -13,20 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.schema;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.schema.Schema;
-import io.aklivity.zilla.runtime.engine.schema.SchemaContext;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 
-public class TestSchema implements Schema
+public class TestCatalog implements Catalog
 {
     public static final String NAME = "test";
 
-    public TestSchema(
+    public TestCatalog(
         Configuration config)
     {
     }
@@ -38,10 +38,10 @@ public class TestSchema implements Schema
     }
 
     @Override
-    public SchemaContext supply(
+    public CatalogContext supply(
         EngineContext context)
     {
-        return new TestSchemaContext(context);
+        return new TestCatalogContext(context);
     }
 
     @Override

@@ -13,30 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.schema;
+package io.aklivity.zilla.runtime.engine.catalog;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.schema.SchemaContext;
-import io.aklivity.zilla.runtime.engine.schema.SchemaHandler;
 
-public class TestSchemaContext implements SchemaContext
+public interface CatalogContext
 {
-    public TestSchemaContext(
-        EngineContext context)
-    {
-    }
+    CatalogHandler attach(
+        SchemaConfig vault);
 
-    @Override
-    public SchemaHandler attach(
-        SchemaConfig schema)
-    {
-        return new TestSchemaHandler(schema);
-    }
-
-    @Override
-    public void detach(
-        SchemaConfig schema)
-    {
-    }
+    void detach(
+        SchemaConfig vault);
 }

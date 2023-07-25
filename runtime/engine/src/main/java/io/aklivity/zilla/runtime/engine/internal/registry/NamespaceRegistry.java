@@ -31,6 +31,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
@@ -52,6 +53,7 @@ public class NamespaceRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
@@ -62,6 +64,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
+    private final Int2ObjectHashMap<CatalogRegistry> catalogsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
@@ -72,6 +75,7 @@ public class NamespaceRegistry
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
+        Function<String, CatalogContext> catalogsByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
         ToIntFunction<String> supplyLabelId,
@@ -85,6 +89,7 @@ public class NamespaceRegistry
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.catalogsByType = catalogsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
@@ -97,6 +102,7 @@ public class NamespaceRegistry
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
+        this.catalogsById = new Int2ObjectHashMap<>();
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
     }
@@ -336,6 +342,12 @@ public class NamespaceRegistry
         int vaultId)
     {
         return vaultsById.get(vaultId);
+    }
+
+    CatalogRegistry findCatalog(
+        int catalogId)
+    {
+        return catalogsById.get(catalogId);
     }
 
     MetricRegistry findMetric(

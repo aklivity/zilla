@@ -13,15 +13,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.schema;
+package io.aklivity.zilla.runtime.engine.catalog;
 
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
-public interface SchemaContext
+public interface CatalogFactorySpi
 {
-    SchemaHandler attach(
-        SchemaConfig vault);
+    String name();
 
-    void detach(
-        SchemaConfig vault);
+    Catalog create(
+        Configuration config);
 }

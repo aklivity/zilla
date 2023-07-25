@@ -13,23 +13,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.schema;
+package io.aklivity.zilla.runtime.engine.catalog;
 
-import java.util.List;
+import java.net.URL;
 
-public interface SchemaHandler
+import io.aklivity.zilla.runtime.engine.EngineContext;
+
+public interface Catalog
 {
-    <T> T register(String schemaDefinition, String subject, String dataFormat);
+    String name();
 
-    List<String> getSchemaTypes();
+    CatalogContext supply(
+        EngineContext context);
 
-    List<String> getAllSubjects();
-
-    List<Integer> getAllVersionsBySubject(String subject);
-
-    String getSchemasById(String schemaId);
-
-    String getLatestVersionSchema(String subject);
-
-    String getVersionSchema(String subject, int version);
+    URL type();
 }
