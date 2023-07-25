@@ -1,0 +1,6 @@
+# This file is used by ArtifactHub to verify the repository.
+# See: https://artifacthub.io/docs/topics/repositories/helm-charts/#oci-support
+repositoryID: 5c0f4454-3dbb-4aad-a73f-b760c0f0c6b5
+owners:
+  - name: Aklivity
+    email: inquiry@aklivity.io
