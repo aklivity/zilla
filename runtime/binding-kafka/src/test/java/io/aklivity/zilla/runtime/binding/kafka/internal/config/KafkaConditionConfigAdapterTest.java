@@ -63,6 +63,6 @@ public class KafkaConditionConfigAdapterTest
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\", \"groupId\":\"test\"}"));
+        assertThat(text, equalTo("{\"topic\":\"test\",\"groupId\":\"test\"}"));
     }
 }
