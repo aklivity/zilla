@@ -145,6 +145,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.one.message.changed.topic.name/client",
+        "${kafka}/publish.one.message.changed.topic.name/server"})
+    public void shouldSendOneMessageWithChangedTopicName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.retained/client",
         "${kafka}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception
@@ -301,6 +310,15 @@ public class KafkaIT
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.one.message.changed.topic.name/client",
+        "${kafka}/subscribe.one.message.changed.topic.name/server"})
+    public void shouldReceiveOneMessageWithChangedTopicName() throws Exception
     {
         k3po.finish();
     }

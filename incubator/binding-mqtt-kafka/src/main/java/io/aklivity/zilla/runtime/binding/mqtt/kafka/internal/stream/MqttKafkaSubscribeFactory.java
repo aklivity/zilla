@@ -133,8 +133,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final MqttKafkaHeaderHelper helper;
-    private final String16FW kafkaMessagesTopicName;
-    private final String16FW kafkaRetainedTopicName;
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -153,8 +151,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
         this.helper = new MqttKafkaHeaderHelper();
-        this.kafkaMessagesTopicName = new String16FW(config.messagesTopic());
-        this.kafkaRetainedTopicName = new String16FW(config.retainedMessagesTopic());
     }
 
     @Override
@@ -173,15 +169,18 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
-        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
-
+        final MqttKafkaRouteConfig resolved = binding != null ?
+            binding.resolve(authorization) : null;
 
         MessageConsumer newStream = null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, resolvedId)::onMqttMessage;
+            final String16FW kafkaMessagesTopic = binding.messagesTopic();
+            final String16FW kafkaRetainedTopic = binding.retainedTopic();
+            newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, resolvedId,
+                kafkaMessagesTopic, kafkaRetainedTopic)::onMqttMessage;
         }
 
         return newStream;
@@ -222,7 +221,9 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             long originId,
             long routedId,
             long initialId,
-            long resolvedId)
+            long resolvedId,
+            String16FW kafkaMessagesTopic,
+            String16FW kafkaRetainedTopic)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -233,8 +234,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
             this.retainAsPublished = new Long2ObjectHashMap<>();
-            this.messages = new KafkaMessagesProxy(originId, resolvedId, this);
-            this.retained = new KafkaRetainedProxy(originId, resolvedId, this);
+            this.messages = new KafkaMessagesProxy(originId, resolvedId, kafkaMessagesTopic, this);
+            this.retained = new KafkaRetainedProxy(originId, resolvedId, kafkaRetainedTopic, this);
         }
 
         private void onMqttMessage(
@@ -685,6 +686,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
     final class KafkaMessagesProxy
     {
+        private final String16FW topic;
         private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
@@ -711,10 +713,12 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private KafkaMessagesProxy(
             long originId,
             long routedId,
+            String16FW topic,
             MqttSubscribeProxy mqtt)
         {
             this.originId = originId;
             this.routedId = routedId;
+            this.topic = topic;
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -734,7 +738,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 state = MqttKafkaState.openingInitial(state);
 
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, mqtt.clientId, kafkaMessagesTopicName, filters, KafkaOffsetType.LIVE);
+                    traceId, authorization, affinity, mqtt.clientId, topic, filters, KafkaOffsetType.LIVE);
             }
         }
 
@@ -1164,6 +1168,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
     final class KafkaRetainedProxy
     {
+        private final String16FW topic;
         private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
@@ -1185,10 +1190,12 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         private KafkaRetainedProxy(
             long originId,
             long routedId,
+            String16FW topic,
             MqttSubscribeProxy mqtt)
         {
             this.originId = originId;
             this.routedId = routedId;
+            this.topic = topic;
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -1231,8 +1238,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
             kafka =
                 newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, mqtt.clientId, kafkaRetainedTopicName,
-                    retainedFilters, KafkaOffsetType.HISTORICAL);
+                    traceId, authorization, affinity, mqtt.clientId, topic, retainedFilters, KafkaOffsetType.HISTORICAL);
         }
 
         private void doKafkaFlush(

@@ -32,7 +32,40 @@
                         "enum": [ "proxy" ]
                     },
                     "vault": false,
-                    "options": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "topics":
+                            {
+                                "title": "Topics",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "sessions":
+                                    {
+                                        "title": "Kafka Sessions Topic",
+                                        "type": "string",
+                                        "default": "mqtt_sessions"
+                                    },
+                                    "messages":
+                                    {
+                                        "title": "Kafka Messages Topic",
+                                        "type": "string",
+                                        "default": "mqtt_messages"
+                                    },
+                                    "retained":
+                                    {
+                                        "title": "Kafka Retained Topic",
+                                        "type": "string",
+                                        "default": "mqtt_retained"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    },
                     "routes": false
                 },
                 "anyOf":
