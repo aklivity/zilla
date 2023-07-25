@@ -280,7 +280,7 @@ public class ConfigurationManager
         }
         catch (Throwable ex)
         {
-
+            logError(ex.getMessage());
         }
 
         if (!errors.isEmpty())

@@ -84,7 +84,6 @@ public class TcpServerFactory implements TcpStreamFactory
 
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
-
     private final TcpServerRouter router;
 
     private final LongUnaryOperator supplyInitialId;
