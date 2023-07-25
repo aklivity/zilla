@@ -58,15 +58,34 @@
                                                     {
                                                         "title": "Connect",
                                                         "type": "object",
-                                                        "additionalProperties":
+                                                        "properties":
                                                         {
-                                                            "type": "string",
-                                                            "oneOf":
-                                                            [
-                                                                "username",
-                                                                "password"
-                                                            ]
-                                                        }
+                                                            "username":
+                                                            {
+                                                                "title": "Username",
+                                                                "type": "string"
+                                                            },
+                                                            "password":
+                                                            {
+                                                                "title": "Password",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "required":
+                                                                [
+                                                                    "username"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "required":
+                                                                [
+                                                                    "password"
+                                                                ]
+                                                            }
+                                                        ]
                                                     }
                                                 },
                                                 "additionalProperties": false,

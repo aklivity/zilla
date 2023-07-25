@@ -17,12 +17,9 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import java.util.List;
-import java.util.function.Function;
 
 public final class MqttAuthorizationConfig
 {
-    public static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
-
     public final String name;
     public final MqttCredentialsConfig credentials;
 
@@ -45,16 +42,51 @@ public final class MqttAuthorizationConfig
         }
     }
 
+    public enum MqttAuthField
+    {
+        USERNAME("username"), PASSWORD("password");
+
+        private final String name;
+
+        MqttAuthField(
+            String name)
+        {
+            this.name = name;
+        }
+
+        public String getName()
+        {
+            return name;
+        }
+
+        public static MqttAuthField fromString(
+            String value)
+        {
+            switch (value)
+            {
+            case "username":
+            {
+                return USERNAME;
+            }
+            case "password":
+            {
+                return PASSWORD;
+            }
+            }
+            return null;
+        }
+    }
+
     public static final class MqttPatternConfig
     {
-        public final String name;
+        public final MqttAuthField field;
         public final String pattern;
 
         public MqttPatternConfig(
-            String name,
+            MqttAuthField field,
             String pattern)
         {
-            this.name = name;
+            this.field = field;
             this.pattern = pattern;
         }
     }

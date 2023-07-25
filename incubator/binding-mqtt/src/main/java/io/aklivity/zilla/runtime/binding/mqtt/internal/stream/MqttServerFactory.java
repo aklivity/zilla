@@ -36,8 +36,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.AUTHORIZATION_CREDENTIALS_PASSWORD_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.AUTHORIZATION_CREDENTIALS_USERNAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -104,6 +102,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttAuthField;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
@@ -1215,7 +1214,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Object2IntHashMap<String> unsubscribePacketIds;
         private final GuardHandler guard;
         private final Function<String, String> credentials;
-        private final String authFieldName;
+        private final MqttAuthField authField;
 
         private MqttSessionStream sessionStream;
 
@@ -1291,7 +1290,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
-            this.authFieldName = binding.authField();
+            this.authField = binding.authField();
         }
 
         private void onNetwork(
@@ -1691,11 +1690,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (guard != null)
                 {
                     String authField = null;
-                    if (authFieldName.equals(AUTHORIZATION_CREDENTIALS_USERNAME_NAME))
+                    if (this.authField.equals(MqttAuthField.USERNAME))
                     {
                         authField = payload.username != null ? payload.username.asString() : null;
                     }
-                    else if (authFieldName.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
+                    else if (this.authField.equals(MqttAuthField.PASSWORD))
                     {
                         authField = payload.password != null ?
                             payload.password.bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)) : null;

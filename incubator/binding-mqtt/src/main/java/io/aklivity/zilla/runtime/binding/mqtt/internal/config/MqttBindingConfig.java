@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.DEFAULT_CREDENTIALS;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -24,6 +23,7 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttAuthField;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
@@ -32,6 +32,8 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class MqttBindingConfig
 {
+    private static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
+
     public final long id;
     public final String name;
     public final KindConfig kind;
@@ -88,9 +90,9 @@ public final class MqttBindingConfig
         return credentials;
     }
 
-    public String authField()
+    public MqttAuthField authField()
     {
-        return options != null && options.authorization != null ? options.authorization.credentials.connect.get(0).name : null;
+        return options != null && options.authorization != null ? options.authorization.credentials.connect.get(0).field : null;
     }
 
     private Function<String, String> asAccessor(
