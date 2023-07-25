@@ -35,7 +35,7 @@ public class NamespaceConfig
     public final List<BindingConfig> bindings;
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
-    public final List<SchemaConfig> schemas;
+    public final List<CatalogConfig> catalogs;
 
     public NamespaceConfig(
         String name,
@@ -44,7 +44,7 @@ public class NamespaceConfig
         List<BindingConfig> bindings,
         List<GuardConfig> guards,
         List<VaultConfig> vaults,
-        List<SchemaConfig> schemas)
+        List<CatalogConfig> catalogs)
     {
         this.name = requireNonNull(name);
         this.references = requireNonNull(references);
@@ -52,6 +52,6 @@ public class NamespaceConfig
         this.bindings = requireNonNull(bindings);
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
-        this.schemas = requireNonNull(schemas);
+        this.catalogs = requireNonNull(catalogs);
     }
 }

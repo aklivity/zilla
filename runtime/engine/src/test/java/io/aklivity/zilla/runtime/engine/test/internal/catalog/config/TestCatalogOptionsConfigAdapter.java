@@ -22,7 +22,7 @@ import jakarta.json.JsonObjectBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class TestSchemaOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String HOST = "schema.com";
     private static final String PORT = "8081";
@@ -31,7 +31,7 @@ public class TestSchemaOptionsConfigAdapter implements OptionsConfigAdapterSpi
     @Override
     public Kind kind()
     {
-        return Kind.SCHEMA;
+        return Kind.CATALOG;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class TestSchemaOptionsConfigAdapter implements OptionsConfigAdapterSpi
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        TestSchemaOptionsConfig testOptions = (TestSchemaOptionsConfig) options;
+        TestCatalogOptionsConfig testOptions = (TestCatalogOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -73,6 +73,6 @@ public class TestSchemaOptionsConfigAdapter implements OptionsConfigAdapterSpi
                 ? object.getString(CONTEXT)
                 : null;
 
-        return new TestSchemaOptionsConfig(newHost, newPort, newContext);
+        return new TestCatalogOptionsConfig(newHost, newPort, newContext);
     }
 }

@@ -19,44 +19,44 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
-public class SchemaAdapter
+public class CatalogAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
     private final OptionsAdapter options;
 
-    public SchemaAdapter(
+    public CatalogAdapter(
         ConfigAdapterContext context)
     {
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.SCHEMA, context);
+        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.CATALOG, context);
     }
 
     public JsonObject adaptToJson(
-        SchemaConfig schema)
+        CatalogConfig catalog)
     {
-        options.adaptType(schema.type);
+        options.adaptType(catalog.type);
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(TYPE_NAME, schema.type);
+        object.add(TYPE_NAME, catalog.type);
 
-        if (schema.options != null)
+        if (catalog.options != null)
         {
-            object.add(OPTIONS_NAME, options.adaptToJson(schema.options));
+            object.add(OPTIONS_NAME, options.adaptToJson(catalog.options));
         }
 
         return object.build();
     }
 
-    public SchemaConfig adaptFromJson(
-            String name,
-            JsonObject object)
+    public CatalogConfig adaptFromJson(
+        String name,
+        JsonObject object)
     {
         String type = object.getString(TYPE_NAME);
 
@@ -66,6 +66,6 @@ public class SchemaAdapter
                 options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)) :
                 null;
 
-        return new SchemaConfig(name, type, opts);
+        return new CatalogConfig(name, type, opts);
     }
 }

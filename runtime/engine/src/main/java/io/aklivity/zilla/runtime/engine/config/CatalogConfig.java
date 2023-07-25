@@ -13,23 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
+package io.aklivity.zilla.runtime.engine.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import static java.util.Objects.requireNonNull;
 
-public class TestSchemaOptionsConfig extends OptionsConfig
+public class CatalogConfig
 {
-    public final String host;
-    public final int port;
-    public final String context;
+    public transient long id;
 
-    public TestSchemaOptionsConfig(
-        String host,
-        int port,
-        String context)
+    public final String name;
+    public final String type;
+    public final OptionsConfig options;
+
+    public CatalogConfig(
+            String name,
+            String type,
+            OptionsConfig options)
     {
-        this.host = host;
-        this.port = port;
-        this.context = context;
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
+        this.options = options;
     }
 }

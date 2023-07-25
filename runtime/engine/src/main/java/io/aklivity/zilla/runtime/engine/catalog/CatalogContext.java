@@ -15,13 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public interface CatalogContext
 {
     CatalogHandler attach(
-        SchemaConfig vault);
+        CatalogConfig catalog);
 
     void detach(
-        SchemaConfig vault);
+        CatalogConfig catalog);
 }

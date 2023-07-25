@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class TestCatalogContext implements CatalogContext
 {
@@ -29,14 +29,14 @@ public class TestCatalogContext implements CatalogContext
 
     @Override
     public CatalogHandler attach(
-        SchemaConfig schema)
+        CatalogConfig catalog)
     {
-        return new TestCatalogHandler(schema);
+        return new TestCatalogHandler(catalog);
     }
 
     @Override
     public void detach(
-        SchemaConfig schema)
+        CatalogConfig catalog)
     {
     }
 }

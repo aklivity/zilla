@@ -19,17 +19,17 @@ import static java.util.Objects.requireNonNull;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class CatalogRegistry
 {
-    private final SchemaConfig config;
+    private final CatalogConfig config;
     private final CatalogContext context;
 
     private CatalogHandler attached;
 
     CatalogRegistry(
-        SchemaConfig vault,
+        CatalogConfig vault,
         CatalogContext context)
     {
         this.config = requireNonNull(vault);

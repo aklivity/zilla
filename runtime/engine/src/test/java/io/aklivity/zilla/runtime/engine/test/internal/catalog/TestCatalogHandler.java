@@ -18,12 +18,12 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class TestCatalogHandler implements CatalogHandler
 {
     public TestCatalogHandler(
-        SchemaConfig schema)
+        CatalogConfig schema)
     {
     }
 
