@@ -102,4 +102,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/highlander.protocol.stream.takeover/client",
+        "${net}/highlander.protocol.stream.takeover/server"})
+    public void shouldHighlanderProtocolStreamTakeover() throws Exception
+    {
+        k3po.finish();
+    }
 }
