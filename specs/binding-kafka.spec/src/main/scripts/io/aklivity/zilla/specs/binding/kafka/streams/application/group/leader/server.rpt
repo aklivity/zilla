@@ -41,5 +41,3 @@ write zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 write flush
-
-read advised zilla:flush

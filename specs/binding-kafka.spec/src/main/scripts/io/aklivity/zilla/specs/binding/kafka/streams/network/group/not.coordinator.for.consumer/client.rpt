@@ -59,7 +59,7 @@ connect await ROUTED_BROKER_SERVER_FIRST
 
 connected
 
-write  105                                # size
+write  105                               # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}
@@ -84,6 +84,9 @@ read  24                                                # size
       0s                                                # not a coordinator for a consumer
       0                                                 # members
 
+write close
+read abort
+
 read notify ROUTED_BROKER_SERVER_SECOND
 
 connect await ROUTED_BROKER_SERVER_SECOND
@@ -91,6 +94,8 @@ connect await ROUTED_BROKER_SERVER_SECOND
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
+
+connected
 
 write  22                                # size
        10s                               # find coordinator
@@ -109,6 +114,9 @@ read  35                                 # size
       9s "localhost"                     #host
       9092                               #port
 
+write close
+read abort
+
 read notify ROUTED_BROKER_SERVER_THIRD
 
 connect await ROUTED_BROKER_SERVER_THIRD
@@ -117,7 +125,9 @@ connect await ROUTED_BROKER_SERVER_THIRD
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
-write  105                               # size
+connected
+
+write  105                              # size
       11s                               # join group
       5s                                # v5
       ${newRequestId}
