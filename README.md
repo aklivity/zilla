@@ -1,12 +1,10 @@
 <div align="center">
-  <img src="./assets/logo-light-mode.svg#gh-light-mode-only" height="100">
-  <img src="./assets/logo-dark-mode.svg#gh-dark-mode-only" height="100">
+  <img src="./assets/zilla-rings@2x.png" height="250">
 </div>
 
 </br>
-<h1 align="center">Event-driven API Gateway</h1>
 
-<div align="center">
+<div align="center"> 
   
   [![Build Status][build-status-image]][build-status]
   [![Slack Community][community-image]][community-join]
@@ -16,167 +14,111 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Documentation</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/next/get-started/install/"><b>Get Started</b></a> &bull;
-  <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull; 
+  <a href="https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html"><b>Quickstart</b></a> &bull;
+  <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-## About Zilla
-Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing non-Kafka clients running at the edge (mobile apps, browsers, partner systems, etc.) or inside the datacenter (gRPC services) to Apache Kafka-based microservices and data.
+#  Zilla: A multi-protocol, event-native edge/service proxy
 
-Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
+Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
-With Zilla, apps and services can use standard protocols such as HTTP, SSE, gRPC and the native Kafka protocol (see roadmap for additional protocols on the way) to directly consume and produce Kafka event-streams.
+Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
 
-### Why Zilla?
-- **Unify your event-driven architecture** by enabling any non-Kafka app or service to seamlessly consume and produce event-streams.
-- **Offload DevOps burden and TCO** associated with deploying and managing Kafka integration middleware, such as Kafka Connect and custom Kafka consumer/producer API implementations.
-- **Streamline your event-driven architecture’s security footprint** by centralizing authorization and authentication of all non-Kafka clients.
-- **Maximize your investment in Kafka** by enabling non-Kafka developers to build their applications on top of event-streams, and take advantage of Kafka’s performance and streaming data processing capabilities.
+When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet streamlined event-driven architecture becomes much easier.
 
+## Contents
 
-## Features
-Zilla is designed on the fundamental principle that every data flow is a stream, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
+- [Quickstart](#quickstart)
+- [Key Features](#key-features)
+- [Resources](#resources)
+- [How Zilla Works](#how-zilla-works)
+- [FAQs](#faqs)
+- [Community](#community)
+- [License](#license)
 
-### Kafka Proxies
-Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
+## <a name="quickstart"> Quickstart
+The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
 
-- [**REST ⇄ Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
-  Transforms HTTP 1.1/HTTP 2 requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. Enables exposing Kafka topics and services via an application-centric REST API (as opposed to a topic-centric, system-level API as with the Confluent REST Proxy). JWT authentication supported.
-- [**SSE ← Kafka**](https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka) — 
-  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable data streaming/pushing down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
-- [**Kafka → gRPC**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-grpc-kafka.html) & [**gRPC ⇄ Kafka**](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/binding/binding-kafka-grpc.html) — 
-  Transforms Kafka streams to gRPC streams and vice-versa. Support for both Kafka to gRPC server streaming (reliable and unreliable) as well as correlated request-response.
+## <a name="key-features"> Key Features
 
-### Other
-- [x] **Realtime Cache** — local cache synchronized with Kafka for specific topics, even when no clients are currently connected. Stateless, recovers automatically, consistent across different Zilla instances without peer communication.
-- [x] **Filtering** — local cache indexes message key and headers upon retrieval from Kafka, supporting efficient filtered reads from cached topics.
-- [x] **Fan-in, fan-out** — local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
+### REST-Kafka Proxying
+- [x] **Correlated Request-Response (sync)** —  `HTTP` request-response over a pair of Kafka topics with correlation. Supports synchronous interaction, blocked waiting for a correlated response. 
+- [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics with correlation. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
+
+- [x] **Oneway** — Produce an `HTTP` request payload to a Kafka topic, extracting message key and/or headers from segments of the `HTTP` path if needed.
+- [x] **Cache** — Retrieve message from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
+Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with a new `etag` header). Supports `prefer: wait=N` to respond as soon as messages become available, no need for client polling.
+- [x] **Authorization** — Routed requests can be guarded to enforce required client privileges.
+
+### SSE-Kafka Proxying
+
+- [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
+- [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
+- [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
+
+### gRPC-Kafka Proxying
+- [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics with correlation. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction with blocked waiting for a correlated response.
+- [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and the client does not need to acknowledge the message receipt.
+
+### Deployment, Performance & Other
+
+- [x] **Realtime Cache** — Local cache synchronized with Kafka for specific topics, even when no clients are connected. The cache is stateless and recovers automatically. It is consistent across different Zilla instances without peer communication.
+- [x] **Filtering** — Local cache indexes message key and headers upon retrieval from Kafka, supporting efficiently filtered reads from cached topics.
+- [x] **Fan-in, Fan-out** — Local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
 - [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
-- [x] [**Kubernetes Deployment**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — deploy Zilla via a Helm Chart with metrics-driven autoscaling.
-- [x] [**Prometheus Integration**](https://github.com/aklivity/zilla-examples/tree/main/kubernetes.prometheus.autoscale) — export Zilla metrics to Prometheus for observability.
-- [x] **Kafka Security** — connect Zilla to Kafka over PLAINTEXT, TLS/SSL, TLS/SSL with Client Certificates, SASL/PLAIN, and SASL/SCRAM. 
-- [x] **Declartive YAML Configuration** — no coding required, API mappings and endpoints inside Zilla are declaratively configured via YAML.
-- [x] **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
+- [x] **Helm Chart** — Generic Zilla Helm chart avaliable.
+- [x] **Auto-reconfigure** — Detect changes in `zilla.yaml` and reconfigure Zilla automatically.
+- [x] **Prometheus Integration** — Export Zilla metrics to Prometheus for observability and auto-scaling.
+- [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.
+- [x] **Kafka Security** — Connect Zilla to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, `SASL/PLAIN`, and `SASL/SCRAM`.
 
-<div align="center">
-  </br>
-  <img src="./assets/before-after-zilla+grpc+mqtt.svg">
-</div>
+## <a name="resources"> Resources
 
-## Get Started
-For guidance on installation, configuration and deployment see our [documentation](https://docs.aklivity.io/zilla/next/).
+### 📚 Read the docs
 
-### Run Zilla via Docker
-Run the latest Zilla release with default empty configuration via docker. You can also run Zilla via [Helm](https://docs.aklivity.io/zilla/next/get-started/install/#running-zilla-via-helm).
+- **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
+- **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
+- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A repo of sample Zilla configurations for different use cases running on Kubernetes.
+- **[Todo Application](https://docs.aklivity.io/zilla/latest/tutorials/todo-app/build.html):** Follow the tutorial and see how Zilla and Kafka can be used to build a Todo app based on streaming and CQRS.
 
-```
-docker run ghcr.io/aklivity/zilla:latest start -v
-```
-```
-{
-  "name": "default"
-}
-started
-```
+### 📝 Check out blog posts
 
-### Configure Zilla to behave as a `tcp` `echo` server in 2mins.
+- **[Bring your own REST APIs for Apache Kafka](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka):** Zilla enables application-specific REST APIs. See how it's not just another Kafka-REST proxy.
+- **[Modern Eventing with CQRS, Redpanda and Zilla](https://www.aklivity.io/post/modern-eventing-with-cqrs-redpanda-and-zilla):** Learn about the event-driven nature of CQRS, common challenges while implementing it, and how Zilla solves them with Redpanda.
+- **[End-to-end Streaming Between gRPC Services via Kafka](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka):** Learn how to integrate gRPC with Kafka event streaming; securely, reliably and scalably.
 
-First create a local `zilla.yaml` with the following contents.
-```yaml
----
-name: example
-bindings:
-  tcp_server0:
-    type: tcp
-    kind: server
-    options:
-      host: 0.0.0.0
-      port: 12345
-    exit: echo_server0
-  echo_server0:
-    type: echo
-    kind: server
-```
-Then run Zilla again, this time mounting your local `zilla.yaml` as a docker volume file.
-```
-docker run -v `pwd`/zilla.yaml:/etc/zilla/zilla.yaml ghcr.io/aklivity/zilla:latest start -v
-```
-Now, try it out using `netcat`.
-```bash
-nc localhost 12345
-```
-```
-Hello, world
-Hello, world
-```
+### <a name="support"> ❓ Get support
 
-### Configure Zilla Kafka Proxies
-Follow the Quickstarts to configure and test Kafka proxies.
-- [REST-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/sse-proxy.html)
-- [SSE-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/rest-proxy.html)
-- [gRPC-Kafka Proxy Quickstart](https://docs.aklivity.io/zilla/next/guides/kafka-proxies/grpc-proxy.html)
+- **[Community Slack](https://www.aklivity.io/slack):** Join technical discussions, ask questions, and meet other users!
+- **[GitHub Issues](https://github.com/aklivity/zilla/issues):** Report bugs or issues with Zilla.
+- **[Contact Us](https://www.aklivity.io/contact):** Submit non-techinal questions and inquiries.
 
-#### Connect Zilla to your own Kafka
-The above Quickstarts do not require you to run Kafka as they rely on [Zilla Examples](https://github.com/aklivity/zilla-examples), which come pre-packaged with a Kafka broker. Zilla works with all open source and vendor-enhanced Kafka deployments.
-- [Apache Kafka](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/generic.html)
-- [Confluent Cloud](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/confluent-cloud.html)
-- [Redpanda](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/redpanda.html)
-- [Amazon MSK](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/amazon-msk.html)
-- [Aiven](https://docs.aklivity.io/zilla/next/guides/connecting-to-kafka/aiven.html)
+## <a name="how-zilla-works"> How Zilla Works
+Inside Zilla, every protocol, whether it is `TCP`, `TLS`, `HTTP`, `Kafka`, `gRPC`, etc., is treated as a stream, so mediating between protocols simplifies to mapping protocol-specific metadata.
 
-### The Zilla VSCode Extension
-API endpoints inside Zilla are defined by way of a streaming transformation pipeline (see [Zilla's Runtime Configuration](https://docs.aklivity.io/zilla/next/reference/zilla.yaml/)). To help visualize and manage this pipeline, a [VSCode Extension](https://docs.aklivity.io/zilla/next/get-started/vscode) is avaliable. The extension also supports writing and maintaining your configuration with Zilla-specific YAML autocomplete and validation.
+Zilla’s declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point into an event-driven architecture. This “routed graph” can be visualized and maintained with the help of the [Zilla VS Code extension](https://docs.aklivity.io/zilla/latest/reference/vscode/).
 
-<div align="center" float="left">
-    <img src="./assets/zilla-vscode-flow-diagram.png">  
-</div>
+### <a name="performance"> A Note on Performance
 
-## Community
-If you have any questions, need assistance or have ideas/recommendations, please join our developer [Slack community][community-join].
+Zilla has been designed from the ground up to be very high-performance. Inside, all data flows over shared memory as streams with back pressure between CPU cores, allowing Zilla to take advantage of modern multi-core hardware. The code base is written in system-level Java and uses low-level, high-performance data structures, with no locks and no object allocation on the data path.
 
-### Contributing
-Looking to contribute to Zilla? Here are some possibilities:
-- Star this repo and follow us on [Twitter](https://twitter.com/aklivityinc).
-- Create issues every time you feel something is missing or goes wrong.
-- Provide pull requests for open issues, especially for those with a [good first issue](https://github.com/aklivity/zilla/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label.
+You can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
 
-✨We value all contributions whether its source code, documentation, bug reports, feature requests or feedback!
-
-## Roadmap
-Zilla is designed from the ground up to be extensible and we are working on adding support for several new capabilities:
-
-**Protocols and Transformations**
- - [MQTT, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4/views/1?pane=issue&itemId=7132841)
- - GraphQL, proxy and Kafka mapping
- - WebHooks, Kafka mapping
- - AMQP, proxy and Kafka mapping
- - WebSocket, proxy and Kafka mapping
- - HTTP, proxy, including HTTP/3
-
-**Integrations** 
- - [OpenTelemetry integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735584)
- - Export OpenAPI and AsyncAPI definitions from a Zilla configuration file
- - Schema Registry integration
-
-Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
-
-## Performance
-End-to-end latency and throughput testing are in the works. In the meantime, you can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
-
-```
+```shell
 git clone https://github.com/aklivity/zilla
 cd zilla
 ./mvnw clean install
 ```
 
-```
+```shell
 cd runtime/engine/target
 java -jar ./engine-develop-SNAPSHOT-shaded-tests.jar BufferBM
 ```
-<b>Note:</b> with Java 16 or higher add ` --add-opens=java.base/java.io=ALL-UNNAMED` just after `java` to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
 
-```
+<b>Note:</b> with Java 16 or higher add `--add-opens=java.base/java.io=ALL-UNNAMED` just after `java` to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
+
+```text
 Benchmark                  Mode  Cnt         Score        Error  Units
 BufferBM.batched          thrpt   15  15315188.949 ± 198360.879  ops/s
 BufferBM.multiple         thrpt   15  18366915.039 ± 420092.183  ops/s
@@ -187,25 +129,41 @@ BufferBM.single           thrpt   15  15111915.264 ± 294689.110  ops/s
 
 This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Intel i9 chip` and `16 GB of DDR4 RAM`, showing about `14-15 million messages per second`.
 
-## Build from source
-```bash
-./mvnw clean install
-```
-This creates a local `docker` image with version `develop-SNAPSHOT`.
+## <a name="faqs"> FAQs
 
-## License
-The project is licensed under the [Aklivity Community License](LICENSE-AklivityCommunity), except for selected components
-which are under the [Apache 2.0 license](LICENSE-Apache).
-See `LICENSE` file in each subfolder for detailed license agreement.
+### Is Zilla production-ready?
+Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).
 
+### Does Zilla only work with Apache Kafka?
+
+Currently, yes, although nothing about Zilla is Kafka-specific — Kafka is just another protocol in Zilla's transformation pipeline. Besides expanding on the list of supported protocols and mappings, we are in the process of adding more traditional proxying capabilities, such as rate-limiting and security enforcement, for existing Async and OpenAPI endpoints. See the [Zilla Roadmap][zilla-roadmap] for more details.
+
+### Another REST-Kafka Proxy? How is this one different?
+
+Take a look at our [blog post](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka), where we go into detail about how Zilla is different **TL;DR** Zilla supports creating application-style REST APIs on top of Kafka, as opposed to providing just a system-level HTTP API. Most notably, this unlocks correlated request-response over Kafka topics.
+
+### What does Zilla's performance look like?
+
+Please see the note above [on performance](#performance).
+
+### What's on the roadmap for Zilla?
+
+Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedback, we would love to hear it! Get in touch through our community [channels](#support).
+
+## <a name="community"> 🌱 Community 
+
+Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
+✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
+
+## <a name="license"> License
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a commercialized “as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+
+
+<!-- Links -->
 [build-status-image]: https://github.com/aklivity/zilla/workflows/build/badge.svg
 [build-status]: https://github.com/aklivity/zilla/actions
-
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
-[zilla-docs]: https://docs.aklivity.io/zilla/latest/
-[zilla-get-started]: https://docs.aklivity.io/zilla/latest/get-started
-[zilla-examples]: https://github.com/aklivity/zilla-examples
-[zilla-todo-tutorial]: https://docs.aklivity.io/zilla/get-started/build-todo-app
+[zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
