@@ -1117,6 +1117,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             clusterClient.doNetworkAbortIfNecessary(traceId);
             coordinatorClient.doNetworkAbortIfNecessary(traceId);
+
+            cleanupApplication(traceId, EMPTY_OCTETS);
         }
 
         private void onApplicationWindow(
@@ -2311,7 +2313,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doNetworkAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpened(state) &&
+                !KafkaState.initialClosed(state))
             {
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);

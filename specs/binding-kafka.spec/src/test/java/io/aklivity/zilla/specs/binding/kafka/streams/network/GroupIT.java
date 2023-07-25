@@ -47,9 +47,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/client.sent.write.abort/client",
-        "${net}/client.sent.write.abort/server"})
-    public void shouldHandleClientSentWriteAbort() throws Exception
+        "${net}/client.sent.write.abort.before.coordinator.connected/client",
+        "${net}/client.sent.write.abort.before.coordinator.connected/server"})
+    public void shouldHandleClientSentWriteAbortBeforeCoordinatorConnected() throws Exception
     {
         k3po.finish();
     }
