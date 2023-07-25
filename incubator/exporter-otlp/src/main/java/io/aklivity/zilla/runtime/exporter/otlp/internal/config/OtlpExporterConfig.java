@@ -26,7 +26,6 @@ public class OtlpExporterConfig
 {
     private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
     private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS);
-    private static final String DEFAULT_PROTOCOL = "http";
     private static final long DEFAULT_INTERVAL = Duration.ofSeconds(30).toMillis();
 
     private final OtlpOptionsConfig options;
@@ -77,16 +76,7 @@ public class OtlpExporterConfig
         assert options != null;
         assert options.endpoint != null;
 
-        String result;
-        if (options.endpoint.protocol == null)
-        {
-            result = DEFAULT_PROTOCOL;
-        }
-        else
-        {
-            result = options.endpoint.protocol;
-        }
-        return result;
+        return options.endpoint.protocol;
     }
 
     public long resolveInterval()

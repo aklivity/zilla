@@ -88,7 +88,6 @@ public class OltpOptionsConfigAdapterTest
                     "]," +
                 "\"endpoint\":" +
                     "{" +
-                        "\"protocol\":\"http\"," +
                         "\"location\":\"http://localhost:4317\"," +
                         "\"overrides\":" +
                             "{" +
