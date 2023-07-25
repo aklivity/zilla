@@ -84,7 +84,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
-    private final EngineContext context;
+
     private final TcpServerRouter router;
 
     private final LongUnaryOperator supplyInitialId;
@@ -107,7 +107,6 @@ public class TcpServerFactory implements TcpStreamFactory
         EngineContext context,
         LongFunction<TcpServerBindingConfig> servers)
     {
-        this.context = context;
         this.router = new TcpServerRouter(config, context, this::handleAccept, servers);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
@@ -181,9 +180,8 @@ public class TcpServerFactory implements TcpStreamFactory
                 channel.setOption(SO_KEEPALIVE, options.keepalive);
 
                 InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-                InetSocketAddress remote = (InetSocketAddress) channel.getRemoteAddress();
 
-                onAccepted(binding, channel, local, remote);
+                onAccepted(binding, channel, local);
             }
         }
         catch (Exception ex)
@@ -197,10 +195,9 @@ public class TcpServerFactory implements TcpStreamFactory
     private void onAccepted(
         TcpBindingConfig binding,
         SocketChannel network,
-        InetSocketAddress local,
-        InetSocketAddress remote)
+        InetSocketAddress local)
     {
-        final TcpRouteConfig route = binding.resolve(local, remote);
+        final TcpRouteConfig route = binding.resolve(local);
 
         if (route != null)
         {
