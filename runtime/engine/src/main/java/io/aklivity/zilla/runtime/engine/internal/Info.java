@@ -41,59 +41,6 @@ public final class Info implements AutoCloseable
         return workerCount;
     }
 
-    private void reset(
-        int workerCount)
-    {
-        this.workerCount = workerCount;
-        try
-        {
-            Files.deleteIfExists(info);
-            Files.createDirectories(info.getParent());
-            Files.createFile(info);
-
-            long processId = ProcessHandle.current().pid();
-            try (SeekableByteChannel channel = Files.newByteChannel(info, APPEND))
-            {
-                ByteBuffer byteBuf = ByteBuffer
-                        .wrap(new byte[Long.BYTES + Integer.BYTES])
-                        .order(nativeOrder());
-                byteBuf.putLong(processId);
-                byteBuf.putInt(workerCount);
-                byteBuf.flip();
-
-                while (byteBuf.hasRemaining())
-                {
-                    channel.write(byteBuf);
-                    Thread.onSpinWait();
-                }
-            }
-            catch (IOException ex)
-            {
-                System.out.printf("Error: %s is not writeable\n", info);
-            }
-        }
-        catch (IOException ex)
-        {
-            System.out.printf("Error: %s is not writeable\n", info);
-        }
-    }
-
-    private void readWorkerCount()
-    {
-        try
-        {
-            byte[] bytes = Files.readAllBytes(info);
-            ByteBuffer byteBuf = ByteBuffer
-                .wrap(bytes, Long.BYTES, Integer.BYTES)
-                .order(nativeOrder());
-            this.workerCount = byteBuf.getInt();
-        }
-        catch (IOException ex)
-        {
-            System.out.printf("Error: %s is not readable\n", info);
-        }
-    }
-
     @Override
     public void close() throws Exception
     {
@@ -131,11 +78,53 @@ public final class Info implements AutoCloseable
             Info info = new Info(path);
             if (readonly)
             {
-                info.readWorkerCount();
+                try
+                {
+                    byte[] bytes = Files.readAllBytes(info.info);
+                    ByteBuffer byteBuf = ByteBuffer
+                        .wrap(bytes, Long.BYTES, Integer.BYTES)
+                        .order(nativeOrder());
+                    info.workerCount = byteBuf.getInt();
+                }
+                catch (IOException ex)
+                {
+                    System.out.printf("Error: %s is not readable\n", info.info);
+                }
             }
             else
             {
-                info.reset(workerCount);
+                info.workerCount = workerCount;
+                try
+                {
+                    Files.deleteIfExists(info.info);
+                    Files.createDirectories(info.info.getParent());
+                    Files.createFile(info.info);
+
+                    long processId = ProcessHandle.current().pid();
+                    try (SeekableByteChannel channel = Files.newByteChannel(info.info, APPEND))
+                    {
+                        ByteBuffer byteBuf = ByteBuffer
+                                .wrap(new byte[Long.BYTES + Integer.BYTES])
+                                .order(nativeOrder());
+                        byteBuf.putLong(processId);
+                        byteBuf.putInt(workerCount);
+                        byteBuf.flip();
+
+                        while (byteBuf.hasRemaining())
+                        {
+                            channel.write(byteBuf);
+                            Thread.onSpinWait();
+                        }
+                    }
+                    catch (IOException ex)
+                    {
+                        System.out.printf("Error: %s is not writeable\n", info.info);
+                    }
+                }
+                catch (IOException ex)
+                {
+                    System.out.printf("Error: %s is not writeable\n", info.info);
+                }
             }
             return info;
         }
