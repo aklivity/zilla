@@ -177,8 +177,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            final String16FW kafkaMessagesTopic = binding.messagesTopic();
+            final String16FW kafkaRetainedTopic = binding.retainedTopic();
             newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.messagesTopic(), binding.retainedTopic())::onMqttMessage;
+                kafkaMessagesTopic, kafkaRetainedTopic)::onMqttMessage;
         }
 
         return newStream;
