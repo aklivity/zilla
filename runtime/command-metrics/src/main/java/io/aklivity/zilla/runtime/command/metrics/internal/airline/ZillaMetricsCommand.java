@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
@@ -49,9 +48,6 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     @Option(name = {"--namespace"})
     public String namespace;
-
-    @Option(name = {"-i", "--interval"})
-    public int interval;
 
     @Option(name = {"-p", "--properties"},
         description = "Path to properties",
@@ -82,30 +78,25 @@ public final class ZillaMetricsCommand extends ZillaCommand
         final Configuration config = new EngineConfiguration(props);
         final ErrorHandler onError = Throwable::printStackTrace;
         final String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        final long intervalMillis = Duration.ofSeconds(interval).toMillis();
 
-        do
+        try (Engine engine = Engine.builder()
+            .config(config)
+            .errorHandler(onError)
+            .readonly()
+            .build())
         {
-            try (Engine engine = Engine.builder()
-                .config(config)
-                .errorHandler(onError)
-                .readonly()
-                .build())
-            {
-                engine.start();
-                MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
-                LongPredicate filter = supplyFilter(namespace, binding, engine::supplyLabelId);
-                List<MetricRecord> records = filter(metrics.records(), filter);
-                MetricsPrinter printer = new MetricsPrinter(records);
-                printer.print(System.out);
-            }
-            catch (Throwable ex)
-            {
-                System.out.println("error");
-                rethrowUnchecked(ex);
-            }
-            sleep(intervalMillis);
-        } while (interval != 0);
+            engine.start();
+            MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
+            LongPredicate filter = supplyFilter(namespace, binding, engine::supplyLabelId);
+            List<MetricRecord> records = filter(metrics.records(), filter);
+            MetricsPrinter printer = new MetricsPrinter(records);
+            printer.print(System.out);
+        }
+        catch (Throwable ex)
+        {
+            System.out.println("error");
+            rethrowUnchecked(ex);
+        }
     }
 
     private LongPredicate supplyFilter(
@@ -130,18 +121,5 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return records.stream()
             .filter(r -> filterPredicate.test(r.bindingId()))
             .collect(Collectors.toList());
-    }
-
-    private void sleep(
-        long intervalMillis)
-    {
-        try
-        {
-            Thread.sleep(intervalMillis);
-        }
-        catch (InterruptedException ex)
-        {
-            rethrowUnchecked(ex);
-        }
     }
 }
