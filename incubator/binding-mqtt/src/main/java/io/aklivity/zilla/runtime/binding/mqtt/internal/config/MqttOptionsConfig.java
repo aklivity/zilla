@@ -13,16 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.binding.mqtt
+package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+
+public class MqttOptionsConfig extends OptionsConfig
 {
-    requires io.aklivity.zilla.runtime.engine;
+    public final MqttAuthorizationConfig authorization;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttConditionConfigAdapter;
+    public MqttOptionsConfig(
+        MqttAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+    }
 }

@@ -32,7 +32,86 @@
                         "enum": [ "server" ]
                     },
                     "vault": false,
-                    "options": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "authorization":
+                            {
+                                "title": "Authorizations",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "title": "Guard",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "credentials":
+                                            {
+                                                "title": "Credentials",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "connect":
+                                                    {
+                                                        "title": "Connect",
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "username":
+                                                            {
+                                                                "title": "Username",
+                                                                "type": "string"
+                                                            },
+                                                            "password":
+                                                            {
+                                                                "title": "Password",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "required":
+                                                                [
+                                                                    "username"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "required":
+                                                                [
+                                                                    "password"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "additionalProperties": false,
+                                                "anyOf":
+                                                [
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "connect"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "required":
+                                        [
+                                            "credentials"
+                                        ]
+                                    }
+                                },
+                                "maxProperties": 1
+                            }
+                        },
+                        "additionalProperties": false
+                    },
                     "routes":
                     {
                         "items":

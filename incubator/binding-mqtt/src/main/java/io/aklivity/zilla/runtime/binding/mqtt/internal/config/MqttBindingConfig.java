@@ -18,17 +18,29 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.ToLongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class MqttBindingConfig
 {
+    private static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
+
     public final long id;
     public final String name;
     public final KindConfig kind;
+    public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
+    public final Function<String, String> credentials;
+    public final ToLongFunction<String> resolveId;
 
     public MqttBindingConfig(
         BindingConfig binding)
@@ -37,6 +49,19 @@ public final class MqttBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
+        this.options = (MqttOptionsConfig) binding.options;
+        this.resolveId = binding.resolveId;
+        this.credentials = options != null && options.authorization != null ?
+            asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+    }
+
+    public MqttRouteConfig resolve(
+        long authorization)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization))
+            .findFirst()
+            .orElse(null);
     }
 
     public MqttRouteConfig resolve(
@@ -58,5 +83,55 @@ public final class MqttBindingConfig
             .filter(r -> r.authorized(authorization) && r.matches(topic, capabilities))
             .findFirst()
             .orElse(null);
+    }
+
+    public Function<String, String> credentials()
+    {
+        return credentials;
+    }
+
+    public MqttConnectProperty authField()
+    {
+        return options != null && options.authorization != null ?
+            options.authorization.credentials.connect.get(0).property : null;
+    }
+
+    private Function<String, String> asAccessor(
+        MqttCredentialsConfig credentials)
+    {
+        Function<String, String> accessor = DEFAULT_CREDENTIALS;
+        List<MqttPatternConfig> connectPatterns = credentials.connect;
+
+        if (connectPatterns != null && !connectPatterns.isEmpty())
+        {
+            MqttPatternConfig config = connectPatterns.get(0);
+
+            Matcher connectMatch =
+                Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
+                    .matcher("");
+
+            accessor = orElseIfNull(accessor, connect ->
+            {
+                String result = null;
+                if (connect != null && connectMatch.reset(connect).matches())
+                {
+                    result = connectMatch.group("credentials");
+                }
+                return result;
+            });
+        }
+
+        return accessor;
+    }
+
+    private static Function<String, String> orElseIfNull(
+        Function<String, String> first,
+        Function<String, String> second)
+    {
+        return x ->
+        {
+            String result = first.apply(x);
+            return result != null ? result : second.apply(x);
+        };
     }
 }
