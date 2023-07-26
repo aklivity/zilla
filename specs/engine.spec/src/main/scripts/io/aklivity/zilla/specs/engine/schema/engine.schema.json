@@ -78,7 +78,7 @@
             {
                 "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                 {
-                    "$ref": "#/$defs/schema"
+                    "$ref": "#/$defs/catalog"
                 }
             },
             "additionalProperties": false
@@ -192,7 +192,7 @@
                 ]
             }
         },
-        "schema":
+        "catalog":
         {
             "type": "object",
             "properties":

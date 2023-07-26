@@ -55,6 +55,7 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -215,6 +216,11 @@ public class ConfigurationManager
             for (VaultConfig vault : namespace.vaults)
             {
                 vault.id = namespace.resolveId.applyAsLong(vault.name);
+            }
+
+            for (CatalogConfig catalog : namespace.catalogs)
+            {
+                catalog.id = namespace.resolveId.applyAsLong(catalog.name);
             }
 
             for (MetricConfig metric : namespace.telemetry.metrics)

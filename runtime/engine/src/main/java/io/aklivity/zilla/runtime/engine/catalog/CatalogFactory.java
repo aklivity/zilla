@@ -45,7 +45,7 @@ public final class CatalogFactory
     {
         requireNonNull(name, "name");
 
-        CatalogFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized vault name: " + name);
+        CatalogFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized catalog name: " + name);
 
         return factorySpi.create(config);
     }
