@@ -1,5 +1,62 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.50...HEAD)
+
+**Implemented enhancements:**
+
+- Enhance `tcp` binding to route by `port` [\#294](https://github.com/aklivity/zilla/issues/294)
+- Integrate OpenTelemetry collectors by exporting local metrics over OTLP [\#112](https://github.com/aklivity/zilla/issues/112)
+
+**Closed issues:**
+
+- Add redirect, server reference support to mqtt binding [\#302](https://github.com/aklivity/zilla/issues/302)
+- Add options to mqtt-kafa binding so we can change kafka topics [\#300](https://github.com/aklivity/zilla/issues/300)
+
+**Merged pull requests:**
+
+- Fix kafka cache cursor buffer copy [\#317](https://github.com/aklivity/zilla/pull/317) ([bmaidics](https://github.com/bmaidics))
+- README Formatting and wording changes [\#306](https://github.com/aklivity/zilla/pull/306) ([vordimous](https://github.com/vordimous))
+- Readme overhaul [\#305](https://github.com/aklivity/zilla/pull/305) ([llukyanov](https://github.com/llukyanov))
+- Support for tcp binding to route by port numbers [\#299](https://github.com/aklivity/zilla/pull/299) ([lukefallows](https://github.com/lukefallows))
+- Create OpenTelemetry exporter and refactor code [\#279](https://github.com/aklivity/zilla/pull/279) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.50](https://github.com/aklivity/zilla/tree/0.9.50) (2023-07-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.49...0.9.50)
+
+**Implemented enhancements:**
+
+- `kubernetes autoscaling` feature [\#189](https://github.com/aklivity/zilla/issues/189)
+
+**Closed issues:**
+
+- Update image base [\#291](https://github.com/aklivity/zilla/issues/291)
+
+**Merged pull requests:**
+
+- update Helm logo & details and clean up README [\#273](https://github.com/aklivity/zilla/pull/273) ([vordimous](https://github.com/vordimous))
+
+## [0.9.49](https://github.com/aklivity/zilla/tree/0.9.49) (2023-06-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.48...0.9.49)
+
+**Implemented enhancements:**
+
+- Kafka merged flush should support filter changes [\#259](https://github.com/aklivity/zilla/issues/259)
+
+**Closed issues:**
+
+- Null pointer when Headers are null [\#281](https://github.com/aklivity/zilla/issues/281)
+
+**Merged pull requests:**
+
+- Remove unnecessary cursor assignment [\#288](https://github.com/aklivity/zilla/pull/288) ([akrambek](https://github.com/akrambek))
+- Eliminate zilla.json warning if file not present [\#286](https://github.com/aklivity/zilla/pull/286) ([jfallows](https://github.com/jfallows))
+- Send kafka flush even if data frames were sent to notify client from HISTORICAL to LIVE transition [\#284](https://github.com/aklivity/zilla/pull/284) ([bmaidics](https://github.com/bmaidics))
+- KafkaMerged acknowledge flush frame [\#258](https://github.com/aklivity/zilla/pull/258) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.48](https://github.com/aklivity/zilla/tree/0.9.48) (2023-06-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.47...0.9.48)
