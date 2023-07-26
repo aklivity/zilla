@@ -85,6 +85,10 @@
       <artifactId>jmh-generator-annprocess</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman</artifactId>
+      </dependency>
   </dependencies>
 
   <build>
