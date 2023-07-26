@@ -1,0 +1,102 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/properties/type/enum/-",
+        "value": "otlp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "otlp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "otlp"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "interval":
+                            {
+                                "type": "number"
+                            },
+                            "signals":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "enum":
+                                    [
+                                        "metrics",
+                                        "logs",
+                                        "traces"
+                                    ]
+                                }
+                            },
+                            "endpoint":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "protocol":
+                                    {
+                                        "enum":
+                                        [
+                                            "http"
+                                        ],
+                                        "default": "http"
+                                    },
+                                    "location":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "overrides":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "metrics":
+                                            {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "required":
+                                [
+                                    "location"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required":
+                        [
+                            "endpoint"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "required":
+                    [
+                        "options"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        }
+    }
+]

@@ -24,56 +24,109 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.agrona.LangUtil;
+
 public final class Info implements AutoCloseable
 {
-    private final int workers;
-    private final Path info;
+    private final Path path;
 
-    public Info(
-        Path directory,
-        int workers)
+    private int workerCount;
+
+    private Info(
+        Path directory)
     {
-        this.info = directory.resolve("info");
-        this.workers = workers;
+        this.path = directory.resolve("info");
     }
 
-    public void reset()
+    public int workerCount()
     {
-        try
-        {
-            Files.deleteIfExists(info);
-            Files.createDirectories(info.getParent());
-            Files.createFile(info);
-
-            long processId = ProcessHandle.current().pid();
-            try (SeekableByteChannel channel = Files.newByteChannel(info, APPEND))
-            {
-                ByteBuffer byteBuf = ByteBuffer
-                        .wrap(new byte[Long.BYTES + Integer.BYTES])
-                        .order(nativeOrder());
-                byteBuf.putLong(processId);
-                byteBuf.putInt(workers);
-                byteBuf.flip();
-
-                while (byteBuf.hasRemaining())
-                {
-                    channel.write(byteBuf);
-                    Thread.onSpinWait();
-                }
-            }
-            catch (IOException ex)
-            {
-                System.out.printf("Error: %s is not writeable\n", info);
-            }
-        }
-        catch (IOException ex)
-        {
-            System.out.printf("Error: %s is not writeable\n", info);
-        }
+        return workerCount;
     }
 
     @Override
     public void close() throws Exception
     {
+    }
+
+    public static final class Builder
+    {
+        private Path path;
+        private int workerCount;
+        private boolean readonly;
+
+        public Builder path(
+            Path path)
+        {
+            this.path = path;
+            return this;
+        }
+
+        public Builder workerCount(
+            int workerCount)
+        {
+            this.workerCount = workerCount;
+            return this;
+        }
+
+        public Builder readonly(
+            boolean readonly)
+        {
+            this.readonly = readonly;
+            return this;
+        }
+
+        public Info build()
+        {
+            Info info = new Info(path);
+            if (readonly)
+            {
+                try
+                {
+                    byte[] bytes = Files.readAllBytes(info.path);
+                    ByteBuffer byteBuf = ByteBuffer
+                        .wrap(bytes, Long.BYTES, Integer.BYTES)
+                        .order(nativeOrder());
+                    info.workerCount = byteBuf.getInt();
+                }
+                catch (IOException ex)
+                {
+                    System.out.printf("Error: %s is not readable\n", info.path);
+                    LangUtil.rethrowUnchecked(ex);
+                }
+            }
+            else
+            {
+                info.workerCount = workerCount;
+                try
+                {
+                    Files.deleteIfExists(info.path);
+                    Files.createDirectories(info.path.getParent());
+                    Files.createFile(info.path);
+
+                    long processId = ProcessHandle.current().pid();
+                    try (SeekableByteChannel channel = Files.newByteChannel(info.path, APPEND))
+                    {
+                        ByteBuffer byteBuf = ByteBuffer
+                                .wrap(new byte[Long.BYTES + Integer.BYTES])
+                                .order(nativeOrder());
+                        byteBuf.putLong(processId);
+                        byteBuf.putInt(workerCount);
+                        byteBuf.flip();
+
+                        while (byteBuf.hasRemaining())
+                        {
+                            channel.write(byteBuf);
+                            Thread.onSpinWait();
+                        }
+                    }
+                }
+                catch (IOException ex)
+                {
+                    System.out.printf("Error: %s is not writeable\n", info.path);
+                    LangUtil.rethrowUnchecked(ex);
+                }
+            }
+            return info;
+        }
     }
 }

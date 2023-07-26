@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class BindingRegistry
 {
@@ -97,5 +98,10 @@ final class BindingRegistry
     public MessageConsumer receivedRoutedMetricHandler()
     {
         return receivedRoutedMetricHandler;
+    }
+
+    public KindConfig kind()
+    {
+        return binding.kind;
     }
 }

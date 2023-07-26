@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
@@ -42,9 +43,9 @@ public class ConfigurationRegistry
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
-
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
+    private final Collector collector;
 
     public ConfigurationRegistry(
             Function<String, BindingContext> bindingsByType,
@@ -56,7 +57,8 @@ public class ConfigurationRegistry
             LongConsumer exporterAttached,
             LongConsumer exporterDetached,
             ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
-            LongConsumer detachBinding)
+            LongConsumer detachBinding,
+            Collector collector)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -69,6 +71,7 @@ public class ConfigurationRegistry
         this.exporterDetached = exporterDetached;
         this.namespacesById = new Int2ObjectHashMap<>();
         this.detachBinding = detachBinding;
+        this.collector = collector;
     }
 
     public NamespaceTask attach(
@@ -151,7 +154,7 @@ public class ConfigurationRegistry
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, exportersByType,
                     supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder,
-                    detachBinding);
+                    detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
