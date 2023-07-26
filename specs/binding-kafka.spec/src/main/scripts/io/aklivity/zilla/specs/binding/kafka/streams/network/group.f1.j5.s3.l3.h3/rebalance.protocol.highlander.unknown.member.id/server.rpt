@@ -49,7 +49,7 @@ accepted
 
 connected
 
-read  105                                # size
+read  105                               # size
       11s                               # join group
       5s                                # v5
       (int:newRequestId)
@@ -58,11 +58,11 @@ read  105                                # size
       45000                             # session timeout
       4000                              # rebalance timeout
       0s                                # consumer group member
-      42s [0..42]                      # group instance id
+      42s [0..42]                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
-        0                               # metadata
+        0                                   # metadata
 
 
 write 24                                                # size
@@ -83,7 +83,7 @@ read  105                               # size
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
-      0s                               # consumer group member
+      0s                                # consumer group member
       42s [0..42]                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
@@ -103,7 +103,7 @@ write 112                                               # size
          42s ${instanceId}                                 # group instance id
          0                                                 # metadata
 
-read 101                                            # size
+read 101                                           # size
      14s                                           # sync group
      3s                                            # v3
      (int:newRequestId)
@@ -113,8 +113,8 @@ read 101                                            # size
      10s "memberid-1"                              # consumer member group id
      42s [0..42]                                   # group instance id
      1                                             # assignments
-       10s "memberid-1"                             # consumer member group id
-       0                                            # metadata
+       10s "memberid-1"                                 # consumer member group id
+       0                                                # metadata
 
 write 14                                                # size
       ${newRequestId}

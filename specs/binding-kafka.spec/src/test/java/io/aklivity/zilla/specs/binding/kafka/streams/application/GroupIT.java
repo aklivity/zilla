@@ -75,9 +75,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/unknown.protocol.stream.takeover/client",
-        "${app}/unknown.protocol.stream.takeover/server"})
-    public void shouldNotUnknownProtocolStreamTakeover() throws Exception
+        "${app}/rebalance.protocol.unknown/client",
+        "${app}/rebalance.protocol.unknown/server"})
+    public void shouldRejectSecondStreamOnUnknownProtocol() throws Exception
     {
         k3po.finish();
     }
