@@ -20,18 +20,21 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class OltpConfiguration extends Configuration
 {
-    public static final PropertyDef<String> OTLP_EXPORTER_RETRY_INTERVAL;
-    public static final PropertyDef<String> OTLP_EXPORTER_TIMEOUT_INTERVAL;
-    public static final PropertyDef<String> OTLP_EXPORTER_WARNING_INTERVAL;
+    public static final PropertyDef<Duration> OTLP_EXPORTER_RETRY_INTERVAL;
+    public static final PropertyDef<Duration> OTLP_EXPORTER_TIMEOUT_INTERVAL;
+    public static final PropertyDef<Duration> OTLP_EXPORTER_WARNING_INTERVAL;
 
     private static final ConfigurationDef OTLP_EXPORTER_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.exporter.otlp");
-        OTLP_EXPORTER_RETRY_INTERVAL = config.property("retry.interval", "PT10S");
-        OTLP_EXPORTER_TIMEOUT_INTERVAL = config.property("timeout.interval", "PT30S");
-        OTLP_EXPORTER_WARNING_INTERVAL = config.property("warning.interval", "PT5M");
+        OTLP_EXPORTER_RETRY_INTERVAL = config.property(Duration.class, "retry.interval",
+            (c, v) -> Duration.parse(v), "PT10S");
+        OTLP_EXPORTER_TIMEOUT_INTERVAL = config.property(Duration.class, "timeout.interval",
+            (c, v) -> Duration.parse(v), "PT30S");
+        OTLP_EXPORTER_WARNING_INTERVAL = config.property(Duration.class, "warning.interval",
+            (c, v) -> Duration.parse(v), "PT5M");
         OTLP_EXPORTER_CONFIG = config;
     }
 
@@ -43,16 +46,16 @@ public class OltpConfiguration extends Configuration
 
     public long retryInterval()
     {
-        return Duration.parse(OTLP_EXPORTER_RETRY_INTERVAL.get(this)).toMillis();
+        return OTLP_EXPORTER_RETRY_INTERVAL.get(this).toMillis();
     }
 
     public Duration timeoutInterval()
     {
-        return Duration.parse(OTLP_EXPORTER_TIMEOUT_INTERVAL.get(this));
+        return OTLP_EXPORTER_TIMEOUT_INTERVAL.get(this);
     }
 
     public long warningInterval()
     {
-        return Duration.parse(OTLP_EXPORTER_WARNING_INTERVAL.get(this)).toMillis();
+        return OTLP_EXPORTER_WARNING_INTERVAL.get(this).toMillis();
     }
 }
