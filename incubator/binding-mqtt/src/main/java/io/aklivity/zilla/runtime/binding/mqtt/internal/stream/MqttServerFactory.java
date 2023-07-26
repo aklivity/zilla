@@ -103,7 +103,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttAuthField;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
@@ -1219,7 +1219,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Object2IntHashMap<String> unsubscribePacketIds;
         private final GuardHandler guard;
         private final Function<String, String> credentials;
-        private final MqttAuthField authField;
+        private final MqttConnectProperty authField;
 
         private MqttSessionStream sessionStream;
 
@@ -1272,7 +1272,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private MqttServer(
             Function<String, String> credentials,
-            MqttAuthField authField,
+            MqttConnectProperty authField,
             MqttOptionsConfig options,
             ToLongFunction<String> resolveId,
             MessageConsumer network,
@@ -1698,11 +1698,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (guard != null)
                 {
                     String authField = null;
-                    if (this.authField.equals(MqttAuthField.USERNAME))
+                    if (this.authField.equals(MqttConnectProperty.USERNAME))
                     {
                         authField = payload.username != null ? payload.username.asString() : null;
                     }
-                    else if (this.authField.equals(MqttAuthField.PASSWORD))
+                    else if (this.authField.equals(MqttConnectProperty.PASSWORD))
                     {
                         authField = payload.password != null ?
                             payload.password.bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)) : null;

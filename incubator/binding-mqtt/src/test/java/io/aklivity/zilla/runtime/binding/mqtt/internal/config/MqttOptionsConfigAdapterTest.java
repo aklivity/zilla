@@ -73,8 +73,8 @@ public class MqttOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.connect, not(nullValue()));
         assertThat(options.authorization.credentials.connect, hasSize(1));
         assertThat(options.authorization.credentials.connect.get(0), not(nullValue()));
-        assertThat(options.authorization.credentials.connect.get(0).field,
-            equalTo(MqttAuthorizationConfig.MqttAuthField.USERNAME));
+        assertThat(options.authorization.credentials.connect.get(0).property,
+            equalTo(MqttAuthorizationConfig.MqttConnectProperty.USERNAME));
         assertThat(options.authorization.credentials.connect.get(0).pattern,
             equalTo("Bearer {credentials}"));
 
@@ -88,7 +88,7 @@ public class MqttOptionsConfigAdapterTest
                     "test0",
                     new MqttCredentialsConfig(
                         singletonList(new MqttPatternConfig(
-                            MqttAuthorizationConfig.MqttAuthField.USERNAME,
+                            MqttAuthorizationConfig.MqttConnectProperty.USERNAME,
                             "Bearer {credentials}")))));
 
         String text = jsonb.toJson(options);

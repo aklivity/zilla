@@ -42,15 +42,15 @@ public final class MqttAuthorizationConfig
         }
     }
 
-    public enum MqttAuthField
+    public enum MqttConnectProperty
     {
         USERNAME,
         PASSWORD;
 
-        public static MqttAuthField ofName(
+        public static MqttConnectProperty ofName(
             String value)
         {
-            MqttAuthField field = null;
+            MqttConnectProperty field = null;
             switch (value)
             {
             case "username":
@@ -66,14 +66,14 @@ public final class MqttAuthorizationConfig
 
     public static final class MqttPatternConfig
     {
-        public final MqttAuthField field;
+        public final MqttConnectProperty property;
         public final String pattern;
 
         public MqttPatternConfig(
-            MqttAuthField field,
+            MqttConnectProperty property,
             String pattern)
         {
-            this.field = field;
+            this.property = property;
             this.pattern = pattern;
         }
     }

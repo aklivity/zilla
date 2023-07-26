@@ -23,7 +23,7 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttAuthField;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
@@ -90,9 +90,9 @@ public final class MqttBindingConfig
         return credentials;
     }
 
-    public MqttAuthField authField()
+    public MqttConnectProperty authField()
     {
-        return options != null && options.authorization != null ? options.authorization.credentials.connect.get(0).field : null;
+        return options != null && options.authorization != null ? options.authorization.credentials.connect.get(0).property : null;
     }
 
     private Function<String, String> asAccessor(
