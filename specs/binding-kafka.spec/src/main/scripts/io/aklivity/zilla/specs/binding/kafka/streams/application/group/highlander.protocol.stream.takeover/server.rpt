@@ -14,11 +14,15 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
@@ -29,26 +33,36 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-
-read zilla:data.ext ${kafka:dataEx()
+write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberid-1")
                                  .memberId("memberid-1")
                                  .build()
                              .build()}
-read zilla:data.null
+write flush
 
-write advise zilla:flush
+read abort
 
-read zilla:data.ext ${kafka:dataEx()
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("test")
+                                   .protocol("highlander")
+                                   .timeout(45000)
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberid-1")
                                  .memberId("memberid-1")
                                  .build()
                              .build()}
-read zilla:data.null
+write flush
 
-write close
-read closed

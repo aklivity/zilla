@@ -39,8 +39,8 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/rebalance/client",
-        "${app}/rebalance/server"})
+        "${app}/rebalance.protocol.highlander/client",
+        "${app}/rebalance.protocol.highlander/server"})
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();
@@ -48,9 +48,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/client.sent.write.abort.before.coordinator.connected/client",
-        "${app}/client.sent.write.abort.before.coordinator.connected/server"})
-    public void shouldHandleClientSentWriteAbortBeforeCoordinatorConnected() throws Exception
+        "${app}/client.sent.write.abort.before.coordinator.response/client",
+        "${app}/client.sent.write.abort.before.coordinator.response/server"})
+    public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
     }

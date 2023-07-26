@@ -14,93 +14,84 @@
 # under the License.
 #
 
-property networkConnectWindow 8192
 property instanceId ${kafka:randomBytes(42)}
 
-property newRequestId ${kafka:newRequestId()}
-property fetchWaitMax 500
-property fetchBytesMax 65535
-property partitionBytesMax 8192
-
-connect "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
+accept "zilla://streams/net0"
+  option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
+accepted
+
 connected
 
-write  22                                # size
-       10s                               # find coordinator
-       1s                                # v1
-       ${newRequestId}
-       5s "zilla"                        # client id
-       4s "test"                         # "session" coordinator key
-       [0x00]                            # coordinator group type
-
-read  35                                 # size
+read  22                                # size
+      10s                               # find coordinator
+      1s                                # v1
       (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      1                                  #coordinator node
-         9s "localhost"                  #host
-         9092                            #port
+      5s "zilla"                        # client id
+      4s "test"                         # "test" coordinator key
+      [0x00]                            # coordinator group type
 
-write close
-read abort
+write 35                                 # size
+      ${newRequestId}
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      1                                  # coordinator node
+         9s "localhost"                  # host
+         9092                            # port
 
-read notify ROUTED_BROKER_SERVER
+read closed
+write aborted
 
-connect await ROUTED_BROKER_SERVER
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
+accepted
 
 connected
 
-write 105                                # size
+read  105                                # size
       11s                               # join group
       5s                                # v5
-      ${newRequestId}
+      (int:newRequestId)
       5s "zilla"                        # client id
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
       0s                                # consumer group member
-      42s ${instanceId}                 # group instance id
+      42s [0..42]                      # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
         0                               # metadata
 
-read  24                                                # size
-      (int:newRequestId)
+
+write 24                                                # size
+      ${newRequestId}
       0                                                 # throttle time
-      25s                                               # unknown member id
+      25s                                               # member id required
       -1                                                # generated id
       0s                                                # protocol name
       0s                                                # leader id
       0s                                                # consumer member group id
       0                                                 # members
 
-write 105                               # size
+read  105                               # size
       11s                               # join group
       5s                                # v5
-      ${newRequestId}
+      (int:newRequestId)
       5s "zilla"                        # no client id
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
-      0s                                # consumer group member
-      42s ${instanceId}                 # group instance id
+      0s                               # consumer group member
+      42s [0..42]                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
         0                                   # metadata
 
-read  112                                               # size
-      (int:newRequestId)
+write 112                                               # size
+      ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
       3                                                 # generated id
@@ -109,24 +100,24 @@ read  112                                               # size
       10s "memberid-1"                                  # consumer member group id
       1                                                 # members
          10s "memberid-1"                                  # consumer member group id
-         42s [0..42]                                       # group instance id
+         42s ${instanceId}                                 # group instance id
          0                                                 # metadata
 
-write 101                                            # size
-      14s                                           # sync group
-      3s                                            # v3
-      ${newRequestId}
-      5s "zilla"                                    # no client id
-      4s "test"                                     # consumer group
-      3                                             # generation id
-      10s "memberid-1"                              # consumer member group id
-      42s ${instanceId}                             # group instance id
-      1                                             # assignments
-        10s "memberid-1"                             # consumer member group id
-        0                                            # metadata
+read 101                                            # size
+     14s                                           # sync group
+     3s                                            # v3
+     (int:newRequestId)
+     5s "zilla"                                    # no client id
+     4s "test"                                     # consumer group
+     3                                             # generation id
+     10s "memberid-1"                              # consumer member group id
+     42s [0..42]                                   # group instance id
+     1                                             # assignments
+       10s "memberid-1"                             # consumer member group id
+       0                                            # metadata
 
-read  14                                                # size
-      (int:newRequestId)
+write 14                                                # size
+      ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
       0                                                 # assignment

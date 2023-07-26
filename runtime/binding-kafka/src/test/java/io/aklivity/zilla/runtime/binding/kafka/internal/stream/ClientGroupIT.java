@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class ClientGroupIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group.f1.j5.s3.l3.h3")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/group");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
@@ -55,9 +55,9 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/client.sent.write.abort.before.coordinator.connected/client",
-        "${net}/client.sent.write.abort.before.coordinator.connected/server"})
-    public void shouldHandleClientSentWriteAbortBeforeCoordinatorConnected() throws Exception
+        "${app}/client.sent.write.abort.before.coordinator.response/client",
+        "${net}/client.sent.write.abort.before.coordinator.response/server"})
+    public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
     }
@@ -65,8 +65,8 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/rebalance/client",
-        "${net}/rebalance/server"})
+        "${app}/rebalance.protocol.highlander/client",
+        "${net}/rebalance.protocol.highlander/server"})
 
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
@@ -77,8 +77,8 @@ public class ClientGroupIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/leader/client",
-        "${net}/no.coordinator.available/server"})
-    public void shouldHandleNoCoordinatorAvailableError() throws Exception
+        "${net}/coordinator.not.available/server"})
+    public void shouldHandleCoordinatorNotAvailableError() throws Exception
     {
         k3po.finish();
     }
@@ -87,8 +87,8 @@ public class ClientGroupIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/leader/client",
-        "${net}/not.coordinator.for.consumer/server"})
-    public void shouldHandleNotCoordinatorForConsumerError() throws Exception
+        "${net}/coordinator.reject.invalid.consumer/server"})
+    public void shouldHRejectInvalidConsumer() throws Exception
     {
         k3po.finish();
     }
@@ -97,8 +97,8 @@ public class ClientGroupIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/leader/client",
-        "${net}/unknown.member.id/server"})
-    public void shouldHandleUnknownMemberError() throws Exception
+        "${net}/rebalance.protocol.highlander.unknown.member.id/server"})
+    public void shouldRebalanceProtocolHighlanderUnknownMemberId() throws Exception
     {
         k3po.finish();
     }
@@ -106,8 +106,8 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/rebalance.protocol.highlander/client",
-        "${net}/rebalance.protocol.highlander/server"})
+        "${app}/highlander.protocol.stream.takeover/client",
+        "${net}/highlander.protocol.stream.takeover/server"})
     public void shouldHighlanderProtocolStreamTakeover() throws Exception
     {
         k3po.finish();

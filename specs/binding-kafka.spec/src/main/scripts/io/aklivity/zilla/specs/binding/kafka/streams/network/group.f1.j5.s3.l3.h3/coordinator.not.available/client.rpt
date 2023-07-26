@@ -37,21 +37,38 @@ write  22                                # size
        4s "test"                         # "test" coordinator key
        [0x00]                            # coordinator group type
 
+read  54                                        # size
+      (int:newRequestId)
+      0                                         # throttle time
+      15s                                       # no coordinator available
+      32s "The coordinator is not available"    # error no coordinator available
+      -1                                        # coordinator node
+      0s                                        # host
+      -1                                        # port
+
+write  22                                # size
+       10s                               # find coordinator
+       1s                                # v1
+       ${newRequestId}
+       5s "zilla"                        # client id
+       4s "test"                         # "test" coordinator key
+       [0x00]                            # coordinator group type
+
 read  35                                 # size
       (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      0                                  #coordinator node
-      9s "localhost"                     #host
-      9092                               #port
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      9s "localhost"                     # host
+      9092                               # port
 
 write close
 read abort
 
-read notify ROUTED_BROKER_SERVER_FIRST
+read notify ROUTED_BROKER_SERVER
 
-connect await ROUTED_BROKER_SERVER_FIRST
+connect await ROUTED_BROKER_SERVER
         "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
@@ -59,7 +76,7 @@ connect await ROUTED_BROKER_SERVER_FIRST
 
 connected
 
-write  105                               # size
+write  105                                # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}
@@ -74,73 +91,30 @@ write  105                               # size
          10s "highlander"                    # protocol name
          0                                   # metadata
 
-read  24                                                # size
+read  34                                                # size
       (int:newRequestId)
       0                                                 # throttle time
-      16s                                               # not a coordinator for a consumer
+      79s                                               # member id required
       -1                                                # generated id
       0s                                                # protocol name
       0s                                                # leader id
-      0s                                                # not a coordinator for a consumer
+      10s "memberid-1"                                  # consumer member group id
       0                                                 # members
 
-write close
-read abort
-
-read notify ROUTED_BROKER_SERVER_SECOND
-
-connect await ROUTED_BROKER_SERVER_SECOND
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
-write  22                                # size
-       10s                               # find coordinator
-       1s                                # v1
+write  115                               # size
+       11s                               # join group
+       5s                                # v5
        ${newRequestId}
-       5s "zilla"                        # client id
-       4s "test"                         # "test" coordinator key
-       [0x00]                            # coordinator group type
-
-read  35                                 # size
-      (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      0                                  #coordinator node
-      9s "localhost"                     #host
-      9092                               #port
-
-write close
-read abort
-
-read notify ROUTED_BROKER_SERVER_THIRD
-
-connect await ROUTED_BROKER_SERVER_THIRD
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
-write  105                              # size
-      11s                               # join group
-      5s                                # v5
-      ${newRequestId}
-      5s "zilla"                        # no client id
-      4s "test"                         # consumer group
-      45000                             # session timeout
-      4000                              # rebalance timeout
-      0s                                # consumer group member
-      42s ${instanceId}                 # group instance id
-      8s "consumer"                     # protocol type
-      1                                 # group protocol
-        10s "highlander"                    # protocol name
-        0                                   # metadata
+       5s "zilla"                        # no client id
+       4s "test"                         # consumer group
+       45000                             # session timeout
+       4000                              # rebalance timeout
+       10s "memberid-1"                  # consumer group member
+       42s ${instanceId}                 # group instance id
+       8s "consumer"                     # protocol type
+       1                                 # group protocol
+         10s "highlander"                    # protocol name
+         0                                   # metadata
 
 read  112                                               # size
       (int:newRequestId)
@@ -163,8 +137,8 @@ write 101                                            # size
       4s "test"                                     # consumer group
       3                                             # generation id
       10s "memberid-1"                              # consumer member group id
-      42s ${instanceId}                                   # group instance id
-      1                                              # assignments
+      42s ${instanceId}                             # group instance id
+      1                                             # assignments
         10s "memberid-1"                             # consumer member group id
         0                                            # metadata
 

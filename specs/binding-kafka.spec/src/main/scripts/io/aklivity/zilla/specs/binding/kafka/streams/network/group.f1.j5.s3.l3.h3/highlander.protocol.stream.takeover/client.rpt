@@ -39,12 +39,12 @@ write  22                                # size
 
 read  35                                 # size
       (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      1                                  #coordinator node
-         9s "localhost"                  #host
-         9092                            #port
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      1                                  # coordinator node
+         9s "localhost"                  # host
+         9092                            # port
 
 write close
 read abort
@@ -128,12 +128,12 @@ write  22                                # size
 
 read  35                                 # size
       (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      1                                  #coordinator node
-         9s "localhost"                  #host
-         9092                            #port
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      1                                  # coordinator node
+         9s "localhost"                  # host
+         9092                            # port
 
 write close
 read abort

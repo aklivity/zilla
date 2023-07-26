@@ -35,12 +35,12 @@ read  22                                # size
 
 write 54                                        # size
       ${newRequestId}
-      0                                         #throttle time
-      15s                                       #no coordinator available
-      32s "The coordinator is not available"    #error no coordinator available
-      -1                                        #coordinator node
-      0s                                        #host
-      -1                                        #port
+      0                                         # throttle time
+      15s                                       # no coordinator available
+      32s "The coordinator is not available"    # error no coordinator available
+      -1                                        # coordinator node
+      0s                                        # host
+      -1                                        # port
 
 read  22                                # size
       10s                               # find coordinator
@@ -52,12 +52,12 @@ read  22                                # size
 
 write 35                                 # size
       ${newRequestId}
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      0                                  #coordinator node
-      9s "localhost"                     #host
-      9092                               #port
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      9s "localhost"                     # host
+      9092                               # port
 
 read closed
 write aborted

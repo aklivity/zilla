@@ -30,7 +30,8 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class GroupSaslIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group.sasl");
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/group.sasl.f1.j5.s3.l3.h3.handshake.v1");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

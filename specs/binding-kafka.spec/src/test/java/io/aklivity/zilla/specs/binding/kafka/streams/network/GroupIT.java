@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class GroupIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group.f1.j5.s3.l3.h3");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -38,8 +38,8 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/rebalance/client",
-        "${net}/rebalance/server"})
+        "${net}/rebalance.protocol.highlander/client",
+        "${net}/rebalance.protocol.highlander/server"})
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();
@@ -47,36 +47,36 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/client.sent.write.abort.before.coordinator.connected/client",
-        "${net}/client.sent.write.abort.before.coordinator.connected/server"})
-    public void shouldHandleClientSentWriteAbortBeforeCoordinatorConnected() throws Exception
+        "${net}/client.sent.write.abort.before.coordinator.response/client",
+        "${net}/client.sent.write.abort.before.coordinator.response/server"})
+    public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/no.coordinator.available/client",
-        "${net}/no.coordinator.available/server"})
-    public void shouldHandleNoCoordinatorAvailableError() throws Exception
+        "${net}/coordinator.not.available/client",
+        "${net}/coordinator.not.available/server"})
+    public void shouldHandleCoordinatorNotAvailableError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/not.coordinator.for.consumer/client",
-        "${net}/not.coordinator.for.consumer/server"})
-    public void shouldHandleNotCoordinatorForConsumerError() throws Exception
+        "${net}/coordinator.reject.invalid.consumer/client",
+        "${net}/coordinator.reject.invalid.consumer/server"})
+    public void shouldHRejectInvalidConsumer() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/unknown.member.id/client",
-        "${net}/unknown.member.id/server"})
-    public void shouldHandleUnknownMemberError() throws Exception
+        "${net}/rebalance.protocol.highlander.unknown.member.id/client",
+        "${net}/rebalance.protocol.highlander.unknown.member.id/server"})
+    public void shouldRebalanceProtocolHighlanderUnknownMemberId() throws Exception
     {
         k3po.finish();
     }
