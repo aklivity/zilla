@@ -70,9 +70,9 @@ public class OltpExporterHandler implements ExporterHandler
         LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
-        this.retryInterval = config.retryInterval();
+        this.retryInterval = config.retryInterval().toMillis();
         this.timeoutInterval = config.timeoutInterval();
-        this.warningInterval = config.warningInterval();
+        this.warningInterval = config.warningInterval().toMillis();
         this.context = context;
         this.metricsEndpoint = exporter.resolveMetrics();
         this.signals = exporter.resolveSignals();

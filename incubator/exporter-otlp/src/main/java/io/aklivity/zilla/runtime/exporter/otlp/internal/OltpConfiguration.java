@@ -44,9 +44,9 @@ public class OltpConfiguration extends Configuration
         super(OTLP_EXPORTER_CONFIG, config);
     }
 
-    public long retryInterval()
+    public Duration retryInterval()
     {
-        return OTLP_EXPORTER_RETRY_INTERVAL.get(this).toMillis();
+        return OTLP_EXPORTER_RETRY_INTERVAL.get(this);
     }
 
     public Duration timeoutInterval()
@@ -54,8 +54,8 @@ public class OltpConfiguration extends Configuration
         return OTLP_EXPORTER_TIMEOUT_INTERVAL.get(this);
     }
 
-    public long warningInterval()
+    public Duration warningInterval()
     {
-        return OTLP_EXPORTER_WARNING_INTERVAL.get(this).toMillis();
+        return OTLP_EXPORTER_WARNING_INTERVAL.get(this);
     }
 }
