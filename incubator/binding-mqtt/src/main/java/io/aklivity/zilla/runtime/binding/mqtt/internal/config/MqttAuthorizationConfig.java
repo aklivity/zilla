@@ -44,7 +44,8 @@ public final class MqttAuthorizationConfig
 
     public enum MqttAuthField
     {
-        USERNAME("username"), PASSWORD("password");
+        USERNAME("username"),
+        PASSWORD("password");
 
         private final String name;
 
@@ -59,21 +60,20 @@ public final class MqttAuthorizationConfig
             return name;
         }
 
-        public static MqttAuthField fromString(
+        public static MqttAuthField ofName(
             String value)
         {
+            MqttAuthField field = null;
             switch (value)
             {
             case "username":
-            {
-                return USERNAME;
-            }
+                field = USERNAME;
+                break;
             case "password":
-            {
-                return PASSWORD;
+                field = PASSWORD;
+                break;
             }
-            }
-            return null;
+            return field;
         }
     }
 

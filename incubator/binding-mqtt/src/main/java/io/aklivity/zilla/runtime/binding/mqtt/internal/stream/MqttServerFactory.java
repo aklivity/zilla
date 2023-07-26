@@ -88,6 +88,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
@@ -104,6 +105,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttAuthField;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
@@ -469,7 +471,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long budgetId = supplyBudgetId.getAsLong();
 
             newStream = new MqttServer(
-                binding,
+                binding.credentials(),
+                binding.authField(),
+                binding.options,
+                binding.resolveId,
                 sender,
                 originId,
                 routedId,
@@ -1266,7 +1271,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long sessionId;
 
         private MqttServer(
-            MqttBindingConfig binding,
+            Function<String, String> credentials,
+            MqttAuthField authField,
+            MqttOptionsConfig options,
+            ToLongFunction<String> resolveId,
             MessageConsumer network,
             long originId,
             long routedId,
@@ -1288,9 +1296,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
-            this.guard = resolveGuard(binding);
-            this.credentials = binding.credentials();
-            this.authField = binding.authField();
+            this.guard = resolveGuard(options, resolveId);
+            this.credentials = credentials;
+            this.authField = authField;
         }
 
         private void onNetwork(
@@ -4793,14 +4801,15 @@ public final class MqttServerFactory implements MqttStreamFactory
     }
 
     private GuardHandler resolveGuard(
-        MqttBindingConfig binding)
+        MqttOptionsConfig options,
+        ToLongFunction<String> resolveId)
     {
         GuardHandler guard = null;
 
-        if (binding.options != null &&
-            binding.options.authorization != null)
+        if (options != null &&
+            options.authorization != null)
         {
-            long guardId = binding.resolveId.applyAsLong(binding.options.authorization.name);
+            long guardId = resolveId.applyAsLong(options.authorization.name);
             guard = supplyGuard.apply(guardId);
         }
 

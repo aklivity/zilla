@@ -140,7 +140,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
                     name.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
                 {
                     String pattern = patterns.getString(name);
-                    newPatterns.add(new MqttPatternConfig(MqttAuthorizationConfig.MqttAuthField.fromString(name), pattern));
+                    newPatterns.add(new MqttPatternConfig(MqttAuthorizationConfig.MqttAuthField.ofName(name), pattern));
                 }
             }
         }
