@@ -58,7 +58,8 @@
                                         "enum":
                                         [
                                             "http"
-                                        ]
+                                        ],
+                                        "default": "http"
                                     },
                                     "location":
                                     {
