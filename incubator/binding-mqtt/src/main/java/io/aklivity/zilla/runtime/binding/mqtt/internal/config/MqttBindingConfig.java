@@ -92,7 +92,8 @@ public final class MqttBindingConfig
 
     public MqttConnectProperty authField()
     {
-        return options != null && options.authorization != null ? options.authorization.credentials.connect.get(0).property : null;
+        return options != null && options.authorization != null ?
+            options.authorization.credentials.connect.get(0).property : null;
     }
 
     private Function<String, String> asAccessor(
