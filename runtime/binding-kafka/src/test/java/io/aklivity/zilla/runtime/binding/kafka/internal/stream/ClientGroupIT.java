@@ -122,4 +122,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/leader/client",
+        "${net}/rebalance.sync.group/server"})
+    public void shouldHandleRebalanceSyncGroup() throws Exception
+    {
+        k3po.finish();
+    }
 }

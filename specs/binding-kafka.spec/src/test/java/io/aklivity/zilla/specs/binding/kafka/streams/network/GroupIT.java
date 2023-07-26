@@ -98,4 +98,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/rebalance.sync.group//client",
+        "${net}/rebalance.sync.group/server"})
+    public void shouldHandleRebalanceSyncGroup() throws Exception
+    {
+        k3po.finish();
+    }
 }

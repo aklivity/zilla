@@ -819,14 +819,25 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final SyncGroupResponseFW syncGroupResponse =
                     syncGroupResponseRO.tryWrap(buffer, progress, limit);
 
-                if (syncGroupResponse == null || syncGroupResponse.errorCode() != ERROR_NONE)
+                final short errorCode = syncGroupResponse != null ? syncGroupResponse.errorCode() : ERROR_EXISTS;
+
+                if (syncGroupResponse == null)
                 {
                     client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
-                else
+                else if (errorCode == ERROR_REBALANCE_IN_PROGRESS)
+                {
+                    client.onSynGroupRebalance(traceId, authorization);
+                }
+                else if (errorCode == ERROR_NONE)
                 {
                     client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
+                }
+                else
+                {
+                    client.decoder = decodeCoordinatorIgnoreAll;
+                    break decode;
                 }
 
                 progress = syncGroupResponse.limit();
@@ -2868,8 +2879,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+        }
 
+        private void onSynGroupRebalance(
+            long traceId,
+            long authorization)
+        {
+            nextResponseId++;
 
+            encoder = encodeJoinGroupRequest;
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onSyncGroupResponse(
