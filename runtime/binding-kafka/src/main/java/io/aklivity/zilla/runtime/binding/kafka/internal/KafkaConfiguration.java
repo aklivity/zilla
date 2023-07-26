@@ -23,6 +23,7 @@ import java.lang.invoke.MethodType;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -65,7 +66,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<String> KAFKA_CLIENT_GROUP_INSTANCE_ID;
-    public static final IntPropertyDef KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID_SUPPLIER;
 
@@ -106,7 +107,8 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
                 KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_INSTANCE_ID = config.property("client.group.instance.id", UUID.randomUUID().toString());
-        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property("client.group.rebalance.timeout", 4000);
+        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
+            KafkaConfiguration::rebalanceTimeoutDuration, "PT4S");
         KAFKA_CLIENT_ID = config.property("client.id", "zilla");
         KAFKA_CLIENT_INSTANCE_ID_SUPPLIER = config.property(InstanceIdSupplier.class, "client.instance.id.supplier",
             KafkaConfiguration::decodeInstanceIdSupplier, KafkaConfiguration::defaultInstanceIdSupplier);
@@ -268,9 +270,9 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_ID.get(this);
     }
 
-    public int clientGroupRebalanceTimeout()
+    public Duration clientGroupRebalanceTimeout()
     {
-        return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.getAsInt(this);
+        return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.get(this);
     }
 
     private static Path cacheDirectory(
@@ -285,6 +287,13 @@ public class KafkaConfiguration extends Configuration
         String cleanupPolicy)
     {
         return KafkaCacheCleanupPolicy.valueOf(cleanupPolicy.toUpperCase());
+    }
+
+    private static Duration rebalanceTimeoutDuration(
+        Configuration config,
+        String timeout)
+    {
+        return Duration.parse(timeout);
     }
 
     public Supplier<String> nonceSupplier()
@@ -361,6 +370,6 @@ public class KafkaConfiguration extends Configuration
     private static InstanceIdSupplier defaultInstanceIdSupplier(
         Configuration config)
     {
-        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
+        return () -> String.format("%s-%s", KAFKA_CLIENT_ID.get(config), UUID.randomUUID());
     }
 }

@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -194,10 +195,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
-    private final Long2ObjectHashMap<GroupIdentifier> instanceIds;
+    private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
-    private final int rebalanceTimeout;
+    private final Duration rebalanceTimeout;
 
 
     public KafkaClientGroupFactory(
@@ -263,8 +264,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final long resolvedId = resolved.id;
                 final KafkaSaslConfig sasl = binding.sasl();
 
-                final GroupIdentifier groupIdentifier = instanceIds.get(binding.id);
-                assert groupIdentifier != null;
+                final GroupMembership groupMembership = instanceIds.get(binding.id);
+                assert groupMembership != null;
 
                 KafkaGroupStream stream = groupStreams.get(groupId);
                 if (stream == null || HIGHLANDER_PROTOCOL.equals(protocol))
@@ -274,7 +275,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         stream.streamCleanup(traceId, traceId);
                     }
 
-                    KafkaGroupStream kafkaGroupStream = new KafkaGroupStream(
+                    KafkaGroupStream group = new KafkaGroupStream(
                         application,
                         originId,
                         routedId,
@@ -284,11 +285,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         groupId,
                         protocol,
                         timeout,
-                        groupIdentifier,
+                        groupMembership,
                         sasl);
-                    newStream = kafkaGroupStream::onApplication;
+                    newStream = group::onApplication;
 
-                    groupStreams.put(groupId, kafkaGroupStream);
+                    groupStreams.put(groupId, group);
                 }
             }
         }
@@ -299,7 +300,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     public void onAttached(
         long bindingId)
     {
-        instanceIds.put(bindingId, new GroupIdentifier(supplyInstanceId.get()));
+        instanceIds.put(bindingId, new GroupMembership(supplyInstanceId.get()));
     }
 
     public void onDetached(
@@ -976,7 +977,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final MessageConsumer application;
         private final ClusterClient clusterClient;
         private final CoordinatorClient coordinatorClient;
-        private final GroupIdentifier groupIdentifier;
+        private final GroupMembership groupMembership;
         private final String groupId;
         private final String protocol;
         private final int timeout;
@@ -1011,7 +1012,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             String groupId,
             String protocol,
             int timeout,
-            GroupIdentifier groupIdentifier,
+            GroupMembership groupMembership,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -1024,7 +1025,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.protocol = protocol;
             this.timeout = timeout;
             this.resolvedId = resolvedId;
-            this.groupIdentifier = groupIdentifier;
+            this.groupMembership = groupMembership;
             this.sasl = sasl;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
@@ -2397,15 +2398,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = requestHeader.limit();
 
-            final String memberId = delegate.groupIdentifier.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
+            final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
 
             final JoinGroupRequestFW joinGroupRequest =
                 joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .sessionTimeoutMillis(delegate.timeout)
-                    .rebalanceTimeoutMillis(rebalanceTimeout)
+                    .rebalanceTimeoutMillis((int) rebalanceTimeout.toMillis())
                     .memberId(memberId)
-                    .groupInstanceId(delegate.groupIdentifier.instanceId)
+                    .groupInstanceId(delegate.groupMembership.instanceId)
                     .protocolType("consumer")
                     .protocolCount(1)
                     .build();
@@ -2458,14 +2459,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = requestHeader.limit();
 
-            final String memberId = delegate.groupIdentifier.memberIds.get(delegate.groupId);
+            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
             final SyncGroupRequestFW syncGroupRequest =
                 syncGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .generatedId(generationId)
                     .memberId(memberId)
-                    .groupInstanceId(delegate.groupIdentifier.instanceId)
+                    .groupInstanceId(delegate.groupMembership.instanceId)
                     .assignmentCount(members.size())
                     .build();
 
@@ -2518,14 +2519,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = requestHeader.limit();
 
-            final String memberId = delegate.groupIdentifier.memberIds.get(delegate.groupId);
+            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
             final HeartbeatRequestFW heartbeatRequest =
                 heartbeatRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .generatedId(generationId)
                     .memberId(memberId)
-                    .groupInstanceId(delegate.groupIdentifier.instanceId)
+                    .groupInstanceId(delegate.groupMembership.instanceId)
                     .build();
 
             encodeProgress = heartbeatRequest.limit();
@@ -2574,11 +2575,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = leaveGroupRequest.limit();
 
-            final String memberId = delegate.groupIdentifier.memberIds.get(delegate.groupId);
+            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
             final LeaveMemberFW leaveMember = leaveMemberRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .memberId(memberId)
-                .groupInstanceId(delegate.groupIdentifier.instanceId)
+                .groupInstanceId(delegate.groupMembership.instanceId)
                 .build();
 
             encodeProgress = leaveMember.limit();
@@ -2837,7 +2838,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            delegate.groupIdentifier.memberIds.put(delegate.groupId, UNKNOWN_MEMBER_ID);
+            delegate.groupMembership.memberIds.put(delegate.groupId, UNKNOWN_MEMBER_ID);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
@@ -2848,7 +2849,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            delegate.groupIdentifier.memberIds.put(delegate.groupId, memberId);
+            delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
@@ -2863,7 +2864,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             this.leader = leader;
 
-            delegate.groupIdentifier.memberIds.put(delegate.groupId, memberId);
+            delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
@@ -2878,7 +2879,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            final String memberId = delegate.groupIdentifier.memberIds.get(delegate.groupId);
+            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
             delegate.doApplicationData(traceId, authorization, assignment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
@@ -2975,12 +2976,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         }
     }
 
-    private final class GroupIdentifier
+    private final class GroupMembership
     {
         public final String instanceId;
         public final Map<String, String> memberIds;
 
-        GroupIdentifier(
+        GroupMembership(
             String instanceId)
         {
             this.instanceId = instanceId;

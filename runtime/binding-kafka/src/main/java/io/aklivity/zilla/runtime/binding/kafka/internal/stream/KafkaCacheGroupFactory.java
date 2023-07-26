@@ -126,7 +126,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            newStream = new KafkaCacheServerGroupApp(
+            newStream = new KafkaCacheGroupApp(
                     sender,
                     originId,
                     routedId,
@@ -411,12 +411,12 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheServerGroupNet
+    final class KafkaCacheGroupNet
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaCacheServerGroupApp delegate;
+        private final KafkaCacheGroupApp delegate;
 
         private long initialId;
         private long replyId;
@@ -434,8 +434,8 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
-        private KafkaCacheServerGroupNet(
-            KafkaCacheServerGroupApp delegate,
+        private KafkaCacheGroupNet(
+            KafkaCacheGroupApp delegate,
             long originId,
             long routedId,
             long authorization)
@@ -706,9 +706,9 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheServerGroupApp
+    private final class KafkaCacheGroupApp
     {
-        private final KafkaCacheServerGroupNet group;
+        private final KafkaCacheGroupNet group;
         private final MessageConsumer sender;
         private final String groupId;
         private final String protocol;
@@ -735,7 +735,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        KafkaCacheServerGroupApp(
+        KafkaCacheGroupApp(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -747,7 +747,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             String protocol,
             int timeout)
         {
-            this.group =  new KafkaCacheServerGroupNet(this, routedId, resolvedId, authorization);
+            this.group =  new KafkaCacheGroupNet(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;

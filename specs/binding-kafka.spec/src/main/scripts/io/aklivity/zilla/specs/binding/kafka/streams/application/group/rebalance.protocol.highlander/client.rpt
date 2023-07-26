@@ -14,15 +14,11 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
@@ -33,20 +29,25 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+
+read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
+                                 .leaderId("memberid-1")
+                                 .memberId("memberid-1")
                                  .build()
                              .build()}
-write flush
+read zilla:data.null
 
-read abort
+read notify ROUTED_BROKER_SERVER
 
-accepted
+write aborted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+connect await ROUTED_BROKER_SERVER "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
@@ -57,12 +58,12 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+
+read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
+                                 .leaderId("memberid-1")
+                                 .memberId("memberid-1")
                                  .build()
                              .build()}
-write flush
-
+read zilla:data.null

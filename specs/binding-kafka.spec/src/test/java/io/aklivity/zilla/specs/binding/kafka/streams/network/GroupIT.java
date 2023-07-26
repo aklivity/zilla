@@ -83,8 +83,8 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/highlander.protocol.stream.takeover/client",
-        "${net}/highlander.protocol.stream.takeover/server"})
+        "${net}/rebalance.protocol.highlander/client",
+        "${net}/rebalance.protocol.highlander/server"})
     public void shouldHighlanderProtocolStreamTakeover() throws Exception
     {
         k3po.finish();
