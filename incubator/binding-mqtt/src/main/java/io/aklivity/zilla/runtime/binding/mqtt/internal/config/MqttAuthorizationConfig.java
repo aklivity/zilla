@@ -44,21 +44,8 @@ public final class MqttAuthorizationConfig
 
     public enum MqttAuthField
     {
-        USERNAME("username"),
-        PASSWORD("password");
-
-        private final String name;
-
-        MqttAuthField(
-            String name)
-        {
-            this.name = name;
-        }
-
-        public String getName()
-        {
-            return name;
-        }
+        USERNAME,
+        PASSWORD;
 
         public static MqttAuthField ofName(
             String value)

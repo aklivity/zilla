@@ -73,7 +73,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
                 {
                     JsonObjectBuilder connect = Json.createObjectBuilder();
 
-                    mqttCredentials.connect.forEach(p -> connect.add(p.field.getName(), p.pattern));
+                    mqttCredentials.connect.forEach(p -> connect.add(p.field.name().toLowerCase(), p.pattern));
 
                     credentials.add(AUTHORIZATION_CREDENTIALS_CONNECT_NAME, connect);
                 }
@@ -136,6 +136,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             JsonObject patterns = object.getJsonObject(property);
             for (String name : patterns.keySet())
             {
+                name = name.toLowerCase();
                 if (name.equals(AUTHORIZATION_CREDENTIALS_USERNAME_NAME) ||
                     name.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
                 {
