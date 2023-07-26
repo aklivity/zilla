@@ -24,16 +24,18 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.agrona.LangUtil;
+
 public final class Info implements AutoCloseable
 {
-    private final Path info;
+    private final Path path;
 
     private int workerCount;
 
     private Info(
         Path directory)
     {
-        this.info = directory.resolve("info");
+        this.path = directory.resolve("info");
     }
 
     public int workerCount()
@@ -80,7 +82,7 @@ public final class Info implements AutoCloseable
             {
                 try
                 {
-                    byte[] bytes = Files.readAllBytes(info.info);
+                    byte[] bytes = Files.readAllBytes(info.path);
                     ByteBuffer byteBuf = ByteBuffer
                         .wrap(bytes, Long.BYTES, Integer.BYTES)
                         .order(nativeOrder());
@@ -88,7 +90,8 @@ public final class Info implements AutoCloseable
                 }
                 catch (IOException ex)
                 {
-                    System.out.printf("Error: %s is not readable\n", info.info);
+                    System.out.printf("Error: %s is not readable\n", info.path);
+                    LangUtil.rethrowUnchecked(ex);
                 }
             }
             else
@@ -96,12 +99,12 @@ public final class Info implements AutoCloseable
                 info.workerCount = workerCount;
                 try
                 {
-                    Files.deleteIfExists(info.info);
-                    Files.createDirectories(info.info.getParent());
-                    Files.createFile(info.info);
+                    Files.deleteIfExists(info.path);
+                    Files.createDirectories(info.path.getParent());
+                    Files.createFile(info.path);
 
                     long processId = ProcessHandle.current().pid();
-                    try (SeekableByteChannel channel = Files.newByteChannel(info.info, APPEND))
+                    try (SeekableByteChannel channel = Files.newByteChannel(info.path, APPEND))
                     {
                         ByteBuffer byteBuf = ByteBuffer
                                 .wrap(new byte[Long.BYTES + Integer.BYTES])
@@ -116,14 +119,11 @@ public final class Info implements AutoCloseable
                             Thread.onSpinWait();
                         }
                     }
-                    catch (IOException ex)
-                    {
-                        System.out.printf("Error: %s is not writeable\n", info.info);
-                    }
                 }
                 catch (IOException ex)
                 {
-                    System.out.printf("Error: %s is not writeable\n", info.info);
+                    System.out.printf("Error: %s is not writeable\n", info.path);
+                    LangUtil.rethrowUnchecked(ex);
                 }
             }
             return info;
