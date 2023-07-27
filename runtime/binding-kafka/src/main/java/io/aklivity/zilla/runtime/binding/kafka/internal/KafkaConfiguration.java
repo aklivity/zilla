@@ -66,7 +66,6 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
-    public static final PropertyDef<String> KAFKA_CLIENT_GROUP_INSTANCE_ID;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
@@ -107,7 +106,6 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
                 KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
-        KAFKA_CLIENT_GROUP_INSTANCE_ID = config.property("client.group.instance.id", UUID.randomUUID().toString());
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
             (c, v) -> Duration.parse(v), "PT4S");
         KAFKA_CLIENT_ID = config.property("client.id", "zilla");
@@ -259,11 +257,6 @@ public class KafkaConfiguration extends Configuration
     public int cacheClientTrailersSizeMax()
     {
         return KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.getAsInt(this);
-    }
-
-    public String clientGroupInstanceId()
-    {
-        return KAFKA_CLIENT_GROUP_INSTANCE_ID.get(this);
     }
 
     public String clientId()
