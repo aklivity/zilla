@@ -625,7 +625,7 @@ public final class KafkaCacheCursorFactory
                 KafkaHeaderFW headersItem,
                 KafkaHeadersFW headers)
             {
-                final DirectBuffer headersCopyBuf = copyBuffer(headers.buffer(), headers.offset(), headers.limit());
+                final DirectBuffer headersCopyBuf = copyBuffer(headers.buffer(), headers.offset(), headers.sizeof());
                 final KafkaHeadersFW headersCopy = new KafkaHeadersFW().wrap(headersCopyBuf, 0, headersCopyBuf.capacity());
 
                 final OctetsFW name = headers.name();

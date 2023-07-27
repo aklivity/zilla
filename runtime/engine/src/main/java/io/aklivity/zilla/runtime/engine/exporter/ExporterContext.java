@@ -15,12 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
+import java.util.List;
+import java.util.function.LongFunction;
+
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 public interface ExporterContext
 {
     ExporterHandler attach(
-        ExporterConfig config);
+        ExporterConfig config,
+        List<AttributeConfig> attributes,
+        Collector collector,
+        LongFunction<KindConfig> resolveKind);
 
     void detach(
         long exporterId);

@@ -27,9 +27,7 @@ import java.util.stream.StreamSupport;
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
-
-public abstract class MetricsLayout extends Layout
+public abstract class MetricsLayout implements AutoCloseable
 {
     protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     protected static final int BINDING_ID_OFFSET = 0;

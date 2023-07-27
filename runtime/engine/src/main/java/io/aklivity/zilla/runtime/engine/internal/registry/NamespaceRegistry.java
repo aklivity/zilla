@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -41,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
@@ -66,6 +68,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
+    private final Collector collector;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
@@ -79,7 +82,8 @@ public class NamespaceRegistry
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
-        LongConsumer detachBinding)
+        LongConsumer detachBinding,
+        Collector collector)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
@@ -99,6 +103,7 @@ public class NamespaceRegistry
         this.vaultsById = new Int2ObjectHashMap<>();
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
+        this.collector = collector;
     }
 
     public int namespaceId()
@@ -111,8 +116,8 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
         namespace.telemetry.metrics.forEach(this::attachMetric);
-        namespace.telemetry.exporters.forEach(this::attachExporter);
         namespace.bindings.forEach(this::attachBinding);
+        namespace.telemetry.exporters.forEach(this::attachExporter);
     }
 
     public void detach()
@@ -303,7 +308,7 @@ public class NamespaceRegistry
         int exporterId = supplyLabelId.applyAsInt(config.name);
         ExporterContext context = exportersByType.apply(config.type);
         assert context != null : "Missing exporter type: " + config.type;
-        ExporterHandler handler = context.attach(config);
+        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, collector, this::resolveKind);
         ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
         exportersById.put(exporterId, registry);
         registry.attach();
@@ -324,6 +329,14 @@ public class NamespaceRegistry
         int bindingId)
     {
         return bindingsById.get(bindingId);
+    }
+
+    public KindConfig resolveKind(
+        long namespacedBindingId)
+    {
+        int bindingId = NamespacedId.localId(namespacedBindingId);
+        BindingRegistry binding = findBinding(bindingId);
+        return binding == null ? null : binding.kind();
     }
 
     GuardRegistry findGuard(

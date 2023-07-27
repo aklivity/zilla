@@ -16,8 +16,12 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.agrona.collections.IntHashSet;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.util.Cidr;
 
@@ -25,19 +29,22 @@ public final class TcpConditionMatcher
 {
     public final Cidr cidr;
     public final Matcher authority;
+    public final IntHashSet ports;
 
     public TcpConditionMatcher(
         TcpConditionConfig condition)
     {
         this.cidr = condition.cidr != null ? new Cidr(condition.cidr) : null;
         this.authority = condition.authority != null ? asMatcher(condition.authority) : null;
+        this.ports = condition.ports != null ? asIntHashSet(condition.ports) : null;
     }
 
     public boolean matches(
-        InetAddress remote)
+        InetSocketAddress remote)
     {
-        return matchesCidr(remote) &&
-                matchesAuthority(remote);
+        return matchesCidr(remote.getAddress()) &&
+                matchesAuthority(remote.getAddress()) &&
+                matchesPort(remote.getPort());
     }
 
     private boolean matchesCidr(
@@ -52,9 +59,23 @@ public final class TcpConditionMatcher
         return authority == null || authority.reset(remote.getHostName()).matches();
     }
 
+    private boolean matchesPort(
+        int port)
+    {
+        return ports == null || ports.contains(port);
+    }
+
     private static Matcher asMatcher(
         String wildcard)
     {
         return Pattern.compile(wildcard.replace(".", "\\.").replace("*", ".*")).matcher("");
+    }
+
+    private static IntHashSet asIntHashSet(
+        int[] ports)
+    {
+        IntHashSet set = new IntHashSet(ports.length);
+        Arrays.stream(ports).forEach(set::add);
+        return set;
     }
 }

@@ -128,4 +128,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientPorts()
+    {
+        JsonObject config = schema.validate("client.ports.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

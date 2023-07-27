@@ -21,12 +21,15 @@ public final class TcpConditionConfig extends ConditionConfig
 {
     public final String cidr;
     public final String authority;
+    public final int[] ports;
 
     public TcpConditionConfig(
         String cidr,
-        String authority)
+        String authority,
+        int[] ports)
     {
         this.cidr = cidr;
         this.authority = authority;
+        this.ports = ports;
     }
 }

@@ -19,7 +19,7 @@ name: zilla
 type: application
 version: 0.0.0 # helm-maven-plugin -> configuration -> chartVersion
 description: Zilla The Event-Driven API Gateway
-icon: https://raw.githubusercontent.com/aklivity/zilla/develop/cloud/helm-chart/src/main/helm/Chart.yaml/logo.png
+icon: https://raw.githubusercontent.com/aklivity/zilla/develop/cloud/helm-chart/src/main/helm/logo.png
 home: https://github.com/aklivity/zilla
 sources:
   - https://github.com/aklivity/zilla/tree/develop/cloud/helm-chart/src/main/helm

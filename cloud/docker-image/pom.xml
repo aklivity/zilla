@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.50</version>
+    <version>0.9.51</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -345,6 +345,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>command-tune</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>exporter-otlp</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

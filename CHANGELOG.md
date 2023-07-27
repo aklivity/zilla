@@ -2,7 +2,29 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.49...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.50...HEAD)
+
+**Implemented enhancements:**
+
+- Enhance `tcp` binding to route by `port` [\#294](https://github.com/aklivity/zilla/issues/294)
+- Integrate OpenTelemetry collectors by exporting local metrics over OTLP [\#112](https://github.com/aklivity/zilla/issues/112)
+
+**Closed issues:**
+
+- Add redirect, server reference support to mqtt binding [\#302](https://github.com/aklivity/zilla/issues/302)
+- Add options to mqtt-kafa binding so we can change kafka topics [\#300](https://github.com/aklivity/zilla/issues/300)
+
+**Merged pull requests:**
+
+- Fix kafka cache cursor buffer copy [\#317](https://github.com/aklivity/zilla/pull/317) ([bmaidics](https://github.com/bmaidics))
+- README Formatting and wording changes [\#306](https://github.com/aklivity/zilla/pull/306) ([vordimous](https://github.com/vordimous))
+- Readme overhaul [\#305](https://github.com/aklivity/zilla/pull/305) ([llukyanov](https://github.com/llukyanov))
+- Support for tcp binding to route by port numbers [\#299](https://github.com/aklivity/zilla/pull/299) ([lukefallows](https://github.com/lukefallows))
+- Create OpenTelemetry exporter and refactor code [\#279](https://github.com/aklivity/zilla/pull/279) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.50](https://github.com/aklivity/zilla/tree/0.9.50) (2023-07-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.49...0.9.50)
 
 **Implemented enhancements:**
 

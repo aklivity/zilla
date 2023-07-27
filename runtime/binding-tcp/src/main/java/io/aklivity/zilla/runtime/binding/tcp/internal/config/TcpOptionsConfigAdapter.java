@@ -125,7 +125,7 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         return new TcpOptionsConfig(host, ports, backlog, nodelay, keepalive);
     }
 
-    private void adaptPortsValueFromJson(
+    static void adaptPortsValueFromJson(
         JsonValue value,
         IntHashSet ports)
     {
