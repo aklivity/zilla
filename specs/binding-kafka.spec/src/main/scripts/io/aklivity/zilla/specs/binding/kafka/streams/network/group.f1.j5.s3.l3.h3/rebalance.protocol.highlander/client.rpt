@@ -81,7 +81,7 @@ read  34                                                # size
       -1                                                # generated id
       0s                                                # protocol name
       0s                                                # leader id
-      10s "memberid-1"                                  # consumer member group id
+      10s "memberId-1"                                  # consumer member group id
       0                                                 # members
 
 write 115                               # size
@@ -92,7 +92,7 @@ write 115                               # size
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
-      10s "memberid-1"                  # consumer group member
+      10s "memberId-1"                  # consumer group member
       42s ${instanceId}                 # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
@@ -105,10 +105,10 @@ read  112                                               # size
       0s                                                # no error
       3                                                 # generated id
       10s "highlander"                                  # protocol name
-      10s "memberid-1"                                  # leader id
-      10s "memberid-1"                                  # consumer member group id
+      10s "memberId-1"                                  # leader id
+      10s "memberId-1"                                  # consumer member group id
       1                                                 # members
-         10s "memberid-1"                                  # consumer member group id
+         10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          0                                                 # metadata
 
@@ -119,10 +119,10 @@ write 101                                            # size
       5s "zilla"                                    # no client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberid-1"                              # consumer member group id
+      10s "memberId-1"                              # consumer member group id
       42s ${instanceId}                             # group instance id
       1                                             # assignments
-        10s "memberid-1"                             # consumer member group id
+        10s "memberId-1"                             # consumer member group id
         0                                            # metadata
 
 read  14                                                # size
@@ -138,7 +138,7 @@ write 81                                            # size
       5s "zilla"                                    # no client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberid-1"                              # consumer member group id
+      10s "memberId-1"                              # consumer member group id
       42s ${instanceId}                             # group instance id
 
 read  10                                                # size
@@ -154,7 +154,7 @@ write 115                               # size
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
-      10s "memberid-1"                  # consumer member group id
+      10s "memberId-1"                  # consumer member group id
       42s ${instanceId}                 # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
@@ -168,13 +168,13 @@ read  170                                               # size
       0s                                                # no error
       3                                                 # generated id
       10s "highlander"                                  # protocol name
-      10s "memberid-1"                                  # leader id
-      10s "memberid-1"                                  # consumer member group id
+      10s "memberId-1"                                  # leader id
+      10s "memberId-1"                                  # consumer member group id
       2                                                 # members
-         10s "memberid-1"                                  # consumer member group id
+         10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          0                                                 # metadata
-         10s "consumer-2"                                  # consumer member group id
+         10s "memberId-2"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          0                                                 # metadata
 
@@ -185,12 +185,12 @@ write 117                                           # size
       5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberid-1"                              # consumer member group id
+      10s "memberId-1"                              # consumer member group id
       42s ${instanceId}                             # group instance id
       2                                             # assignments
-        10s "memberid-1"                             # consumer member group id
+        10s "memberId-1"                             # consumer member group id
         0                                            # metadata
-        10s "consumer-2"                             # consumer member group id
+        10s "memberId-2"                             # consumer member group id
         0                                            # metadata
 
 read  14                                                # size
@@ -206,7 +206,7 @@ write 81                                            # size
       5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       1                                             # assignments
-        10s "memberid-1"                             # consumer member group id
+        10s "memberId-1"                             # consumer member group id
         42s ${instanceId}                            # group instance id
 
 read  70                                           # size
@@ -214,7 +214,7 @@ read  70                                           # size
       0                                            # throttle time
       0s                                           # no error
       1                                            # assignments
-        10s "memberid-1"                             # consumer member group id
+        10s "memberId-1"                             # consumer member group id
         42s [0..42]                                  # group instance id
 
 write close

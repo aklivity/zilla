@@ -69,7 +69,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<String> KAFKA_CLIENT_GROUP_INSTANCE_ID;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
-    public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID_SUPPLIER;
+    public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -109,10 +109,10 @@ public class KafkaConfiguration extends Configuration
                 KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_INSTANCE_ID = config.property("client.group.instance.id", UUID.randomUUID().toString());
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
-            KafkaConfiguration::rebalanceTimeoutDuration, "PT4S");
+            (c, v) -> Duration.parse(v), "PT4S");
         KAFKA_CLIENT_ID = config.property("client.id", "zilla");
-        KAFKA_CLIENT_INSTANCE_ID_SUPPLIER = config.property(InstanceIdSupplier.class, "client.instance.id.supplier",
-            KafkaConfiguration::decodeInstanceIdSupplier, KafkaConfiguration::defaultInstanceIdSupplier);
+        KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
+            KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CONFIG = config;
     }
 
@@ -290,13 +290,6 @@ public class KafkaConfiguration extends Configuration
         return KafkaCacheCleanupPolicy.valueOf(cleanupPolicy.toUpperCase());
     }
 
-    private static Duration rebalanceTimeoutDuration(
-        Configuration config,
-        String timeout)
-    {
-        return Duration.parse(timeout);
-    }
-
     public Supplier<String> nonceSupplier()
     {
         return KAFKA_CLIENT_SASL_SCRAM_NONCE.get(this)::get;
@@ -304,7 +297,7 @@ public class KafkaConfiguration extends Configuration
 
     public Supplier<String> clientInstanceIdSupplier()
     {
-        return KAFKA_CLIENT_INSTANCE_ID_SUPPLIER.get(this)::get;
+        return KAFKA_CLIENT_INSTANCE_ID.get(this)::get;
     }
 
     @FunctionalInterface
@@ -361,7 +354,7 @@ public class KafkaConfiguration extends Configuration
     {
     }
 
-    private static InstanceIdSupplier decodeInstanceIdSupplier(
+    private static InstanceIdSupplier decodeInstanceId(
         Configuration config,
         String value)
     {
@@ -401,7 +394,7 @@ public class KafkaConfiguration extends Configuration
         return null;
     }
 
-    private static InstanceIdSupplier defaultInstanceIdSupplier(
+    private static InstanceIdSupplier defaultInstanceId(
         Configuration config)
     {
         return () -> String.format("%s-%s", KAFKA_CLIENT_ID.get(config), UUID.randomUUID());

@@ -80,10 +80,10 @@ read  112                                               # size
       0s                                                # no error
       3                                                 # generated id
       10s "highlander"                                  # protocol name
-      10s "memberid-1"                                  # leader id
-      10s "memberid-1"                                  # consumer member group id
+      10s "memberId-1"                                  # leader id
+      10s "memberId-1"                                  # consumer member group id
       1                                                 # members
-         10s "memberid-1"                                  # consumer member group id
+         10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          0                                                 # metadata
 
@@ -94,10 +94,10 @@ write 101                                           # size
       5s "zilla"                                    # no client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberid-1"                              # consumer member group id
+      10s "memberId-1"                              # consumer member group id
       42s  ${instanceId}                            # group instance id
       1                                             # assignments
-        10s "memberid-1"                                 # consumer member group id
+        10s "memberId-1"                                 # consumer member group id
         0                                                # metadata
 
 read  14                                                # size
@@ -114,7 +114,7 @@ write 115                               # size
       4s "test"                         # consumer group
       45000                             # session timeout
       4000                              # rebalance timeout
-      10s "memberid-1"                  # consumer group member
+      10s "memberId-1"                  # consumer group member
       42s ${instanceId}                 # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
@@ -127,10 +127,10 @@ read  112                                               # size
       0s                                                # no error
       4                                                 # generated id
       10s "highlander"                                  # protocol name
-      10s "memberid-1"                                  # leader id
-      10s "memberid-1"                                  # consumer member group id
+      10s "memberId-1"                                  # leader id
+      10s "memberId-1"                                  # consumer member group id
       1                                                 # members
-         10s "memberid-1"                                  # consumer member group id
+         10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          0                                                 # metadata
 
@@ -141,10 +141,10 @@ write 101                                           # size
       5s "zilla"                                    # no client id
       4s "test"                                     # consumer group
       4                                             # generation id
-      10s "memberid-1"                              # consumer member group id
+      10s "memberId-1"                              # consumer member group id
       42s ${instanceId}                             # group instance id
       1                                             # assignments
-        10s "memberid-1"                                 # consumer member group id
+        10s "memberId-1"                                 # consumer member group id
         0                                                # metadata
 
 read  14                                                # size

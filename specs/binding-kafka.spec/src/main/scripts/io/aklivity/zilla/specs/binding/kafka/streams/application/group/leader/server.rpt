@@ -36,8 +36,8 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("memberid-1")
-                                 .memberId("memberid-1")
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
                                  .build()
                              .build()}
 write flush
