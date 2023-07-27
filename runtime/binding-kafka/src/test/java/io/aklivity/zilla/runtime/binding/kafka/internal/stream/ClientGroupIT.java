@@ -106,9 +106,9 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/highlander.protocol.stream.takeover/client",
-        "${net}/highlander.protocol.stream.takeover/server"})
-    public void shouldHighlanderProtocolStreamTakeover() throws Exception
+        "${app}/rebalance.protocol.highlander.migrate.leader/client",
+        "${net}/rebalance.protocol.highlander.migrate.leader/server"})
+    public void shouldRebalanceProtocolHighlanderMigrateLeader() throws Exception
     {
         k3po.finish();
     }
