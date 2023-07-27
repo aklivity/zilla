@@ -343,7 +343,7 @@ public class KafkaConfiguration extends Configuration
     }
 
     @FunctionalInterface
-    private interface InstanceIdSupplier extends Supplier<String>
+    public interface InstanceIdSupplier extends Supplier<String>
     {
     }
 
