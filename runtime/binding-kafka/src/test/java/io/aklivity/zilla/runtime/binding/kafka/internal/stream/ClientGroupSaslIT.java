@@ -32,7 +32,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class ClientGroupSaslIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/group.sasl")
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/group.sasl.f1.j5.s3.l3.h3.handshake.v1")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/group");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
