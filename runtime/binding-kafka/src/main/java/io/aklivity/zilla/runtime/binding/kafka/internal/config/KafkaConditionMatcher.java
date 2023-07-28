@@ -21,17 +21,20 @@ import java.util.regex.Pattern;
 public final class KafkaConditionMatcher
 {
     private final Matcher topicMatch;
+    private final Matcher grouoIdMatch;
 
     public KafkaConditionMatcher(
         KafkaConditionConfig condition)
     {
         this.topicMatch = condition.topic != null ? asMatcher(condition.topic) : null;
+        this.grouoIdMatch = condition.groupId != null ? asMatcher(condition.groupId) : null;
     }
 
     public boolean matches(
-        String topic)
+        String topic,
+        String groupId)
     {
-        return matchesTopic(topic);
+        return matchesTopic(topic) && matchesGroupId(groupId);
     }
 
     private boolean matchesTopic(
@@ -40,9 +43,18 @@ public final class KafkaConditionMatcher
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
     }
 
+    private boolean matchesGroupId(
+        String groupId)
+    {
+        return this.grouoIdMatch == null || this.grouoIdMatch.reset(groupId).matches();
+    }
+
     private static Matcher asMatcher(
         String wildcard)
     {
-        return Pattern.compile(wildcard.replace(".", "\\.").replace("*", ".*")).matcher("");
+        return Pattern.compile(wildcard
+            .replace(".", "\\.")
+            .replace("*", ".*"))
+            .matcher("");
     }
 }

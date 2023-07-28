@@ -336,7 +336,145 @@ scope protocol
 
             struct ProduceResponseTrailer
             {
-                int32 thottleTimeMillis;
+                int32 throttleTimeMillis;
+            }
+        }
+
+        scope group
+        {
+            struct FindCoordinatorRequest
+            {
+                string16 key;
+                int8 keyType;
+            }
+
+            struct FindCoordinatorResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                string16 errorMessage = null;
+                int32 nodeId;
+                string16 host;
+                int32 port;
+            }
+
+            struct JoinGroupRequest
+            {
+                string16 groupId;
+                int32 sessionTimeoutMillis;
+                int32 rebalanceTimeoutMillis;
+                string16 memberId;
+                string16 groupInstanceId = null;
+                string16 protocolType;
+                int32 protocolCount;
+            }
+
+            struct ProtocolMetadata
+            {
+                string16 name;
+                uint32 metadataLength;
+                octets[metadataLength] metadata;
+            }
+
+            struct RangeProtocol
+            {
+                int32 version;
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct JoinGroupResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                int32 generatedId;
+                string16 protocolName;
+                string16 leader;
+                string16 memberId;
+                int32 memberCount;
+            }
+
+            struct MemberMetadata
+            {
+                string16 memberId;
+                string16 groupInstanceId = null;
+                uint32 length;
+                octets[length] metadata;
+            }
+
+            struct SyncGroupRequest
+            {
+                string16 groupId;
+                int32 generatedId;
+                string16 memberId;
+                string16 groupInstanceId = null;
+                int32 assignmentCount;
+            }
+
+            struct Assignment
+            {
+               string16 memberId;
+               uint32 length;
+               octets[length] value;
+            }
+
+            struct TopicPartition
+            {
+                int32 version;
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct Partition
+            {
+                int32 partitionId;
+                int32 offsetId;
+            }
+
+            struct SyncGroupResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                uint32 assignmentLength;
+                octets[assignmentLength] assignment;
+            }
+
+            struct HeartbeatRequest
+            {
+                string16 groupId;
+                int32 generatedId;
+                string16 memberId;
+                string16 groupInstanceId = null;
+            }
+
+            struct HeartbeatResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+            }
+
+            struct LeaveGroupRequest
+            {
+                string16 groupId;
+                int32 memberCount;
+            }
+
+            struct LeaveGroupResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                int32 memberCount;
+            }
+
+            struct LeaveMember
+            {
+                string16 memberId;
+                string16 groupInstanceId = null;
             }
         }
 

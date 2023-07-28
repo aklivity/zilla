@@ -50,7 +50,7 @@ public class EngineContextIT
 
     @Test
     @Configuration("server.yaml")
-    public void shouldFetchCounterValue() throws Exception
+    public void shouldFetchCounterValue()
     {
         // GIVEN
         LongConsumer writer0 = engine.counterWriter("test", "net0", "test.counter", 0);

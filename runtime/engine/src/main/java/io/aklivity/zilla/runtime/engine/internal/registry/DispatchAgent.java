@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
@@ -106,9 +105,8 @@ import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -123,6 +121,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -199,7 +198,9 @@ public class DispatchAgent implements EngineContext, Agent
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
-    private final CountersLayout countersLayout;
+    private final ScalarsLayout countersLayout;
+    private final ScalarsLayout gaugesLayout;
+    private final HistogramsLayout histogramsLayout;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -219,7 +220,9 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<MetricGroup> metricGroups,
-        int index)
+        Collector collector,
+        int index,
+        boolean readonly)
     {
         this.localIndex = index;
         this.config = config;
@@ -233,22 +236,24 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        this.countersLayout = new CountersLayout.Builder()
+        this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(CREATE_READ_WRITE)
+                .readonly(readonly)
+                .label("counters")
                 .build();
 
-        final GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+        this.gaugesLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(CREATE_READ_WRITE)
+                .readonly(readonly)
+                .label("gauges")
                 .build();
 
-        final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
+        this.histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
                 .capacity(config.counterBufferCapacity())
-                .mode(CREATE_READ_WRITE)
+                .readonly(readonly)
                 .build();
 
         metricWriterSuppliers = new Object2ObjectHashMap<>();
@@ -259,14 +264,14 @@ public class DispatchAgent implements EngineContext, Agent
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
                 .streamsCapacity(config.streamsBufferCapacity())
-                .readonly(false)
+                .readonly(readonly)
                 .build();
 
         final BufferPoolLayout bufferPoolLayout = new BufferPoolLayout.Builder()
                 .path(config.directory().resolve(String.format("buffers%d", index)))
                 .slotCapacity(config.bufferSlotCapacity())
                 .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
-                .readonly(false)
+                .readonly(readonly)
                 .build();
 
         this.agentName = String.format("engine/data#%d", index);
@@ -369,7 +374,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
                 labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
-                this::supplyMetricWriter, this::detachStreams);
+                this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
@@ -397,16 +402,16 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public String supplyNamespace(
-        long bindingId)
+        long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.namespaceId(bindingId));
+        return labels.lookupLabel(NamespacedId.namespaceId(namespacedId));
     }
 
     @Override
     public String supplyLocalName(
-        long bindingId)
+        long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.localId(bindingId));
+        return labels.lookupLabel(NamespacedId.localId(namespacedId));
     }
 
     @Override
@@ -531,6 +536,37 @@ public class DispatchAgent implements EngineContext, Agent
         long metricId)
     {
         return countersLayout.supplyReader(bindingId, metricId);
+    }
+
+    @Override
+    public LongSupplier supplyGauge(
+        long bindingId,
+        long metricId)
+    {
+        return gaugesLayout.supplyReader(bindingId, metricId);
+    }
+
+    @Override
+    public LongSupplier[] supplyHistogram(
+        long bindingId,
+        long metricId)
+    {
+        return histogramsLayout.supplyReaders(bindingId, metricId);
+    }
+
+    public long[][] counterIds()
+    {
+        return countersLayout.getIds();
+    }
+
+    public long[][] gaugeIds()
+    {
+        return gaugesLayout.getIds();
+    }
+
+    public long[][] histogramIds()
+    {
+        return histogramsLayout.getIds();
     }
 
     @Override
@@ -780,6 +816,23 @@ public class DispatchAgent implements EngineContext, Agent
     {
         return countersLayout.supplyWriter(bindingId, metricId);
     }
+
+    // required for testing
+    public LongConsumer supplyGaugeWriter(
+        long bindingId,
+        long metricId)
+    {
+        return gaugesLayout.supplyWriter(bindingId, metricId);
+    }
+
+    // required for testing
+    public LongConsumer supplyHistogramWriter(
+        long bindingId,
+        long metricId)
+    {
+        return histogramsLayout.supplyWriter(bindingId, metricId);
+    }
+
 
     private void onSystemMessage(
         int msgTypeId,

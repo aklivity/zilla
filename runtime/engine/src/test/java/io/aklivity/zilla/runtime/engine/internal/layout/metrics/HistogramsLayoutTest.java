@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
 
-import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
@@ -41,7 +40,7 @@ public class HistogramsLayoutTest
         HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(path)
                 .capacity(8192)
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .build();
 
         LongConsumer writer = histogramsLayout.supplyWriter(11L, 42L);
@@ -126,7 +125,7 @@ public class HistogramsLayoutTest
         HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(path)
                 .capacity(8192)
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .build();
 
         LongConsumer writer1 = histogramsLayout.supplyWriter(11L, 42L);
@@ -185,7 +184,7 @@ public class HistogramsLayoutTest
         HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(path)
                 .capacity(1559) // we'd need 1560 bytes here for the0 3 records
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .build();
 
         histogramsLayout.supplyWriter(11L, 42L);
@@ -208,7 +207,7 @@ public class HistogramsLayoutTest
         HistogramsLayout countersLayout = new HistogramsLayout.Builder()
                 .path(path)
                 .capacity(8192)
-                .mode(CREATE_READ_WRITE)
+                .readonly(false)
                 .build();
 
         countersLayout.supplyWriter(11L, 42L);

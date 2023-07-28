@@ -87,6 +87,8 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchBeg
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFlushExFW;
@@ -890,6 +892,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaBeginExFW.KIND_DESCRIBE:
             onKafkaDescribeBeginEx(offset, timestamp, kafkaBeginEx.describe());
             break;
+        case KafkaBeginExFW.KIND_GROUP:
+            onKafkaGroupBeginEx(offset, timestamp, kafkaBeginEx.group());
+            break;
         case KafkaBeginExFW.KIND_FETCH:
             onKafkaFetchBeginEx(offset, timestamp, kafkaBeginEx.fetch());
             break;
@@ -944,6 +949,19 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, format("[describe] %s", topic.asString()));
         configs.forEach(c -> out.printf(verboseFormat, index, offset, timestamp, c.asString()));
+    }
+
+    private void onKafkaGroupBeginEx(
+        int offset,
+        long timestamp,
+        KafkaGroupBeginExFW group)
+    {
+        String16FW groupId = group.groupId();
+        String16FW protocol = group.protocol();
+        int timeout = group.timeout();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s %d",
+            groupId.asString(), protocol.asString(), timeout));
     }
 
     private void onKafkaFetchBeginEx(
@@ -1062,6 +1080,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaDataExFW.KIND_DESCRIBE:
             onKafkaDescribeDataEx(offset, timestamp, kafkaDataEx.describe());
             break;
+        case KafkaDataExFW.KIND_GROUP:
+            onKafkaGroupDataEx(offset, timestamp, kafkaDataEx.group());
+            break;
         case KafkaDataExFW.KIND_FETCH:
             onKafkaFetchDataEx(offset, timestamp, kafkaDataEx.fetch());
             break;
@@ -1087,6 +1108,17 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, "[describe]");
         configs.forEach(c -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", c.name().asString(), c.value().asString())));
+    }
+
+    private void onKafkaGroupDataEx(
+        int offset,
+        long timestamp,
+        KafkaGroupDataExFW group)
+    {
+        String16FW leader = group.leaderId();
+        String16FW member = group.memberId();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s", leader.asString(), member.asString()));
     }
 
     private void onKafkaFetchDataEx(

@@ -39,6 +39,7 @@ public class EngineBuilder
     private Configuration config;
     private ErrorHandler errorHandler;
     private Collection<EngineAffinity> affinities;
+    private boolean readonly;
 
     EngineBuilder()
     {
@@ -65,6 +66,12 @@ public class EngineBuilder
         ErrorHandler errorHandler)
     {
         this.errorHandler = requireNonNull(errorHandler);
+        return this;
+    }
+
+    public EngineBuilder readonly()
+    {
+        this.readonly = true;
         return this;
     }
 
@@ -114,6 +121,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities, readonly);
     }
 }

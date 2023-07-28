@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 import org.agrona.ErrorHandler;
@@ -171,6 +172,66 @@ public final class EngineRule implements TestRule
         return engine.context();
     }
 
+    public long[][] counterIds()
+    {
+        return engine.counterIds();
+    }
+
+    public LongSupplier counter(
+        long bindingId,
+        long metricId)
+    {
+        return engine.counter(bindingId, metricId);
+    }
+
+    public LongConsumer counterWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        return engine.counterWriter(bindingId, metricId, core);
+    }
+
+    public long[][] gaugeIds()
+    {
+        return engine.gaugeIds();
+    }
+
+    public LongSupplier gauge(
+        long bindingId,
+        long metricId)
+    {
+        return engine.gauge(bindingId, metricId);
+    }
+
+    public LongConsumer gaugeWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        return engine.gaugeWriter(bindingId, metricId, core);
+    }
+
+    public long[][] histogramIds()
+    {
+        return engine.histogramIds();
+    }
+
+    public LongSupplier[] histogram(
+        long bindingId,
+        long metricId)
+    {
+        return engine.histogram(bindingId, metricId);
+    }
+
+    public LongConsumer histogramWriter(
+        long bindingId,
+        long metricId,
+        int core)
+    {
+        return engine.histogramWriter(bindingId, metricId, core);
+    }
+
     public LongConsumer counterWriter(
         String namespace,
         String binding,
@@ -178,6 +239,12 @@ public final class EngineRule implements TestRule
         int core)
     {
         return engine.context().counterWriter(namespace, binding, metric, core);
+    }
+
+    public int supplyLabelId(
+        String label)
+    {
+        return engine.supplyLabelId(label);
     }
 
     private EngineConfiguration configuration()

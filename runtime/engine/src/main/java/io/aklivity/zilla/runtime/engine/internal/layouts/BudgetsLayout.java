@@ -32,7 +32,7 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class BudgetsLayout extends Layout
+public final class BudgetsLayout implements AutoCloseable
 {
     public static final int OFFSET_BUDGET_ID = 0;
     public static final int SIZEOF_BUDGET_ID = Long.BYTES;
@@ -101,7 +101,7 @@ public final class BudgetsLayout extends Layout
         return (index & 0x7FFF_FFFF) << SIZEOF_BUDGET_ENTRY_SHIFT;
     }
 
-    public static final class Builder extends Layout.Builder<BudgetsLayout>
+    public static final class Builder
     {
         private Path path;
         private int capacity;
@@ -128,7 +128,6 @@ public final class BudgetsLayout extends Layout
             return this;
         }
 
-        @Override
         public BudgetsLayout build()
         {
             final File budgets = path.toFile();

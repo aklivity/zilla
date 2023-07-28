@@ -28,7 +28,7 @@ import org.agrona.CloseHelper;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.internal.buffer.DefaultBufferPool;
 
-public final class BufferPoolLayout extends Layout
+public final class BufferPoolLayout implements AutoCloseable
 {
     private final DefaultBufferPool bufferPool;
 
@@ -49,7 +49,7 @@ public final class BufferPoolLayout extends Layout
         unmap(bufferPool.poolBuffer().byteBuffer());
     }
 
-    public static final class Builder extends Layout.Builder<BufferPoolLayout>
+    public static final class Builder
     {
         private int slotCount;
         private int slotCapacity;
@@ -84,7 +84,6 @@ public final class BufferPoolLayout extends Layout
             return this;
         }
 
-        @Override
         public BufferPoolLayout build()
         {
             final File layoutFile = path.toFile();

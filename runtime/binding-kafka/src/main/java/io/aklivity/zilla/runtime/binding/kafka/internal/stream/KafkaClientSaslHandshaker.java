@@ -113,8 +113,8 @@ public abstract class KafkaClientSaslHandshaker
         protected final KafkaSaslConfig sasl;
         protected final long originId;
         protected final long routedId;
-        protected final long initialId;
-        protected final long replyId;
+        protected long initialId;
+        protected long replyId;
 
         protected int nextRequestId;
 

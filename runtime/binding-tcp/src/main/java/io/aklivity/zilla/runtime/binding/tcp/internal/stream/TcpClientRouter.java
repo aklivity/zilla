@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -97,12 +98,16 @@ public final class TcpClientRouter
                 ProxyInfoFW authorityInfo = infos.matchFirst(i -> i.kind() == AUTHORITY);
                 if (authorityInfo != null && route.matchesExplicit(r -> r.authority != null))
                 {
-                    final List<InetAddress> authorities = Arrays.asList(resolveHost.apply(authorityInfo.authority().asString()));
-                    for (InetAddress authority : authorities)
+                    final List<InetSocketAddress> authorities = Arrays
+                        .stream(resolveHost.apply(authorityInfo.authority().asString()))
+                        .map(a -> new InetSocketAddress(a, port))
+                        .collect(Collectors.toList());
+
+                    for (InetSocketAddress authority : authorities)
                     {
                         if (route.matchesExplicit(authority))
                         {
-                            resolved = new InetSocketAddress(authority, port);
+                            resolved = authority;
                             break;
                         }
                     }
@@ -121,7 +126,10 @@ public final class TcpClientRouter
 
             if (resolved == null && options.host != null && !"*".equals(options.host))
             {
-                final List<InetAddress> host = Arrays.asList(resolveHost.apply(options.host));
+                final List<InetSocketAddress> host = Arrays
+                    .stream(resolveHost.apply(options.host))
+                    .map(a -> new InetSocketAddress(a, port))
+                    .collect(Collectors.toList());
 
                 for (TcpRouteConfig route : binding.routes)
                 {
@@ -158,7 +166,7 @@ public final class TcpClientRouter
     private InetSocketAddress resolve(
         ProxyAddressFW address,
         long authorization,
-        Predicate<? super InetAddress> filter)
+        Predicate<? super InetSocketAddress> filter)
     {
         InetSocketAddress resolved = null;
 
@@ -192,19 +200,19 @@ public final class TcpClientRouter
 
     private InetSocketAddress resolveInet(
         ProxyAddressInetFW address,
-        Predicate<? super InetAddress> filter)
+        Predicate<? super InetSocketAddress> filter)
     {
         return Arrays
                 .stream(resolveHost.apply(address.destination().asString()))
+                .map(a -> new InetSocketAddress(a, address.destinationPort()))
                 .filter(filter)
                 .findFirst()
-                .map(a -> new InetSocketAddress(a, address.destinationPort()))
                 .orElse(null);
     }
 
     private InetSocketAddress resolveInet4(
         ProxyAddressInet4FW address,
-        Predicate<? super InetAddress> filter) throws UnknownHostException
+        Predicate<? super InetSocketAddress> filter) throws UnknownHostException
     {
         OctetsFW destination = address.destination();
         int destinationPort = address.destinationPort();
@@ -213,15 +221,14 @@ public final class TcpClientRouter
         destination.buffer().getBytes(destination.offset(), ipv4);
 
         return Optional
-                .of(InetAddress.getByAddress(ipv4))
+                .of(new InetSocketAddress(InetAddress.getByAddress(ipv4), destinationPort))
                 .filter(filter)
-                .map(a -> new InetSocketAddress(a, destinationPort))
                 .orElse(null);
     }
 
     private InetSocketAddress resolveInet6(
         ProxyAddressInet6FW address,
-        Predicate<? super InetAddress> filter) throws UnknownHostException
+        Predicate<? super InetSocketAddress> filter) throws UnknownHostException
     {
         OctetsFW destination = address.destination();
         int destinationPort = address.destinationPort();
@@ -230,9 +237,8 @@ public final class TcpClientRouter
         destination.buffer().getBytes(destination.offset(), ipv6);
 
         return Optional
-                .of(InetAddress.getByAddress(ipv6))
+                .of(new InetSocketAddress(InetAddress.getByAddress(ipv6), destinationPort))
                 .filter(filter)
-                .map(a -> new InetSocketAddress(a, destinationPort))
                 .orElse(null);
     }
 }

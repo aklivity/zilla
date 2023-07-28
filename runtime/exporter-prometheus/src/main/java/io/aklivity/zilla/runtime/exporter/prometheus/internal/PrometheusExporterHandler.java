@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
 
@@ -38,60 +35,57 @@ import com.sun.net.httpserver.HttpServer;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;
+import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.PrometheusMetricDescriptor;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.printer.PrometheusMetricsPrinter;
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
-    private final LayoutManager manager;
-    private final PrometheusMetricDescriptor metricDescriptor;
     private final EngineContext context;
     private final PrometheusEndpointConfig[] endpoints;
     private final Map<Integer, HttpServer> servers;
+    private final Collector collector;
 
-    private Map<Metric.Kind, List<MetricsLayout>> layouts;
-    private MetricsProcessor metrics;
+    private PrometheusMetricsPrinter printer;
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
         EngineContext context,
-        PrometheusExporterConfig exporter)
+        PrometheusExporterConfig exporter,
+        Collector collector)
     {
-        this.manager = new LayoutManager(config.directory());
-        this.metricDescriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.context = context;
         this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
+        this.collector = collector;
         this.servers = new Int2ObjectHashMap<>();
     }
 
     @Override
     public void start()
     {
-        try
+        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
+        List<MetricRecord> records = metrics.records();
+        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
+        printer = new PrometheusMetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description);
+
+        for (PrometheusEndpointConfig endpoint : endpoints)
         {
-            layouts = Map.of(
-                COUNTER, manager.countersLayouts(),
-                GAUGE, manager.gaugesLayouts(),
-                HISTOGRAM, manager.histogramsLayouts()
-            );
-            metrics = new MetricsProcessor(layouts, context::supplyLocalName, metricDescriptor::kind,
-                metricDescriptor::name, metricDescriptor::description, null, null);
-            for (PrometheusEndpointConfig endpoint : endpoints)
+            HttpServer server = null;
+            try
             {
-                HttpServer server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
-                server.createContext(endpoint.path, new MetricsHttpHandler());
-                server.start();
-                servers.put(endpoint.port, server);
+                server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
             }
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+            server.createContext(endpoint.path, new MetricsHttpHandler());
+            server.start();
+            servers.put(endpoint.port, server);
         }
     }
 
@@ -109,10 +103,6 @@ public class PrometheusExporterHandler implements ExporterHandler
             HttpServer server = servers.remove(port);
             server.stop(0);
         }
-        if (layouts != null)
-        {
-            layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
-        }
     }
 
     private String generateOutput()
@@ -120,7 +110,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         String output = "";
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
-        metrics.print(out);
+        printer.print(out);
         try
         {
             output = os.toString("UTF8");
