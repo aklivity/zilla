@@ -58,8 +58,8 @@ public class CacheGroupIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/rebalance/client",
-        "${app}/rebalance/server"})
+        "${app}/rebalance.protocol.highlander/client",
+        "${app}/rebalance.protocol.highlander/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRebalanceLeader() throws Exception
     {
