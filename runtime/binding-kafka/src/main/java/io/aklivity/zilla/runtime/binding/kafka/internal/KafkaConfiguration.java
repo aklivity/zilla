@@ -20,9 +20,12 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -63,6 +66,9 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
+    public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final PropertyDef<String> KAFKA_CLIENT_ID;
+    public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -100,6 +106,11 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
                 KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
+        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
+            (c, v) -> Duration.parse(v), "PT4S");
+        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
+            KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CONFIG = config;
     }
 
@@ -248,6 +259,16 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.getAsInt(this);
     }
 
+    public String clientId()
+    {
+        return KAFKA_CLIENT_ID.get(this);
+    }
+
+    public Duration clientGroupRebalanceTimeout()
+    {
+        return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.get(this);
+    }
+
     private static Path cacheDirectory(
         Configuration config,
         String cacheDirectory)
@@ -265,6 +286,11 @@ public class KafkaConfiguration extends Configuration
     public Supplier<String> nonceSupplier()
     {
         return KAFKA_CLIENT_SASL_SCRAM_NONCE.get(this)::get;
+    }
+
+    public Supplier<String> clientInstanceIdSupplier()
+    {
+        return KAFKA_CLIENT_INSTANCE_ID.get(this)::get;
     }
 
     @FunctionalInterface
@@ -314,5 +340,56 @@ public class KafkaConfiguration extends Configuration
     {
         return () ->
                  new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
+    }
+
+    @FunctionalInterface
+    public interface InstanceIdSupplier extends Supplier<String>
+    {
+    }
+
+    private static InstanceIdSupplier decodeInstanceId(
+        Configuration config,
+        String value)
+    {
+        try
+        {
+            String className = value.substring(0, value.indexOf("$$Lambda"));
+            Class<?> lambdaClass = Class.forName(className);
+
+            Method targetMethod = null;
+            for (Method method : lambdaClass.getDeclaredMethods())
+            {
+                if (method.isSynthetic())
+                {
+                    targetMethod = method;
+                    break;
+                }
+            }
+
+            Method finalTargetMethod = targetMethod;
+            return () ->
+            {
+                try
+                {
+                    finalTargetMethod.setAccessible(true);
+                    return (String) finalTargetMethod.invoke(null);
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                }
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+        return null;
+    }
+
+    private static InstanceIdSupplier defaultInstanceId(
+        Configuration config)
+    {
+        return () -> String.format("%s-%s", KAFKA_CLIENT_ID.get(config), UUID.randomUUID());
     }
 }
