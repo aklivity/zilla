@@ -42,16 +42,16 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final String NAMESPACES_NAME = "references";
     private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";
+    private static final String CATALOGS_NAME = "catalogs";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
-    private static final String CATALOG_NAME = "catalog";
 
     private static final List<NamespaceRef> NAMESPACES_DEFAULT = emptyList();
     private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
+    private static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     private static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
     private static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
-    private static final List<CatalogConfig> CATALOG_DEFAULT = emptyList();
 
     private final NamspaceRefAdapter reference;
     private final TelemetryAdapter telemetry;
@@ -111,11 +111,11 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             object.add(NAMESPACES_NAME, references);
         }
 
-        if (!CATALOG_DEFAULT.equals(config.catalogs))
+        if (!CATALOGS_DEFAULT.equals(config.catalogs))
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
             config.catalogs.forEach(s -> catalogs.add(s.name, catalog.adaptToJson(s)));
-            object.add(CATALOG_NAME, catalogs);
+            object.add(CATALOGS_NAME, catalogs);
         }
 
         return object.build();
@@ -152,13 +152,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
                     .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
                     .collect(Collectors.toList())
                 : VAULTS_DEFAULT;
-        List<CatalogConfig> catalogs = object.containsKey(CATALOG_NAME)
-                ? object.getJsonObject(CATALOG_NAME)
+        List<CatalogConfig> catalogs = object.containsKey(CATALOGS_NAME)
+                ? object.getJsonObject(CATALOGS_NAME)
                 .entrySet()
                 .stream()
                 .map(e -> catalog.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
                 .collect(Collectors.toList())
-                : CATALOG_DEFAULT;
+                : CATALOGS_DEFAULT;
 
         return new NamespaceConfig(name, references, telemetry0, bindings, guards, vaults, catalogs);
     }

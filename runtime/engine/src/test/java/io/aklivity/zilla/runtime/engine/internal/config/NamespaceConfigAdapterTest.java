@@ -243,7 +243,7 @@ public class NamespaceConfigAdapterTest
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"catalog\":{\"default\":{\"type\":\"test\"}}}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"catalogs\":{\"default\":{\"type\":\"test\"}}}"));
     }
 
     @Test
