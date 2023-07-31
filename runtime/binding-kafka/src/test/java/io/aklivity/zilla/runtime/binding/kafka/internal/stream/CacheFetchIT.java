@@ -103,6 +103,17 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/compacted.message.with.message.no.cache.init/client",
+        "${app}/compact.message.with.message/server"})
+    public void shouldCompactMessageWithMessageNoCacheInit() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/compacted.message.with.tombstone/client",
         "${app}/compact.message.with.tombstone/server"})
     public void shouldCompactMessageWithTombstone() throws Exception

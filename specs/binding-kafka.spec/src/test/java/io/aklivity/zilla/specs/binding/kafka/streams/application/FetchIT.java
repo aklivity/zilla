@@ -477,6 +477,16 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/compacted.message.with.message.no.cache.init/client",
+        "${app}/compacted.message.with.message.no.cache.init/server"})
+    public void shouldReceiveMessageAfterCompactedMessageNoCacheInit() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "${app}/compacted.message.with.tombstone/client",
         "${app}/compacted.message.with.tombstone/server"})
     public void shouldReceiveTombstoneAfterCompactedMessage() throws Exception
