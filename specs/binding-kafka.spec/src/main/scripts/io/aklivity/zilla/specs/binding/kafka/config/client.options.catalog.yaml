@@ -23,17 +23,16 @@ bindings:
     options:
       catalog:
         test0:
-          topic: items-requests
-          strategy:
-            value: TopicRecordNameStrategy
-          id: 1
-          version: latest
-          key: false
-          serializer:
-            key: StringDeserializer
-            value: KafkaAvroDeserializer
-          deserializer:
-            key: StringDeserializer
-            value: KafkaAvroDeserializer
+          topic: test
+          key:
+            strategy: topic
+            version: latest
+            id: 1
+          value:
+            strategy: topic
+            version: latest
+            id: 2
     routes:
       - exit: net0
+        when:
+          - topic: test

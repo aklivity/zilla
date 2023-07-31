@@ -70,9 +70,9 @@
             },
             "additionalProperties": false
         },
-        "catalog":
+        "catalogs":
         {
-            "title": "Catalog",
+            "title": "Catalogs",
             "type": "object",
             "patternProperties":
             {
@@ -201,7 +201,7 @@
                 {
                     "title": "Type",
                     "type": "string",
-                    "enum": []
+                    "enum": ["test"]
                 },
                 "options":
                 {

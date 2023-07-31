@@ -604,6 +604,14 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public CatalogHandler supplyCatalog(
+        long catalogId)
+    {
+        CatalogRegistry catalog = configuration.resolveCatalog(catalogId);
+        return catalog != null ? catalog.handler() : null;
+    }
+
+    @Override
     public URL resolvePath(
         String path)
     {
@@ -774,14 +782,6 @@ public class DispatchAgent implements EngineContext, Agent
                 runner.close();
             }
         }
-    }
-
-    @Override
-    public CatalogHandler supplyCatalog(
-        long catalogId)
-    {
-        CatalogRegistry catalog = configuration.resolveCatalog(catalogId);
-        return catalog != null ? catalog.handler() : null;
     }
 
     @Override

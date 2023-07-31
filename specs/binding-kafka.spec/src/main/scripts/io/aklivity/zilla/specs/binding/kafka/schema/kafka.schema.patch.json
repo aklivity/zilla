@@ -94,33 +94,35 @@
                                         {
                                             "type": "string"
                                         },
-                                        "strategy":
-                                        {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
-                                            {
-                                                "key":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "value":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        },
-                                        "version":
-                                        {
-                                            "type": "string"
-                                        },
-                                        "id":
-                                        {
-                                            "type": "integer"
-                                        },
                                         "key":
                                         {
-                                            "type": "boolean"
+                                            "strategy":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "version":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "id":
+                                            {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "value":
+                                        {
+                                            "strategy":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "version":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "id":
+                                            {
+                                                "type": "integer"
+                                            }
                                         }
                                     }
                                 },

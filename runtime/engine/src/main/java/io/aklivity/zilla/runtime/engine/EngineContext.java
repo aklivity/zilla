@@ -114,6 +114,9 @@ public interface EngineContext
     VaultHandler supplyVault(
         long vaultId);
 
+    CatalogHandler supplyCatalog(
+        long catalogId);
+
     URL resolvePath(
         String path);
 
@@ -125,7 +128,4 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
-
-    CatalogHandler supplyCatalog(
-            long catalogId);
 }

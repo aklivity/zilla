@@ -42,6 +42,7 @@ import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
@@ -230,6 +231,19 @@ public class NamespaceConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithCatalog()
+    {
+        CatalogConfig catalog = new CatalogConfig("default", "test", null);
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null,
+                emptyList(), emptyList(), emptyList(), singletonList(catalog));
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"catalog\":{\"default\":{\"type\":\"test\"}}}"));
     }
 
     @Test
