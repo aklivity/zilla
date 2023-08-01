@@ -18,7 +18,7 @@ FROM eclipse-temurin:17-alpine AS build
 COPY maven /root/.m2/repository
 
 COPY zpmw zpmw
-COPY zpm.json zpm.json.template
+COPY zpm.json.template zpm.json.template
 
 RUN apk add --no-cache gettext
 RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
