@@ -130,4 +130,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/ignore.heartbeat.before.handshake/client",
+        "${net}/ignore.heartbeat.before.handshake/server"})
+    public void shouldIgnoreHeartbeatBeforeHandshakeComplete() throws Exception
+    {
+        k3po.finish();
+    }
 }
