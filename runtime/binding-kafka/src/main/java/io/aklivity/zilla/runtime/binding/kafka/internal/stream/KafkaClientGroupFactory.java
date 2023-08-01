@@ -2623,14 +2623,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doHeartbeat(
             long traceId)
         {
-            if (heartbeatRequestId != NO_CANCEL_ID)
+            if (encoder != encodeJoinGroupRequest)
             {
-                signaler.cancel(heartbeatRequestId);
-                heartbeatRequestId = NO_CANCEL_ID;
-            }
+                if (heartbeatRequestId != NO_CANCEL_ID)
+                {
+                    signaler.cancel(heartbeatRequestId);
+                    heartbeatRequestId = NO_CANCEL_ID;
+                }
 
-            encoder = encodeHeartbeatRequest;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                encoder = encodeHeartbeatRequest;
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void doLeaveGroupRequest(
