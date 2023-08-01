@@ -40,6 +40,7 @@
     "io.aklivity.zilla:command-tune",
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:exporter-prometheus",
+    "io.aklivity.zilla:exporter-otlp",
     "io.aklivity.zilla:guard-jwt",
     "io.aklivity.zilla:metrics-stream",
     "io.aklivity.zilla:metrics-http",

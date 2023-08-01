@@ -15,15 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
+import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -33,12 +34,10 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
-
 public final class HistogramsLayout extends MetricsLayout
 {
     public static final int BUCKETS = 63;
-    public static final Map<Integer, Long> BUCKET_LIMITS = generateBucketLimits();
+    public static final long[] BUCKET_LIMITS = generateBucketLimits();
 
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
@@ -125,21 +124,23 @@ public final class HistogramsLayout extends MetricsLayout
     }
 
     // exclusive upper limits of each bucket
-    private static Map<Integer, Long> generateBucketLimits()
+    private static long[] generateBucketLimits()
     {
-        Map<Integer, Long> limits = new HashMap<>();
+        long[] limits = new long[BUCKETS];
         for (int i = 0; i < BUCKETS; i++)
         {
-            limits.put(i, 1L << (i + 1));
+            limits[i] = 1L << (i + 1);
         }
         return limits;
     }
 
-    public static final class Builder extends Layout.Builder<HistogramsLayout>
+    public static final class Builder
     {
+        public static final String HISTOGRAMS_LABEL = "histograms";
+
         private long capacity;
         private Path path;
-        private Mode mode;
+        private boolean readonly;
 
         public Builder capacity(
             long capacity)
@@ -155,22 +156,22 @@ public final class HistogramsLayout extends MetricsLayout
             return this;
         }
 
-        public Builder mode(
-            Mode mode)
+        public Builder readonly(
+            boolean readonly)
         {
-            this.mode = mode;
+            this.readonly = readonly;
             return this;
         }
 
-        @Override
         public HistogramsLayout build()
         {
             final File layoutFile = path.toFile();
-            if (mode == Mode.CREATE_READ_WRITE)
+            if (!readonly)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
             }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "histograms");
+            FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
+            MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, HISTOGRAMS_LABEL);
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new HistogramsLayout(atomicBuffer);
         }

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
@@ -49,13 +49,13 @@ public final class TcpRouteConfig
     }
 
     public boolean matches(
-        InetAddress address)
+        InetSocketAddress address)
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matches(address));
     }
 
     public boolean matchesExplicit(
-        InetAddress address)
+        InetSocketAddress address)
     {
         return when.stream().anyMatch(m -> m.matches(address));
     }

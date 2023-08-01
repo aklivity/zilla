@@ -19,7 +19,7 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-#  Zilla: A multi-protocol, event-native edge/service proxy
+#  🦎Zilla: A multi-protocol, event-native edge/service proxy
 
 Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 

@@ -39,6 +39,25 @@ public class ApplicationRoutingIT
 
     @Test
     @Specification({
+        "${app}/client.rejected.port.not.routed/client",
+        "${app}/client.rejected.port.not.routed/server"
+    })
+    public void shouldRejectClientWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.connect.with.port.extension/client",
+        "${app}/client.connect.with.port.extension/server" })
+    public void shouldConnectClientWithPortExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.connect.with.host.extension/client",
         "${app}/client.connect.with.host.extension/server" })
     public void shouldConnectClientWithHostExtension() throws Exception
