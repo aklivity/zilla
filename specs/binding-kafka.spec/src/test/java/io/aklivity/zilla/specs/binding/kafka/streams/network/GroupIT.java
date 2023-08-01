@@ -107,4 +107,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/ignore.heartbeat.before.handshake/client",
+        "${net}/ignore.heartbeat.before.handshake/server"})
+    public void shouldIgnoreHeartbeatBeforeHandshakeComplete() throws Exception
+    {
+        k3po.finish();
+    }
 }
