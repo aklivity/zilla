@@ -43,15 +43,14 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     private static final String WITH_NAME = "with";
     private static final String GUARDED_NAME = "guarded";
 
-    private int index;
     private final ConditionAdapter condition;
     private final WithAdapter with;
-    private ConfigAdapterContext context;
+
+    private int index;
 
     public RouteAdapter(
         ConfigAdapterContext context)
     {
-        this.context = context;
         condition = new ConditionAdapter();
         with = new WithAdapter();
     }

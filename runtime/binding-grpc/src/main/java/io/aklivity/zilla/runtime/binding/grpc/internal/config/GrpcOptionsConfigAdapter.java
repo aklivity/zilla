@@ -47,7 +47,6 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 {
     private static final String SERVICES_NAME = "services";
     private Function<String, String> readURL;
-    private ConfigAdapterContext context;
 
     @Override
     public Kind kind()
