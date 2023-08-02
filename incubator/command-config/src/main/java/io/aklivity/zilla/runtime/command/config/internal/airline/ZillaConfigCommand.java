@@ -18,9 +18,12 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECT
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -28,6 +31,9 @@ import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
@@ -57,6 +63,9 @@ public final class ZillaConfigCommand extends ZillaCommand
             System.out.println("engine directory: " + engineDirectory());
             System.out.println("output: " + output);
         }
+
+        NamespaceConfig namespace = new NamespaceConfig("example", List.of(), null, List.of(), List.of(), List.of());
+        writeConfig(namespace);
     }
 
     private Path engineDirectory()
@@ -79,5 +88,15 @@ public final class ZillaConfigCommand extends ZillaCommand
         }
         EngineConfiguration config = new EngineConfiguration(props);
         return config.directory();
+    }
+
+    private void writeConfig(
+        NamespaceConfig namespace)
+    {
+        Writer writer = new StringWriter(); // TODO: Ati - write to output file
+        ConfigAdapterContext context = location -> "hello"; // TODO: Ati - ?
+        ConfigWriter configWriter = new ConfigWriter(null, writer);
+        configWriter.write(namespace);
+        System.out.println(writer); // TODO: Ati
     }
 }
