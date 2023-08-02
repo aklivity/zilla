@@ -37,32 +37,13 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public List<String> getSchemaTypes()
+    public String getSchemaBySubject(String subject)
     {
         return null;
     }
 
     @Override
-    public List<String> getAllSubjects()
-    {
-        return null;
-    }
-
-    @Override
-    public List<Integer> getAllVersionsBySubject(
-        String subject)
-    {
-        return null;
-    }
-
-    @Override
-    public String getLatestVersionSchema(String subject)
-    {
-        return null;
-    }
-
-    @Override
-    public String getVersionSchema(String subject, int version)
+    public String getVersionSchema(String subject, String version)
     {
         return null;
     }
@@ -71,6 +52,8 @@ public class TestCatalogHandler implements CatalogHandler
     public String getSchemasById(
         String schemaId)
     {
-        return null;
+        return "\"{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+                "{\"name\":\"status\",\"type\":\"string\"}],\"name\":\"Event\"," +
+                "\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}\"";
     }
 }

@@ -25,13 +25,10 @@ bindings:
         test0:
           topic: test
           key:
-            strategy: topic
-            version: latest
             id: 1
           value:
             strategy: topic
             version: latest
-            id: 2
     routes:
       - exit: net0
         when:

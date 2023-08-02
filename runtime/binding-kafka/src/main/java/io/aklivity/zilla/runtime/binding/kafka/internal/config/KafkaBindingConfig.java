@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -29,6 +30,7 @@ public final class KafkaBindingConfig
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
+    public final ToLongFunction<String> resolveId;
 
     public KafkaBindingConfig(
         BindingConfig binding)
@@ -38,6 +40,7 @@ public final class KafkaBindingConfig
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
+        this.resolveId = binding.resolveId;
     }
 
     public KafkaRouteConfig resolve(
@@ -72,5 +75,10 @@ public final class KafkaBindingConfig
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;
+    }
+
+    public KafkaCatalogConfig catalog()
+    {
+        return options != null ? options.catalog : null;
     }
 }

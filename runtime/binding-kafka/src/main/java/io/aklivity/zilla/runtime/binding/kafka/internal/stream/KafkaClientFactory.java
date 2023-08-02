@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaClientFactory implements KafkaStreamFactory
@@ -42,6 +43,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
 
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final Int2ObjectHashMap<BindingHandler> factories;
 
     public KafkaClientFactory(
@@ -77,6 +79,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.supplyCatalog = context::supplyCatalog;
     }
 
     @Override
@@ -120,5 +123,16 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         }
 
         return newStream;
+    }
+
+    private CatalogHandler resolveCatalog(
+        KafkaBindingConfig kafkaBinding)
+    {
+        CatalogHandler catalogHandler = null;
+
+        long catalogId = kafkaBinding.resolveId.applyAsLong(kafkaBinding.options.catalog.name);
+        catalogHandler = supplyCatalog.apply(catalogId);
+
+        return catalogHandler;
     }
 }

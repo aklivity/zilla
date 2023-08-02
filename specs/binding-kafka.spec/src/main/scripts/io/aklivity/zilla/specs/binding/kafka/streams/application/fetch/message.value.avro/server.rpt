@@ -78,5 +78,5 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 10, 10)
                                   .build()
                               .build()}
-write [0x00 0x00 0x00 0x00 0x09 0x06 0x69 0x64 0x30 0x10 0x70 0x6f 0x73 0x69 0x74 0x69 0x76 0x65]
+write [0x00] 9 ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
 write flush

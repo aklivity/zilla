@@ -15,26 +15,22 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class KafkaOptionsConfig extends OptionsConfig
+public class KafkaCatalogConfig
 {
-    public final List<String> bootstrap;
-    public final List<KafkaTopicConfig> topics;
-    public final KafkaSaslConfig sasl;
-    public final KafkaCatalogConfig catalog;
+    public final String name;
+    public final String topic;
+    public final KafkaSchemaConfig key;
+    public final KafkaSchemaConfig value;
 
-    public KafkaOptionsConfig(
-        List<String> bootstrap,
-        List<KafkaTopicConfig> topics,
-        KafkaSaslConfig sasl,
-        KafkaCatalogConfig catalog)
+    public KafkaCatalogConfig(
+        String name,
+        String topic,
+        KafkaSchemaConfig key,
+        KafkaSchemaConfig value)
     {
-        this.bootstrap = bootstrap;
-        this.topics = topics;
-        this.sasl = sasl;
-        this.catalog = catalog;
+        this.name = name;
+        this.topic = topic;
+        this.key = key;
+        this.value = value;
     }
 }

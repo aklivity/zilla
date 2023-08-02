@@ -15,26 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class KafkaOptionsConfig extends OptionsConfig
+public class KafkaSchemaConfig
 {
-    public final List<String> bootstrap;
-    public final List<KafkaTopicConfig> topics;
-    public final KafkaSaslConfig sasl;
-    public final KafkaCatalogConfig catalog;
+    public final String strategy;
+    public final String version;
+    public final String id;
 
-    public KafkaOptionsConfig(
-        List<String> bootstrap,
-        List<KafkaTopicConfig> topics,
-        KafkaSaslConfig sasl,
-        KafkaCatalogConfig catalog)
+    public KafkaSchemaConfig(
+        String strategy,
+        String version,
+        String id)
     {
-        this.bootstrap = bootstrap;
-        this.topics = topics;
-        this.sasl = sasl;
-        this.catalog = catalog;
+        this.strategy = strategy;
+        this.version = version;
+        this.id = id;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("[strategy=%s]", strategy);
     }
 }

@@ -83,14 +83,19 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
-                new KafkaSaslConfig("plain", "username", "password"));
+                new KafkaSaslConfig("plain", "username", "password"),
+                new KafkaCatalogConfig("test0", "test",
+                        new KafkaSchemaConfig(null, null, "1"),
+                        new KafkaSchemaConfig("topic", "latest", null)));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
-                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
+                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}," +
+                "\"catalog\":{\"test0\":{\"topic\":\"test\",\"key\":{\"id\":\"1\"}," +
+                "\"value\":{\"strategy\":\"topic\",\"version\":\"latest\"}}}}"));
     }
 
     @Test
@@ -134,13 +139,15 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
-                new KafkaSaslConfig("scram-sha-256", "username", "password"));
+                new KafkaSaslConfig("scram-sha-256", "username", "password"),
+                new KafkaCatalogConfig(null, null, null, null));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
-                "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}}"));
+                "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}," +
+                "\"catalog\":{}}"));
     }
 }

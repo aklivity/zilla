@@ -38,8 +38,10 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     private static final String SASL_MECHANISM_NAME = "mechanism";
     private static final String SASL_PLAIN_USERNAME_NAME = "username";
     private static final String SASL_PLAIN_PASSWORD_NAME = "password";
+    private static final String CATALOG_NAME = "catalog";
 
     private final KafkaTopicConfigAdapter topic = new KafkaTopicConfigAdapter();
+    private final KafkaCatalogConfigAdapter catalogConfigAdapter = new KafkaCatalogConfigAdapter();
 
     @Override
     public Kind kind()
@@ -90,6 +92,11 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             object.add(SASL_NAME, sasl);
         }
 
+        if (kafkaOptions.catalog != null)
+        {
+            object.add(CATALOG_NAME, catalogConfigAdapter.adaptToJson(kafkaOptions.catalog));
+        }
+
         return object.build();
     }
 
@@ -108,6 +115,10 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
 
         JsonObject saslObject = object.containsKey(SASL_NAME)
                 ? object.getJsonObject(SASL_NAME)
+                : null;
+
+        JsonObject catalogObject = object.containsKey(CATALOG_NAME)
+                ? object.getJsonObject(CATALOG_NAME)
                 : null;
 
         List<String> bootstrap = null;
@@ -139,6 +150,13 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             sasl = new KafkaSaslConfig(mechanism, username, password);
         }
 
-        return new KafkaOptionsConfig(bootstrap, topics, sasl);
+        KafkaCatalogConfig catalog = null;
+
+        if (catalogObject != null)
+        {
+            catalog = catalogConfigAdapter.adaptFromJson(catalogObject);
+        }
+
+        return new KafkaOptionsConfig(bootstrap, topics, sasl, catalog);
     }
 }

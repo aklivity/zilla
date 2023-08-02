@@ -21,15 +21,9 @@ public interface CatalogHandler
 {
     <T> T register(String schemaDefinition, String subject, String dataFormat);
 
-    List<String> getSchemaTypes();
-
-    List<String> getAllSubjects();
-
-    List<Integer> getAllVersionsBySubject(String subject);
-
     String getSchemasById(String schemaId);
 
-    String getLatestVersionSchema(String subject);
+    String getSchemaBySubject(String subject);
 
-    String getVersionSchema(String subject, int version);
+    String getVersionSchema(String subject, String version);
 }
