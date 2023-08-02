@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import java.util.List;
-
 public interface CatalogHandler
 {
     <T> T register(String schemaDefinition, String subject, String dataFormat);
