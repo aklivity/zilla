@@ -12,25 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
+package io.aklivity.zilla.runtime.exporter.otlp.config;
 
-import java.net.URI;
+import java.util.Set;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class OtlpEndpointConfig extends OptionsConfig
+public class OtlpOptionsConfig extends OptionsConfig
 {
-    public String protocol;
-    public URI location;
-    public OtlpOverridesConfig overrides;
-
-    public OtlpEndpointConfig(
-        String protocol,
-        URI location,
-        OtlpOverridesConfig overrides)
+    public enum OtlpSignalsConfig
     {
-        this.protocol = protocol;
-        this.location = location;
-        this.overrides = overrides;
+        METRICS,
+    }
+
+    public long interval;
+    public Set<OtlpSignalsConfig> signals;
+    public OtlpEndpointConfig endpoint;
+
+    public OtlpOptionsConfig(
+        long interval,
+        Set<OtlpSignalsConfig> signals,
+        OtlpEndpointConfig endpoint)
+    {
+        this.interval = interval;
+        this.signals = signals;
+        this.endpoint = endpoint;
     }
 }

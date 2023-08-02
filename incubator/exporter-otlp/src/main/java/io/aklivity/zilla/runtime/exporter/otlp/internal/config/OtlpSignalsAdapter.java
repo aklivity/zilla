@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -23,6 +23,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 
 public class OtlpSignalsAdapter implements JsonbAdapter<Set<OtlpOptionsConfig.OtlpSignalsConfig>, JsonArray>
 {
