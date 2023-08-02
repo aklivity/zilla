@@ -12,16 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.command.config
+package io.aklivity.zilla.runtime.command.config.internal.model.openapi;
+
+public class SecuritySchemes
 {
-    requires io.aklivity.zilla.runtime.command;
-    requires io.aklivity.zilla.runtime.engine;
-
-    opens io.aklivity.zilla.runtime.command.config.internal.airline
-        to com.github.rvesse.airline;
-
-    opens io.aklivity.zilla.runtime.command.config.internal.model.openapi;
-
-    provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
-        with io.aklivity.zilla.runtime.command.config.internal.ZillaConfigCommandSpi;
+    public BearerAuth bearerAuth;
 }

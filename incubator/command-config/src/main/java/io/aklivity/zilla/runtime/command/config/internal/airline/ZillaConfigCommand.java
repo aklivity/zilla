@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -26,10 +28,14 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
+import io.aklivity.zilla.runtime.command.config.internal.model.openapi.OpenApi;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
@@ -43,6 +49,11 @@ public final class ZillaConfigCommand extends ZillaCommand
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
     public boolean verbose;
+
+    @Option(name = {"-i", "--input"},
+        description = "Input filename",
+        typeConverterProvider = ZillaConfigCommandPathConverterProvider.class)
+    public Path input;
 
     @Option(name = {"-o", "--output"},
         description = "Output filename",
@@ -64,7 +75,8 @@ public final class ZillaConfigCommand extends ZillaCommand
             System.out.println("output: " + output);
         }
 
-        NamespaceConfig namespace = new NamespaceConfig("example", List.of(), null, List.of(), List.of(), List.of());
+        OpenApi openApi = parseOpenApi(input);
+        NamespaceConfig namespace = createConfig(openApi);
         writeConfig(namespace);
     }
 
@@ -88,6 +100,33 @@ public final class ZillaConfigCommand extends ZillaCommand
         }
         EngineConfiguration config = new EngineConfiguration(props);
         return config.directory();
+    }
+
+    private OpenApi parseOpenApi(
+        Path input)
+    {
+        OpenApi openApi = null;
+        try (InputStream inputStream = new FileInputStream(input.toFile()))
+        {
+            Jsonb jsonb = JsonbBuilder.create();
+            openApi = jsonb.fromJson(inputStream, OpenApi.class);
+            // TODO: Ati
+            System.out.println(openApi.openapi);
+            System.out.println(openApi.components.securitySchemes.bearerAuth.bearerFormat);
+            jsonb.close();
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+            rethrowUnchecked(ex);
+        }
+        return openApi;
+    }
+
+    private NamespaceConfig createConfig(
+        OpenApi openApi)
+    {
+        return new NamespaceConfig("example", List.of(), null, List.of(), List.of(), List.of());
     }
 
     private void writeConfig(
