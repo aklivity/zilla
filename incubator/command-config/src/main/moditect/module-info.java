@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.command.config
 {
     requires io.aklivity.zilla.runtime.command;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.guard.jwt;
 
     opens io.aklivity.zilla.runtime.command.config.internal.airline
         to com.github.rvesse.airline;

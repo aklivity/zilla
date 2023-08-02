@@ -39,7 +39,12 @@ import io.aklivity.zilla.runtime.command.config.internal.model.openapi.OpenApi;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
@@ -126,7 +131,19 @@ public final class ZillaConfigCommand extends ZillaCommand
     private NamespaceConfig createConfig(
         OpenApi openApi)
     {
-        return new NamespaceConfig("example", List.of(), null, List.of(), List.of(), List.of());
+        String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
+        OptionsConfig guardOptions = null;
+        if (JwtGuard.NAME.equals(guardType))
+        {
+            String n = "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
+                "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06O" +
+                "urEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplO" +
+                "KvRtUgjcKWlxoGY4VdVaDQ==";
+            JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
+            guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com", List.of(key), null);
+        }
+        GuardConfig guard = new GuardConfig("jwt0", guardType, guardOptions);
+        return new NamespaceConfig("example", List.of(), null, List.of(), List.of(guard), List.of());
     }
 
     private void writeConfig(
