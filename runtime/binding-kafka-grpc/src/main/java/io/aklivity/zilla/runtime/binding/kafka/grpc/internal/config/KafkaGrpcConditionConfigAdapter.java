@@ -26,6 +26,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;

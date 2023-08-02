@@ -16,6 +16,8 @@ module io.aklivity.zilla.runtime.binding.kafka.grpc
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.kafka.grpc.config;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBindingFactorySpi;
 

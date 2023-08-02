@@ -18,6 +18,8 @@ import java.util.Set;
 
 import org.agrona.collections.ObjectHashSet;
 
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3BaseListener;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
 

@@ -19,6 +19,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+
 public final class JwtKeyConfigAdapter implements JsonbAdapter<JwtKeyConfig, JsonObject>
 {
     private static final String ALG_NAME = "alg";

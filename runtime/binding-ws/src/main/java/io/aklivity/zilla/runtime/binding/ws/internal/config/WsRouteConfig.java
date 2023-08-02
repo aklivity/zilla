@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.ws.config.WsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 

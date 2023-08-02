@@ -31,11 +31,11 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;

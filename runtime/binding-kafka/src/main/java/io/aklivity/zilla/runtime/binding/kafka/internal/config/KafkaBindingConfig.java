@@ -19,6 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 

@@ -17,6 +17,8 @@ module io.aklivity.zilla.runtime.binding.ws
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.ws.config;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.ws.internal.WsBindingFactorySpi;
 

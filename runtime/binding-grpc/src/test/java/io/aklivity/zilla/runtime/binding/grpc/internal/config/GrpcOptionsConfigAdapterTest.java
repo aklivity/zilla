@@ -37,6 +37,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;

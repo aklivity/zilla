@@ -27,6 +27,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
+
 public class FileSystemOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -49,7 +52,7 @@ public class FileSystemOptionsConfigAdapterTest
         FileSystemOptionsConfig options = jsonb.fromJson(text, FileSystemOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.keys, nullValue(FileSystemStore.class));
+        assertThat(options.keys, nullValue(FileSystemStoreConfig.class));
     }
 
     @Test
@@ -88,7 +91,7 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithKeys()
     {
-        FileSystemStore keys = new FileSystemStore("localhost.p12", "pkcs12", "generated");
+        FileSystemStoreConfig keys = new FileSystemStoreConfig("localhost.p12", "pkcs12", "generated");
         FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, null);
 
         String text = jsonb.toJson(options);
