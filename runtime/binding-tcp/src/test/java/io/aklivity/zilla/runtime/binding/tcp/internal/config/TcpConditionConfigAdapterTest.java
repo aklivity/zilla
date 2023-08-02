@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
+
 public class TcpConditionConfigAdapterTest
 {
     private Jsonb jsonb;

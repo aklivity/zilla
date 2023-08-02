@@ -49,6 +49,8 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutual;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;

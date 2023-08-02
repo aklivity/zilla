@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.config;
+package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.List;
 import java.util.function.Function;

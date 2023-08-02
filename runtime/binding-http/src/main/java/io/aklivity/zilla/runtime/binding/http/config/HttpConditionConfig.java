@@ -13,20 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.runtime.binding.http.config;
+
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
-public final class TlsConditionConfig extends ConditionConfig
+public final class HttpConditionConfig extends ConditionConfig
 {
-    public final String authority;
-    public final String alpn;
+    public final Map<String, String> headers;
 
-    public TlsConditionConfig(
-        String authority,
-        String alpn)
+    public HttpConditionConfig(
+        Map<String, String> headers)
     {
-        this.authority = authority;
-        this.alpn = alpn;
+        this.headers = headers;
     }
 }

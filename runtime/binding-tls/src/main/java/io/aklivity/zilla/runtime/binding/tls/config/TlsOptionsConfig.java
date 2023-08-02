@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.runtime.binding.tls.config;
 
 import java.util.List;
 

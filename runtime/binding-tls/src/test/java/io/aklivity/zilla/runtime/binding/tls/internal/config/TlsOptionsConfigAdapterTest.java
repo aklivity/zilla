@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.config.TlsMutual.REQUESTED;
+import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutual.REQUESTED;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 
 public class TlsOptionsConfigAdapterTest
 {

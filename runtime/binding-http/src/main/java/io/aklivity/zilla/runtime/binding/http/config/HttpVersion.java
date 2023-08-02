@@ -13,23 +13,37 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tcp.internal.config;
+package io.aklivity.zilla.runtime.binding.http.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-
-public final class TcpConditionConfig extends ConditionConfig
+public enum HttpVersion
 {
-    public final String cidr;
-    public final String authority;
-    public final int[] ports;
+    HTTP_1_1("http/1.1"),
+    HTTP_2("h2");
 
-    public TcpConditionConfig(
-        String cidr,
-        String authority,
-        int[] ports)
+    private final String name;
+
+    HttpVersion(
+        String name)
     {
-        this.cidr = cidr;
-        this.authority = authority;
-        this.ports = ports;
+        this.name = name;
+    }
+
+    public String asString()
+    {
+        return name;
+    }
+
+    public static HttpVersion of(
+        String name)
+    {
+        switch (name)
+        {
+        case "http/1.1":
+            return HTTP_1_1;
+        case "h2":
+            return HTTP_2;
+        default:
+            return null;
+        }
     }
 }

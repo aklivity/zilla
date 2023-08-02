@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tcp.internal.config;
+package io.aklivity.zilla.runtime.binding.tcp.config;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 

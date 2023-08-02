@@ -13,37 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.config;
+package io.aklivity.zilla.runtime.binding.tls.config;
 
-public enum HttpVersion
+public enum TlsMutual
 {
-    HTTP_1_1("http/1.1"),
-    HTTP_2("h2");
-
-    private final String name;
-
-    HttpVersion(
-        String name)
-    {
-        this.name = name;
-    }
-
-    public String asString()
-    {
-        return name;
-    }
-
-    public static HttpVersion of(
-        String name)
-    {
-        switch (name)
-        {
-        case "http/1.1":
-            return HTTP_1_1;
-        case "h2":
-            return HTTP_2;
-        default:
-            return null;
-        }
-    }
+    NONE,
+    REQUESTED,
+    REQUIRED
 }

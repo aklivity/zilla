@@ -13,11 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.runtime.binding.tcp.config;
 
-public enum TlsMutual
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+
+public final class TcpConditionConfig extends ConditionConfig
 {
-    NONE,
-    REQUESTED,
-    REQUIRED
+    public final String cidr;
+    public final String authority;
+    public final int[] ports;
+
+    public TcpConditionConfig(
+        String cidr,
+        String authority,
+        int[] ports)
+    {
+        this.cidr = cidr;
+        this.authority = authority;
+        this.ports = ports;
+    }
 }

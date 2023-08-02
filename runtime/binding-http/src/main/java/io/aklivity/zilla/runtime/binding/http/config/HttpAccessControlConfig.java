@@ -13,10 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.config;
+package io.aklivity.zilla.runtime.binding.http.config;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;

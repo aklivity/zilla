@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class TcpRouteConfig
