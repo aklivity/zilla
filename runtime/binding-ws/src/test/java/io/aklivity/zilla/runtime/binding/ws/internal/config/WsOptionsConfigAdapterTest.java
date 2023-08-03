@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.ws.config.WsOptionsConfig;
+
 public class WsOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

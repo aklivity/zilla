@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.ws.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.ws.config.WsConditionConfig;
+
 public final class WsConditionMatcher
 {
     private final Matcher protocol;

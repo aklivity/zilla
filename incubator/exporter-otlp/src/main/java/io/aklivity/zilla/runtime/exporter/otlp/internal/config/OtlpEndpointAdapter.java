@@ -21,6 +21,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
+
 public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
 {
     private static final String PROTOCOL_NAME = "protocol";

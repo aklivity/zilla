@@ -30,9 +30,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaConditionConfigAdapter;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaMetadataValue;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
@@ -72,7 +72,7 @@ public class GrpcKafkaConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("test", "*",
-            singletonMap(new String8FW("custom"), new GrpcKafkaMetadataValue(new String16FW("test"),
+            singletonMap(new String8FW("custom"), new GrpcKafkaMetadataValueConfig(new String16FW("test"),
                 new String16FW(Base64.getUrlEncoder().encodeToString("test".getBytes())))));
 
         String text = jsonb.toJson(condition);

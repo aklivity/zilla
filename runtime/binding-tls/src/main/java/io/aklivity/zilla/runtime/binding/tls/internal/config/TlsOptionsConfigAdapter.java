@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.config.TlsMutual.REQUIRED;
+import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutual.REQUIRED;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -29,6 +29,8 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutual;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

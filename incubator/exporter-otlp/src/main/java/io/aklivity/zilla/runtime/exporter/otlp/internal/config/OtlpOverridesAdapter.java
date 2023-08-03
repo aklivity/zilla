@@ -21,6 +21,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
+
 public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";

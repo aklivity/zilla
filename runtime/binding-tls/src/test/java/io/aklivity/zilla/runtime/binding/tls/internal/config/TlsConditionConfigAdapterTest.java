@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+
 public class TlsConditionConfigAdapterTest
 {
     private Jsonb jsonb;
