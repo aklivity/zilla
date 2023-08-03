@@ -93,16 +93,22 @@ public class OpenApiConfigGenerator
             List.of(new RouteConfig("http_server0")), null);
 
         // - tls server
-        TlsOptionsConfig tlsOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
+        TlsOptionsConfig tlsServerOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
             List.of("h2"), null, null, false);
-        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", SERVER, null,
-            tlsOptions, List.of(new RouteConfig("http_server0")), null);
+        BindingConfig tlsServer0 = new BindingConfig("server", "tls_server0", "tls", SERVER, null,
+            tlsServerOptions, List.of(new RouteConfig("http_server0")), null);
 
         // - http client
         BindingConfig httpClient = new BindingConfig(null, "http_client0", "http", CLIENT, null,
             null, List.of(new RouteConfig("tls_client0")), null);
 
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient);
+        // - tls client
+        TlsOptionsConfig tlsClientOptions = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
+            List.of("h2"), null, null, true);
+        BindingConfig tlsClient = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
+            tlsClientOptions, List.of(new RouteConfig("tcp_client0")), null);
+
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient, tlsClient);
 
         // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;

@@ -18,6 +18,7 @@ bindings:
     routes:
     - exit: "http_server0"
   tls_server0:
+    vault: "server"
     type: "tls"
     kind: "server"
     options:
@@ -34,6 +35,20 @@ bindings:
     kind: "client"
     routes:
     - exit: "tls_client0"
+  tls_client0:
+    vault: "client"
+    type: "tls"
+    kind: "client"
+    options:
+      trust:
+      - "nginx"
+      trustcacerts: true
+      sni:
+      - "nginx"
+      alpn:
+      - "h2"
+    routes:
+    - exit: "tcp_client0"
 guards:
   jwt0:
     type: "jwt"
