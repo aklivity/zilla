@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -83,11 +84,11 @@ public class OpenApiConfigGenerator
         // bindings
         // - tcp servers
         TcpOptionsConfig httpsPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
-            false, false);
+            true, false);
         BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", SERVER, null, httpsPortsOptions,
             List.of(new RouteConfig("tls_server0")), null);
         TcpOptionsConfig httpPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("http"), 0,
-            false, false);
+            true, false);
         BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", SERVER, null, httpPortsOptions,
             List.of(new RouteConfig("http_server0")), null);
 
@@ -96,7 +97,12 @@ public class OpenApiConfigGenerator
             List.of("h2"), null, null, false);
         BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", SERVER, null,
             tlsOptions, List.of(new RouteConfig("http_server0")), null);
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0);
+
+        // - http client
+        BindingConfig httpClient = new BindingConfig(null, "http_client0", "http", CLIENT, null,
+            null, List.of(new RouteConfig("tls_client0")), null);
+
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient);
 
         // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
