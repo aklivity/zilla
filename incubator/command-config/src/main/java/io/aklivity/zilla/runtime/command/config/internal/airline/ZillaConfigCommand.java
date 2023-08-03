@@ -57,7 +57,7 @@ public final class ZillaConfigCommand extends ZillaCommand
     @Override
     public void run()
     {
-        System.out.println("Hello World!");
+        System.out.println("Hello World!"); // TODO: Ati
         if (verbose)
         {
             System.out.println("engine directory: " + engineDirectory());

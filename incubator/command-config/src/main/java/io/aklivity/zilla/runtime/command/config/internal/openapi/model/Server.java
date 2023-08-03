@@ -14,11 +14,26 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
-import java.util.List;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-public class OpenApi
+public class Server
 {
-    public String openapi;
-    public List<Server> servers;
-    public Components components;
+    private URI url;
+
+    public URI url()
+    {
+        return url;
+    }
+
+    public String getUrl()
+    {
+        return url.toString();
+    }
+
+    public void setUrl(
+        String url) throws URISyntaxException
+    {
+        this.url = new URI(url);
+    }
 }

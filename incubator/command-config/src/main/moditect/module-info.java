@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.command.config
 {
     requires io.aklivity.zilla.runtime.command;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.binding.tcp;
     requires io.aklivity.zilla.runtime.binding.tls;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;

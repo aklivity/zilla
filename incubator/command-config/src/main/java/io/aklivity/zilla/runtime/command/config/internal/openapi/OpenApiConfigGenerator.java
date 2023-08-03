@@ -14,23 +14,27 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -43,19 +47,17 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class OpenApiConfigGenerator
 {
-    private final Path input;
+    private final OpenApi openApi;
 
     public OpenApiConfigGenerator(
         Path input)
     {
-        this.input = input;
+        this.openApi = parseOpenApi(input);
     }
 
     public String generateConfig()
     {
-        OpenApi openApi = parseOpenApi(input);
-        NamespaceConfig namespace = createNamespaceConfig(openApi);
-        return writeConfig(namespace);
+        return writeConfig(createNamespaceConfig());
     }
 
     private OpenApi parseOpenApi(
@@ -66,9 +68,6 @@ public class OpenApiConfigGenerator
         {
             Jsonb jsonb = JsonbBuilder.create();
             openApi = jsonb.fromJson(inputStream, OpenApi.class);
-            // TODO: Ati
-            System.out.println(openApi.openapi);
-            System.out.println(openApi.components.securitySchemes.bearerAuth.bearerFormat);
             jsonb.close();
         }
         catch (Exception ex)
@@ -79,20 +78,23 @@ public class OpenApiConfigGenerator
         return openApi;
     }
 
-    private NamespaceConfig createNamespaceConfig(
-        OpenApi openApi)
+    private NamespaceConfig createNamespaceConfig()
     {
         // bindings
-        // - tcp
-        // TODO: options
-        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", KindConfig.SERVER, null,
-            null, List.of(new RouteConfig("tls_server0")), null);
-        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", KindConfig.SERVER, null,
-            null, List.of(new RouteConfig("http_server0")), null);
-        // - tls
+        // - tcp servers
+        TcpOptionsConfig httpsPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
+            false, false);
+        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", SERVER, null, httpsPortsOptions,
+            List.of(new RouteConfig("tls_server0")), null);
+        TcpOptionsConfig httpPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("http"), 0,
+            false, false);
+        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", SERVER, null, httpPortsOptions,
+            List.of(new RouteConfig("http_server0")), null);
+
+        // - tls server
         TlsOptionsConfig tlsOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
             List.of("h2"), null, null, false);
-        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", KindConfig.SERVER, null,
+        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", SERVER, null,
             tlsOptions, List.of(new RouteConfig("http_server0")), null);
         List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0);
 
@@ -120,6 +122,35 @@ public class OpenApiConfigGenerator
 
         // namespace
         return new NamespaceConfig("example", List.of(), null, bindings, guards, vaults);
+    }
+
+    private int[] resolvePortsForScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        int[] httpPorts = null;
+        URI httpServerUrl = findFirstServerUrlWithScheme(scheme);
+        if (httpServerUrl != null)
+        {
+            httpPorts = new int[]{httpServerUrl.getPort()};
+        }
+        return httpPorts;
+    }
+
+    private URI findFirstServerUrlWithScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        URI result = null;
+        for (Server server: openApi.servers)
+        {
+            if (scheme.equals(server.url().getScheme()))
+            {
+                result = server.url();
+                break;
+            }
+        }
+        return result;
     }
 
     private String writeConfig(
