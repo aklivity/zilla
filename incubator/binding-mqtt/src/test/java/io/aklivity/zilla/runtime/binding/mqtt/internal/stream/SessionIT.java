@@ -272,4 +272,18 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    //    @Test
+    //    @Configuration("server.yaml")
+    //    @Specification({
+    //        "${net}/session.client.takeover/client",
+    //        "${app}/session.server.sent.abort/server"})
+    //    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    //    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    //    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    //    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "10")
+    //    public void shouldAbortClientServerSentAbort() throws Exception
+    //    {
+    //        k3po.finish();
+    //    }
 }

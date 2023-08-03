@@ -520,23 +520,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 traceId, authorization, affinity);
         }
 
-        private void doMqttData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            OctetsFW payload,
-            Flyweight extension)
-        {
-            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
-
-            replySeq += reserved;
-
-            assert replySeq <= replyAck + replyMax;
-        }
-
         private void doMqttFlush(
             long traceId,
             long authorization,

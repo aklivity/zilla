@@ -30,24 +30,20 @@ connected
 read zilla:data.empty
 
 write ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one", 1)
                .subscription("sensor/two", 1)
                .build()}
 
 write notify UNSUBSCRIBE_ALL_FILTERS
 read ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one", 1)
                .subscription("sensor/two", 1)
                .build()}
 
 write ${mqtt:session()
-               .clientId("client")
                .build()}
 
 read ${mqtt:session()
-               .clientId("client")
                .build()}
 
 write notify SESSION_FINISHED

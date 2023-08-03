@@ -403,4 +403,85 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.abort.reconnect.non.clean.start/client",
+        "${mqtt}/session.abort.reconnect.non.clean.start/server"})
+    public void shouldReconnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.client.takeover/client",
+        "${mqtt}/session.client.takeover/server"})
+    public void shouldTakeOverSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.exists.clean.start/client",
+        "${mqtt}/session.exists.clean.start/server"})
+    public void shouldRemoveSessionAtCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe/client",
+        "${mqtt}/session.subscribe/server"})
+    public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.via.session.state/client",
+        "${mqtt}/session.subscribe.via.session.state/server"})
+    public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.after.subscribe/client",
+        "${mqtt}/session.unsubscribe.after.subscribe/server"})
+    public void shouldUnsubscribeAndUpdateSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.via.session.state/client",
+        "${mqtt}/session.unsubscribe.via.session.state/server"})
+    public void shouldUnsubscribeViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.client.sent.reset/client",
+        "${mqtt}/session.client.sent.reset/server"})
+    public void shouldSessionStreamReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.server.sent.reset/client",
+        "${mqtt}/session.server.sent.reset/server"})
+    public void shouldSessionStreamReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

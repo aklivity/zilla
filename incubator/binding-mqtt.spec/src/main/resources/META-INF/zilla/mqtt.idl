@@ -77,7 +77,7 @@ scope mqtt
 
     struct MqttSessionState
     {
-        string16 clientId;
+        uint8 version = 1;
         MqttTopicFilter[] subscriptions;
     }
 

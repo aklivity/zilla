@@ -121,6 +121,12 @@ public final class MqttKafkaState
         return (state & REPLY_CLOSED) != 0;
     }
 
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
+    }
+
     private MqttKafkaState()
     {
         // utility

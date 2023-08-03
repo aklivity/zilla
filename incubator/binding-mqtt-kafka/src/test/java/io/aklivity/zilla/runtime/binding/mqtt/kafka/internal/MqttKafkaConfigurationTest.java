@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.KAFKA_MESSAGES_TOPIC;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.KAFKA_RETAINED_MESSAGES_TOPIC;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.MESSAGES_TOPIC;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.RETAINED_MESSAGES_TOPIC;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -29,7 +29,7 @@ public class MqttKafkaConfigurationTest
     @Test
     public void shouldVerifyConstants()
     {
-        assertEquals(KAFKA_MESSAGES_TOPIC.name(), KAFKA_MESSAGES_TOPIC_NAME);
-        assertEquals(KAFKA_RETAINED_MESSAGES_TOPIC.name(), KAFKA_RETAINED_MESSAGES_TOPIC_NAME);
+        assertEquals(MESSAGES_TOPIC.name(), KAFKA_MESSAGES_TOPIC_NAME);
+        assertEquals(RETAINED_MESSAGES_TOPIC.name(), KAFKA_RETAINED_MESSAGES_TOPIC_NAME);
     }
 }

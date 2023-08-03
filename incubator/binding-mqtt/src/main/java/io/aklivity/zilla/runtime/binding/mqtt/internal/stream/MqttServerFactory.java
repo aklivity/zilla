@@ -1983,9 +1983,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (session)
                 {
                     final MqttSessionStateFW.Builder sessionStateBuilder =
-                        mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity())
-                            .clientId(clientId);
+                        mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
+                    //TODO: I believe it's not correct, as we need to send ALL the subscriptions, not just the new ones.
                     newSubscriptions.forEach(subscription ->
                         {
                             sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
@@ -2001,10 +2001,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttSessionStateFW sessionState = sessionStateBuilder.build();
                     final int payloadSize = sessionState.sizeof();
 
-                    //TODO: is this correct? What is this?
-                    int reserved = payloadSize;
-
-                    sessionStream.doSessionData(traceId, reserved, sessionState);
+                    sessionStream.doSessionData(traceId, payloadSize, sessionState);
                 }
                 else
                 {
@@ -2107,7 +2104,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         return;
                     }
                     topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
-                    sendNewSessionStateForUnsubscribe(traceId, authorization, topicFilters);
+                    sendNewSessionStateForUnsubscribe(traceId, topicFilters);
                 }
                 else
                 {
@@ -2119,7 +2116,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private void sendNewSessionStateForUnsubscribe(
             long traceId,
-            long authorization,
             List<String> topicFilters)
         {
             List<Subscription> currentState = sessionStream.getSubscriptions();
@@ -2128,8 +2124,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .collect(Collectors.toList());
 
             final MqttSessionStateFW.Builder sessionStateBuilder =
-                mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity())
-                    .clientId(clientId);
+                mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
             newState.forEach(subscription ->
                 sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
@@ -3109,23 +3104,26 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW extension = reset.extension();
                 final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
-                String16FW serverReference = mqttResetEx.serverReference();
-                byte reasonCode = SUCCESS;
-                if (serverReference != null && serverReference.length() != 0)
-                {
-                    reasonCode = SERVER_MOVED;
-                }
-                if (!connected)
-                {
-                    doCancelConnectTimeout();
 
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, serverReference);
-                }
-                else
-                {
-                    doEncodeDisconnect(traceId, authorization, reasonCode, serverReference);
-                }
 
+                if (mqttResetEx != null)
+                {
+                    String16FW serverReference = mqttResetEx.serverReference();
+                    boolean serverReferenceExists = serverReference != null && serverReference.length() != 0;
+
+                    byte reasonCode = serverReferenceExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
+
+                    if (!connected)
+                    {
+                        doCancelConnectTimeout();
+                        doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false,
+                            serverReferenceExists ? serverReference : null);
+                    }
+                    else
+                    {
+                        doEncodeDisconnect(traceId, authorization, reasonCode, serverReferenceExists ? serverReference : null);
+                    }
+                }
                 setInitialClosed();
 
                 decodeNetwork(traceId);
@@ -3312,7 +3310,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     assert state == 0;
                     state = MqttState.openingInitial(state);
 
-
                     application = newStream(this::onSession, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, sessionId, affinity, beginEx);
 
@@ -3374,11 +3371,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
                 {
-                    setReplyClosed();
-
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, sessionId, extension);
-                    sessionStream = null;
                 }
             }
 
@@ -3421,11 +3415,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert !MqttState.replyClosed(state);
 
                 state = MqttState.closeReply(state);
-
-                if (MqttState.closed(state))
-                {
-                    sessionStream = null;
-                }
             }
 
             private void setInitialClosed()
@@ -3438,11 +3427,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     debitor.release(debitorIndex, initialId);
                     debitorIndex = NO_DEBITOR_INDEX;
-                }
-
-                if (MqttState.closed(state))
-                {
-                    sessionStream = null;
                 }
             }
 
@@ -4193,7 +4177,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             iterator.remove();
                         }
 
-                        sendNewSessionStateForUnsubscribe(traceId, authorization, ackedTopicFilters);
+                        sendNewSessionStateForUnsubscribe(traceId, ackedTopicFilters);
                     }
                 }
 

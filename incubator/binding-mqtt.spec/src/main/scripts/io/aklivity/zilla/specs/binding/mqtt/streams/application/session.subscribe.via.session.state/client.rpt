@@ -30,7 +30,6 @@ connected
 read zilla:data.empty
 
 read ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one")
                .build()}
 

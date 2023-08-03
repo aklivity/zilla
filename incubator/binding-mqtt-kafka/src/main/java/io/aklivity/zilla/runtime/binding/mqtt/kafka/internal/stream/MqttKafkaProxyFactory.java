@@ -53,12 +53,12 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         final MqttKafkaSubscribeFactory subscribeFactory = new MqttKafkaSubscribeFactory(
             config, context, bindings::get);
 
-        //        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-        //            config, context, bindings::get);
+        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
+            config, context, bindings::get);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
-        //        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
+        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
 
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.factories = factories;
@@ -71,6 +71,9 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     {
         MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
+
+        MqttKafkaSessionFactory mqttKafkaSessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
+        mqttKafkaSessionFactory.onAttached(binding.id);
     }
 
     @Override
@@ -78,6 +81,9 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+
+        MqttKafkaSessionFactory mqttKafkaSessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
+        mqttKafkaSessionFactory.onDetached(bindingId);
     }
 
     @Override
@@ -93,7 +99,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
         assert beginEx != null;
         final int typeId = beginEx.typeId();
-        assert beginEx != null && typeId == mqttTypeId;
+        assert typeId == mqttTypeId;
 
         MessageConsumer newStream = null;
 
