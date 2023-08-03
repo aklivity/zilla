@@ -20,8 +20,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,9 +40,9 @@ import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
@@ -149,10 +147,8 @@ public final class ZillaConfigCommand extends ZillaCommand
     private void writeConfig(
         NamespaceConfig namespace)
     {
-        Writer writer = new StringWriter(); // TODO: Ati - write to output file
         ConfigAdapterContext context = location -> "hello"; // TODO: Ati - ?
-        ConfigWriter configWriter = new ConfigWriter(null, writer);
-        configWriter.write(namespace);
-        System.out.println(writer); // TODO: Ati
+        ConfigWriter configWriter = new ConfigWriter(null);
+        System.out.println(configWriter.write(namespace)); // TODO: Ati - write to output file
     }
 }
