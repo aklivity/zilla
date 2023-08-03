@@ -30,6 +30,17 @@ bindings:
       - "h2"
     routes:
     - exit: "http_server0"
+  httpServer0:
+    type: "http"
+    kind: "server"
+    options:
+      access-control:
+        policy: "cross-origin"
+      authorization:
+        jwt0:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
   http_client0:
     type: "http"
     kind: "client"

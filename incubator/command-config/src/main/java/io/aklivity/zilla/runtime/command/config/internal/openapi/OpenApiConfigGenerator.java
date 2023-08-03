@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi;
 
+import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
@@ -28,6 +29,11 @@ import java.util.List;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
@@ -95,27 +101,38 @@ public class OpenApiConfigGenerator
             List.of(new RouteConfig("http_server0")), null);
 
         // - tls_server0
-        TlsOptionsConfig tlsServerOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
+        TlsOptionsConfig tlsServer0Options = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
             List.of("h2"), null, null, false);
         BindingConfig tlsServer0 = new BindingConfig("server", "tls_server0", "tls", SERVER, null,
-            tlsServerOptions, List.of(new RouteConfig("http_server0")), null);
+            tlsServer0Options, List.of(new RouteConfig("http_server0")), null);
+
+        // - http_server0
+        HttpAccessControlConfig accessControl = new HttpAccessControlConfig(CROSS_ORIGIN);
+        HttpPatternConfig headers = new HttpPatternConfig("authorization", "Bearer {credentials}");
+        HttpCredentialsConfig credentials = new HttpCredentialsConfig(List.of(headers), null, null);
+        HttpAuthorizationConfig authorization = new HttpAuthorizationConfig("jwt0", credentials);
+        HttpOptionsConfig httpServer0Options = new HttpOptionsConfig(null, null, accessControl, authorization);
+        List<RouteConfig> httpServer0routes = List.of(); // TODO: Ati - routes
+        BindingConfig httpServer0 = new BindingConfig(null, "httpServer0", "http", SERVER, null,
+            httpServer0Options, httpServer0routes, null);
 
         // - http_client0
         BindingConfig httpClient0 = new BindingConfig(null, "http_client0", "http", CLIENT, null,
             null, List.of(new RouteConfig("tls_client0")), null);
 
         // - tls_client0
-        TlsOptionsConfig tlsClientOptions = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
+        TlsOptionsConfig tlsClient0Options = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
             List.of("h2"), null, null, true);
         BindingConfig tlsClient0 = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
-            tlsClientOptions, List.of(new RouteConfig("tcp_client0")), null);
+            tlsClient0Options, List.of(new RouteConfig("tcp_client0")), null);
 
         // - tcp_client0
-        TcpOptionsConfig tcpClientOptions = new TcpOptionsConfig("nginx", new int[]{443}, 0, true, false);
+        TcpOptionsConfig tcpClient0Options = new TcpOptionsConfig("nginx", new int[]{443}, 0, true, false);
         BindingConfig tcpClient0 = new BindingConfig(null, "tcp_client0", "tcp", CLIENT, null,
-            tcpClientOptions, List.of(), null);
+            tcpClient0Options, List.of(), null);
 
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient0, tlsClient0, tcpClient0);
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpServer0, httpClient0, tlsClient0,
+            tcpClient0);
 
         // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
