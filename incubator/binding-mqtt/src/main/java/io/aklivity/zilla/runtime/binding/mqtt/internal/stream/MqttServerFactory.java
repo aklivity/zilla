@@ -1985,17 +1985,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttSessionStateFW.Builder sessionStateBuilder =
                         mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
-                    //TODO: I believe it's not correct, as we need to send ALL the subscriptions, not just the new ones.
-                    newSubscriptions.forEach(subscription ->
+                    List<Subscription> currentSubscriptions = new ArrayList<>(sessionStream.subscriptions);
+                    currentSubscriptions.addAll(newSubscriptions);
+                    sessionStream.unAckedSubscriptions.addAll(newSubscriptions);
+                    currentSubscriptions.forEach(subscription ->
+                        sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
                         {
-                            sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
-                            {
-                                subscriptionBuilder.subscriptionId(subscription.id);
-                                subscriptionBuilder.flags(subscription.flags);
-                                subscriptionBuilder.pattern(subscription.filter);
-                            });
-                            sessionStream.unAckedSubscriptions.add(subscription);
-                        }
+                            subscriptionBuilder.subscriptionId(subscription.id);
+                            subscriptionBuilder.flags(subscription.flags);
+                            subscriptionBuilder.pattern(subscription.filter);
+                        })
                     );
 
                     final MqttSessionStateFW sessionState = sessionStateBuilder.build();
