@@ -40,9 +40,12 @@ import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
@@ -129,6 +132,7 @@ public final class ZillaConfigCommand extends ZillaCommand
     private NamespaceConfig createConfig(
         OpenApi openApi)
     {
+        // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
         OptionsConfig guardOptions = null;
         if (JwtGuard.NAME.equals(guardType))
@@ -141,7 +145,17 @@ public final class ZillaConfigCommand extends ZillaCommand
             guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com", List.of(key), null);
         }
         GuardConfig guard = new GuardConfig("jwt0", guardType, guardOptions);
-        return new NamespaceConfig("example", List.of(), null, List.of(), List.of(guard), List.of());
+        List<GuardConfig> guards = List.of(guard);
+
+        // vaults
+        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
+        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
+        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
+        List<VaultConfig> vaults = List.of(clientVault, serverVault);
+
+        // namespace
+        return new NamespaceConfig("example", List.of(), null, List.of(), guards, vaults);
     }
 
     private void writeConfig(
