@@ -41,6 +41,24 @@ bindings:
           credentials:
             headers:
               authorization: "Bearer {credentials}"
+    routes:
+    - exit: "http_client0"
+      when:
+      - headers:
+          :path: "/items"
+          :method: "GET"
+      - headers:
+          :path: "/items"
+          :method: "POST"
+      - headers:
+          :path: "/items/{id}"
+          :method: "GET"
+      - headers:
+          :path: "/items/{id}"
+          :method: "PUT"
+      - headers:
+          :path: "/items/{id}"
+          :method: "DELETE"
   http_client0:
     type: "http"
     kind: "client"

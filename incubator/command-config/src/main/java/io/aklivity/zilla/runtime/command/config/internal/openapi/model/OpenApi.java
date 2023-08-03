@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class OpenApi
 {
     public String openapi;
     public List<Server> servers;
+    public LinkedHashMap<String, PathItem> paths;
     public Components components;
 }

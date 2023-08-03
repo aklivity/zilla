@@ -24,7 +24,10 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -33,15 +36,19 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -112,7 +119,7 @@ public class OpenApiConfigGenerator
         HttpCredentialsConfig credentials = new HttpCredentialsConfig(List.of(headers), null, null);
         HttpAuthorizationConfig authorization = new HttpAuthorizationConfig("jwt0", credentials);
         HttpOptionsConfig httpServer0Options = new HttpOptionsConfig(null, null, accessControl, authorization);
-        List<RouteConfig> httpServer0routes = List.of(); // TODO: Ati - routes
+        List<RouteConfig> httpServer0routes = generateRoutes("http_client0");
         BindingConfig httpServer0 = new BindingConfig(null, "httpServer0", "http", SERVER, null,
             httpServer0Options, httpServer0routes, null);
 
@@ -187,6 +194,49 @@ public class OpenApiConfigGenerator
             }
         }
         return result;
+    }
+
+    private List<RouteConfig> generateRoutes(
+        String exit)
+    {
+        List<RouteConfig> routes = new LinkedList<>();
+        List<ConditionConfig> simpleRouteConditions = new LinkedList<>();
+        for (String path: openApi.paths.keySet())
+        {
+            PathItem item = openApi.paths.get(path);
+            item.initMethods();
+            for (String method: item.methods().keySet())
+            {
+                Map<String, String> headers = new LinkedHashMap<>();
+                headers.put(":path", path);
+                headers.put(":method", method);
+                // TODO: Ati - get queries
+                List<String> queries = List.of();
+                if (!queries.isEmpty())
+                {
+                    // TODO: Ati - add queries to header
+                    headers.put(":query", "TODO");
+                }
+                ConditionConfig when = new HttpConditionConfig(headers);
+                // TODO: Ati - guarded
+                List<GuardedConfig> guarded = List.of();
+                if (queries.isEmpty() && guarded.isEmpty())
+                {
+                    simpleRouteConditions.add(when);
+                }
+                else
+                {
+                    RouteConfig route = new RouteConfig(exit, List.of(when), guarded);
+                    routes.add(route);
+                }
+            }
+        }
+        if (!simpleRouteConditions.isEmpty())
+        {
+            RouteConfig route = new RouteConfig(exit, simpleRouteConditions, List.of());
+            routes.add(route);
+        }
+        return routes;
     }
 
     private String writeConfig(
