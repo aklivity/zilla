@@ -57,7 +57,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 public class MqttKafkaSessionFactory implements BindingHandler
 {
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
-    private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MIGRATE_KEY_POSTFIX = "#migrate";
     private static final String GROUP_PROTOCOL = "highlander";
@@ -86,7 +85,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
-    private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final MutableDirectBuffer writeBuffer;
@@ -94,7 +92,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final int mqttTypeId;
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
@@ -105,7 +102,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
         EngineContext context,
         LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
-        this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -172,10 +168,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private final String16FW sessionIdentifier;
         private final String16FW sessionsTopicName;
 
-        public boolean sessionLeader = false;
-        public boolean sessionStateArrived = false;
-        public boolean migrate = false;
-
         private int state;
 
         private long initialSeq;
@@ -190,6 +182,9 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private String16FW clientId;
         private String16FW clientIdMigrate;
         private int sessionExpiryMs;
+
+        private boolean sessionLeader = false;
+        private boolean migrate = false;
         private boolean initialMigrateSent = false;
 
         private MqttSessionProxy(
@@ -452,8 +447,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             long budgetId,
             int reserved,
             int flags,
-            MqttSessionStateFW sessionState,
-            Flyweight extension)
+            MqttSessionStateFW sessionState)
         {
             Flyweight state = sessionState == null ? EMPTY_OCTETS : sessionState;
             final DirectBuffer buffer = state.buffer();
@@ -462,7 +456,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             final int length = limit - offset;
 
             doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
+                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, EMPTY_OCTETS);
 
             replySeq += reserved;
 
@@ -475,26 +469,14 @@ public class MqttKafkaSessionFactory implements BindingHandler
             long budgetId,
             int reserved,
             int flags,
-            OctetsFW payload,
-            Flyweight extension)
+            OctetsFW payload)
         {
             doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
+                traceId, authorization, budgetId, flags, reserved, payload, EMPTY_OCTETS);
 
             replySeq += reserved;
 
             assert replySeq <= replyAck + replyMax;
-        }
-
-        private void doMqttFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved)
-        {
-            replySeq = session.replySeq;
-
-            doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId, reserved);
         }
 
         private void doMqttAbort(
@@ -798,7 +780,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     {
                         MqttSessionStateFW sessionState =
                             mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit());
-                        delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState, EMPTY_OCTETS);
+                        delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
                     }
                     else if (key.length() == delegate.clientIdMigrate.length())
                     {
@@ -850,9 +832,8 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
             if (delegate.sessionLeader)
             {
-                delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS, EMPTY_OCTETS);
+                delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS);
             }
-            delegate.sessionStateArrived = true;
         }
 
         private void onKafkaAbort(
