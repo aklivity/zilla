@@ -52,22 +52,20 @@ public final class ConfigReader
 {
     private final ConfigAdapterContext context;
     private final Collection<URL> schemaTypes;
-    private final Reader reader;
     private final Consumer<String> logger;
 
     public ConfigReader(
         ConfigAdapterContext context,
         Collection<URL> schemaTypes,
-        Reader reader,
         Consumer<String> logger)
     {
         this.context = context;
         this.schemaTypes = schemaTypes;
-        this.reader = reader;
         this.logger = logger;
     }
 
-    public NamespaceConfig read()
+    public NamespaceConfig read(
+        Reader reader)
     {
         NamespaceConfig namespace = null;
 

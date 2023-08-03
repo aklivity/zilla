@@ -119,10 +119,9 @@ public class ConfigurationManager
             ConfigReader reader = new ConfigReader(
                 new NamespaceConfigAdapterContext(namespaceReadURL),
                 schemaTypes,
-                new StringReader(configText),
                 config.verboseSchema() ? logger : null);
 
-            namespace = reader.read();
+            namespace = reader.read(new StringReader(configText));
             namespace.id = supplyId.applyAsInt(namespace.name);
             namespace.readURL = namespaceReadURL;
 

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,23 +27,40 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 
 public final class ConfigWriter
 {
     private final ConfigAdapterContext context;
-    private final Writer writer;
 
     public ConfigWriter(
-        ConfigAdapterContext context,
-        Writer writer)
+        ConfigAdapterContext context)
     {
         this.context = context;
-        this.writer = writer;
     }
 
     public void write(
+        NamespaceConfig namespace,
+        Writer writer)
+    {
+        write0(namespace, writer);
+    }
+
+    public String write(
         NamespaceConfig namespace)
+    {
+        StringWriter writer = new StringWriter();
+        write0(namespace, writer);
+        return writer.toString();
+    }
+
+    private void write0(
+        NamespaceConfig namespace,
+        Writer writer)
     {
         List<Exception> errors = new LinkedList<>();
 
@@ -60,7 +78,9 @@ public final class ConfigWriter
                 .withConfig(config)
                 .build();
 
-            jsonb.toJson(namespace, writer);
+            String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
+            JsonNode json = new ObjectMapper().readTree(jsonText);
+            new YAMLMapper().writeValue(writer, json);
 
             if (!errors.isEmpty())
             {
