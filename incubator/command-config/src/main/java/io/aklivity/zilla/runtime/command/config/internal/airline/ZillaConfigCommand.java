@@ -32,14 +32,18 @@ import jakarta.json.bind.JsonbBuilder;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.config.internal.model.openapi.OpenApi;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
@@ -132,6 +136,20 @@ public final class ZillaConfigCommand extends ZillaCommand
     private NamespaceConfig createConfig(
         OpenApi openApi)
     {
+        // bindings
+        // - tcp
+        // TODO: options
+        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", KindConfig.SERVER, null,
+            null, List.of(new RouteConfig("tls_server0")), null);
+        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", KindConfig.SERVER, null,
+            null, List.of(new RouteConfig("http_server0")), null);
+        // - tls
+        TlsOptionsConfig tlsOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
+            List.of("h2"), null, null, false);
+        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", KindConfig.SERVER, null,
+            tlsOptions, List.of(new RouteConfig("http_server0")), null);
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0);
+
         // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
         OptionsConfig guardOptions = null;
@@ -155,7 +173,7 @@ public final class ZillaConfigCommand extends ZillaCommand
         List<VaultConfig> vaults = List.of(clientVault, serverVault);
 
         // namespace
-        return new NamespaceConfig("example", List.of(), null, List.of(), guards, vaults);
+        return new NamespaceConfig("example", List.of(), null, bindings, guards, vaults);
     }
 
     private void writeConfig(
