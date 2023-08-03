@@ -82,33 +82,35 @@ public class OpenApiConfigGenerator
     private NamespaceConfig createNamespaceConfig()
     {
         // bindings
-        // - tcp servers
+        // - tcp_server0
         TcpOptionsConfig tcpServer0Options = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
             true, false);
         BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", SERVER, null, tcpServer0Options,
             List.of(new RouteConfig("tls_server0")), null);
+
+        // - tcp_server1
         TcpOptionsConfig tcpServer1Options = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("http"), 0,
             true, false);
         BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", SERVER, null, tcpServer1Options,
             List.of(new RouteConfig("http_server0")), null);
 
-        // - tls server
+        // - tls_server0
         TlsOptionsConfig tlsServerOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
             List.of("h2"), null, null, false);
         BindingConfig tlsServer0 = new BindingConfig("server", "tls_server0", "tls", SERVER, null,
             tlsServerOptions, List.of(new RouteConfig("http_server0")), null);
 
-        // - http client
+        // - http_client0
         BindingConfig httpClient0 = new BindingConfig(null, "http_client0", "http", CLIENT, null,
             null, List.of(new RouteConfig("tls_client0")), null);
 
-        // - tls client
+        // - tls_client0
         TlsOptionsConfig tlsClientOptions = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
             List.of("h2"), null, null, true);
         BindingConfig tlsClient0 = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
             tlsClientOptions, List.of(new RouteConfig("tcp_client0")), null);
 
-        // - tcp client
+        // - tcp_client0
         TcpOptionsConfig tcpClientOptions = new TcpOptionsConfig("nginx", new int[]{443}, 0, true, false);
         BindingConfig tcpClient0 = new BindingConfig(null, "tcp_client0", "tcp", CLIENT, null,
             tcpClientOptions, List.of(), null);
