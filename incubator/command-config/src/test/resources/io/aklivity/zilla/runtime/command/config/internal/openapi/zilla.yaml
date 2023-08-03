@@ -49,6 +49,12 @@ bindings:
       - "h2"
     routes:
     - exit: "tcp_client0"
+  tcp_client0:
+    type: "tcp"
+    kind: "client"
+    options:
+      host: "nginx"
+      port: 443
 guards:
   jwt0:
     type: "jwt"

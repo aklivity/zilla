@@ -83,13 +83,13 @@ public class OpenApiConfigGenerator
     {
         // bindings
         // - tcp servers
-        TcpOptionsConfig httpsPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
+        TcpOptionsConfig tcpServer0Options = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
             true, false);
-        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", SERVER, null, httpsPortsOptions,
+        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", SERVER, null, tcpServer0Options,
             List.of(new RouteConfig("tls_server0")), null);
-        TcpOptionsConfig httpPortsOptions = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("http"), 0,
+        TcpOptionsConfig tcpServer1Options = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("http"), 0,
             true, false);
-        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", SERVER, null, httpPortsOptions,
+        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", SERVER, null, tcpServer1Options,
             List.of(new RouteConfig("http_server0")), null);
 
         // - tls server
@@ -99,16 +99,21 @@ public class OpenApiConfigGenerator
             tlsServerOptions, List.of(new RouteConfig("http_server0")), null);
 
         // - http client
-        BindingConfig httpClient = new BindingConfig(null, "http_client0", "http", CLIENT, null,
+        BindingConfig httpClient0 = new BindingConfig(null, "http_client0", "http", CLIENT, null,
             null, List.of(new RouteConfig("tls_client0")), null);
 
         // - tls client
         TlsOptionsConfig tlsClientOptions = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
             List.of("h2"), null, null, true);
-        BindingConfig tlsClient = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
+        BindingConfig tlsClient0 = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
             tlsClientOptions, List.of(new RouteConfig("tcp_client0")), null);
 
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient, tlsClient);
+        // - tcp client
+        TcpOptionsConfig tcpClientOptions = new TcpOptionsConfig("nginx", new int[]{443}, 0, true, false);
+        BindingConfig tcpClient0 = new BindingConfig(null, "tcp_client0", "tcp", CLIENT, null,
+            tcpClientOptions, List.of(), null);
+
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpClient0, tlsClient0, tcpClient0);
 
         // guards
         String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
