@@ -1,0 +1,132 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.command.config.internal.openapi;
+
+import static org.agrona.LangUtil.rethrowUnchecked;
+
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
+
+public class OpenApiConfigGenerator
+{
+    private final Path input;
+
+    public OpenApiConfigGenerator(
+        Path input)
+    {
+        this.input = input;
+    }
+
+    public String generateConfig()
+    {
+        OpenApi openApi = parseOpenApi(input);
+        NamespaceConfig namespace = createNamespaceConfig(openApi);
+        return writeConfig(namespace);
+    }
+
+    private OpenApi parseOpenApi(
+        Path input)
+    {
+        OpenApi openApi = null;
+        try (InputStream inputStream = new FileInputStream(input.toFile()))
+        {
+            Jsonb jsonb = JsonbBuilder.create();
+            openApi = jsonb.fromJson(inputStream, OpenApi.class);
+            // TODO: Ati
+            System.out.println(openApi.openapi);
+            System.out.println(openApi.components.securitySchemes.bearerAuth.bearerFormat);
+            jsonb.close();
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+            rethrowUnchecked(ex);
+        }
+        return openApi;
+    }
+
+    private NamespaceConfig createNamespaceConfig(
+        OpenApi openApi)
+    {
+        // bindings
+        // - tcp
+        // TODO: options
+        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", KindConfig.SERVER, null,
+            null, List.of(new RouteConfig("tls_server0")), null);
+        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", KindConfig.SERVER, null,
+            null, List.of(new RouteConfig("http_server0")), null);
+        // - tls
+        TlsOptionsConfig tlsOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
+            List.of("h2"), null, null, false);
+        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", KindConfig.SERVER, null,
+            tlsOptions, List.of(new RouteConfig("http_server0")), null);
+        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0);
+
+        // guards
+        String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
+        OptionsConfig guardOptions = null;
+        if (JwtGuard.NAME.equals(guardType))
+        {
+            String n = "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
+                "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06O" +
+                "urEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplO" +
+                "KvRtUgjcKWlxoGY4VdVaDQ==";
+            JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
+            guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com", List.of(key), null);
+        }
+        GuardConfig guard = new GuardConfig("jwt0", guardType, guardOptions);
+        List<GuardConfig> guards = List.of(guard);
+
+        // vaults
+        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
+        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
+        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
+        List<VaultConfig> vaults = List.of(clientVault, serverVault);
+
+        // namespace
+        return new NamespaceConfig("example", List.of(), null, bindings, guards, vaults);
+    }
+
+    private String writeConfig(
+        NamespaceConfig namespace)
+    {
+        ConfigAdapterContext context = location -> "hello"; // TODO: Ati - ?
+        ConfigWriter configWriter = new ConfigWriter(null);
+        return configWriter.write(namespace);
+    }
+}

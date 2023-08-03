@@ -23,7 +23,7 @@ module io.aklivity.zilla.runtime.command.config
     opens io.aklivity.zilla.runtime.command.config.internal.airline
         to com.github.rvesse.airline;
 
-    opens io.aklivity.zilla.runtime.command.config.internal.model.openapi;
+    opens io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
         with io.aklivity.zilla.runtime.command.config.internal.ZillaConfigCommandSpi;

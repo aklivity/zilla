@@ -17,39 +17,18 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Properties;
-
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
-import io.aklivity.zilla.runtime.command.config.internal.model.openapi.OpenApi;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.OpenApiConfigGenerator;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
@@ -85,9 +64,8 @@ public final class ZillaConfigCommand extends ZillaCommand
             System.out.println("output: " + output);
         }
 
-        OpenApi openApi = parseOpenApi(input);
-        NamespaceConfig namespace = createConfig(openApi);
-        writeConfig(namespace);
+        OpenApiConfigGenerator openApi = new OpenApiConfigGenerator(input);
+        System.out.println(openApi.generateConfig()); // TODO: Ati - write to output file
     }
 
     private Path engineDirectory()
@@ -110,77 +88,5 @@ public final class ZillaConfigCommand extends ZillaCommand
         }
         EngineConfiguration config = new EngineConfiguration(props);
         return config.directory();
-    }
-
-    private OpenApi parseOpenApi(
-        Path input)
-    {
-        OpenApi openApi = null;
-        try (InputStream inputStream = new FileInputStream(input.toFile()))
-        {
-            Jsonb jsonb = JsonbBuilder.create();
-            openApi = jsonb.fromJson(inputStream, OpenApi.class);
-            // TODO: Ati
-            System.out.println(openApi.openapi);
-            System.out.println(openApi.components.securitySchemes.bearerAuth.bearerFormat);
-            jsonb.close();
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-            rethrowUnchecked(ex);
-        }
-        return openApi;
-    }
-
-    private NamespaceConfig createConfig(
-        OpenApi openApi)
-    {
-        // bindings
-        // - tcp
-        // TODO: options
-        BindingConfig tcpServer0 = new BindingConfig(null, "tcp_server0", "tcp", KindConfig.SERVER, null,
-            null, List.of(new RouteConfig("tls_server0")), null);
-        BindingConfig tcpServer1 = new BindingConfig(null, "tcp_server1", "tcp", KindConfig.SERVER, null,
-            null, List.of(new RouteConfig("http_server0")), null);
-        // - tls
-        TlsOptionsConfig tlsOptions = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
-            List.of("h2"), null, null, false);
-        BindingConfig tlsServer0 = new BindingConfig(null, "tls_server0", "tls", KindConfig.SERVER, null,
-            tlsOptions, List.of(new RouteConfig("http_server0")), null);
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0);
-
-        // guards
-        String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
-        OptionsConfig guardOptions = null;
-        if (JwtGuard.NAME.equals(guardType))
-        {
-            String n = "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
-                "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06O" +
-                "urEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplO" +
-                "KvRtUgjcKWlxoGY4VdVaDQ==";
-            JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
-            guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com", List.of(key), null);
-        }
-        GuardConfig guard = new GuardConfig("jwt0", guardType, guardOptions);
-        List<GuardConfig> guards = List.of(guard);
-
-        // vaults
-        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
-        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
-        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
-        List<VaultConfig> vaults = List.of(clientVault, serverVault);
-
-        // namespace
-        return new NamespaceConfig("example", List.of(), null, bindings, guards, vaults);
-    }
-
-    private void writeConfig(
-        NamespaceConfig namespace)
-    {
-        ConfigAdapterContext context = location -> "hello"; // TODO: Ati - ?
-        ConfigWriter configWriter = new ConfigWriter(null);
-        System.out.println(configWriter.write(namespace)); // TODO: Ati - write to output file
     }
 }
