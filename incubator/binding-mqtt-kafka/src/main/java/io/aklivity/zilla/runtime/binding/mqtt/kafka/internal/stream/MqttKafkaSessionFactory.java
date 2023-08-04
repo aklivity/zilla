@@ -1147,16 +1147,16 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
                     if (delegate.migrate && delegate.sessionLeader)
                     {
-                        doKafkaEnd(traceId, sequence, authorization);
                         delegate.session.sendMigrateSignal(authorization, traceId);
+                        doKafkaEnd(traceId, sequence, authorization);
                     }
 
                     delegate.sessionLeader = true;
                 }
                 else if (delegate.sessionLeader)
                 {
-                    doKafkaEnd(traceId, sequence, authorization);
                     delegate.session.sendMigrateSignal(authorization, traceId);
+                    doKafkaEnd(traceId, sequence, authorization);
                 }
             }
         }
