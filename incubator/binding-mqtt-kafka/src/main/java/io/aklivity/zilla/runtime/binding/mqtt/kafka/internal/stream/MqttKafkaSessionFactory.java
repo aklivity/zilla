@@ -342,7 +342,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
             session.doKafkaEnd(traceId, initialSeq, authorization);
             group.doKafkaEnd(traceId, initialSeq, authorization);
-            session.sendMigrateSignal(authorization, traceId);
         }
 
         private void onMqttAbort(
@@ -1148,7 +1147,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
                     if (delegate.migrate && delegate.sessionLeader)
                     {
-                        delegate.doMqttEnd(traceId, authorization);
                         doKafkaEnd(traceId, sequence, authorization);
                         delegate.session.sendMigrateSignal(authorization, traceId);
                     }
@@ -1157,7 +1155,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
                 }
                 else if (delegate.sessionLeader)
                 {
-                    delegate.doMqttEnd(traceId, authorization);
                     doKafkaEnd(traceId, sequence, authorization);
                     delegate.session.sendMigrateSignal(authorization, traceId);
                 }
