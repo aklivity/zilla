@@ -38,15 +38,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
-                               .header("zilla:topic", "sensor")
-                               .header("zilla:topic", "one")
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .headerInt("zilla:timeout-ms", 15000)
                                .header("zilla:content-type", "message")
                                .header("zilla:format", "TEXT")
-                               .header("zilla:reply-to", "sensor/one")
+                               .header("zilla:reply-to", "messages")
+                               .header("zilla:reply-key", "sensor/one")
+                               .header("zilla:reply-filter", "sensor")
+                               .header("zilla:reply-filter", "one")
                                .header("zilla:correlation-id", "info")
                                .build()
                            .build()}
+
 
 read "message"

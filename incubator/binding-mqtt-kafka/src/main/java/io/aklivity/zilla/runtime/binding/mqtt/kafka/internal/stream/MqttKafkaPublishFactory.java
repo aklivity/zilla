@@ -327,7 +327,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             for (OctetsFW topicHeader : topicNameHeaders)
             {
-                addHeader(helper.kafkaTopicHeaderName, topicHeader);
+                addHeader(helper.kafkaFilterHeaderName, topicHeader);
             }
 
             addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
@@ -357,7 +357,16 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             if (mqttPublishDataEx.responseTopic().asString() != null)
             {
-                addHeader(helper.kafkaReplyToHeaderName, mqttPublishDataEx.responseTopic());
+                final String16FW replyTopic = mqttPublishDataEx.responseTopic();
+                addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
+                addHeader(helper.kafkaReplyKeyHeaderName, replyTopic);
+
+                String[] replyTopicHeaders = replyTopic.asString().split("/");
+                for (int i = 0; i < replyTopicHeaders.length; i++)
+                {
+                    final String16FW replyTopicHeader = new String16FW(replyTopicHeaders[i]);
+                    addHeader(helper.kafkaReplyFilterHeaderName, replyTopicHeader);
+                }
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)

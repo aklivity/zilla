@@ -1863,8 +1863,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         String[] headers = pattern.split("/");
         conditionBuilder.headers(hb ->
         {
-            hb.nameLen(helper.kafkaTopicHeaderName.sizeof());
-            hb.name(helper.kafkaTopicHeaderName);
+            hb.nameLen(helper.kafkaFilterHeaderName.sizeof());
+            hb.name(helper.kafkaFilterHeaderName);
             for (String header : headers)
             {
                 if (header.equals(MQTT_SINGLE_LEVEL_WILDCARD))
