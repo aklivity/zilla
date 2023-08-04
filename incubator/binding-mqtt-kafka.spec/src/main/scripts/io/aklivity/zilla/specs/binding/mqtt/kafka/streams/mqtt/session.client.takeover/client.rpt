@@ -20,7 +20,7 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                                .typeId(zilla:id("mqtt"))
                                .session()
-                                  .clientId("client")
+                                  .clientId("client-1")
                                   .expiry(1)
                                   .build()
                                .build()}
@@ -35,12 +35,12 @@ read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
 
-write notify FIRST_CONNECTED
+write notify READ_SESSION_STATE
 
 read closed
 write close
 
-connect await FIRST_CONNECTED
+connect await READ_SESSION_STATE
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -48,7 +48,7 @@ connect await FIRST_CONNECTED
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                              .build()}
@@ -68,7 +68,7 @@ connect await CONNECTED
 write zilla:begin.ext ${mqtt:beginEx()
                                .typeId(zilla:id("mqtt"))
                                .session()
-                                  .clientId("client")
+                                  .clientId("client-1")
                                   .expiry(1)
                                   .build()
                                .build()}
@@ -89,7 +89,7 @@ connect await SESSION_READY2
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                              .build()}

@@ -72,8 +72,8 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
 
-        MqttKafkaSessionFactory mqttKafkaSessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
-        mqttKafkaSessionFactory.onAttached(binding.id);
+        MqttKafkaSessionFactory sessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
+        sessionFactory.onAttached(binding.id);
     }
 
     @Override
@@ -82,8 +82,8 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     {
         bindings.remove(bindingId);
 
-        MqttKafkaSessionFactory mqttKafkaSessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
-        mqttKafkaSessionFactory.onDetached(bindingId);
+        MqttKafkaSessionFactory sessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
+        sessionFactory.onDetached(bindingId);
     }
 
     @Override

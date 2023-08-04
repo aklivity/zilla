@@ -23,13 +23,13 @@ import org.junit.Test;
 
 public class MqttKafkaConfigurationTest
 {
-    public static final String KAFKA_MESSAGES_TOPIC_NAME = "zilla.binding.mqtt.kafka.messages.topic";
-    public static final String KAFKA_RETAINED_MESSAGES_TOPIC_NAME = "zilla.binding.mqtt.kafka.retained.messages.topic";
+    public static final String MESSAGES_TOPIC_NAME = "zilla.binding.mqtt.kafka.messages.topic";
+    public static final String RETAINED_MESSAGES_TOPIC_NAME = "zilla.binding.mqtt.kafka.retained.messages.topic";
 
     @Test
     public void shouldVerifyConstants()
     {
-        assertEquals(MESSAGES_TOPIC.name(), KAFKA_MESSAGES_TOPIC_NAME);
-        assertEquals(RETAINED_MESSAGES_TOPIC.name(), KAFKA_RETAINED_MESSAGES_TOPIC_NAME);
+        assertEquals(MESSAGES_TOPIC.name(), MESSAGES_TOPIC_NAME);
+        assertEquals(RETAINED_MESSAGES_TOPIC.name(), RETAINED_MESSAGES_TOPIC_NAME);
     }
 }

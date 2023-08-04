@@ -29,7 +29,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<String> MESSAGES_TOPIC;
     public static final PropertyDef<String> RETAINED_MESSAGES_TOPIC;
     public static final PropertyDef<String> SESSIONS_TOPIC;
-    public static final PropertyDef<SessionIdSupplier> SESSION_ID_SUPPLIER;
+    public static final PropertyDef<SessionIdSupplier> SESSION_ID;
 
     static
     {
@@ -37,7 +37,7 @@ public class MqttKafkaConfiguration extends Configuration
         MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
         RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
         SESSIONS_TOPIC = config.property("sessions.topic", "mqtt_sessions");
-        SESSION_ID_SUPPLIER = config.property(SessionIdSupplier.class, "session.id.supplier",
+        SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             MqttKafkaConfiguration::decodeSessionIdSupplier, MqttKafkaConfiguration::defaultSessionIdSupplier);
         MQTT_KAFKA_CONFIG = config;
     }
@@ -50,7 +50,7 @@ public class MqttKafkaConfiguration extends Configuration
 
     public Supplier<String> sessionIdSupplier()
     {
-        return SESSION_ID_SUPPLIER.get(this);
+        return SESSION_ID.get(this);
     }
 
     @FunctionalInterface

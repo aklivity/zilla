@@ -20,7 +20,7 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .expiry(1)
                                 .build()
                              .build()}
@@ -52,7 +52,7 @@ connect await SESSION1_READY
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                              .build()}
@@ -70,7 +70,7 @@ connect await SESSION1_ABORTED
 write zilla:begin.ext ${mqtt:beginEx()
                                .typeId(zilla:id("mqtt"))
                                .session()
-                                  .clientId("client")
+                                  .clientId("client-1")
                                   .expiry(1)
                                   .build()
                                .build()}
@@ -91,7 +91,7 @@ connect await SESSION_READY2
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                              .build()}

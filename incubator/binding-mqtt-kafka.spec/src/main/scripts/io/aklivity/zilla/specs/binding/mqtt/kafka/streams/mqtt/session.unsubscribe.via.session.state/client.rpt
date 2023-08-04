@@ -20,7 +20,7 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .expiry(1)
                                 .build()
                              .build()}
@@ -38,13 +38,13 @@ read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
 
-write notify SUBSCRIBED
+write notify READ_SESSION_STATE
 
 read ${mqtt:session()
                .build()}
 
 
-connect await SUBSCRIBED
+connect await READ_SESSION_STATE
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -52,7 +52,7 @@ connect await SUBSCRIBED
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                               .build()}

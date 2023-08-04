@@ -60,9 +60,10 @@ public class MqttKafkaSessionFactory implements BindingHandler
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MIGRATE_KEY_POSTFIX = "#migrate";
     private static final String GROUP_PROTOCOL = "highlander";
-    private static final String16FW SESSION_ID_NAME = new String16FW("session_id");
+    private static final String16FW SENDER_ID_NAME = new String16FW("sender-id");
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final int DATA_FLAG_COMPLETE = 0x03;
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -94,7 +95,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
-    private final Supplier<String> supplyInstanceId;
+    private final Supplier<String> supplySessionId;
     private final Long2ObjectHashMap<String> sessionIds;
 
     public MqttKafkaSessionFactory(
@@ -109,7 +110,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
-        this.supplyInstanceId = config.sessionIdSupplier();
+        this.supplySessionId = config.sessionIdSupplier();
         this.sessionIds = new Long2ObjectHashMap<>();
     }
 
@@ -131,14 +132,14 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
         final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
 
-
         MessageConsumer newStream = null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            final String16FW sessionTopic = binding.sessionsTopic();
             newStream = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, binding.sessionsTopic())::onMqttMessage;
+                binding.id, sessionTopic)::onMqttMessage;
         }
 
         return newStream;
@@ -147,7 +148,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
     public void onAttached(
         long bindingId)
     {
-        sessionIds.put(bindingId, supplyInstanceId.get());
+        sessionIds.put(bindingId, supplySessionId.get());
     }
 
     public void onDetached(
@@ -166,7 +167,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private final KafkaSessionProxy session;
         private final KafkaGroupProxy group;
         private final String16FW sessionIdentifier;
-        private final String16FW sessionsTopicName;
+        private final String16FW sessionsTopic;
 
         private int state;
 
@@ -183,9 +184,9 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private String16FW clientIdMigrate;
         private int sessionExpiryMs;
 
-        private boolean sessionLeader = false;
-        private boolean migrate = false;
-        private boolean initialMigrateSent = false;
+        private boolean sessionLeader;
+        private boolean migrate;
+        private boolean initialMigrateSent;
 
         private MqttSessionProxy(
             MessageConsumer mqtt,
@@ -194,7 +195,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             long initialId,
             long resolvedId,
             long bindingId,
-            String16FW sessionsTopicName)
+            String16FW sessionsTopic)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -203,7 +204,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.session = new KafkaSessionProxy(originId, resolvedId, this);
             this.group = new KafkaGroupProxy(originId, resolvedId, this);
-            this.sessionsTopicName = sessionsTopicName;
+            this.sessionsTopic = sessionsTopic;
             this.sessionIdentifier = new String16FW(sessionIds.get(bindingId));
         }
 
@@ -267,9 +268,9 @@ public class MqttKafkaSessionFactory implements BindingHandler
             assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SESSION;
             final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
 
-            final String16FW clientId = mqttSessionBeginEx.clientId();
-            this.clientId = new String16FW().wrap(clientId.buffer(), clientId.offset(), clientId.limit());
-            this.clientIdMigrate = new String16FW(clientId.asString() + MIGRATE_KEY_POSTFIX);
+            final String clientId0 = mqttSessionBeginEx.clientId().asString();
+            this.clientId = new String16FW(clientId0);
+            this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
 
             sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? 30000 : mqttSessionBeginEx.expiry() * 1000;
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionIdentifier);
@@ -309,7 +310,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(clientId.length())
-                        .value(clientId.value(), 0, clientId.length())))
+                    .value(clientId.value(), 0, clientId.length())))
                 .build();
 
             if (sessionState != null)
@@ -602,7 +603,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.sessionsTopicName, clientId, clientIdMigrate, sessionIdentifier);
+                traceId, authorization, affinity, delegate.sessionsTopic, clientId, clientIdMigrate, sessionIdentifier);
         }
 
         private void doKafkaData(
@@ -900,8 +901,8 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(delegate.clientIdMigrate.length())
                         .value(delegate.clientIdMigrate.value(), 0, delegate.clientIdMigrate.length()))
-                    .headersItem(c -> c.nameLen(SESSION_ID_NAME.length())
-                        .name(SESSION_ID_NAME.value(), 0, SESSION_ID_NAME.length())
+                    .headersItem(c -> c.nameLen(SENDER_ID_NAME.length())
+                        .name(SENDER_ID_NAME.value(), 0, SENDER_ID_NAME.length())
                         .valueLen(delegate.sessionIdentifier.length())
                         .value(delegate.sessionIdentifier.value(), 0, delegate.sessionIdentifier.length())))
                 .build();
@@ -1481,7 +1482,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
                                 .partitionOffset(KafkaOffsetType.HISTORICAL.value()));
                         m.filtersItem(f -> f.conditionsItem(ci ->
                             ci.key(kb -> kb.length(clientId.length())
-                                .value(clientId.value(), 0, clientId.length()))));
+                            .value(clientId.value(), 0, clientId.length()))));
                     }
                     m.filtersItem(f ->
                     {
@@ -1489,8 +1490,8 @@ public class MqttKafkaSessionFactory implements BindingHandler
                             ci.key(kb -> kb.length(clientIdMigrate.length())
                                 .value(clientIdMigrate.value(), 0, clientIdMigrate.length())));
                         f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                            h.nameLen(SESSION_ID_NAME.length())
-                                .name(SESSION_ID_NAME.value(), 0, SESSION_ID_NAME.length())
+                            h.nameLen(SENDER_ID_NAME.length())
+                                .name(SENDER_ID_NAME.value(), 0, SENDER_ID_NAME.length())
                                 .valueLen(sessionId.length())
                                 .value(sessionId.value(), 0, sessionId.length())))));
                     });

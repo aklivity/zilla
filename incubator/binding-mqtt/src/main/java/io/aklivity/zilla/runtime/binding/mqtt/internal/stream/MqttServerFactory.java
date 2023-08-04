@@ -2103,7 +2103,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         return;
                     }
                     topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
-                    sendNewSessionStateForUnsubscribe(traceId, topicFilters);
+                    doSendSessionState(traceId, topicFilters);
                 }
                 else
                 {
@@ -2113,7 +2113,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private void sendNewSessionStateForUnsubscribe(
+        private void doSendSessionState(
             long traceId,
             List<String> topicFilters)
         {
@@ -4176,7 +4176,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             iterator.remove();
                         }
 
-                        sendNewSessionStateForUnsubscribe(traceId, ackedTopicFilters);
+                        doSendSessionState(traceId, ackedTopicFilters);
                     }
                 }
 

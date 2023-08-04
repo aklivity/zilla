@@ -23,7 +23,7 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .expiry(1)
                                 .build()
                              .build()}
@@ -54,7 +54,7 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                              .build()}

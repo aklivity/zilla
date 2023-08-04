@@ -20,7 +20,7 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .expiry(1)
                                 .build()
                              .build()}
@@ -29,7 +29,7 @@ connected
 
 read zilla:data.empty
 
-write notify CONNACK_TRIGGER1
+write notify READ_SESSION_EMPTY
 
 write ${mqtt:session()
                .subscription("sensor/one", 1)
@@ -46,7 +46,7 @@ read closed
 write close
 
 
-connect await CONNACK_TRIGGER1
+connect await READ_SESSION_EMPTY
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -54,7 +54,7 @@ connect await CONNACK_TRIGGER1
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .filter("sensor/one", 1)
                                 .build()
                               .build()}
@@ -73,7 +73,7 @@ connect await SESSION_READY
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
+                                .clientId("client-1")
                                 .expiry(1)
                                 .build()
                              .build()}
