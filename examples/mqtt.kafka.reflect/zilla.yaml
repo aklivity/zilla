@@ -14,15 +14,16 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 1883
-    exit: mqtt_server0
-  tcp_server1:
-    type: tcp
-    kind: server
-    options:
-      host: 0.0.0.0
-      port: 8883
-    exit: tls_server0
+      port: 
+        - 1883
+        - 8883
+    routes:
+        - when: 
+            - port: 1883
+          exit: mqtt_server0
+        - when:
+            - port: 8883
+          exit: tls_server0
   tls_server0:
     type: tls
     kind: server
