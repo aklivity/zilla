@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
-public class SecuritySchemes
+public class SecurityScheme
 {
-    public BearerAuth bearerAuth;
+    public String bearerFormat;
 }

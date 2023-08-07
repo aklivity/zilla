@@ -15,23 +15,20 @@
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class PathItem
 {
-    // TODO: Ati - Objects everywhere
-    private Map<String, Map<String, Object>> methods;
+    private Map<String, Operation> methods;
 
-    public List<Server> servers;
-    public Map<String, Object> get;
-    public Map<String, Object> put;
-    public Map<String, Object> post;
-    public Map<String, Object> delete;
-    public Map<String, Object> options;
-    public Map<String, Object> head;
-    public Map<String, Object> patch;
-    public Map<String, Object> trace;
+    public Operation get;
+    public Operation put;
+    public Operation post;
+    public Operation delete;
+    public Operation options;
+    public Operation head;
+    public Operation patch;
+    public Operation trace;
 
     public void initMethods()
     {
@@ -70,7 +67,7 @@ public class PathItem
         }
     }
 
-    public Map<String, Map<String, Object>> methods()
+    public Map<String, Operation> methods()
     {
         return methods;
     }

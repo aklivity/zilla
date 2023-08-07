@@ -126,6 +126,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/command/config/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/command/config/internal/openapi/model/*.class</exclude>
           </excludes>
           <rules>
             <rule>

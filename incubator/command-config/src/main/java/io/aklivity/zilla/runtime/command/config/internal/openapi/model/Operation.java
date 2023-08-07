@@ -14,9 +14,10 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
+import java.util.List;
 import java.util.Map;
 
-public class Components
+public class Operation
 {
-    public Map<String, SecurityScheme> securitySchemes;
+    public List<Map<String, List<String>>> security;
 }

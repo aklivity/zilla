@@ -24,6 +24,8 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,7 +57,6 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
@@ -94,6 +95,34 @@ public class OpenApiConfigGenerator
 
     private NamespaceConfig createNamespaceConfig()
     {
+        // guards
+        List<GuardConfig> guards = new ArrayList<>();
+        Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
+        for (String securitySchemeName: openApi.components.securitySchemes.keySet())
+        {
+            String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+            if ("jwt".equals(guardType))
+            {
+                String n =
+                    "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
+                    "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrh" +
+                    "ZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHj" +
+                    "Z7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==";
+                JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
+                OptionsConfig guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com",
+                    List.of(key), null);
+                guards.add(new GuardConfig("jwt0", guardType, guardOptions));
+                guardedRoutes.put(securitySchemeName, new GuardedConfig("jwt0", List.of("echo:stream")));
+            }
+        }
+
+        // vaults
+        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
+        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
+        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
+        List<VaultConfig> vaults = List.of(clientVault, serverVault);
+
         // bindings
         // - tcp_server0
         TcpOptionsConfig tcpServer0Options = new TcpOptionsConfig("0.0.0.0", resolvePortsForScheme("https"), 0,
@@ -119,7 +148,7 @@ public class OpenApiConfigGenerator
         HttpCredentialsConfig credentials = new HttpCredentialsConfig(List.of(headers), null, null);
         HttpAuthorizationConfig authorization = new HttpAuthorizationConfig("jwt0", credentials);
         HttpOptionsConfig httpServer0Options = new HttpOptionsConfig(null, null, accessControl, authorization);
-        List<RouteConfig> httpServer0routes = generateRoutes("http_client0");
+        List<RouteConfig> httpServer0routes = generateRoutes("http_client0", guardedRoutes);
         BindingConfig httpServer0 = new BindingConfig(null, "httpServer0", "http", SERVER, null,
             httpServer0Options, httpServer0routes, null);
 
@@ -140,28 +169,6 @@ public class OpenApiConfigGenerator
 
         List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpServer0, httpClient0, tlsClient0,
             tcpClient0);
-
-        // guards
-        String guardType = openApi.components.securitySchemes.bearerAuth.bearerFormat;
-        OptionsConfig guardOptions = null;
-        if (JwtGuard.NAME.equals(guardType))
-        {
-            String n = "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
-                "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06O" +
-                "urEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplO" +
-                "KvRtUgjcKWlxoGY4VdVaDQ==";
-            JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
-            guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com", List.of(key), null);
-        }
-        GuardConfig guard = new GuardConfig("jwt0", guardType, guardOptions);
-        List<GuardConfig> guards = List.of(guard);
-
-        // vaults
-        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
-        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
-        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
-        List<VaultConfig> vaults = List.of(clientVault, serverVault);
 
         // namespace
         return new NamespaceConfig("example", List.of(), null, bindings, guards, vaults);
@@ -197,10 +204,11 @@ public class OpenApiConfigGenerator
     }
 
     private List<RouteConfig> generateRoutes(
-        String exit)
+        String exit,
+        Map<String, GuardedConfig> guardedRoutes)
     {
         List<RouteConfig> routes = new LinkedList<>();
-        List<ConditionConfig> simpleRouteConditions = new LinkedList<>();
+        List<ConditionConfig> unguardedConditions = new LinkedList<>();
         for (String path: openApi.paths.keySet())
         {
             PathItem item = openApi.paths.get(path);
@@ -210,19 +218,25 @@ public class OpenApiConfigGenerator
                 Map<String, String> headers = new LinkedHashMap<>();
                 headers.put(":path", path);
                 headers.put(":method", method);
-                // TODO: Ati - get queries
-                List<String> queries = List.of();
-                if (!queries.isEmpty())
-                {
-                    // TODO: Ati - add queries to header
-                    headers.put(":query", "TODO");
-                }
                 ConditionConfig when = new HttpConditionConfig(headers);
-                // TODO: Ati - guarded
-                List<GuardedConfig> guarded = List.of();
-                if (queries.isEmpty() && guarded.isEmpty())
+                List<GuardedConfig> guarded = new LinkedList<>();
+                List<Map<String, List<String>>> security = item.methods().get(method).security;
+                if (security != null)
                 {
-                    simpleRouteConditions.add(when);
+                    for (Map<String, List<String>> securityItem: security)
+                    {
+                        for (String securityItemLabel: securityItem.keySet())
+                        {
+                            if (guardedRoutes.containsKey(securityItemLabel))
+                            {
+                                guarded.add(guardedRoutes.get(securityItemLabel));
+                            }
+                        }
+                    }
+                }
+                if (guarded.isEmpty())
+                {
+                    unguardedConditions.add(when);
                 }
                 else
                 {
@@ -231,9 +245,9 @@ public class OpenApiConfigGenerator
                 }
             }
         }
-        if (!simpleRouteConditions.isEmpty())
+        if (!unguardedConditions.isEmpty())
         {
-            RouteConfig route = new RouteConfig(exit, simpleRouteConditions, List.of());
+            RouteConfig route = new RouteConfig(exit, unguardedConditions, List.of());
             routes.add(route);
         }
         return routes;

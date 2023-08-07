@@ -47,9 +47,19 @@ bindings:
       - headers:
           :path: "/items"
           :method: "GET"
+      guarded:
+        jwt0:
+        - "echo:stream"
+    - exit: "http_client0"
+      when:
       - headers:
           :path: "/items"
           :method: "POST"
+      guarded:
+        jwt0:
+        - "echo:stream"
+    - exit: "http_client0"
+      when:
       - headers:
           :path: "/items/{id}"
           :method: "GET"
