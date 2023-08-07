@@ -14,30 +14,29 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.airline;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
+import java.util.Map;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
+import com.github.rvesse.airline.annotations.restrictions.Required;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.OpenApiConfigGenerator;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.OpenApiHttpProxyConfigGenerator;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
 {
-    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
-
-    @Option(name = {"-v", "--verbose"},
-        description = "Show verbose output")
-    public boolean verbose;
+    @Option(name = {"-t", "--template"},
+        description = "Template name:\n" +
+            "- openapi.http.proxy\n")
+    @Required
+    public String template;
 
     @Option(name = {"-i", "--input"},
         description = "Input filename",
@@ -49,44 +48,21 @@ public final class ZillaConfigCommand extends ZillaCommand
         typeConverterProvider = ZillaConfigCommandPathConverterProvider.class)
     public Path output = Paths.get("zilla.yaml");
 
-    @Option(name = {"-p", "--properties"},
-        description = "Path to properties",
-        hidden = true)
-    public String propertiesPath;
-
     @Override
     public void run()
     {
-        System.out.println("Hello World!"); // TODO: Ati
-        if (verbose)
+        Map<String, ConfigGenerator> configGenerators = Map.of(
+            "openapi.http.proxy", new OpenApiHttpProxyConfigGenerator(input)
+        );
+        ConfigGenerator generator = configGenerators.get(template);
+        try
         {
-            System.out.println("engine directory: " + engineDirectory());
-            System.out.println("output: " + output);
+            Files.writeString(output, generator.generateConfig());
         }
-
-        OpenApiConfigGenerator openApi = new OpenApiConfigGenerator(input);
-        System.out.println(openApi.generateConfig()); // TODO: Ati - write to output file
-    }
-
-    private Path engineDirectory()
-    {
-        Properties props = new Properties();
-        props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
-
-        Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
-        if (Files.exists(path) || propertiesPath != null)
+        catch (IOException ex)
         {
-            try
-            {
-                props.load(Files.newInputStream(path));
-            }
-            catch (IOException ex)
-            {
-                System.out.println("Failed to load properties: " + path);
-                rethrowUnchecked(ex);
-            }
+            ex.printStackTrace();
+            rethrowUnchecked(ex);
         }
-        EngineConfiguration config = new EngineConfiguration(props);
-        return config.directory();
     }
 }

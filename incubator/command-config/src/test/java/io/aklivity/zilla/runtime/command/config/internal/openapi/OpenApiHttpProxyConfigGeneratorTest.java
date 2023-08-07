@@ -22,7 +22,7 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
-public class OpenApiConfigGeneratorTest
+public class OpenApiHttpProxyConfigGeneratorTest
 {
     @Test
     public void shouldGenerateConfig() throws Exception
@@ -31,7 +31,7 @@ public class OpenApiConfigGeneratorTest
         Path expectedPath = Path.of(getClass().getResource("zilla.yaml").toURI());
         String expectedResult = Files.readString(expectedPath);
         Path inputPath = Path.of(getClass().getResource("openapi.yaml").toURI());
-        OpenApiConfigGenerator generator = new OpenApiConfigGenerator(inputPath);
+        OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputPath);
 
         // WHEN
         String result = generator.generateConfig();

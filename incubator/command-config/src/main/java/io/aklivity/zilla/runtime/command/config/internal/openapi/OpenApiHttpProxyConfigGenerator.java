@@ -42,12 +42,12 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -60,14 +60,16 @@ import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
-public class OpenApiConfigGenerator
+public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 {
     private final OpenApi openApi;
+    private final ConfigWriter configWriter;
 
-    public OpenApiConfigGenerator(
+    public OpenApiHttpProxyConfigGenerator(
         Path input)
     {
         this.openApi = parseOpenApi(input);
+        this.configWriter = new ConfigWriter(null);
     }
 
     public String generateConfig()
@@ -256,8 +258,6 @@ public class OpenApiConfigGenerator
     private String writeConfig(
         NamespaceConfig namespace)
     {
-        ConfigAdapterContext context = location -> "hello"; // TODO: Ati - ?
-        ConfigWriter configWriter = new ConfigWriter(null);
         return configWriter.write(namespace);
     }
 }
