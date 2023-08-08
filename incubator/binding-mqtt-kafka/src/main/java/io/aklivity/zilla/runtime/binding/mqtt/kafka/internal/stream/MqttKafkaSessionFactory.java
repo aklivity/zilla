@@ -185,7 +185,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private int sessionExpiryMs;
 
         private boolean sessionLeader;
-        private boolean migrate;
         private boolean initialMigrateSent;
 
         private MqttSessionProxy(
@@ -272,7 +271,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.clientId = new String16FW(clientId0);
             this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
 
-            sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : mqttSessionBeginEx.expiry() * 1000;
+            sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? 30000 : mqttSessionBeginEx.expiry() * 1000;
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionIdentifier);
             group.doKafkaBegin(traceId, authorization, affinity);
         }
@@ -785,10 +784,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     else if (key.length() == delegate.clientIdMigrate.length())
                     {
                         delegate.group.doKafkaFlush(traceId, authorization, budgetId, reserved);
-                        if (delegate.sessionLeader)
-                        {
-                            delegate.migrate = true;
-                        }
                     }
                 }
             }
@@ -1134,10 +1129,17 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_GROUP ? kafkaDataEx.group() : null;
                 final String16FW leaderId = kafkaGroupDataEx != null ? kafkaGroupDataEx.leaderId() : null;
                 final String16FW memberId  = kafkaGroupDataEx != null ? kafkaGroupDataEx.memberId() : null;
+                final int memberCount  = kafkaGroupDataEx != null ? kafkaGroupDataEx.memberCount() : 0;
 
+                //TODO: when we receive dataEX with this: count > 1 leave AND we're the leader -> leave
                 if (leaderId.equals(memberId))
                 {
-                    if (!delegate.sessionLeader)
+                    if (memberCount > 1)
+                    {
+                        delegate.session.sendMigrateSignal(authorization, traceId);
+                        doKafkaEnd(traceId, sequence, authorization);
+                    }
+                    else
                     {
                         delegate.session.doKafkaEnd(traceId, sequence, authorization);
                         delegate.session.doKafkaReset(traceId);
@@ -1145,18 +1147,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
                             delegate.clientId, delegate.clientIdMigrate, delegate.sessionIdentifier);
                     }
 
-                    if (delegate.migrate && delegate.sessionLeader)
-                    {
-                        delegate.session.sendMigrateSignal(authorization, traceId);
-                        doKafkaEnd(traceId, sequence, authorization);
-                    }
-
                     delegate.sessionLeader = true;
-                }
-                else if (delegate.sessionLeader)
-                {
-                    delegate.session.sendMigrateSignal(authorization, traceId);
-                    doKafkaEnd(traceId, sequence, authorization);
                 }
             }
         }
