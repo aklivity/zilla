@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.BACKLOG_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.KEEPALIVE_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.NODELAY_DEFAULT;
+
 import java.util.stream.IntStream;
 
 import jakarta.json.Json;
@@ -82,13 +86,13 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
         }
 
-        if (tcpOptions.backlog != TcpOptionsConfigBuilder.BACKLOG_DEFAULT)
+        if (tcpOptions.backlog != BACKLOG_DEFAULT)
         {
             object.add(BACKLOG_NAME, tcpOptions.backlog);
         }
 
-        assert tcpOptions.nodelay == TcpOptionsConfigBuilder.NODELAY_DEFAULT;
-        assert tcpOptions.keepalive == TcpOptionsConfigBuilder.KEEPALIVE_DEFAULT;
+        assert tcpOptions.nodelay == NODELAY_DEFAULT;
+        assert tcpOptions.keepalive == KEEPALIVE_DEFAULT;
 
         return object.build();
     }
