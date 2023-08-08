@@ -111,7 +111,7 @@ public final class ConfigReader
             JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
-            //provider.createReader(reader).read();
+            provider.createReader(reader).read();
 
             if (!errors.isEmpty())
             {

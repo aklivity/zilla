@@ -15,15 +15,30 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.config;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class FileSystemOptionsConfig extends OptionsConfig
+public final class FileSystemOptionsConfig extends OptionsConfig
 {
     public final FileSystemStoreConfig keys;
     public final FileSystemStoreConfig trust;
     public final FileSystemStoreConfig signers;
 
-    public FileSystemOptionsConfig(
+    public static FileSystemOptionsConfigBuilder<FileSystemOptionsConfig> builder()
+    {
+        return new FileSystemOptionsConfigBuilder<>(identity());
+    }
+
+    public static <T> FileSystemOptionsConfigBuilder<T> builder(
+        Function<FileSystemOptionsConfig, T> mapper)
+    {
+        return new FileSystemOptionsConfigBuilder<>(mapper);
+    }
+
+    FileSystemOptionsConfig(
         FileSystemStoreConfig keys,
         FileSystemStoreConfig trust,
         FileSystemStoreConfig signers)

@@ -51,7 +51,11 @@ public class PrometheusExporterHandlerTest
         EngineContext context = mock(EngineContext.class);
         PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
         PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
-        ExporterConfig exporter = new ExporterConfig("test0", "prometheus", options);
+        ExporterConfig exporter = ExporterConfig.builder()
+                .name("test0")
+                .type("prometheus")
+                .options(options)
+                .build();
         PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
         Collector collector = mock(Collector.class);
         when(collector.counterIds()).thenReturn(new long[][]{});

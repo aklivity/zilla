@@ -29,6 +29,7 @@ import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -88,14 +89,22 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String cidr = object.containsKey(CIDR_NAME) ? object.getString(CIDR_NAME) : null;
-        String authority = object.containsKey(AUTHORITY_NAME) ? object.getString(AUTHORITY_NAME) : null;
-        JsonValue portsValue = object.containsKey(PORT_NAME) ? object.get(PORT_NAME) : null;
+        TcpConditionConfigBuilder<TcpConditionConfig> tcpCondition = TcpConditionConfig.builder();
 
-        int[] ports = null;
-
-        if (portsValue != null)
+        if (object.containsKey(CIDR_NAME))
         {
+            tcpCondition.cidr(object.getString(CIDR_NAME));
+        }
+
+        if (object.containsKey(AUTHORITY_NAME))
+        {
+            tcpCondition.authority(object.getString(AUTHORITY_NAME));
+        }
+
+        if (object.containsKey(PORT_NAME))
+        {
+            JsonValue portsValue = object.get(PORT_NAME);
+
             IntHashSet portsSet = new IntHashSet();
             switch (portsValue.getValueType())
             {
@@ -108,12 +117,13 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
                 break;
             }
 
-            int[] ports0 = new int[portsSet.size()];
+            int[] ports = new int[portsSet.size()];
             MutableInteger index = new MutableInteger();
-            portsSet.forEach(i -> ports0[index.value++] = i);
-            ports = ports0;
+            portsSet.forEach(i -> ports[index.value++] = i);
+
+            tcpCondition.ports(ports);
         }
 
-        return new TcpConditionConfig(cidr, authority, ports);
+        return tcpCondition.build();
     }
 }

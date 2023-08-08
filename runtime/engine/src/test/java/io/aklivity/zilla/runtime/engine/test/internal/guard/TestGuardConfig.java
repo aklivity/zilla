@@ -15,16 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
-import java.time.Duration;
-
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
 
 public final class TestGuardConfig
 {
-    public static final Duration DEFAULT_CHALLENGE_NEVER = Duration.ofMillis(0L);
-    public static final Duration DEFAULT_LIFETIME_FOREVER = Duration.ofMillis(Long.MAX_VALUE);
-
     public final TestGuardOptionsConfig options;
 
     public TestGuardConfig(

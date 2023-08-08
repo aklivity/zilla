@@ -35,11 +35,13 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
 
-public class ReferenceConfigAdapterTest
+public class NamespaceRefConfigAdapterTest
 {
     @Rule
     public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+
     @Mock
     private ConfigAdapterContext context;
     private Jsonb jsonb;
@@ -60,7 +62,7 @@ public class ReferenceConfigAdapterTest
                     "\"name\": \"test\"" +
                 "}";
 
-        NamespaceRef ref = jsonb.fromJson(text, NamespaceRef.class);
+        NamespaceRefConfig ref = jsonb.fromJson(text, NamespaceRefConfig.class);
 
         assertThat(ref, not(nullValue()));
         assertThat(ref.name, equalTo("test"));
@@ -71,9 +73,11 @@ public class ReferenceConfigAdapterTest
     @Test
     public void shouldWriteReference()
     {
-        NamespaceRef route = new NamespaceRef("test", emptyMap());
+        NamespaceRefConfig reference = NamespaceRefConfig.builder()
+                .name("test")
+                .build();
 
-        String text = jsonb.toJson(route);
+        String text = jsonb.toJson(reference);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\"}"));
@@ -91,7 +95,7 @@ public class ReferenceConfigAdapterTest
                     "}" +
                 "}";
 
-        NamespaceRef ref = jsonb.fromJson(text, NamespaceRef.class);
+        NamespaceRefConfig ref = jsonb.fromJson(text, NamespaceRefConfig.class);
 
         assertThat(ref, not(nullValue()));
         assertThat(ref.name, equalTo("test"));
@@ -102,9 +106,12 @@ public class ReferenceConfigAdapterTest
     @Test
     public void shouldWriteReferenceWithLink()
     {
-        NamespaceRef route = new NamespaceRef("test", singletonMap("self", "/test"));
+        NamespaceRefConfig reference = NamespaceRefConfig.builder()
+                .name("test")
+                .link("self", "/test")
+                .build();
 
-        String text = jsonb.toJson(route);
+        String text = jsonb.toJson(reference);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"links\":{\"self\":\"/test\"}}"));

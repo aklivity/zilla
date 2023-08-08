@@ -15,59 +15,23 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
-import java.util.List;
-import java.util.function.Function;
+import static java.util.function.Function.identity;
 
 public final class HttpAuthorizationConfig
 {
-    public static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
-
     public final String name;
     public final HttpCredentialsConfig credentials;
 
-    public HttpAuthorizationConfig(
+    public static HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> builder()
+    {
+        return new HttpAuthorizationConfigBuilder<>(identity());
+    }
+
+    HttpAuthorizationConfig(
         String name,
         HttpCredentialsConfig credentials)
     {
         this.name = name;
         this.credentials = credentials;
-    }
-
-    public static final class HttpCredentialsConfig
-    {
-        public final List<HttpPatternConfig> headers;
-        public final List<HttpPatternConfig> parameters;
-        public final List<HttpPatternConfig> cookies;
-
-
-        public HttpCredentialsConfig(
-            List<HttpPatternConfig> headers)
-        {
-            this(headers, null, null);
-        }
-
-        public HttpCredentialsConfig(
-            List<HttpPatternConfig> headers,
-            List<HttpPatternConfig> parameters,
-            List<HttpPatternConfig> cookies)
-        {
-            this.headers = headers;
-            this.parameters = parameters;
-            this.cookies = cookies;
-        }
-    }
-
-    public static final class HttpPatternConfig
-    {
-        public final String name;
-        public final String pattern;
-
-        public HttpPatternConfig(
-            String name,
-            String pattern)
-        {
-            this.name = name;
-            this.pattern = pattern;
-        }
     }
 }

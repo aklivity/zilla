@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -38,9 +37,9 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
+import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfigBuilder;
 
 public class RouteConfigAdapterTest
 {
@@ -77,7 +76,9 @@ public class RouteConfigAdapterTest
     @Test
     public void shouldWriteRoute()
     {
-        RouteConfig route = new RouteConfig("test");
+        RouteConfig route = RouteConfig.builder()
+                .exit("test")
+                .build();
 
         String text = jsonb.toJson(route);
 
@@ -109,7 +110,13 @@ public class RouteConfigAdapterTest
     @Test
     public void shouldWriteRouteGuarded()
     {
-        RouteConfig route = new RouteConfig("test", singletonList(new GuardedConfig("test", singletonList("role"))));
+        RouteConfig route = RouteConfig.builder()
+                .exit("test")
+                .guarded()
+                    .name("test")
+                    .role("role")
+                    .build()
+                .build();
 
         String text = jsonb.toJson(route);
 
@@ -140,7 +147,12 @@ public class RouteConfigAdapterTest
     @Test
     public void shouldWriteRouteWhenMatch()
     {
-        RouteConfig route = new RouteConfig("test", singletonList(new TestConditionConfig("test")), emptyList());
+        RouteConfig route = RouteConfig.builder()
+                .exit("test")
+                .when(b -> new TestConditionConfigBuilder<>(b::when))
+                    .match("test")
+                    .build()
+                .build();
 
         String text = jsonb.toJson(route);
 

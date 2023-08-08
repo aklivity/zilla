@@ -15,17 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 import java.util.List;
 import java.util.function.LongPredicate;
 
 public class RouteConfig
 {
-    public static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
-    public static final List<GuardedConfig> GUARDED_DEFAULT = emptyList();
-
     public transient long id;
     public transient LongPredicate authorized;
 
@@ -35,35 +32,12 @@ public class RouteConfig
     public final WithConfig with;
     public final List<GuardedConfig> guarded;
 
-    public RouteConfig(
-        String exit)
+    public static RouteConfigBuilder<RouteConfig> builder()
     {
-        this(0, exit);
+        return new RouteConfigBuilder<>(identity());
     }
 
-    public RouteConfig(
-        String exit,
-        List<GuardedConfig> guarded)
-    {
-        this(exit, WHEN_DEFAULT, guarded);
-    }
-
-    public RouteConfig(
-        String exit,
-        List<ConditionConfig> when,
-        List<GuardedConfig> guarded)
-    {
-        this(0, exit, when, null, guarded);
-    }
-
-    public RouteConfig(
-        int order,
-        String exit)
-    {
-        this(order, exit, WHEN_DEFAULT, null, GUARDED_DEFAULT);
-    }
-
-    public RouteConfig(
+    RouteConfig(
         int order,
         String exit,
         List<ConditionConfig> when,

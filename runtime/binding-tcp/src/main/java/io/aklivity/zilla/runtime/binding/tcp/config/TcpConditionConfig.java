@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.config;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class TcpConditionConfig extends ConditionConfig
@@ -23,7 +27,18 @@ public final class TcpConditionConfig extends ConditionConfig
     public final String authority;
     public final int[] ports;
 
-    public TcpConditionConfig(
+    public static TcpConditionConfigBuilder<TcpConditionConfig> builder()
+    {
+        return new TcpConditionConfigBuilder<>(identity());
+    }
+
+    public static <T> TcpConditionConfigBuilder<T> builder(
+        Function<TcpConditionConfig, T> mapper)
+    {
+        return new TcpConditionConfigBuilder<>(mapper);
+    }
+
+    TcpConditionConfig(
         String cidr,
         String authority,
         int[] ports)

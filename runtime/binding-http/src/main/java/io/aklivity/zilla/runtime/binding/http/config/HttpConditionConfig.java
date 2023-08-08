@@ -15,7 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import static java.util.function.Function.identity;
+
 import java.util.Map;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
@@ -23,7 +26,18 @@ public final class HttpConditionConfig extends ConditionConfig
 {
     public final Map<String, String> headers;
 
-    public HttpConditionConfig(
+    public static HttpConditionConfigBuilder<HttpConditionConfig> builder()
+    {
+        return new HttpConditionConfigBuilder<>(identity());
+    }
+
+    public static <T> HttpConditionConfigBuilder<T> builder(
+        Function<HttpConditionConfig, T> mapper)
+    {
+        return new HttpConditionConfigBuilder<>(mapper);
+    }
+
+    HttpConditionConfig(
         Map<String, String> headers)
     {
         this.headers = headers;

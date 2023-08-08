@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.config;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class TlsConditionConfig extends ConditionConfig
@@ -22,7 +26,18 @@ public final class TlsConditionConfig extends ConditionConfig
     public final String authority;
     public final String alpn;
 
-    public TlsConditionConfig(
+    public static TlsConditionConfigBuilder<TlsConditionConfig> builder()
+    {
+        return new TlsConditionConfigBuilder<>(identity());
+    }
+
+    public static <T> TlsConditionConfigBuilder<T> builder(
+        Function<TlsConditionConfig, T> mapper)
+    {
+        return new TlsConditionConfigBuilder<>(mapper);
+    }
+
+    TlsConditionConfig(
         String authority,
         String alpn)
     {

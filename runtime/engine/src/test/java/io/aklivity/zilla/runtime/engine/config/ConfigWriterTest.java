@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -48,7 +47,9 @@ public class ConfigWriterTest
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .build();
 
         String text = yaml.write(config);
 

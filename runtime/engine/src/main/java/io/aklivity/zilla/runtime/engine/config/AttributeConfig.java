@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 public class AttributeConfig
 {
@@ -24,7 +25,12 @@ public class AttributeConfig
     public final String name;
     public final String value;
 
-    public AttributeConfig(
+    public static AttributeConfigBuilder<AttributeConfig> builder()
+    {
+        return new AttributeConfigBuilder<>(identity());
+    }
+
+    AttributeConfig(
         String name,
         String value)
     {

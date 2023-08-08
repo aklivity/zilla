@@ -60,7 +60,10 @@ public class TlsConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        TlsConditionConfig condition = new TlsConditionConfig("example.net", "echo");
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .authority("example.net")
+            .alpn("echo")
+            .build();
 
         String text = jsonb.toJson(condition);
 

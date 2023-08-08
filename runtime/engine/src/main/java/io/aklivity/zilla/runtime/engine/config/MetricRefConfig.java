@@ -16,12 +16,18 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 public class MetricRefConfig
 {
     public final String name;
 
-    public MetricRefConfig(
+    public static MetricRefConfigBuilder<MetricRefConfig> builder()
+    {
+        return new MetricRefConfigBuilder<>(identity());
+    }
+
+    MetricRefConfig(
         String name)
     {
         this.name = requireNonNull(name);
