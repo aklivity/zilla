@@ -35,7 +35,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .memberCount(1)
+                                 .members(1)
                                  .build()
                              .build()}
 read zilla:data.null
@@ -47,7 +47,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .memberCount(2)
+                                 .members(2)
                                  .build()
                              .build()}
 read zilla:data.null

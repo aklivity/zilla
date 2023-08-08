@@ -1597,10 +1597,10 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaGroupDataExBuilder memberCount(
-                int memberCount)
+            public KafkaGroupDataExBuilder members(
+                int members)
             {
-                groupDataExRW.memberCount(memberCount);
+                groupDataExRW.members(members);
                 return this;
             }
 
@@ -2729,7 +2729,7 @@ public final class KafkaFunctions
         {
             private String16FW leaderId;
             private String16FW memberId;
-            private int memberCount;
+            private int members;
 
             private KafkaGroupDataExMatchBuilder()
             {
@@ -2749,10 +2749,10 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaGroupDataExMatchBuilder memberCount(
-                int memberCount)
+            public KafkaGroupDataExMatchBuilder members(
+                int members)
             {
-                this.memberCount = memberCount;
+                this.members = members;
                 return this;
             }
 
@@ -2767,7 +2767,7 @@ public final class KafkaFunctions
                 final KafkaGroupDataExFW groupDataEx = dataEx.group();
                 return matchLeaderId(groupDataEx) &&
                     matchMemberId(groupDataEx) &&
-                    matchMemberCount(groupDataEx);
+                    matchmembers(groupDataEx);
             }
 
             private boolean matchLeaderId(
@@ -2782,10 +2782,10 @@ public final class KafkaFunctions
                 return memberId == null || memberId.equals(groupDataEx.memberId());
             }
 
-            private boolean matchMemberCount(
+            private boolean matchmembers(
                 final KafkaGroupDataExFW groupDataEx)
             {
-                return memberCount == groupDataEx.memberCount();
+                return members == groupDataEx.members();
             }
         }
     }

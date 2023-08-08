@@ -2906,7 +2906,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doApplicationData(traceId, authorization, assignment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader).memberId(memberId).memberCount(members.size()))
+                    .group(g -> g.leaderId(leader).memberId(memberId).members(members.size()))
                     .build()
                     .sizeof()));
 

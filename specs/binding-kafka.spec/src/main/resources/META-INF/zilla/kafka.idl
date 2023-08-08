@@ -335,7 +335,7 @@ scope kafka
         {
             string16 leaderId;
             string16 memberId;
-            int32 memberCount;
+            int32 members;
         }
     }
 }
