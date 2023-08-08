@@ -57,9 +57,12 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     {
         TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> testOptions = TestBindingOptionsConfig.builder();
 
-        if (object.containsKey(MODE_NAME))
+        if (object != null)
         {
-            testOptions.mode(object.getString(MODE_NAME));
+            if (object.containsKey(MODE_NAME))
+            {
+                testOptions.mode(object.getString(MODE_NAME));
+            }
         }
 
         return testOptions.build();

@@ -86,27 +86,30 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
     {
         TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> testOptions = TestGuardOptionsConfig.builder();
 
-        if (object.containsKey(CREDENTIALS_NAME))
+        if (object != null)
         {
-            testOptions.credentials(object.getString(CREDENTIALS_NAME));
-        }
+            if (object.containsKey(CREDENTIALS_NAME))
+            {
+                testOptions.credentials(object.getString(CREDENTIALS_NAME));
+            }
 
-        if (object.containsKey(LIFETIME_NAME))
-        {
-            testOptions.lifetime(Duration.parse(object.getString(LIFETIME_NAME)));
-        }
+            if (object.containsKey(LIFETIME_NAME))
+            {
+                testOptions.lifetime(Duration.parse(object.getString(LIFETIME_NAME)));
+            }
 
-        if (object.containsKey(CHALLENGE_NAME))
-        {
-            testOptions.challenge(Duration.parse(object.getString(CHALLENGE_NAME)));
-        }
+            if (object.containsKey(CHALLENGE_NAME))
+            {
+                testOptions.challenge(Duration.parse(object.getString(CHALLENGE_NAME)));
+            }
 
-        if (object.containsKey(ROLES_NAME))
-        {
-            object.getJsonArray(ROLES_NAME).stream()
-                .map(JsonString.class::cast)
-                .map(JsonString::getString)
-                .forEach(testOptions::role);
+            if (object.containsKey(ROLES_NAME))
+            {
+                object.getJsonArray(ROLES_NAME).stream()
+                    .map(JsonString.class::cast)
+                    .map(JsonString::getString)
+                    .forEach(testOptions::role);
+            }
         }
 
         return testOptions.build();

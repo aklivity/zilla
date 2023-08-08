@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.time.Duration;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -43,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultOptionsConfig;
 
 public class NamespaceConfigAdapterTest
 {
@@ -187,6 +190,8 @@ public class NamespaceConfigAdapterTest
                     .name("default")
                     .type("test")
                     .options(TestGuardOptionsConfig::builder)
+                        .credentials("token")
+                        .lifetime(Duration.ofSeconds(10))
                         .build()
                     .build()
                 .build();
@@ -194,7 +199,8 @@ public class NamespaceConfigAdapterTest
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"}}}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"credentials\":\"token\",\"lifetime\":\"PT10S\"}}}}"));
     }
 
     @Test
@@ -232,13 +238,17 @@ public class NamespaceConfigAdapterTest
                 .vault()
                     .name("default")
                     .type("test")
+                    .options(TestVaultOptionsConfig::builder)
+                        .mode("test")
+                        .build()
                     .build()
                 .build();
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"mode\":\"test\"}}}}"));
     }
 
     @Test
