@@ -119,10 +119,14 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         }
 
         // vaults
+        // - client
         FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, trust, null);
-        VaultConfig clientVault = new VaultConfig("client", "filesystem", options);
-        VaultConfig serverVault = new VaultConfig("server", "filesystem", options);
+        FileSystemOptionsConfig clientOptions = new FileSystemOptionsConfig(null, trust, null);
+        VaultConfig clientVault = new VaultConfig("client", "filesystem", clientOptions);
+        // - server
+        FileSystemStoreConfig keys = new FileSystemStoreConfig("tls/localhost.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemOptionsConfig serverOptions = new FileSystemOptionsConfig(keys, null, null);
+        VaultConfig serverVault = new VaultConfig("server", "filesystem", serverOptions);
         List<VaultConfig> vaults = List.of(clientVault, serverVault);
 
         // bindings
