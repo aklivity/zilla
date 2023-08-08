@@ -597,43 +597,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-    private void doData(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        int flags,
-        DirectBuffer buffer,
-        int index,
-        int length,
-        Flyweight extension)
-    {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .flags(flags)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .payload(buffer, index, length)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
     private void doEnd(
         MessageConsumer receiver,
         long originId,
@@ -1999,8 +1962,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     final MqttSessionStateFW sessionState = sessionStateBuilder.build();
                     final int payloadSize = sessionState.sizeof();
+                    final int reserved = payloadSize + sessionStream.initialPad;
 
-                    sessionStream.doSessionData(traceId, payloadSize, sessionState);
+                    sessionStream.doSessionData(traceId, reserved, sessionState);
                 }
                 else
                 {
@@ -2040,7 +2004,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 stream.packetId = packetId;
                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscribeKey, value);
             });
-
         }
 
         private void onDecodeUnsubscribe(
@@ -2053,12 +2016,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             final DirectBuffer decodeBuffer = decodePayload.buffer();
             final int decodeLimit = decodePayload.limit();
             final int offset = decodePayload.offset();
-
-            final MutableDirectBuffer encodeBuffer = payloadBuffer;
-            final int encodeOffset = 0;
-            final int encodeLimit = payloadBuffer.capacity();
-
-            int encodeProgress = encodeOffset;
 
             int decodeReasonCode = SUCCESS;
 
@@ -2136,9 +2093,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttSessionStateFW sessionState = sessionStateBuilder.build();
             final int payloadSize = sessionState.sizeof();
-
-            //TODO: is this correct? What is this?
-            int reserved = payloadSize;
+            final int reserved = payloadSize + sessionStream.initialPad;
 
             sessionStream.doSessionData(traceId, reserved, sessionState);
         }

@@ -272,7 +272,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.clientId = new String16FW(clientId0);
             this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
 
-            sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? 30000 : mqttSessionBeginEx.expiry() * 1000;
+            sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : mqttSessionBeginEx.expiry() * 1000;
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionIdentifier);
             group.doKafkaBegin(traceId, authorization, affinity);
         }
