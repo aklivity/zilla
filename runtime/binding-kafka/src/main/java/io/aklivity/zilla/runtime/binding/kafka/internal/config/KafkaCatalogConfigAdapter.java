@@ -15,7 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -23,11 +28,12 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
-    private static final String TOPIC_NAME = "topic";
-    private static final String CATALOG_KEY = "key";
-    private static final String CATALOG_VALUE = "value";
+    private static final String CATALOG_STRATEGY = "strategy";
+    private static final String CATALOG_VERSION = "version";
+    private static final String CATALOG_ID = "id";
+    private static final String TOPICS_NAME = "topics";
 
-    private final KafkaSchemaConfigHandler schemaConfigHandler = new KafkaSchemaConfigHandler();
+    private final KafkaTopicCatalogConfigHandler topicConfigHandler = new KafkaTopicCatalogConfigHandler();
 
     @Override
     public JsonObject adaptToJson(
@@ -36,20 +42,30 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
         JsonObjectBuilder catalogs = Json.createObjectBuilder();
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        if (kafkaCatalogConfig.topic != null &&
-                !kafkaCatalogConfig.topic.isEmpty())
+        if (kafkaCatalogConfig.strategy != null &&
+                !kafkaCatalogConfig.strategy.isEmpty())
         {
-            catalog.add(TOPIC_NAME, kafkaCatalogConfig.topic);
+            catalog.add(CATALOG_STRATEGY, kafkaCatalogConfig.strategy);
         }
 
-        if (kafkaCatalogConfig.key != null)
+        if (kafkaCatalogConfig.version != null &&
+                !kafkaCatalogConfig.version.isEmpty())
         {
-            catalog.add(CATALOG_KEY, schemaConfigHandler.adaptToJson(kafkaCatalogConfig.key));
+            catalog.add(CATALOG_VERSION, kafkaCatalogConfig.version);
         }
 
-        if (kafkaCatalogConfig.value != null)
+        if (kafkaCatalogConfig.id > 0)
         {
-            catalog.add(CATALOG_VALUE, schemaConfigHandler.adaptToJson(kafkaCatalogConfig.value));
+            catalog.add(CATALOG_ID, kafkaCatalogConfig.id);
+        }
+
+        if (kafkaCatalogConfig.topics != null &&
+                !kafkaCatalogConfig.topics.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            kafkaCatalogConfig.topics.forEach(t -> entries.add(topicConfigHandler.adaptToJson(t)));
+
+            catalog.add(TOPICS_NAME, entries);
         }
 
         if (kafkaCatalogConfig.name != null &&
@@ -65,39 +81,36 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
     public KafkaCatalogConfig adaptFromJson(
         JsonObject catalog)
     {
-        if (catalog != null)
+        String name = catalog.containsKey(NAME_NAME)
+                ? catalog.getString(NAME_NAME)
+                : null;
+
+        JsonArray topicsArray = catalog.containsKey(TOPICS_NAME)
+                ? catalog.getJsonArray(TOPICS_NAME)
+                : null;
+
+        String strategy = catalog.containsKey(CATALOG_STRATEGY)
+                ? catalog.getString(CATALOG_STRATEGY)
+                : null;
+
+        String version = catalog.containsKey(CATALOG_VERSION)
+                ? catalog.getString(CATALOG_VERSION)
+                : null;
+
+        int id = catalog.containsKey(CATALOG_ID)
+                ? catalog.getInt(CATALOG_ID)
+                : null;
+
+        List<KafkaTopicCatalogConfig> topics = null;
+
+        if (topicsArray != null)
         {
-            String name = catalog.containsKey(NAME_NAME)
-                    ? catalog.getString(NAME_NAME)
-                    : null;
-            String topic = catalog.containsKey(TOPIC_NAME)
-                    ? catalog.getString(TOPIC_NAME) :
-                    null;
-
-            JsonObject key = catalog.containsKey(CATALOG_KEY)
-                    ? catalog.getJsonObject(CATALOG_KEY)
-                    : null;
-
-            KafkaSchemaConfig keyConfig = null;
-            if (key != null)
-            {
-                keyConfig = schemaConfigHandler.adaptFromJson(key);
-            }
-
-            JsonObject value = catalog.containsKey(CATALOG_VALUE)
-                    ? catalog.getJsonObject(CATALOG_VALUE)
-                    : null;
-
-            KafkaSchemaConfig valueConfig = null;
-            if (value != null)
-            {
-                valueConfig = schemaConfigHandler.adaptFromJson(key);
-            }
-
-            new KafkaCatalogConfig(name, topic, keyConfig, valueConfig);
+            List<KafkaTopicCatalogConfig> topics0 = new ArrayList<>();
+            topicsArray.forEach(t -> topics0.add(topicConfigHandler.adaptFromJson(t.asJsonObject())));
+            topics = topics0;
         }
 
-        return null;
+        return new KafkaCatalogConfig(name, strategy, version, id, topics);
     }
 
 }

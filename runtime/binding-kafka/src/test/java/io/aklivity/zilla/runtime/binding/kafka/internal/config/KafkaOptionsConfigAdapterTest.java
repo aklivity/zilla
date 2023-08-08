@@ -84,9 +84,10 @@ public class KafkaOptionsConfigAdapterTest
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
                 new KafkaSaslConfig("plain", "username", "password"),
-                new KafkaCatalogConfig("test0", "test",
-                        new KafkaSchemaConfig(null, null, "1"),
-                        new KafkaSchemaConfig("topic", "latest", null)));
+                new KafkaCatalogConfig("test0", "topic", "latest", 0,
+                singletonList(new KafkaTopicCatalogConfig("test",
+                    new KafkaSerDeConfig(null, null, 1, null),
+                    new KafkaSerDeConfig("topic", "latest", 0, null)))));
 
         String text = jsonb.toJson(options);
 
@@ -94,8 +95,8 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}," +
-                "\"catalog\":{\"test0\":{\"topic\":\"test\",\"key\":{\"id\":\"1\"}," +
-                "\"value\":{\"strategy\":\"topic\",\"version\":\"latest\"}}}}"));
+                "\"catalog\":{\"test0\":{\"strategy\":\"topic\",\"version\":\"latest\",\"topics\":[{\"key\":{\"id\":1}," +
+                "\"value\":{\"strategy\":\"topic\",\"version\":\"latest\"},\"name\":\"test\"}]}}}"));
     }
 
     @Test
@@ -140,7 +141,7 @@ public class KafkaOptionsConfigAdapterTest
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
                 new KafkaSaslConfig("scram-sha-256", "username", "password"),
-                new KafkaCatalogConfig(null, null, null, null));
+                new KafkaCatalogConfig(null, null, null, 0, null));
 
         String text = jsonb.toJson(options);
 

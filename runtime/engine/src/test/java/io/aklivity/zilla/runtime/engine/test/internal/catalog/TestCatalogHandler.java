@@ -28,26 +28,19 @@ public class TestCatalogHandler implements CatalogHandler
     @Override
     public <T> T register(
         String schemaDefinition,
-        String subject,
-        String dataFormat)
+        String subject)
     {
         return null;
     }
 
     @Override
-    public String getSchemaBySubject(String subject)
+    public String resolve(String subject, String version)
     {
         return null;
     }
 
     @Override
-    public String getVersionSchema(String subject, String version)
-    {
-        return null;
-    }
-
-    @Override
-    public String getSchemasById(
+    public String resolve(
         String schemaId)
     {
         return "\"{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +

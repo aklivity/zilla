@@ -20,15 +20,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class KafkaSchemaConfigHandler implements JsonbAdapter<KafkaSchemaConfig, JsonObject>
+public class KafkaSerDeConfigHandler implements JsonbAdapter<KafkaSerDeConfig, JsonObject>
 {
     private static final String CATALOG_STRATEGY = "strategy";
     private static final String CATALOG_VERSION = "version";
     private static final String CATALOG_ID = "id";
+    private static final String ENCODING = "encoding";
 
     @Override
     public JsonObject adaptToJson(
-        KafkaSchemaConfig kafkaSchemaConfig)
+        KafkaSerDeConfig kafkaSchemaConfig)
     {
         JsonObjectBuilder schema = Json.createObjectBuilder();
 
@@ -44,17 +45,22 @@ public class KafkaSchemaConfigHandler implements JsonbAdapter<KafkaSchemaConfig,
             schema.add(CATALOG_VERSION, kafkaSchemaConfig.version);
         }
 
-        if (kafkaSchemaConfig.id != null &&
-                !kafkaSchemaConfig.id.isEmpty())
+        if (kafkaSchemaConfig.id > 0)
         {
             schema.add(CATALOG_ID, kafkaSchemaConfig.id);
+        }
+
+        if (kafkaSchemaConfig.encoding != null &&
+                !kafkaSchemaConfig.encoding.isEmpty())
+        {
+            schema.add(ENCODING, kafkaSchemaConfig.encoding);
         }
 
         return schema.build();
     }
 
     @Override
-    public KafkaSchemaConfig adaptFromJson(
+    public KafkaSerDeConfig adaptFromJson(
         JsonObject object)
     {
         String strategy = object.containsKey(CATALOG_STRATEGY)
@@ -65,10 +71,14 @@ public class KafkaSchemaConfigHandler implements JsonbAdapter<KafkaSchemaConfig,
                 ? object.getString(CATALOG_VERSION)
                 : null;
 
-        String id = object.containsKey(CATALOG_ID)
-                ? object.getString(CATALOG_ID)
+        int id = object.containsKey(CATALOG_ID)
+                ? object.getInt(CATALOG_ID)
                 : null;
 
-        return new KafkaSchemaConfig(strategy, version, id);
+        String encoding = object.containsKey(ENCODING)
+                ? object.getString(ENCODING)
+                : null;
+
+        return new KafkaSerDeConfig(strategy, version, id, encoding);
     }
 }

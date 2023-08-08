@@ -15,27 +15,28 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.List;
-
-public class KafkaCatalogConfig
+public class KafkaSerDeConfig
 {
-    public final String name;
     public final String strategy;
     public final String version;
     public final int id;
-    public final List<KafkaTopicCatalogConfig> topics;
+    public final String encoding;
 
-    public KafkaCatalogConfig(
-        String name,
+    public KafkaSerDeConfig(
         String strategy,
         String version,
         int id,
-        List<KafkaTopicCatalogConfig> topics)
+        String encoding)
     {
-        this.name = name;
         this.strategy = strategy;
         this.version = version;
         this.id = id;
-        this.topics = topics;
+        this.encoding = encoding;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("[strategy=%s]", strategy);
     }
 }

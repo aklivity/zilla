@@ -115,7 +115,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientOptionsSchema()
+    public void shouldValidateClientOptionsCatalog()
     {
         JsonObject config = schema.validate("client.options.catalog.yaml");
 
