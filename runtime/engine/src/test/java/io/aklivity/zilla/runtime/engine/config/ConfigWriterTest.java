@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -27,6 +28,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
+
+import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class ConfigWriterTest
 {
@@ -49,11 +53,39 @@ public class ConfigWriterTest
     {
         NamespaceConfig config = NamespaceConfig.builder()
                 .name("test")
+                .binding()
+                    .name("test0")
+                    .type("test")
+                    .kind(SERVER)
+                    .options(TestBindingOptionsConfig::builder)
+                        .mode("test")
+                        .build()
+                    .route()
+                        .when(TestConditionConfig::builder)
+                            .match("test")
+                            .build()
+                        .exit("exit0")
+                        .build()
+                    .build()
                 .build();
 
         String text = yaml.write(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("---\nname: \"test\"\n"));
+        assertThat(text, equalTo(String.join("\n",
+            new String[] {
+                "name: test",
+                "bindings:",
+                "  test0:",
+                "    type: test",
+                "    kind: server",
+                "    options:",
+                "      mode: test",
+                "    routes:",
+                "    - exit: exit0",
+                "      when:",
+                "      - match: test",
+                ""
+            })));
     }
 }

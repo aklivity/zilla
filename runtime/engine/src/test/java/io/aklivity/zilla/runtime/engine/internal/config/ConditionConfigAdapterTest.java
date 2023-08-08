@@ -106,6 +106,17 @@ public class ConditionConfigAdapterTest
     {
         public final String match;
 
+        public static TestConditionConfigBuilder<TestConditionConfig> builder()
+        {
+            return new TestConditionConfigBuilder<>(TestConditionConfig.class::cast);
+        }
+
+        public static <T> TestConditionConfigBuilder<T> builder(
+            Function<ConditionConfig, T> mapper)
+        {
+            return new TestConditionConfigBuilder<>(mapper);
+        }
+
         TestConditionConfig(
             String match)
         {
@@ -115,12 +126,12 @@ public class ConditionConfigAdapterTest
 
     public static final class TestConditionConfigBuilder<T> implements ConfigBuilder<T>
     {
-        private final Function<TestConditionConfig, T> mapper;
+        private final Function<ConditionConfig, T> mapper;
 
         private String match;
 
         TestConditionConfigBuilder(
-            Function<TestConditionConfig, T> mapper)
+            Function<ConditionConfig, T> mapper)
         {
             this.mapper = mapper;
         }

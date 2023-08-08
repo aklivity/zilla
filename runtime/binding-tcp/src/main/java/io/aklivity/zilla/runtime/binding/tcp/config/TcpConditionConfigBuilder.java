@@ -17,18 +17,19 @@ package io.aklivity.zilla.runtime.binding.tcp.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class TcpConditionConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TcpConditionConfig, T> mapper;
+    private final Function<ConditionConfig, T> mapper;
 
     private String cidr;
     private String authority;
     private int[] ports;
 
     TcpConditionConfigBuilder(
-        Function<TcpConditionConfig, T> mapper)
+        Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }

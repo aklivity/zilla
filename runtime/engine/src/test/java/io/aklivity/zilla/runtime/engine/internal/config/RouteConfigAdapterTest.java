@@ -39,7 +39,6 @@ import org.mockito.quality.Strictness;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
-import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfigBuilder;
 
 public class RouteConfigAdapterTest
 {
@@ -149,7 +148,7 @@ public class RouteConfigAdapterTest
     {
         RouteConfig route = RouteConfig.builder()
                 .exit("test")
-                .when(b -> new TestConditionConfigBuilder<>(b::when))
+                .when(TestConditionConfig::builder)
                     .match("test")
                     .build()
                 .build();

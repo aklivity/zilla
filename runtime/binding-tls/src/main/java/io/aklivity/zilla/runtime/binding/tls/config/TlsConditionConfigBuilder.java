@@ -17,17 +17,18 @@ package io.aklivity.zilla.runtime.binding.tls.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class TlsConditionConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TlsConditionConfig, T> mapper;
+    private final Function<ConditionConfig, T> mapper;
 
     private String authority;
     private String alpn;
 
     TlsConditionConfigBuilder(
-        Function<TlsConditionConfig, T> mapper)
+        Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }

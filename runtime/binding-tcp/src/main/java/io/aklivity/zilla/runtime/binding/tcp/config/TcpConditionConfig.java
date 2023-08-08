@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
@@ -29,11 +27,11 @@ public final class TcpConditionConfig extends ConditionConfig
 
     public static TcpConditionConfigBuilder<TcpConditionConfig> builder()
     {
-        return new TcpConditionConfigBuilder<>(identity());
+        return new TcpConditionConfigBuilder<>(TcpConditionConfig.class::cast);
     }
 
     public static <T> TcpConditionConfigBuilder<T> builder(
-        Function<TcpConditionConfig, T> mapper)
+        Function<ConditionConfig, T> mapper)
     {
         return new TcpConditionConfigBuilder<>(mapper);
     }

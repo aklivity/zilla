@@ -19,16 +19,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class HttpConditionConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<HttpConditionConfig, T> mapper;
+    private final Function<ConditionConfig, T> mapper;
 
     private Map<String, String> headers;
 
     HttpConditionConfigBuilder(
-        Function<HttpConditionConfig, T> mapper)
+        Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }

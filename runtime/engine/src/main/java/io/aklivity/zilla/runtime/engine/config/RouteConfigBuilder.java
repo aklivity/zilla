@@ -55,10 +55,10 @@ public final class RouteConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<RouteConfigBuilder<T>>> B when(
-        Function<RouteConfigBuilder<T>, B> when)
+    public <C extends ConfigBuilder<RouteConfigBuilder<T>>> C when(
+        Function<Function<ConditionConfig, RouteConfigBuilder<T>>, C> condition)
     {
-        return when.apply(this);
+        return condition.apply(this::when);
     }
 
     public RouteConfigBuilder<T> when(
