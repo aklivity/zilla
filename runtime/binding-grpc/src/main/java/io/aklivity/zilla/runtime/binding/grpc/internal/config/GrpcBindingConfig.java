@@ -35,8 +35,8 @@ import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-
-
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
@@ -336,7 +336,7 @@ public final class GrpcBindingConfig
                         milliseconds = TimeUnit.SECONDS.toMillis(number);
                         break;
                     case "m":
-                        milliseconds = milliseconds;
+                        milliseconds = TimeUnit.MILLISECONDS.toMillis(number);
                         break;
                     case "u":
                         milliseconds = TimeUnit.MICROSECONDS.toMillis(number);

@@ -18,6 +18,8 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
+
 public final class HttpFileSystemConditionMatcher
 {
     private final Matcher path;

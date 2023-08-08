@@ -31,6 +31,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+
 public class JwtOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

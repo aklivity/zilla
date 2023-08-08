@@ -36,7 +36,7 @@ import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {

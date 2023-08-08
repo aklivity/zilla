@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+
 public final class TlsConditionMatcher
 {
     public final Matcher authorityMatch;

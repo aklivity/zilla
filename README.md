@@ -25,7 +25,7 @@ Zilla abstracts Apache Kafka® for web applications, IoT clients and microservic
 
 Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
 
-When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet streamlined event-driven architecture becomes much easier.
+When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet streamlined event-driven architecture becomes possible.
 
 ## Contents
 

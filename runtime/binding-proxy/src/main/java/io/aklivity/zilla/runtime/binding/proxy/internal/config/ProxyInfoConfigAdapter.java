@@ -23,6 +23,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
+
 public final class ProxyInfoConfigAdapter implements JsonbAdapter<ProxyInfoConfig, JsonObject>
 {
     private static final String ALPN_NAME = "alpn";

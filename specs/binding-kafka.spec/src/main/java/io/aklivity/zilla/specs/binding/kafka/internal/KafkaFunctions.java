@@ -1597,6 +1597,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupDataExBuilder members(
+                int members)
+            {
+                groupDataExRW.members(members);
+                return this;
+            }
+
             public KafkaDataExBuilder build()
             {
                 final KafkaGroupDataExFW groupDataEx = groupDataExRW.build();
@@ -2722,6 +2729,7 @@ public final class KafkaFunctions
         {
             private String16FW leaderId;
             private String16FW memberId;
+            private Integer members;
 
             private KafkaGroupDataExMatchBuilder()
             {
@@ -2741,6 +2749,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupDataExMatchBuilder members(
+                int members)
+            {
+                this.members = Integer.valueOf(members);
+                return this;
+            }
+
             public KafkaDataExMatcherBuilder build()
             {
                 return KafkaDataExMatcherBuilder.this;
@@ -2751,7 +2766,8 @@ public final class KafkaFunctions
             {
                 final KafkaGroupDataExFW groupDataEx = dataEx.group();
                 return matchLeaderId(groupDataEx) &&
-                    matchMemberId(groupDataEx);
+                    matchMemberId(groupDataEx) &&
+                    matchmembers(groupDataEx);
             }
 
             private boolean matchLeaderId(
@@ -2764,6 +2780,12 @@ public final class KafkaFunctions
                 final KafkaGroupDataExFW groupDataEx)
             {
                 return memberId == null || memberId.equals(groupDataEx.memberId());
+            }
+
+            private boolean matchmembers(
+                final KafkaGroupDataExFW groupDataEx)
+            {
+                return members != null && members == groupDataEx.members();
             }
         }
     }

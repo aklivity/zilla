@@ -25,16 +25,16 @@ import java.security.KeyStore.TrustedCertificateEntry;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class FileSystemVaultTest
 {
     @Test
     public void shouldResolveServer() throws Exception
     {
-        FileSystemStore keys = new FileSystemStore("stores/server/keys", "pkcs12", "generated");
-        FileSystemStore trust = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
+        FileSystemStoreConfig keys = new FileSystemStoreConfig("stores/server/keys", "pkcs12", "generated");
+        FileSystemStoreConfig trust = new FileSystemStoreConfig("stores/server/trust", "pkcs12", "generated");
         FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, trust, null);
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);
@@ -49,8 +49,8 @@ public class FileSystemVaultTest
     @Test
     public void shouldResolveClient() throws Exception
     {
-        FileSystemStore keys = new FileSystemStore("stores/client/keys", "pkcs12", "generated");
-        FileSystemStore signers = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
+        FileSystemStoreConfig keys = new FileSystemStoreConfig("stores/client/keys", "pkcs12", "generated");
+        FileSystemStoreConfig signers = new FileSystemStoreConfig("stores/server/trust", "pkcs12", "generated");
         FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, signers);
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);

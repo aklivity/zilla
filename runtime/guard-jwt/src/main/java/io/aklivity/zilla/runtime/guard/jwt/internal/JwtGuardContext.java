@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 final class JwtGuardContext implements GuardContext
 {

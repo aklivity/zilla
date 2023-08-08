@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyOptionsConfig;
+
 public class ProxyOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

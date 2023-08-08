@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.keys;
 
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 
 public final class JwtKeyConfigs
 {

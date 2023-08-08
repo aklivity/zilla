@@ -24,6 +24,8 @@ import java.util.function.LongPredicate;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;

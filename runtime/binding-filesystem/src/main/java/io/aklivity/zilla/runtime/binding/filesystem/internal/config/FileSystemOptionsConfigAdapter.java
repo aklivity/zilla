@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemSymbolicLinksConfig.IGNORE;
+import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
 
 import java.net.URI;
 
@@ -23,6 +23,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

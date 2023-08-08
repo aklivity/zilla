@@ -22,6 +22,8 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
@@ -29,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadata
 public final class GrpcConditionMatcher
 {
     private final Matcher method;
-    private final Map<String8FW, GrpcMetadataValue> metadataMatch;
+    private final Map<String8FW, GrpcMetadataValueConfig> metadataMatch;
 
     public GrpcConditionMatcher(
         GrpcConditionConfig condition)
@@ -47,12 +49,12 @@ public final class GrpcConditionMatcher
 
         if (metadataMatch != null)
         {
-            for (Map.Entry<String8FW, GrpcMetadataValue> entry : metadataMatch.entrySet())
+            for (Map.Entry<String8FW, GrpcMetadataValueConfig> entry : metadataMatch.entrySet())
             {
                 final DirectBuffer name = entry.getKey().value();
                 final GrpcMetadataFW metadata = metadataHeaders.matchFirst(h -> name.compareTo(h.name().value()) == 0);
 
-                final GrpcMetadataValue value = entry.getValue();
+                final GrpcMetadataValueConfig value = entry.getValue();
                 final DirectBuffer matcher = metadata != null && metadata.type().get() == BASE64 ?
                     value.base64Value.value() : value.textValue.value();
 
