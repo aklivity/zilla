@@ -2729,7 +2729,7 @@ public final class KafkaFunctions
         {
             private String16FW leaderId;
             private String16FW memberId;
-            private int members;
+            private Integer members;
 
             private KafkaGroupDataExMatchBuilder()
             {
@@ -2752,7 +2752,7 @@ public final class KafkaFunctions
             public KafkaGroupDataExMatchBuilder members(
                 int members)
             {
-                this.members = members;
+                this.members = Integer.valueOf(members);
                 return this;
             }
 
@@ -2785,7 +2785,7 @@ public final class KafkaFunctions
             private boolean matchmembers(
                 final KafkaGroupDataExFW groupDataEx)
             {
-                return members == groupDataEx.members();
+                return members != null && members == groupDataEx.members();
             }
         }
     }
