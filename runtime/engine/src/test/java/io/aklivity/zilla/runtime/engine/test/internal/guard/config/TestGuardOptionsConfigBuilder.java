@@ -23,10 +23,11 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestGuardOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TestGuardOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String credentials;
     private Duration lifetime;
@@ -38,7 +39,7 @@ public final class TestGuardOptionsConfigBuilder<T> implements ConfigBuilder<T>
     public static final Duration DEFAULT_LIFETIME_FOREVER = Duration.ofMillis(Long.MAX_VALUE);
 
     TestGuardOptionsConfigBuilder(
-        Function<TestGuardOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

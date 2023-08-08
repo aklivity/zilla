@@ -177,7 +177,7 @@ public class BindingConfigsAdapterTest
                 .name("test")
                 .type("test")
                 .kind(SERVER)
-                .options(b -> TestBindingOptionsConfig.builder(b::options))
+                .options(TestBindingOptionsConfig::builder)
                     .mode("test")
                     .build()
                 .build()

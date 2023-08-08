@@ -187,7 +187,7 @@ public class TelemetryConfigsAdapterTest
                 .exporter()
                     .name("test0")
                     .type("test")
-                    .options(b -> TestExporterOptionsConfig.builder(b::options))
+                    .options(TestExporterOptionsConfig::builder)
                         .mode("test42")
                         .build()
                     .build()

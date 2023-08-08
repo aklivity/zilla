@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
 
 public class NamespaceConfigAdapterTest
 {
@@ -185,6 +186,8 @@ public class NamespaceConfigAdapterTest
                 .guard()
                     .name("default")
                     .type("test")
+                    .options(TestGuardOptionsConfig::builder)
+                        .build()
                     .build()
                 .build();
 
@@ -281,7 +284,7 @@ public class NamespaceConfigAdapterTest
                     .exporter()
                         .name("test0")
                         .type("test")
-                        .options(b -> TestExporterOptionsConfig.builder(b::options))
+                        .options(TestExporterOptionsConfig::builder)
                             .mode("test42")
                             .build()
                         .build()

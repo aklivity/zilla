@@ -18,15 +18,16 @@ package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestExporterOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TestExporterOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String mode;
 
     TestExporterOptionsConfigBuilder(
-        Function<TestExporterOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

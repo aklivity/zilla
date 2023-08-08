@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.tcp.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TcpOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
@@ -25,7 +26,7 @@ public final class TcpOptionsConfigBuilder<T> implements ConfigBuilder<T>
     public static final boolean NODELAY_DEFAULT = true;
     public static final boolean KEEPALIVE_DEFAULT = false;
 
-    private final Function<TcpOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String host;
     private int[] ports;
@@ -34,7 +35,7 @@ public final class TcpOptionsConfigBuilder<T> implements ConfigBuilder<T>
     private boolean keepalive = KEEPALIVE_DEFAULT;
 
     TcpOptionsConfigBuilder(
-        Function<TcpOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

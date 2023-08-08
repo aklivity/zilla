@@ -21,10 +21,11 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TlsOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TlsOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String version;
     private List<String> keys;
@@ -36,7 +37,7 @@ public final class TlsOptionsConfigBuilder<T> implements ConfigBuilder<T>
     private boolean trustcacerts;
 
     TlsOptionsConfigBuilder(
-        Function<TlsOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }
@@ -97,6 +98,7 @@ public final class TlsOptionsConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
+    @Override
     public T build()
     {
         TlsMutualConfig mutual = this.mutual == null && this.trust != null ? REQUIRED : this.mutual;

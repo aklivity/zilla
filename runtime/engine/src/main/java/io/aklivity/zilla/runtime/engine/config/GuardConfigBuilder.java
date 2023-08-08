@@ -45,10 +45,10 @@ public final class GuardConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<GuardConfigBuilder<T>>> B options(
-        Function<GuardConfigBuilder<T>, B> options)
+    public <C extends ConfigBuilder<GuardConfigBuilder<T>>> C options(
+        Function<Function<OptionsConfig, GuardConfigBuilder<T>>, C> options)
     {
-        return options.apply(this);
+        return options.apply(this::options);
     }
 
     public GuardConfigBuilder<T> options(

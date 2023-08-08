@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.guard.jwt.config;
 
 import static java.util.Optional.ofNullable;
-import static java.util.function.Function.identity;
 
 import java.time.Duration;
 import java.util.List;
@@ -34,11 +33,11 @@ public class JwtOptionsConfig extends OptionsConfig
 
     public static JwtOptionsConfigBuilder<JwtOptionsConfig> builder()
     {
-        return new JwtOptionsConfigBuilder<>(identity());
+        return new JwtOptionsConfigBuilder<>(JwtOptionsConfig.class::cast);
     }
 
     public static <T> JwtOptionsConfigBuilder<T> builder(
-        Function<JwtOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new JwtOptionsConfigBuilder<>(mapper);
     }

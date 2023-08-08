@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -27,11 +25,11 @@ public final class TestBindingOptionsConfig extends OptionsConfig
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
-        return new TestBindingOptionsConfigBuilder<>(identity());
+        return new TestBindingOptionsConfigBuilder<>(TestBindingOptionsConfig.class::cast);
     }
 
     public static <T> TestBindingOptionsConfigBuilder<T> builder(
-        Function<TestBindingOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new TestBindingOptionsConfigBuilder<>(mapper);
     }

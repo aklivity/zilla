@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.Function;
@@ -34,11 +32,11 @@ public final class HttpOptionsConfig extends OptionsConfig
 
     public static HttpOptionsConfigBuilder<HttpOptionsConfig> builder()
     {
-        return new HttpOptionsConfigBuilder<>(identity());
+        return new HttpOptionsConfigBuilder<>(HttpOptionsConfig.class::cast);
     }
 
     public static <T> HttpOptionsConfigBuilder<T> builder(
-        Function<HttpOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new HttpOptionsConfigBuilder<>(mapper);
     }

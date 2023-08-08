@@ -20,10 +20,11 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class JwtOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<JwtOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String issuer;
     private String audience;
@@ -32,7 +33,7 @@ public class JwtOptionsConfigBuilder<T> implements ConfigBuilder<T>
     private String keysURL;
 
     JwtOptionsConfigBuilder(
-        Function<JwtOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

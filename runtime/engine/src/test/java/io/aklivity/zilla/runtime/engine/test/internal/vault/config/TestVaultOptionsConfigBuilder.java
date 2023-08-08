@@ -13,30 +13,35 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
+package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class TestExporterOptionsConfig extends OptionsConfig
+public final class TestVaultOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    public final String mode;
+    private final Function<OptionsConfig, T> mapper;
 
-    public static TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> builder()
-    {
-        return new TestExporterOptionsConfigBuilder<>(TestExporterOptionsConfig.class::cast);
-    }
+    private String mode;
 
-    public static <T> TestExporterOptionsConfigBuilder<T> builder(
+    TestVaultOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
-        return new TestExporterOptionsConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    TestExporterOptionsConfig(
+    public TestVaultOptionsConfigBuilder<T> mode(
         String mode)
     {
         this.mode = mode;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new TestVaultOptionsConfig(mode));
     }
 }

@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -29,11 +27,11 @@ public final class FileSystemOptionsConfig extends OptionsConfig
 
     public static FileSystemOptionsConfigBuilder<FileSystemOptionsConfig> builder()
     {
-        return new FileSystemOptionsConfigBuilder<>(identity());
+        return new FileSystemOptionsConfigBuilder<>(FileSystemOptionsConfig.class::cast);
     }
 
     public static <T> FileSystemOptionsConfigBuilder<T> builder(
-        Function<FileSystemOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new FileSystemOptionsConfigBuilder<>(mapper);
     }

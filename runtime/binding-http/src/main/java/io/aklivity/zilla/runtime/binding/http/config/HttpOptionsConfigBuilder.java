@@ -24,10 +24,11 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<HttpOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private SortedSet<HttpVersion>  versions;
     private Map<String8FW, String16FW>  overrides;
@@ -35,7 +36,7 @@ public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
     private HttpAuthorizationConfig authorization;
 
     HttpOptionsConfigBuilder(
-        Function<HttpOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

@@ -18,15 +18,16 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestBindingOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<TestBindingOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private String mode;
 
     TestBindingOptionsConfigBuilder(
-        Function<TestBindingOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }

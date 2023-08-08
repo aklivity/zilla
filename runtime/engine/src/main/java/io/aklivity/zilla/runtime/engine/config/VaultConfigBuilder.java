@@ -47,8 +47,8 @@ public final class VaultConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<VaultConfigBuilder<T>>> B options(
-        Function<Function<OptionsConfig, VaultConfigBuilder<T>>, B> options)
+    public <C extends ConfigBuilder<VaultConfigBuilder<T>>> C options(
+        Function<Function<OptionsConfig, VaultConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);
     }

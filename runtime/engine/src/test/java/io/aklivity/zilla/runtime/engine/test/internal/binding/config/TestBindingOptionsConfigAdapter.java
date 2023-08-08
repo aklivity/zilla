@@ -55,10 +55,13 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String mode = object.containsKey(MODE_NAME)
-                ? object.getString(MODE_NAME)
-                : null;
+        TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> testOptions = TestBindingOptionsConfig.builder();
 
-        return new TestBindingOptionsConfig(mode);
+        if (object.containsKey(MODE_NAME))
+        {
+            testOptions.mode(object.getString(MODE_NAME));
+        }
+
+        return testOptions.build();
     }
 }

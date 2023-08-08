@@ -45,10 +45,10 @@ public final class ExporterConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<ExporterConfigBuilder<T>>> B options(
-        Function<ExporterConfigBuilder<T>, B> options)
+    public <C extends ConfigBuilder<ExporterConfigBuilder<T>>> C options(
+        Function<Function<OptionsConfig, ExporterConfigBuilder<T>>, C> options)
     {
-        return options.apply(this);
+        return options.apply(this::options);
     }
 
     public ExporterConfigBuilder<T> options(

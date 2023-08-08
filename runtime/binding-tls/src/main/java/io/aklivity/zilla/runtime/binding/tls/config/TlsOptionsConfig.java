@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.List;
 import java.util.function.Function;
 
@@ -35,11 +33,11 @@ public final class TlsOptionsConfig extends OptionsConfig
 
     public static TlsOptionsConfigBuilder<TlsOptionsConfig> builder()
     {
-        return new TlsOptionsConfigBuilder<>(identity());
+        return new TlsOptionsConfigBuilder<>(TlsOptionsConfig.class::cast);
     }
 
     public static <T> TlsOptionsConfigBuilder<T> builder(
-        Function<TlsOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new TlsOptionsConfigBuilder<>(mapper);
     }

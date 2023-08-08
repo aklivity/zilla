@@ -15,13 +15,26 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestVaultOptionsConfig extends OptionsConfig
 {
     public final String mode;
 
-    public TestVaultOptionsConfig(
+    public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
+    {
+        return new TestVaultOptionsConfigBuilder<>(TestVaultOptionsConfig.class::cast);
+    }
+
+    public static <T> TestVaultOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TestVaultOptionsConfigBuilder<>(mapper);
+    }
+
+    TestVaultOptionsConfig(
         String mode)
     {
         this.mode = mode;

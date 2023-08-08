@@ -78,10 +78,10 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<BindingConfigBuilder<T>>> B options(
-        Function<BindingConfigBuilder<T>, B> options)
+    public <C extends ConfigBuilder<BindingConfigBuilder<T>>> C options(
+        Function<Function<OptionsConfig, BindingConfigBuilder<T>>, C> options)
     {
-        return options.apply(this);
+        return options.apply(this::options);
     }
 
     public BindingConfigBuilder<T> options(

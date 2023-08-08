@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -31,11 +29,11 @@ public final class TcpOptionsConfig extends OptionsConfig
 
     public static TcpOptionsConfigBuilder<TcpOptionsConfig> builder()
     {
-        return new TcpOptionsConfigBuilder<>(identity());
+        return new TcpOptionsConfigBuilder<>(TcpOptionsConfig.class::cast);
     }
 
     public static <T> TcpOptionsConfigBuilder<T> builder(
-        Function<TcpOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new TcpOptionsConfigBuilder<>(mapper);
     }

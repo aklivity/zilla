@@ -18,17 +18,18 @@ package io.aklivity.zilla.runtime.vault.filesystem.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class FileSystemOptionsConfigBuilder<T> implements ConfigBuilder<T>
 {
-    private final Function<FileSystemOptionsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
     private FileSystemStoreConfig keys;
     private FileSystemStoreConfig trust;
     private FileSystemStoreConfig signers;
 
     FileSystemOptionsConfigBuilder(
-        Function<FileSystemOptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }
