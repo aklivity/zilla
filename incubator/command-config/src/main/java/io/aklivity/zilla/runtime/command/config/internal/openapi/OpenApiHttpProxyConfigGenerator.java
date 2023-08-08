@@ -105,13 +105,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
-                String n =
-                    "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516Q" +
-                    "zOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrh" +
-                    "ZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHj" +
-                    "Z7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==";
-                JwtKeyConfig key = new JwtKeyConfig("RSA", "example", null, n, "AQAB", "RS256", null, null, null);
-                OptionsConfig guardOptions = new JwtOptionsConfig("https://auth.example.com", "https://api.example.com",
+                JwtKeyConfig key = new JwtKeyConfig("${{env.JWT_KTY}}", "${{env.JWT_KID}}", "${{env.JWT_USE}}", "${{env.JWT_N}}",
+                    "${{env.JWT_E}}", "${{env.JWT_ALG}}", "${{env.JWT_CRV}}", "${{env.JWT_X}}", "${{env.JWT_Y}}");
+                OptionsConfig guardOptions = new JwtOptionsConfig("${{env.JWT_ISSUER}}", "${{env.JWT_AUDIENCE}}",
                     List.of(key), null);
                 guards.add(new GuardConfig("jwt0", guardType, guardOptions));
                 guardedRoutes.put(securitySchemeName, new GuardedConfig("jwt0", List.of("echo:stream")));
@@ -120,11 +116,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // vaults
         // - client
-        FileSystemStoreConfig trust = new FileSystemStoreConfig("tls/truststore.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemStoreConfig trust = new FileSystemStoreConfig("${{env.TRUSTSTORE_PATH}}", "${{env.TRUSTSTORE_TYPE}}",
+            "${{env.TRUSTSTORE_PASSWORD}}");
         FileSystemOptionsConfig clientOptions = new FileSystemOptionsConfig(null, trust, null);
         VaultConfig clientVault = new VaultConfig("client", "filesystem", clientOptions);
         // - server
-        FileSystemStoreConfig keys = new FileSystemStoreConfig("tls/localhost.p12", "pkcs12", "${{env.KEYSTORE_PASSWORD}}");
+        FileSystemStoreConfig keys = new FileSystemStoreConfig("${{env.KEYSTORE_PATH}}", "${{env.KEYSTORE_TYPE}}",
+            "${{env.KEYSTORE_PASSWORD}}");
         FileSystemOptionsConfig serverOptions = new FileSystemOptionsConfig(keys, null, null);
         VaultConfig serverVault = new VaultConfig("server", "filesystem", serverOptions);
         List<VaultConfig> vaults = List.of(clientVault, serverVault);
@@ -143,8 +141,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             List.of(new RouteConfig("http_server0")), null);
 
         // - tls_server0
-        TlsOptionsConfig tlsServer0Options = new TlsOptionsConfig(null, List.of("localhost"), null, List.of("localhost"),
-            List.of("h2"), null, null, false);
+        TlsOptionsConfig tlsServer0Options = new TlsOptionsConfig(null, List.of("${{env.TLS_SERVER_KEYS}}"), null,
+            List.of("${{env.TLS_SERVER_SNI}}"), List.of("${{env.TLS_SERVER_ALPN}}"), null, null, false);
         BindingConfig tlsServer0 = new BindingConfig("server", "tls_server0", "tls", SERVER, null,
             tlsServer0Options, List.of(new RouteConfig("http_server0")), null);
 
@@ -163,13 +161,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             null, List.of(new RouteConfig("tls_client0")), null);
 
         // - tls_client0
-        TlsOptionsConfig tlsClient0Options = new TlsOptionsConfig(null, null, List.of("nginx"), List.of("nginx"),
-            List.of("h2"), null, null, true);
+        TlsOptionsConfig tlsClient0Options = new TlsOptionsConfig(null, null, List.of("${{env.TLS_CLIENT_TRUST}}"),
+            List.of("${{env.TLS_CLIENT_SNI}}"), List.of("${{env.TLS_CLIENT_ALPN}}"), null, null, true);
         BindingConfig tlsClient0 = new BindingConfig("client", "tls_client0", "tls", CLIENT, null,
             tlsClient0Options, List.of(new RouteConfig("tcp_client0")), null);
 
         // - tcp_client0
-        TcpOptionsConfig tcpClient0Options = new TcpOptionsConfig("nginx", new int[]{443}, 0, true, false);
+        TcpOptionsConfig tcpClient0Options = new TcpOptionsConfig("${{env.TCP_CLIENT_HOST}}", new int[]{443}, 0, true, false);
         BindingConfig tcpClient0 = new BindingConfig(null, "tcp_client0", "tcp", CLIENT, null,
             tcpClient0Options, List.of(), null);
 

@@ -23,11 +23,11 @@ bindings:
     kind: "server"
     options:
       keys:
-      - "localhost"
+      - "${{env.TLS_SERVER_KEYS}}"
       sni:
-      - "localhost"
+      - "${{env.TLS_SERVER_SNI}}"
       alpn:
-      - "h2"
+      - "${{env.TLS_SERVER_ALPN}}"
     routes:
     - exit: "http_server0"
   httpServer0:
@@ -80,44 +80,48 @@ bindings:
     kind: "client"
     options:
       trust:
-      - "nginx"
+      - "${{env.TLS_CLIENT_TRUST}}"
       trustcacerts: true
       sni:
-      - "nginx"
+      - "${{env.TLS_CLIENT_SNI}}"
       alpn:
-      - "h2"
+      - "${{env.TLS_CLIENT_ALPN}}"
     routes:
     - exit: "tcp_client0"
   tcp_client0:
     type: "tcp"
     kind: "client"
     options:
-      host: "nginx"
+      host: "${{env.TCP_CLIENT_HOST}}"
       port: 443
 guards:
   jwt0:
     type: "jwt"
     options:
-      issuer: "https://auth.example.com"
-      audience: "https://api.example.com"
+      issuer: "${{env.JWT_ISSUER}}"
+      audience: "${{env.JWT_AUDIENCE}}"
       keys:
-      - kty: "RSA"
-        "n": "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ=="
-        e: "AQAB"
-        alg: "RS256"
-        kid: "example"
+      - kty: "${{env.JWT_KTY}}"
+        "n": "${{env.JWT_N}}"
+        e: "${{env.JWT_E}}"
+        alg: "${{env.JWT_ALG}}"
+        crv: "${{env.JWT_CRV}}"
+        x: "${{env.JWT_X}}"
+        "y": "${{env.JWT_Y}}"
+        use: "${{env.JWT_USE}}"
+        kid: "${{env.JWT_KID}}"
 vaults:
   client:
     type: "filesystem"
     options:
       trust:
-        store: "tls/truststore.p12"
-        type: "pkcs12"
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        store: "${{env.TRUSTSTORE_PATH}}"
+        type: "${{env.TRUSTSTORE_TYPE}}"
+        password: "${{env.TRUSTSTORE_PASSWORD}}"
   server:
     type: "filesystem"
     options:
       keys:
-        store: "tls/localhost.p12"
-        type: "pkcs12"
+        store: "${{env.KEYSTORE_PATH}}"
+        type: "${{env.KEYSTORE_TYPE}}"
         password: "${{env.KEYSTORE_PASSWORD}}"
