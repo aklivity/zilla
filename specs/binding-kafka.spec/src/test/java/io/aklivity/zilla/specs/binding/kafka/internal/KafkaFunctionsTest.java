@@ -3832,6 +3832,7 @@ public class KafkaFunctionsTest
             .group()
                 .leaderId("test1")
                 .memberId("test2")
+                .memberCount(2)
                 .build()
             .build();
 
@@ -3843,6 +3844,7 @@ public class KafkaFunctionsTest
         final KafkaGroupDataExFW groupDataEx = dataEx.group();
         assertEquals("test1", groupDataEx.leaderId().asString());
         assertEquals("test2", groupDataEx.memberId().asString());
+        assertTrue(groupDataEx.memberCount() == 2);
     }
 
     @Test

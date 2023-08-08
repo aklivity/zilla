@@ -38,6 +38,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .memberCount(1)
                                  .build()
                              .build()}
 write flush
@@ -49,6 +50,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .memberCount(2)
                                  .build()
                              .build()}
 write flush

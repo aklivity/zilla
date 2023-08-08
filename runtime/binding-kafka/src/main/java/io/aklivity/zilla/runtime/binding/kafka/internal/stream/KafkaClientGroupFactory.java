@@ -2906,7 +2906,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doApplicationData(traceId, authorization, assignment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader).memberId(memberId))
+                    .group(g -> g.leaderId(leader).memberId(memberId).memberCount(members.size()))
                     .build()
                     .sizeof()));
 
@@ -2941,6 +2941,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization)
         {
+            delegate.groupMembership.memberIds.remove(delegate.groupId);
+
             doNetworkEnd(traceId, authorization);
             doNetworkReset(traceId);
 

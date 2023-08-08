@@ -31,11 +31,12 @@ connected
 
 write advise zilla:flush
 
-read zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .memberCount(1)
                                  .build()
                              .build()}
 read zilla:data.null
