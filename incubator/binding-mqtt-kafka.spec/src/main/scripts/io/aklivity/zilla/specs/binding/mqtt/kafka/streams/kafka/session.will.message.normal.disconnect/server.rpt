@@ -1,0 +1,243 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+# Per zilla stream responsible for will delivery
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .groupId("mqtt-will-consumer-group")
+                                .filter()
+                                    .header("type", "will-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read await WILL_SIGNAL_SENT
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+write ${mqtt:willSignal()
+         .clientId("client-1")
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+write flush
+
+read await WILL_SIGNAL_REMOVED
+# Client disconnected normally, we'll receive the removal of the will-signal
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+write zilla:data.empty
+write flush
+
+
+# non-clean start -> fetch lifetimeId
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1#will-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write advise zilla:flush
+
+read closed
+write close
+
+
+# send initial migrate signal
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1#migrate")
+                                    .headerNot("sender-id", "sender1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#migrate")
+                               .header("sender-id", "sender1")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+write notify INITIAL_MIGRATE_SENT
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+connected
+
+# wait so that we won't be the leader too early, before the lifetimeId arrives
+read await INITIAL_MIGRATE_SENT
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("consumer-1")
+                                 .memberId("consumer-1")
+                                 .members(1)
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1")
+                                    .build()
+                                .filter()
+                                    .key("client-1#migrate")
+                                    .headerNot("sender-id", "sender1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write advise zilla:flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+
+read ${mqtt:will()
+         .topic("wills/one")
+         .format("TEXT")
+         .payload("client one session expired")
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+read ${mqtt:willSignal()
+         .clientId("client-1")
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+
+write notify WILL_SIGNAL_SENT
+
+#Client disconnected normally -> remove will message + signal
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+read zilla:data.empty
+
+write notify WILL_SIGNAL_REMOVED
+
+read closed
+write close

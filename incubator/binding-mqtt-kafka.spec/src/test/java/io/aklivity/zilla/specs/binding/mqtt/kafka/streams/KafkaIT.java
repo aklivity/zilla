@@ -565,4 +565,33 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+
+    //TODO: use this script for close with will and keep alive expiry scenarios as well
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.close.deliver.will.message/client",
+        "${kafka}/session.will.message.close.deliver.will.message/server"})
+    public void shouldSendWillMessageOnDisconnectWithWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.normal.disconnect/client",
+        "${kafka}/session.will.message.normal.disconnect/server"})
+    public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.abort.deliver.will.retain/client",
+        "${kafka}/session.will.message.abort.deliver.will.retain/server"})
+    public void shouldSaveWillMessageAsRetain() throws Exception
+    {
+        k3po.finish();
+    }
 }

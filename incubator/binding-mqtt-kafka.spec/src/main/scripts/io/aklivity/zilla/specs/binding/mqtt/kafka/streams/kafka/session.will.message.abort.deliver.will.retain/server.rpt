@@ -1,0 +1,380 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .groupId("mqtt-will-consumer-group")
+                                .filter()
+                                    .header("type", "will-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read await FIRST_WILL_SIGNAL_SENT
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+write ${mqtt:willSignal()
+         .clientId("client-1")
+         .delay(1)
+         .deliverAt(-1)
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+write flush
+
+# we received  abort from mqtt
+read await SECOND_WILL_SIGNAL_SENT
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+write ${mqtt:willSignal()
+         .clientId("client-1")
+         .delay(1)
+         .deliverAt(2)
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+write flush
+
+#Once the will is delivered -> remove will message + signal
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+
+read zilla:data.empty
+
+# non-clean start -> fetch lifetimeId
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1#will-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write advise zilla:flush
+
+read closed
+write close
+
+
+# send initial migrate signal
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1#migrate")
+                                    .headerNot("sender-id", "sender1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#migrate")
+                               .hashKey("client-1")
+                               .header("sender-id", "sender1")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+write notify INITIAL_MIGRATE_SENT
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+connected
+
+# wait so that we won't be the leader too early, before the lifetimeId arrives
+read await INITIAL_MIGRATE_SENT
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("consumer-1")
+                                 .memberId("consumer-1")
+                                 .members(1)
+                                 .build()
+                             .build()}
+write flush
+
+read aborted
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1")
+                                    .build()
+                                .filter()
+                                    .key("client-1#migrate")
+                                    .headerNot("sender-id", "sender1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write advise zilla:flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+
+read ${mqtt:will()
+          .topic("wills/one")
+          .delay(1)
+          .flags("RETAIN")
+          .format("TEXT")
+          .payload("client one session expired")
+          .lifetimeId("1")
+          .willId("1")
+      .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+
+read ${mqtt:willSignal()
+         .clientId("client-1")
+         .delay(1)
+         .deliverAt(-1)
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+
+write notify FIRST_WILL_SIGNAL_SENT
+
+
+# Client sent abort -> send will signal
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+
+#TODO: deliverAt: now() + will delay, where we provide a timeSupplier from the test
+read ${mqtt:willSignal()
+         .clientId("client-1")
+         .delay(1)
+         .deliverAt(2)
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+
+write notify SECOND_WILL_SIGNAL_SENT
+
+read aborted
+write abort
+
+
+accepted
+
+# We need to send the will message -> per zilla will stream must open this
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt_sessions")
+                                .filter()
+                                    .key("client-1#will")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .build()
+                           .build()}
+
+write ${mqtt:will()
+         .topic("wills/one")
+         .delay(1)
+         .flags("RETAIN")
+         .format("TEXT")
+         .payload("client one session expired")
+         .lifetimeId("1")
+         .willId("1")
+     .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt_messages")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .build()
+                            .build()}
+
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("wills/one")
+                               .header("zilla:topic", "wills")
+                               .header("zilla:topic", "one")
+                               .header("zilla:format", "TEXT")
+                               .build()
+                           .build()}
+
+read "client one session expired"
+
+read closed
+write close
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt_retained")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .build()
+                            .build()}
+
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("wills/one")
+                               .header("zilla:topic", "wills")
+                               .header("zilla:topic", "one")
+                               .header("zilla:format", "TEXT")
+                               .build()
+                           .build()}
+
+read "client one session expired"
+
+read closed
+write close

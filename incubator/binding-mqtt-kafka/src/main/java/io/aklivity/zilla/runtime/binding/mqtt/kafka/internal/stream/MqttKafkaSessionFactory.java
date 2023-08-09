@@ -880,6 +880,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (key != null)
             {
+                //TODO: from now on, it can receive back will messages, as we publish it when opening this
                 delegate.group.doKafkaFlush(traceId, authorization, budgetId, reserved);
             }
         }

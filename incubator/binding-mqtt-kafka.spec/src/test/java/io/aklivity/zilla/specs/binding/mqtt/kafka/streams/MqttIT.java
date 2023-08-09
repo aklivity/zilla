@@ -484,4 +484,40 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.disconnect.with.will.message/client",
+        "${mqtt}/session.will.message.disconnect.with.will.message/server"})
+    public void shouldSendWillMessageOnDisconnectWithWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.no.ping.within.keep.alive/client",
+        "${mqtt}/session.will.message.no.ping.within.keep.alive/server"})
+    public void shouldSendWillMessageOnKeepAliveExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.normal.disconnect/client",
+        "${mqtt}/session.will.message.normal.disconnect/server"})
+    public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.retain/client",
+        "${mqtt}/session.will.message.abort.deliver.will.retain/server"})
+    public void shouldSaveWillMessageAsRetain() throws Exception
+    {
+        k3po.finish();
+    }
 }

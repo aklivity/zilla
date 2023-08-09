@@ -4019,6 +4019,7 @@ public final class KafkaFunctions
         {
             private KafkaCapabilities capabilities;
             private String16FW topic;
+            private String16FW groupId;
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
@@ -4042,6 +4043,13 @@ public final class KafkaFunctions
                 String topic)
             {
                 this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
                 return this;
             }
 
@@ -4145,6 +4153,7 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
                 return matchCapabilities(mergedBeginEx) &&
                     matchTopic(mergedBeginEx) &&
+                    matchGroupId(mergedBeginEx) &&
                     matchPartitions(mergedBeginEx) &&
                     matchFilters(mergedBeginEx) &&
                     matchIsolation(mergedBeginEx) &&
@@ -4163,6 +4172,12 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return topic == null || topic.equals(mergedBeginEx.topic());
+            }
+
+            private boolean matchGroupId(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return groupId == null || groupId.equals(mergedBeginEx.groupId());
             }
 
             private boolean matchPartitions(
