@@ -251,7 +251,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved;
-        final int timeout = kafkaGroupBeginEx.timeout();
+        final int timeout = Math.min(kafkaGroupBeginEx.timeout(), 30_000);
         final String groupId = kafkaGroupBeginEx.groupId().asString();
         final String protocol = kafkaGroupBeginEx.protocol().asString();
 
@@ -368,6 +368,35 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .affinity(affinity)
                 .extension(extension)
                 .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
@@ -1189,8 +1218,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             state = KafkaState.openingReply(state);
 
+            final KafkaBeginExFW kafkaBeginEx =
+                kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .group(g -> g.groupId(groupId).protocol(protocol).timeout(timeout))
+                    .build();
+
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, kafkaBeginEx);
         }
 
         private void doApplicationData(
