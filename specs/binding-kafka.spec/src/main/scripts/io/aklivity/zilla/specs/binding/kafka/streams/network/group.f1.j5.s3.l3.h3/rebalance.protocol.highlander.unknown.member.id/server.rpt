@@ -55,7 +55,7 @@ read  105                               # size
       (int:newRequestId)
       5s "zilla"                        # client id
       4s "test"                         # consumer group
-      45000                             # session timeout
+      30000                             # session timeout
       4000                              # rebalance timeout
       0s                                # consumer group member
       42s [0..42]                       # group instance id
@@ -81,7 +81,7 @@ read  105                               # size
       (int:newRequestId)
       5s "zilla"                        # no client id
       4s "test"                         # consumer group
-      45000                             # session timeout
+      30000                             # session timeout
       4000                              # rebalance timeout
       0s                                # consumer group member
       42s [0..42]                       # group instance id
