@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static java.time.Instant.now;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -166,7 +167,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private final long replyId;
         private final KafkaSessionProxy session;
         private final KafkaGroupProxy group;
-        private final String16FW sessionIdentifier;
+        private final String16FW sessionId;
         private final String16FW sessionsTopic;
 
         private int state;
@@ -182,7 +183,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
         private String16FW clientId;
         private String16FW clientIdMigrate;
-        private int sessionExpiryMs;
+        private long sessionExpiryMillis;
 
         private boolean sessionLeader;
         private boolean initialMigrateSent;
@@ -204,7 +205,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.session = new KafkaSessionProxy(originId, resolvedId, this);
             this.group = new KafkaGroupProxy(originId, resolvedId, this);
             this.sessionsTopic = sessionsTopic;
-            this.sessionIdentifier = new String16FW(sessionIds.get(bindingId));
+            this.sessionId = new String16FW(sessionIds.get(bindingId));
         }
 
         private void onMqttMessage(
@@ -271,8 +272,9 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.clientId = new String16FW(clientId0);
             this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
 
-            sessionExpiryMs = mqttSessionBeginEx.expiry() == 0 ? 30000 : mqttSessionBeginEx.expiry() * 1000;
-            session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionIdentifier);
+            final int sessionExpiry = mqttSessionBeginEx.expiry();
+            sessionExpiryMillis = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : SECONDS.toMillis(sessionExpiry);
+            session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionId);
             group.doKafkaBegin(traceId, authorization, affinity);
         }
 
@@ -416,6 +418,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
                 group.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
 
+            //TODO: we only need to send it when we receive onKafkaWindow
             if (!initialMigrateSent && MqttKafkaState.initialOpened(session.state))
             {
                 session.sendMigrateSignal(authorization, traceId);
@@ -825,10 +828,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (delegate.sessionLeader)
-            {
-                delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS);
-            }
+            delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS);
         }
 
         private void onKafkaAbort(
@@ -861,6 +861,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
             final int capabilities = window.capabilities();
+            final boolean wasOpen = MqttKafkaState.initialOpened(state);
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -872,15 +873,15 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            //THIS WILL ONLY BE IN SessionSignal impl
+            if (!wasOpen)
+            {
+                sendMigrateSignal(authorization, traceId);
+            }
+
             if (delegate.sessionLeader)
             {
                 delegate.doMqttWindow(authorization, traceId, budgetId, padding, capabilities);
-            }
-
-            if (!delegate.initialMigrateSent && MqttKafkaState.replyOpened(delegate.state))
-            {
-                sendMigrateSignal(authorization, traceId);
-                delegate.initialMigrateSent = true;
             }
         }
 
@@ -897,8 +898,8 @@ public class MqttKafkaSessionFactory implements BindingHandler
                         .value(delegate.clientIdMigrate.value(), 0, delegate.clientIdMigrate.length()))
                     .headersItem(c -> c.nameLen(SENDER_ID_NAME.length())
                         .name(SENDER_ID_NAME.value(), 0, SENDER_ID_NAME.length())
-                        .valueLen(delegate.sessionIdentifier.length())
-                        .value(delegate.sessionIdentifier.value(), 0, delegate.sessionIdentifier.length())))
+                        .valueLen(delegate.sessionId.length())
+                        .value(delegate.sessionId.value(), 0, delegate.sessionId.length())))
                 .build();
 
             doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE,
@@ -991,7 +992,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newGroupStream(this::onGroupMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.clientId, delegate.sessionExpiryMs);
+                traceId, authorization, affinity, delegate.clientId, (int) delegate.sessionExpiryMillis);
         }
 
         private void doKafkaFlush(
@@ -1132,6 +1133,45 @@ public class MqttKafkaSessionFactory implements BindingHandler
                 final int memberCount  = kafkaGroupDataEx != null ? kafkaGroupDataEx.memberCount() : 0;
 
                 //TODO: when we receive dataEX with this: count > 1 leave AND we're the leader -> leave
+
+                //client1 joins
+                //client1 init migrate signal
+                //client1 gets dataframe, it's the leader, count = 1
+                //client2 joins
+                //client2 init migrate signal
+                //client1 receives migrate signal
+                //client1 heartbeats (group flush)
+                //-------------- THIS IS WHERE REBALANCE IS HAPPENING
+                //client1 gets dataframe, it's the leader, count = 2
+                //client1 migrate signal
+                //client1 leaves
+                //client3 joins
+                //client3 init migrate signal
+                //client2 receives migrate signal FROM client1
+                //client2 heartbeats (group flush)
+                //client2 receives migrate signal FROM client3
+                //client2 heartbeats (group flush)
+                //-------------- THE FOLLOWING CAN HAPPEN IN ANY ORDER
+                //client2 gets dataframe, it's the leader, count = 2
+                //client2 leaves
+                //client2 migrate signal
+                //client3 gets dataframe, it's NOT the leader, count = 2
+                //-------------- UNTIL NOW
+                //client3 receives migrate signal
+                //client3 heartbeats (group flush)
+
+
+
+
+                //client1 receives migrate signal
+                //client2 receives migrate signal
+                //client1 heartbeats (group flush)
+                //client2 heartbeats (group flush)
+                //client1 leaves
+                //client2 gets dataframe,
+
+
+
                 if (leaderId.equals(memberId))
                 {
                     if (memberCount > 1)
@@ -1141,12 +1181,17 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     }
                     else
                     {
+                        //TODO: create superclass, that's responsible for only migrate signal
+                        // (KafkaSession (abstract), KafkaSessionSignal, which is an impl that sending
+                        // only initial migrate signal, and KafkaSessioState, which add the onKafkaFlush)
                         delegate.session.doKafkaEnd(traceId, sequence, authorization);
                         delegate.session.doKafkaReset(traceId);
                         delegate.session.doKafkaBeginIfNecessary(traceId, authorization, 0,
-                            delegate.clientId, delegate.clientIdMigrate, delegate.sessionIdentifier);
+                            delegate.clientId, delegate.clientIdMigrate, delegate.sessionId);
                     }
 
+                    //TODO: We don't send CONNACK until we're not the leader, so we can't get subscription state
+                    //We can get rid of this entirely
                     delegate.sessionLeader = true;
                 }
             }
