@@ -184,7 +184,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
         private String16FW clientId;
         private String16FW clientIdMigrate;
-        private long sessionExpiryMillis;
+        private int sessionExpiryMillis;
 
         private MqttSessionProxy(
             MessageConsumer mqtt,
@@ -271,7 +271,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.clientIdMigrate = new String16FW(clientId0 + MIGRATE_KEY_POSTFIX);
 
             final int sessionExpiry = mqttSessionBeginEx.expiry();
-            sessionExpiryMillis = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : SECONDS.toMillis(sessionExpiry);
+            sessionExpiryMillis = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : (int) SECONDS.toMillis(sessionExpiry);
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionId);
             group.doKafkaBegin(traceId, authorization, affinity);
         }
@@ -1062,7 +1062,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newGroupStream(this::onGroupMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.clientId, (int) delegate.sessionExpiryMillis);
+                traceId, authorization, affinity, delegate.clientId, delegate.sessionExpiryMillis);
         }
 
         private void doKafkaFlush(
