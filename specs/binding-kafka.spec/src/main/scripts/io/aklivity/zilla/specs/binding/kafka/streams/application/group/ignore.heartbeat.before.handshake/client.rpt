@@ -29,6 +29,15 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("test")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+
 write advise zilla:flush
 
 read zilla:data.ext ${kafka:matchDataEx()

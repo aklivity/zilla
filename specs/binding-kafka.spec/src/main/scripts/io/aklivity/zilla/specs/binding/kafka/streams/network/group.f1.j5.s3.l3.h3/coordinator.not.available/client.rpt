@@ -82,7 +82,7 @@ write  105                                # size
        ${newRequestId}
        5s "zilla"                        # client id
        4s "test"                         # consumer group
-       45000                             # session timeout
+       30000                             # session timeout
        4000                              # rebalance timeout
        0s                                # consumer group member
        42s ${instanceId}                 # group instance id
@@ -107,7 +107,7 @@ write  115                               # size
        ${newRequestId}
        5s "zilla"                        # no client id
        4s "test"                         # consumer group
-       45000                             # session timeout
+       30000                             # session timeout
        4000                              # rebalance timeout
        10s "memberId-1"                  # consumer group member
        42s ${instanceId}                 # group instance id
