@@ -220,7 +220,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             for (String method: item.methods().keySet())
             {
                 Map<String, String> headers = new LinkedHashMap<>();
-                headers.put(":path", path);
+                headers.put(":path", path.replaceAll("\\{[^}]+\\}", "*"));
                 headers.put(":method", method);
                 ConditionConfig when = new HttpConditionConfig(headers);
                 List<GuardedConfig> guarded = new LinkedList<>();

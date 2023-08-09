@@ -61,13 +61,13 @@ bindings:
     - exit: "http_client0"
       when:
       - headers:
-          :path: "/items/{id}"
+          :path: "/items/*"
           :method: "GET"
       - headers:
-          :path: "/items/{id}"
+          :path: "/items/*"
           :method: "PUT"
       - headers:
-          :path: "/items/{id}"
+          :path: "/items/*"
           :method: "DELETE"
   http_client0:
     type: "http"
