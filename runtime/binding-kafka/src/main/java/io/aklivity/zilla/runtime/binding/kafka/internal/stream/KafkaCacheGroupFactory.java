@@ -205,6 +205,35 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
     private void doData(
         MessageConsumer receiver,
         long originId,
@@ -619,7 +648,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             state = KafkaState.openingReply(state);
 
-            delegate.doGroupReplyBegin(traceId);
+            delegate.doGroupReplyBegin(traceId, begin.extension());
         }
 
         private void onGroupReplyData(
@@ -928,12 +957,13 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         }
 
         private void doGroupReplyBegin(
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             state = KafkaState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                traceId, authorization, affinity, extension);
         }
 
         private void doGroupReplyData(
