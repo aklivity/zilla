@@ -30,8 +30,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonPatch;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -59,6 +64,8 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 {
+    private static final JsonPatch ENV_VARS_PATCH = createEnvVarsPatch();
+
     private final OpenApi openApi;
     private final ConfigWriter configWriter;
 
@@ -97,19 +104,17 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         // guards
         List<GuardConfig> guards = new ArrayList<>();
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
-        for (String securitySchemeName: openApi.components.securitySchemes.keySet())
+        for (String securitySchemeName : openApi.components.securitySchemes.keySet())
         {
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
                 JwtKeyConfig key = JwtKeyConfig.builder()
-                    .kty("${{env.JWT_KTY}}").kid("${{env.JWT_KID}}").use("${{env.JWT_USE}}").n("${{env.JWT_N}}")
-                    .e("${{env.JWT_E}}").alg("${{env.JWT_ALG}}").crv("${{env.JWT_CRV}}").x("${{env.JWT_X}}")
-                    .y("${{env.JWT_Y}}")
+                    .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
                     .build();
                 OptionsConfig guardOptions = JwtOptionsConfig.builder()
-                    .issuer("${{env.JWT_ISSUER}}")
-                    .audience("${{env.JWT_AUDIENCE}}")
+                    .issuer("") // env
+                    .audience("") // env
                     .keys(List.of(key))
                     .build();
                 GuardConfig guard = GuardConfig.builder().name("jwt0").type(guardType).options(guardOptions).build();
@@ -122,17 +127,17 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         // vaults
         // - client
         FileSystemStoreConfig trust = FileSystemStoreConfig.builder()
-            .store("${{env.TRUSTSTORE_PATH}}")
-            .type("${{env.TRUSTSTORE_TYPE}}")
-            .password("${{env.TRUSTSTORE_PASSWORD}}")
+            .store("") // env
+            .type("") // env
+            .password("") // env
             .build();
         FileSystemOptionsConfig clientOptions = FileSystemOptionsConfig.builder().trust(trust).build();
         VaultConfig clientVault = VaultConfig.builder().name("client").type("filesystem").options(clientOptions).build();
         // - server
         FileSystemStoreConfig keys = FileSystemStoreConfig.builder()
-            .store("${{env.KEYSTORE_PATH}}")
-            .type("${{env.KEYSTORE_TYPE}}")
-            .password("${{env.KEYSTORE_PASSWORD}}")
+            .store("") // env
+            .type("") // env
+            .password("") //env
             .build();
         FileSystemOptionsConfig serverOptions = FileSystemOptionsConfig.builder().keys(keys).build();
         VaultConfig serverVault = VaultConfig.builder().name("server").type("filesystem").options(serverOptions).build();
@@ -167,9 +172,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // - tls_server0
         TlsOptionsConfig tlsServer0Options = TlsOptionsConfig.builder()
-            .keys(List.of("${{env.TLS_SERVER_KEYS}}"))
-            .sni(List.of("${{env.TLS_SERVER_SNI}}"))
-            .alpn(List.of("${{env.TLS_SERVER_ALPN}}"))
+            .keys(List.of("")) // env
+            .sni(List.of("")) // env
+            .alpn(List.of("")) // env
             .build();
         BindingConfig tlsServer0 = BindingConfig.builder()
             .name("tls_server0")
@@ -183,17 +188,17 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         // - http_server0
         HttpOptionsConfig httpServer0Options = HttpOptionsConfig.builder()
             .access()
-                .policy(CROSS_ORIGIN)
-                .build()
+            .policy(CROSS_ORIGIN)
+            .build()
             .authorization()
-                .name("jwt0")
-                .credentials()
-                    .header()
-                        .name("authorization")
-                        .pattern("Bearer {credentials}")
-                        .build()
-                    .build()
-                .build()
+            .name("jwt0")
+            .credentials()
+            .header()
+            .name("authorization")
+            .pattern("Bearer {credentials}")
+            .build()
+            .build()
+            .build()
             .build();
         List<RouteConfig> httpServer0routes = generateRoutes("http_client0", guardedRoutes);
         BindingConfigBuilder<BindingConfig> httpServer0builder = BindingConfig.builder()
@@ -201,7 +206,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .type("http")
             .kind(SERVER)
             .options(httpServer0Options);
-        for (RouteConfig route: httpServer0routes)
+        for (RouteConfig route : httpServer0routes)
         {
             httpServer0builder.route(route);
         }
@@ -217,9 +222,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // - tls_client0
         TlsOptionsConfig tlsClient0Options = TlsOptionsConfig.builder()
-            .trust(List.of("${{env.TLS_CLIENT_TRUST}}"))
-            .sni(List.of("${{env.TLS_CLIENT_SNI}}"))
-            .alpn(List.of("${{env.TLS_CLIENT_ALPN}}"))
+            .trust(List.of("")) // env
+            .sni(List.of("")) // env
+            .alpn(List.of("")) // env
             .trustcacerts(true)
             .build();
         BindingConfig tlsClient0 = BindingConfig.builder()
@@ -233,8 +238,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // - tcp_client0
         TcpOptionsConfig tcpClient0Options = TcpOptionsConfig.builder()
-            .host("${{env.TCP_CLIENT_HOST}}")
-            .ports(new int[]{443})
+            .host("") // env
+            .ports(new int[]{0}) // env
             .build();
         BindingConfig tcpClient0 = BindingConfig.builder()
             .name("tcp_client0")
@@ -263,7 +268,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         URI httpServerUrl = findFirstServerUrlWithScheme(scheme);
         if (httpServerUrl != null)
         {
-            httpPorts = new int[]{httpServerUrl.getPort()};
+            httpPorts = new int[] {httpServerUrl.getPort()};
         }
         return httpPorts;
     }
@@ -273,7 +278,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     {
         requireNonNull(scheme);
         URI result = null;
-        for (Server server: openApi.servers)
+        for (Server server : openApi.servers)
         {
             if (scheme.equals(server.url().getScheme()))
             {
@@ -289,11 +294,11 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         Map<String, GuardedConfig> guardedRoutes)
     {
         List<RouteConfig> routes = new LinkedList<>();
-        for (String path: openApi.paths.keySet())
+        for (String path : openApi.paths.keySet())
         {
             PathItem item = openApi.paths.get(path);
             item.initMethods();
-            for (String method: item.methods().keySet())
+            for (String method : item.methods().keySet())
             {
                 ConditionConfig when = HttpConditionConfig.builder()
                     .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
@@ -305,9 +310,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 List<Map<String, List<String>>> security = item.methods().get(method).security;
                 if (security != null)
                 {
-                    for (Map<String, List<String>> securityItem: security)
+                    for (Map<String, List<String>> securityItem : security)
                     {
-                        for (String securityItemLabel: securityItem.keySet())
+                        for (String securityItemLabel : securityItem.keySet())
                         {
                             if (guardedRoutes.containsKey(securityItemLabel))
                             {
@@ -325,6 +330,55 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private String writeConfig(
         NamespaceConfig namespace)
     {
-        return configWriter.write(namespace);
+        return configWriter.write(namespace, ENV_VARS_PATCH);
     }
+
+    private static JsonPatch createEnvVarsPatch()
+    {
+        Map<String, String> ops = new HashMap<>();
+        // tls_server0 binding
+        ops.put("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+        ops.put("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
+        ops.put("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
+        // tls_client0 binding
+        ops.put("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
+        ops.put("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
+        ops.put("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
+        // tcp_client0 binding
+        ops.put("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
+        ops.put("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
+        // jwt0 guard
+        ops.put("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
+        ops.put("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
+        ops.put("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
+        ops.put("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
+        ops.put("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
+        ops.put("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
+        ops.put("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
+        ops.put("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
+        ops.put("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
+        ops.put("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
+        ops.put("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
+        // client vault
+        ops.put("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
+        ops.put("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
+        ops.put("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
+        // server vault
+        ops.put("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
+        ops.put("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
+        ops.put("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+
+        JsonArrayBuilder patch = Json.createArrayBuilder();
+        for (Map.Entry<String, String> entry: ops.entrySet())
+        {
+            JsonObject op = Json.createObjectBuilder()
+                .add("op", "replace")
+                .add("path", entry.getKey())
+                .add("value", entry.getValue())
+                .build();
+            patch.add(op);
+        }
+        return JsonProvider.provider().createPatch(patch.build());
+    }
+
 }
