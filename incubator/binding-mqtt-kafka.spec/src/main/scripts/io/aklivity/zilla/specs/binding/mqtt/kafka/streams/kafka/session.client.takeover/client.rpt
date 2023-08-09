@@ -69,6 +69,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 
@@ -79,8 +80,9 @@ write notify HEARTBEAT1_SENT
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-2")
+                                 .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(2)
                                  .build()
                              .build()}
 
@@ -263,6 +265,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-2")
+                                 .members(2)
                                  .build()
                              .build()}
 
@@ -273,6 +276,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("consumer-2")
                                  .memberId("consumer-2")
+                                 .members(1)
                                  .build()
                              .build()}
 

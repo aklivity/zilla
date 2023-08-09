@@ -35,11 +35,11 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -2906,7 +2906,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doApplicationData(traceId, authorization, assignment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader).memberId(memberId))
+                    .group(g -> g.leaderId(leader).memberId(memberId).members(members.size()))
                     .build()
                     .sizeof()));
 
@@ -2941,6 +2941,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization)
         {
+            delegate.groupMembership.memberIds.remove(delegate.groupId);
+
             doNetworkEnd(traceId, authorization);
             doNetworkReset(traceId);
 

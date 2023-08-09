@@ -36,12 +36,9 @@ public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject
 
     private static final Map<String, String> LINKS_DEFAULT = emptyMap();
 
-    private final ConfigAdapterContext context;
-
     public NamspaceRefAdapter(
         ConfigAdapterContext context)
     {
-        this.context = context;
     }
 
     @Override

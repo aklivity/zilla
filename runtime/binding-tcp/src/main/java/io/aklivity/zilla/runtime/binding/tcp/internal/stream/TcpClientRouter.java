@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;

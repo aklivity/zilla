@@ -28,6 +28,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig;
+
 public class FileSystemOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

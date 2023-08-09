@@ -26,6 +26,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
@@ -87,7 +89,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        final Map<String8FW, GrpcMetadataValue> newMetadata = new Object2ObjectHashMap<>();
+        final Map<String8FW, GrpcMetadataValueConfig> newMetadata = new Object2ObjectHashMap<>();
 
         if (metadata != null)
         {
@@ -118,7 +120,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
                     throw new IllegalArgumentException("Unexpected type: " + valueType);
                 }
 
-                GrpcMetadataValue metadataValue =  new GrpcMetadataValue(new String16FW(textValue),
+                GrpcMetadataValueConfig metadataValue =  new GrpcMetadataValueConfig(new String16FW(textValue),
                     new String16FW(base64Value));
                 newMetadata.put(key, metadataValue);
             });

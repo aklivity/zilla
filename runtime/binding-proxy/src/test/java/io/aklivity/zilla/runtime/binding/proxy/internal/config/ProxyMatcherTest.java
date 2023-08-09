@@ -29,6 +29,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 
 public class ProxyMatcherTest

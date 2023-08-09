@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.amqp.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 
 public final class AmqpConditionMatcher

@@ -69,6 +69,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 
@@ -212,6 +213,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 

@@ -22,8 +22,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -61,11 +59,5 @@ public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, Jso
                         .collect(Collectors.toList())
                 : List.of();
         return new TelemetryRefConfig(metricRefs);
-    }
-
-    private static String asJsonString(
-        JsonValue value)
-    {
-        return ((JsonString) value).getString();
     }
 }

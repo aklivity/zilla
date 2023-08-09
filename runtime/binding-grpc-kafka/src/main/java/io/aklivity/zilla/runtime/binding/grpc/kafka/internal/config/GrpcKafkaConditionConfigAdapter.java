@@ -29,12 +29,13 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
-
 
 public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -104,7 +105,7 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        final Map<String8FW, GrpcKafkaMetadataValue> newMetadata = new Object2ObjectHashMap<>();
+        final Map<String8FW, GrpcKafkaMetadataValueConfig> newMetadata = new Object2ObjectHashMap<>();
 
         if (metadata != null)
         {
@@ -129,7 +130,7 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
                     break;
                 }
 
-                GrpcKafkaMetadataValue metadataValue = new GrpcKafkaMetadataValue(new String16FW(textValue),
+                GrpcKafkaMetadataValueConfig metadataValue = new GrpcKafkaMetadataValueConfig(new String16FW(textValue),
                     new String16FW(base64Value));
                 newMetadata.put(key, metadataValue);
             });

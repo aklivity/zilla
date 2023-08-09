@@ -29,6 +29,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
+
 public class AmqpConditionConfigAdapterTest
 {
     private Jsonb jsonb;

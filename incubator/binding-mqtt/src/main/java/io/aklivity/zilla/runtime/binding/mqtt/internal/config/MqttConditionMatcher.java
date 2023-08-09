@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 
 public final class MqttConditionMatcher

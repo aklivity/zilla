@@ -3832,6 +3832,7 @@ public class KafkaFunctionsTest
             .group()
                 .leaderId("test1")
                 .memberId("test2")
+                .members(2)
                 .build()
             .build();
 
@@ -3843,6 +3844,7 @@ public class KafkaFunctionsTest
         final KafkaGroupDataExFW groupDataEx = dataEx.group();
         assertEquals("test1", groupDataEx.leaderId().asString());
         assertEquals("test2", groupDataEx.memberId().asString());
+        assertTrue(groupDataEx.members() == 2);
     }
 
     @Test
@@ -3853,6 +3855,7 @@ public class KafkaFunctionsTest
             .group()
                 .leaderId("test1")
                 .memberId("test2")
+                .members(2)
                 .build()
             .build();
 
@@ -3863,7 +3866,8 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .group(f -> f
                 .leaderId("test1")
-                .memberId("test2"))
+                .memberId("test2")
+                .members(2))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

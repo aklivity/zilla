@@ -65,26 +65,27 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 write flush
 
 read advised zilla:flush
 
-#ITT tartunk
 # On the session stream the heartbeat arrives (on the mqtt_sessions merged stream)
 read await HEARTBEAT1_SENT
 
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-2")
+                                 .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(2)
                                  .build()
                              .build()}
 write flush
 
-# We've realised that we're not the leader, and already got migrate signal -> leave
+# We've realised that we're the leader, but there's another member -> leave
 
 read closed
 write notify FIRST_CLIENT_LEFT
@@ -253,6 +254,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-2")
+                                 .members(2)
                                  .build()
                              .build()}
 write flush
@@ -269,6 +271,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("consumer-2")
                                  .memberId("consumer-2")
+                                 .members(1)
                                  .build()
                              .build()}
 write flush

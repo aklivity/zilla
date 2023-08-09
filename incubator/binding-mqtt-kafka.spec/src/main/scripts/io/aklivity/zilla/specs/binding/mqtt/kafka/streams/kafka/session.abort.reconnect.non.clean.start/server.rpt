@@ -65,6 +65,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 
@@ -192,6 +193,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
+                                 .members(1)
                                  .build()
                              .build()}
 

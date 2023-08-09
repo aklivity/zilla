@@ -36,8 +36,8 @@ import javax.security.auth.x500.X500Principal;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class FileSystemVaultHandler implements VaultHandler
 {
@@ -95,21 +95,21 @@ public class FileSystemVaultHandler implements VaultHandler
 
     private static Function<String, KeyStore.PrivateKeyEntry> supplyLookupPrivateKeyEntry(
         Function<String, URL> resolvePath,
-        FileSystemStore aliases)
+        FileSystemStoreConfig aliases)
     {
         return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupPrivateKeyEntry);
     }
 
     private static Function<String, KeyStore.TrustedCertificateEntry> supplyLookupTrustedCertificateEntry(
         Function<String, URL> resolvePath,
-        FileSystemStore aliases)
+        FileSystemStoreConfig aliases)
     {
         return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupTrustedCertificateEntry);
     }
 
     private Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> supplyLookupPrivateKeyEntries(
         Function<String, URL> resolvePath,
-        FileSystemStore entries)
+        FileSystemStoreConfig entries)
     {
         Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys = p -> null;
 
@@ -166,7 +166,7 @@ public class FileSystemVaultHandler implements VaultHandler
 
     private static <R> Function<String, R> supplyLookupAlias(
         Function<String, URL> resolvePath,
-        FileSystemStore aliases,
+        FileSystemStoreConfig aliases,
         Lookup<R> lookup)
     {
         Function<String, R> lookupAlias = a -> null;

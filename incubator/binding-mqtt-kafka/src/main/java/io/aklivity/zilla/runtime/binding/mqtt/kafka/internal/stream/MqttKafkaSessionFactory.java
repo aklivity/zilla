@@ -165,11 +165,12 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final KafkaSessionProxy session;
         private final KafkaGroupProxy group;
         private final String16FW sessionId;
         private final String16FW sessionsTopic;
 
+
+        private KafkaSessionProxy session;
         private int state;
 
         private long initialSeq;
@@ -185,9 +186,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
         private String16FW clientIdMigrate;
         private long sessionExpiryMillis;
 
-        private boolean sessionLeader;
-        private boolean initialMigrateSent;
-
         private MqttSessionProxy(
             MessageConsumer mqtt,
             long originId,
@@ -202,7 +200,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.session = new KafkaSessionProxy(originId, resolvedId, this);
+            this.session = new KafkaSessionSignalProxy(originId, resolvedId, this);
             this.group = new KafkaGroupProxy(originId, resolvedId, this);
             this.sessionsTopic = sessionsTopic;
             this.sessionId = new String16FW(sessionIds.get(bindingId));
@@ -417,13 +415,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
             {
                 group.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
-
-            //TODO: we only need to send it when we receive onKafkaWindow
-            if (!initialMigrateSent && MqttKafkaState.initialOpened(session.state))
-            {
-                session.sendMigrateSignal(authorization, traceId);
-                initialMigrateSent = true;
-            }
         }
 
         private void doMqttBegin(
@@ -533,25 +524,25 @@ public class MqttKafkaSessionFactory implements BindingHandler
         }
     }
 
-    final class KafkaSessionProxy
+    abstract class KafkaSessionProxy
     {
-        private MessageConsumer kafka;
-        private final long originId;
-        private final long routedId;
-        private long initialId;
-        private long replyId;
-        private final MqttSessionProxy delegate;
+        protected MessageConsumer kafka;
+        protected final long originId;
+        protected final long routedId;
+        protected long initialId;
+        protected long replyId;
+        protected final MqttSessionProxy delegate;
 
-        private int state;
+        protected int state;
 
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
+        protected long initialSeq;
+        protected long initialAck;
+        protected int initialMax;
 
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-        private int replyPad;
+        protected long replySeq;
+        protected long replyAck;
+        protected int replyMax;
+        protected int replyPad;
 
         private KafkaSessionProxy(
             long originId,
@@ -573,15 +564,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
             String16FW clientIdMigrate,
             String16FW sessionIdentifier)
         {
-            if (MqttKafkaState.closed(state))
-            {
-                initialAck = 0;
-                initialSeq = 0;
-                replyAck = 0;
-                replySeq = 0;
-                state = 0;
-            }
-
             if (!MqttKafkaState.initialOpening(state))
             {
                 doKafkaBegin(traceId, authorization, affinity, clientId, clientIdMigrate, sessionIdentifier);
@@ -749,7 +731,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
-            final long budgetId = data.budgetId();
             final int reserved = data.reserved();
 
             assert acknowledge <= sequence;
@@ -766,69 +747,22 @@ public class MqttKafkaSessionFactory implements BindingHandler
             }
             else
             {
-                final int flags = data.flags();
-                final OctetsFW payload = data.payload();
-                final OctetsFW extension = data.extension();
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx =
-                    dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-                final KafkaMergedDataExFW kafkaMergedDataEx =
-                    kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                final KafkaKeyFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key() : null;
-
-                if (key != null)
-                {
-                    if (key.length() == (delegate.clientId.length()))
-                    {
-                        MqttSessionStateFW sessionState =
-                            mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit());
-                        delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
-                    }
-                    else if (key.length() == delegate.clientIdMigrate.length())
-                    {
-                        delegate.group.doKafkaFlush(traceId, authorization, budgetId, reserved);
-                    }
-                }
+                handleKafkaData(data);
             }
         }
 
-        private void onKafkaEnd(
+        protected abstract void handleKafkaData(DataFW data);
+
+        protected abstract void onKafkaWindow(WindowFW window);
+
+        protected void onKafkaEnd(
             EndFW end)
         {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
-
-            assert replyAck <= replySeq;
-
-            delegate.doMqttEnd(traceId, authorization);
         }
 
-        private void onKafkaFlush(
+        protected void onKafkaFlush(
             FlushFW flush)
         {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-
-            assert replyAck <= replySeq;
-
-            delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS);
         }
 
         private void onKafkaAbort(
@@ -850,42 +784,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
             delegate.doMqttAbort(traceId, authorization);
         }
 
-        private void onKafkaWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long authorization = window.authorization();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-            final int capabilities = window.capabilities();
-            final boolean wasOpen = MqttKafkaState.initialOpened(state);
-
-            assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
-
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            //THIS WILL ONLY BE IN SessionSignal impl
-            if (!wasOpen)
-            {
-                sendMigrateSignal(authorization, traceId);
-            }
-
-            if (delegate.sessionLeader)
-            {
-                delegate.doMqttWindow(authorization, traceId, budgetId, padding, capabilities);
-            }
-        }
-
-        private void sendMigrateSignal(long authorization, long traceId)
+        protected void sendMigrateSignal(long authorization, long traceId)
         {
             Flyweight kafkaMigrateDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -946,6 +845,177 @@ public class MqttKafkaSessionFactory implements BindingHandler
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, replyPad, 0, capabilities);
+        }
+    }
+
+    final class KafkaSessionSignalProxy extends KafkaSessionProxy
+    {
+        private KafkaSessionSignalProxy(
+            long originId,
+            long routedId,
+            MqttSessionProxy delegate)
+        {
+            super(originId, routedId, delegate);
+        }
+
+        @Override
+        protected void handleKafkaData(DataFW data)
+        {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+
+            final OctetsFW extension = data.extension();
+            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+            final KafkaDataExFW kafkaDataEx =
+                dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+            final KafkaMergedDataExFW kafkaMergedDataEx =
+                kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+            final KafkaKeyFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key() : null;
+
+            if (key != null)
+            {
+                delegate.group.doKafkaFlush(traceId, authorization, budgetId, reserved);
+            }
+        }
+
+        @Override
+        protected void onKafkaWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final boolean wasOpen = MqttKafkaState.initialOpened(state);
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            state = MqttKafkaState.openInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            if (!wasOpen)
+            {
+                sendMigrateSignal(authorization, traceId);
+            }
+        }
+    }
+
+    final class KafkaSessionStateProxy extends KafkaSessionProxy
+    {
+        private KafkaSessionStateProxy(
+            long originId,
+            long routedId,
+            MqttSessionProxy delegate)
+        {
+            super(originId, routedId, delegate);
+        }
+
+        @Override
+        protected void handleKafkaData(DataFW data)
+        {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+            final KafkaDataExFW kafkaDataEx =
+                dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+            final KafkaMergedDataExFW kafkaMergedDataEx =
+                kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+            final KafkaKeyFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key() : null;
+
+            if (key != null)
+            {
+                if (key.length() == (delegate.clientId.length()))
+                {
+                    MqttSessionStateFW sessionState =
+                        mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit());
+                    delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
+                }
+                else if (key.length() == delegate.clientIdMigrate.length())
+                {
+                    delegate.group.doKafkaFlush(traceId, authorization, budgetId, reserved);
+                }
+            }
+        }
+
+        @Override
+        protected void onKafkaWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            state = MqttKafkaState.openInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doMqttWindow(authorization, traceId, budgetId, padding, capabilities);
+        }
+
+        @Override
+        protected void onKafkaFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final long budgetId = flush.budgetId();
+            final int reserved = flush.reserved();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+
+            assert replyAck <= replySeq;
+
+            delegate.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_COMPLETE, EMPTY_OCTETS);
+        }
+
+        @Override
+        protected void onKafkaEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = MqttKafkaState.closeReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doMqttEnd(traceId, authorization);
         }
     }
 
@@ -1062,10 +1132,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onKafkaAbort(abort);
                 break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onKafkaWindow(window);
-                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onKafkaReset(reset);
@@ -1120,8 +1186,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
             }
             else
             {
-                final int flags = data.flags();
-                final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 final KafkaDataExFW kafkaDataEx =
@@ -1130,69 +1194,23 @@ public class MqttKafkaSessionFactory implements BindingHandler
                     kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_GROUP ? kafkaDataEx.group() : null;
                 final String16FW leaderId = kafkaGroupDataEx != null ? kafkaGroupDataEx.leaderId() : null;
                 final String16FW memberId  = kafkaGroupDataEx != null ? kafkaGroupDataEx.memberId() : null;
-                final int memberCount  = kafkaGroupDataEx != null ? kafkaGroupDataEx.memberCount() : 0;
-
-                //TODO: when we receive dataEX with this: count > 1 leave AND we're the leader -> leave
-
-                //client1 joins
-                //client1 init migrate signal
-                //client1 gets dataframe, it's the leader, count = 1
-                //client2 joins
-                //client2 init migrate signal
-                //client1 receives migrate signal
-                //client1 heartbeats (group flush)
-                //-------------- THIS IS WHERE REBALANCE IS HAPPENING
-                //client1 gets dataframe, it's the leader, count = 2
-                //client1 migrate signal
-                //client1 leaves
-                //client3 joins
-                //client3 init migrate signal
-                //client2 receives migrate signal FROM client1
-                //client2 heartbeats (group flush)
-                //client2 receives migrate signal FROM client3
-                //client2 heartbeats (group flush)
-                //-------------- THE FOLLOWING CAN HAPPEN IN ANY ORDER
-                //client2 gets dataframe, it's the leader, count = 2
-                //client2 leaves
-                //client2 migrate signal
-                //client3 gets dataframe, it's NOT the leader, count = 2
-                //-------------- UNTIL NOW
-                //client3 receives migrate signal
-                //client3 heartbeats (group flush)
-
-
-
-
-                //client1 receives migrate signal
-                //client2 receives migrate signal
-                //client1 heartbeats (group flush)
-                //client2 heartbeats (group flush)
-                //client1 leaves
-                //client2 gets dataframe,
-
-
+                final int members  = kafkaGroupDataEx != null ? kafkaGroupDataEx.members() : 0;
 
                 if (leaderId.equals(memberId))
                 {
-                    if (memberCount > 1)
+                    if (members > 1)
                     {
                         delegate.session.sendMigrateSignal(authorization, traceId);
                         doKafkaEnd(traceId, sequence, authorization);
                     }
                     else
                     {
-                        //TODO: create superclass, that's responsible for only migrate signal
-                        // (KafkaSession (abstract), KafkaSessionSignal, which is an impl that sending
-                        // only initial migrate signal, and KafkaSessioState, which add the onKafkaFlush)
                         delegate.session.doKafkaEnd(traceId, sequence, authorization);
-                        delegate.session.doKafkaReset(traceId);
+                        final long routedId = delegate.session.routedId;
+                        delegate.session = new KafkaSessionStateProxy(originId, routedId, delegate);
                         delegate.session.doKafkaBeginIfNecessary(traceId, authorization, 0,
                             delegate.clientId, delegate.clientIdMigrate, delegate.sessionId);
                     }
-
-                    //TODO: We don't send CONNACK until we're not the leader, so we can't get subscription state
-                    //We can get rid of this entirely
-                    delegate.sessionLeader = true;
                 }
             }
         }
@@ -1233,34 +1251,6 @@ public class MqttKafkaSessionFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             delegate.doMqttAbort(traceId, authorization);
-        }
-
-        private void onKafkaWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long authorization = window.authorization();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-            final int capabilities = window.capabilities();
-
-            assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
-
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            if (delegate.sessionLeader)
-            {
-                delegate.doMqttWindow(authorization, traceId, budgetId, padding, capabilities);
-            }
         }
 
         private void onKafkaReset(

@@ -22,6 +22,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemVault;
 
 public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
@@ -30,7 +32,7 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String TRUST_NAME = "trust";
     private static final String SIGNERS_NAME = "signers";
 
-    private final FileSystemStoreAdapter store = new FileSystemStoreAdapter();
+    private final FileSystemStoreConfigAdapter store = new FileSystemStoreConfigAdapter();
 
     @Override
     public String type()
@@ -74,13 +76,13 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        FileSystemStore keys = object.containsKey(KEYS_NAME)
+        FileSystemStoreConfig keys = object.containsKey(KEYS_NAME)
                 ? store.adaptFromJson(object.getJsonObject(KEYS_NAME))
                 : null;
-        FileSystemStore trust = object.containsKey(TRUST_NAME)
+        FileSystemStoreConfig trust = object.containsKey(TRUST_NAME)
                 ? store.adaptFromJson(object.getJsonObject(TRUST_NAME))
                 : null;
-        FileSystemStore signers = object.containsKey(SIGNERS_NAME)
+        FileSystemStoreConfig signers = object.containsKey(SIGNERS_NAME)
                 ? store.adaptFromJson(object.getJsonObject(SIGNERS_NAME))
                 : null;
 

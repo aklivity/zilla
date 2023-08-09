@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+
 public final class TcpServerBindingConfig
 {
     public final long id;

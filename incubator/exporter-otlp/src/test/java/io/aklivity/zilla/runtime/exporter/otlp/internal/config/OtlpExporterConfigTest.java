@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -24,6 +24,9 @@ import java.util.Set;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 
 public class OtlpExporterConfigTest
 {
