@@ -21,6 +21,23 @@ kubectl exec --namespace zilla-mqtt-kafka-reflect "$KAFKA_POD" -- \
         --topic mqtt_messages \
         --if-not-exists
 
+kubectl exec --namespace zilla-mqtt-kafka-reflect "$KAFKA_POD" -- \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --create \
+        --topic mqtt_retained \
+        --config "cleanup.policy=compact" \
+        --if-not-exists
+
+kubectl exec --namespace zilla-mqtt-kafka-reflect "$KAFKA_POD" -- \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --create \
+        --topic mqtt_sessions \
+        --config "cleanup.policy=compact" \
+        --if-not-exists
+
+
 # Start port forwarding
 kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/zilla-mqtt-kafka-reflect 1883 8883 > /tmp/kubectl-zilla.log 2>&1 &
 kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/kafka 9092 29092 > /tmp/kubectl-kafka.log 2>&1 &
