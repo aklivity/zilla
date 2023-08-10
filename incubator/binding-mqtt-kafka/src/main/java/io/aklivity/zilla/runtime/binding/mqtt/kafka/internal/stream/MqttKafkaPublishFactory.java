@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -363,12 +361,24 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
                 addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
 
-                AtomicInteger offset = new AtomicInteger();
-                Arrays.stream(responseTopic.asString().split("/")).forEach(segment ->
+                final DirectBuffer responseBuffer = responseTopic.value();
+                int offset = 0;
+
+                for (int i = 0; i < responseBuffer.capacity(); i++)
                 {
-                    final int length = segment.length();
-                    addHeader(helper.kafkaReplyFilterHeaderName, responseTopic, offset.getAndAdd(length + 1), length);
-                });
+                    if (responseBuffer.getByte(i) == (byte) '/')
+                    {
+                        int length = i - offset;
+                        addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, length);
+                        offset = i + 1;
+                    }
+                }
+
+                if (offset < responseBuffer.capacity())
+                {
+                    int length = responseBuffer.capacity() - offset;
+                    addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, length);
+                }
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
@@ -655,11 +665,10 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     private void addHeader(
         OctetsFW key,
-        String16FW value,
+        DirectBuffer buffer,
         int offset,
         int length)
     {
-        DirectBuffer buffer = value.value();
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.sizeof());
