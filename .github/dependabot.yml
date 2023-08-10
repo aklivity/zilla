@@ -8,3 +8,7 @@ updates:
   directory: /cloud/docker-image/src/main/docker
   schedule:
     interval: daily
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily
