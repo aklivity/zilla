@@ -362,22 +362,24 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
 
                 final DirectBuffer responseBuffer = responseTopic.value();
-                int offset = 0;
 
-                for (int i = 0; i < responseBuffer.capacity(); i++)
+                final int capacity = responseBuffer.capacity();
+                for (int offset = 0; offset < capacity; )
                 {
-                    if (responseBuffer.getByte(i) == (byte) '/')
+                    int nextIndex = indexOfByte(responseBuffer, offset, (byte) '/');
+                    if (nextIndex == -1)
                     {
-                        int length = i - offset;
-                        addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, length);
-                        offset = i + 1;
+                        nextIndex = responseBuffer.capacity();
                     }
-                }
 
-                if (offset < responseBuffer.capacity())
-                {
-                    int length = responseBuffer.capacity() - offset;
+                    int length = nextIndex - offset;
                     addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, length);
+                    offset = nextIndex + 1;
+
+                    if (offset >= capacity)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -689,6 +691,21 @@ public class MqttKafkaPublishFactory implements BindingHandler
             h.valueLen(value.length());
             h.value(valueBuffer, 0, valueBuffer.capacity());
         });
+    }
+
+    private int indexOfByte(
+        DirectBuffer buffer,
+        int startIndex,
+        byte targetByte)
+    {
+        for (int i = startIndex; i < buffer.capacity(); i++)
+        {
+            if (buffer.getByte(i) == targetByte)
+            {
+                return i;
+            }
+        }
+        return -1;
     }
 
 
