@@ -1,0 +1,10 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: /
+  schedule:
+    interval: daily
+- package-ecosystem: docker
+  directory: /cloud/docker-image/src/main/docker
+  schedule:
+    interval: daily
