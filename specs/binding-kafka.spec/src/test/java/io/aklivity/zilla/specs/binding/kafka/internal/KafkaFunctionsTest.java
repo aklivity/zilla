@@ -449,6 +449,7 @@ public class KafkaFunctionsTest
                                          .progress(0, 1L)
                                          .key("match")
                                          .header("name", "value")
+                                         .hashKey("hashKey")
                                          .build()
                                      .build();
 
@@ -485,6 +486,10 @@ public class KafkaFunctionsTest
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
+
+        assertEquals("hashKey", mergedDataEx.hashKey()
+            .value()
+            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
     @Test
@@ -983,6 +988,7 @@ public class KafkaFunctionsTest
                                                  .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
+                                                 .hashKey("hashKey")
                                                  .build()
                                              .build();
 
@@ -1001,7 +1007,9 @@ public class KafkaFunctionsTest
                              .headersItem(h -> h.nameLen(4)
                                                 .name(n -> n.set("name".getBytes(UTF_8)))
                                                 .valueLen(5)
-                                                .value(v -> v.set("value".getBytes(UTF_8)))))
+                                                .value(v -> v.set("value".getBytes(UTF_8))))
+                             .hashKey(k -> k.length(5)
+                                 .value(v -> v.set("match".getBytes(UTF_8)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));

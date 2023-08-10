@@ -1218,6 +1218,7 @@ public final class KafkaFunctions
         public final class KafkaMergedDataExBuilder
         {
             private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
             private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
             private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
@@ -1302,6 +1303,23 @@ public final class KafkaFunctions
                     keyRO.wrap(key.getBytes(UTF_8));
                     mergedDataExRW.key(k -> k.length(keyRO.capacity())
                                             .value(keyRO, 0, keyRO.capacity()));
+                }
+                return this;
+            }
+
+            public KafkaMergedDataExBuilder hashKey(
+                String hashKey)
+            {
+                if (hashKey == null)
+                {
+                    mergedDataExRW.hashKey(m -> m.length(-1)
+                        .value((OctetsFW) null));
+                }
+                else
+                {
+                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                    mergedDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
+                        .value(hashKeyRO, 0, hashKeyRO.capacity()));
                 }
                 return this;
             }
@@ -1939,6 +1957,7 @@ public final class KafkaFunctions
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
         private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
         private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
         private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
@@ -2404,6 +2423,7 @@ public final class KafkaFunctions
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
             private KafkaDeltaFW.Builder deltaRW;
             private KafkaKeyFW.Builder keyRW;
+            private KafkaKeyFW.Builder hashKeyRW;
             private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
 
             private KafkaMergedDataExMatcherBuilder()
@@ -2490,6 +2510,27 @@ public final class KafkaFunctions
                     keyRO.wrap(key.getBytes(UTF_8));
                     keyRW.length(keyRO.capacity())
                          .value(keyRO, 0, keyRO.capacity());
+                }
+
+                return this;
+            }
+
+            public KafkaMergedDataExMatcherBuilder hashKey(
+                String hashKey)
+            {
+                assert hashKeyRW == null;
+                hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                if (hashKey == null)
+                {
+                    hashKeyRW.length(-1)
+                        .value((OctetsFW) null);
+                }
+                else
+                {
+                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                    hashKeyRW.length(hashKeyRO.capacity())
+                        .value(hashKeyRO, 0, hashKeyRO.capacity());
                 }
 
                 return this;

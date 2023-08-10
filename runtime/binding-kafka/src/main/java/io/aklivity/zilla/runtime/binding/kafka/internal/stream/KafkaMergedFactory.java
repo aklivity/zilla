@@ -1192,9 +1192,10 @@ public final class KafkaMergedFactory implements BindingHandler
                     assert kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED;
                     final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
                     final KafkaKeyFW key = kafkaMergedDataEx.key();
+                    final KafkaKeyFW hashKey = kafkaMergedDataEx.hashKey();
                     final KafkaOffsetFW partition = kafkaMergedDataEx.partition();
                     final int partitionId = partition.partitionId();
-                    final int nextPartitionId = partitionId == DYNAMIC_PARTITION ? nextPartitionData(key) : partitionId;
+                    final int nextPartitionId = partitionId == DYNAMIC_PARTITION ? nextPartitionData(hashKey, key) : partitionId;
 
                     final KafkaUnmergedProduceStream newProducer = findProducePartitionLeader(nextPartitionId);
                     assert newProducer != null; // TODO
@@ -1220,10 +1221,13 @@ public final class KafkaMergedFactory implements BindingHandler
         }
 
         private int nextPartitionData(
+            KafkaKeyFW hashKey,
             KafkaKeyFW key)
         {
             final int partitionCount = leadersByPartitionId.size();
-            final int keyHash = key.length() != -1 ? defaultKeyHash(key) : nextNullKeyHashData++;
+            int keyHash = (hashKey.length() != -1) ? defaultKeyHash(hashKey) :
+                (key.length() != -1) ? defaultKeyHash(key) :
+                    nextNullKeyHashData++;
             final int partitionId = partitionCount > 0 ? (0x7fff_ffff & keyHash) % partitionCount : 0;
 
             return partitionId;
