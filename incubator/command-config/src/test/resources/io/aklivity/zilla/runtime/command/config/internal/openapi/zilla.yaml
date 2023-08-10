@@ -1,26 +1,23 @@
----
-name: "example"
+name: example
 bindings:
   tcp_server0:
-    type: "tcp"
-    kind: "server"
+    type: tcp
+    kind: server
     options:
-      host: "0.0.0.0"
+      host: 0.0.0.0
       port: 9090
-    routes:
-    - exit: "tls_server0"
+    exit: tls_server0
   tcp_server1:
-    type: "tcp"
-    kind: "server"
+    type: tcp
+    kind: server
     options:
-      host: "0.0.0.0"
+      host: 0.0.0.0
       port: 8080
-    routes:
-    - exit: "http_server0"
+    exit: http_server0
   tls_server0:
-    vault: "server"
-    type: "tls"
-    kind: "server"
+    vault: server
+    type: tls
+    kind: server
     options:
       keys:
       - "${{env.TLS_SERVER_KEYS}}"
@@ -28,56 +25,58 @@ bindings:
       - "${{env.TLS_SERVER_SNI}}"
       alpn:
       - "${{env.TLS_SERVER_ALPN}}"
-    routes:
-    - exit: "http_server0"
+    exit: http_server0
   httpServer0:
-    type: "http"
-    kind: "server"
+    type: http
+    kind: server
     options:
       access-control:
-        policy: "cross-origin"
+        policy: cross-origin
       authorization:
         jwt0:
           credentials:
             headers:
               authorization: "Bearer {credentials}"
     routes:
-    - exit: "http_client0"
+    - exit: http_client0
       when:
       - headers:
-          :path: "/items"
-          :method: "GET"
+          :path: /items
+          :method: GET
       guarded:
         jwt0:
-        - "echo:stream"
-    - exit: "http_client0"
+        - echo:stream
+    - exit: http_client0
       when:
       - headers:
-          :path: "/items"
-          :method: "POST"
+          :path: /items
+          :method: POST
       guarded:
         jwt0:
-        - "echo:stream"
-    - exit: "http_client0"
+        - echo:stream
+    - exit: http_client0
       when:
       - headers:
-          :path: "/items/*"
-          :method: "GET"
+          :path: /items/*
+          :method: GET
+    - exit: http_client0
+      when:
       - headers:
-          :path: "/items/*"
-          :method: "PUT"
+          :path: /items/*
+          :method: PUT
+    - exit: http_client0
+      when:
       - headers:
-          :path: "/items/*"
-          :method: "DELETE"
+          :path: /items/*
+          :method: DELETE
   http_client0:
-    type: "http"
-    kind: "client"
-    routes:
-    - exit: "tls_client0"
+    type: http
+    kind: client
+    exit: tls_client0
   tls_client0:
-    vault: "client"
-    type: "tls"
-    kind: "client"
+    vault: client
+    type: tls
+    kind: client
     options:
       trust:
       - "${{env.TLS_CLIENT_TRUST}}"
@@ -86,17 +85,16 @@ bindings:
       - "${{env.TLS_CLIENT_SNI}}"
       alpn:
       - "${{env.TLS_CLIENT_ALPN}}"
-    routes:
-    - exit: "tcp_client0"
+    exit: tcp_client0
   tcp_client0:
-    type: "tcp"
-    kind: "client"
+    type: tcp
+    kind: client
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
       port: 443
 guards:
   jwt0:
-    type: "jwt"
+    type: jwt
     options:
       issuer: "${{env.JWT_ISSUER}}"
       audience: "${{env.JWT_AUDIENCE}}"
@@ -112,14 +110,14 @@ guards:
         kid: "${{env.JWT_KID}}"
 vaults:
   client:
-    type: "filesystem"
+    type: filesystem
     options:
       trust:
         store: "${{env.TRUSTSTORE_PATH}}"
         type: "${{env.TRUSTSTORE_TYPE}}"
         password: "${{env.TRUSTSTORE_PASSWORD}}"
   server:
-    type: "filesystem"
+    type: filesystem
     options:
       keys:
         store: "${{env.KEYSTORE_PATH}}"
