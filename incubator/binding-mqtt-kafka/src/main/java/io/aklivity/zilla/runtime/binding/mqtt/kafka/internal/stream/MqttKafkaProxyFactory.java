@@ -37,7 +37,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
 
     private final int mqttTypeId;
-    private final Int2ObjectHashMap<BindingHandler> factories;
+    private final Int2ObjectHashMap<MqttKafkaStreamFactory> factories;
     private final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings;
 
     public MqttKafkaProxyFactory(
@@ -45,7 +45,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         EngineContext context)
     {
         final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
-        final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<MqttKafkaStreamFactory> factories = new Int2ObjectHashMap<>();
 
         final MqttKafkaPublishFactory publishFactory = new MqttKafkaPublishFactory(
             config, context, bindings::get);
@@ -72,8 +72,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
 
-        MqttKafkaSessionFactory sessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
-        sessionFactory.onAttached(binding.id);
+        factories.values().forEach(streamFactory -> streamFactory.onAttached(binding.id));
     }
 
     @Override
@@ -82,8 +81,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     {
         bindings.remove(bindingId);
 
-        MqttKafkaSessionFactory sessionFactory = (MqttKafkaSessionFactory) factories.get(MqttBeginExFW.KIND_SESSION);
-        sessionFactory.onDetached(bindingId);
+        factories.values().forEach(streamFactory -> streamFactory.onDetached(bindingId));
     }
 
     @Override

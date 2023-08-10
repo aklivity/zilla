@@ -19,9 +19,23 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public interface MqttKafkaStreamFactory extends BindingHandler
 {
-    void attach(
-        BindingConfig binding);
+    default void attach(
+        BindingConfig binding)
+    {
+    }
 
-    void detach(
-        long bindingId);
+    default void detach(
+        long bindingId)
+    {
+    }
+
+    default void onAttached(
+        long binding)
+    {
+    }
+
+    default void onDetached(
+        long bindingId)
+    {
+    }
 }

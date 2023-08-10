@@ -44,7 +44,7 @@ public class MqttKafkaSessionProxyIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
-        .configure(SESSION_ID, () -> "sender1")
+        .configure(SESSION_ID, () -> "sender-1")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/kafka/config")
         .external("kafka0")
         .clean();

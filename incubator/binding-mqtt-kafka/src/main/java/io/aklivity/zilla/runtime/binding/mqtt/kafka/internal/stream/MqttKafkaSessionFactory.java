@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
-public class MqttKafkaSessionFactory implements BindingHandler
+public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String KAFKA_TYPE_NAME = "kafka";
@@ -146,12 +146,14 @@ public class MqttKafkaSessionFactory implements BindingHandler
         return newStream;
     }
 
+    @Override
     public void onAttached(
         long bindingId)
     {
         sessionIds.put(bindingId, supplySessionId.get());
     }
 
+    @Override
     public void onDetached(
         long bindingId)
     {
@@ -524,7 +526,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         }
     }
 
-    abstract class KafkaSessionProxy
+    private abstract class KafkaSessionProxy
     {
         protected MessageConsumer kafka;
         protected final long originId;
@@ -848,7 +850,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         }
     }
 
-    final class KafkaSessionSignalProxy extends KafkaSessionProxy
+    private final class KafkaSessionSignalProxy extends KafkaSessionProxy
     {
         private KafkaSessionSignalProxy(
             long originId,
@@ -908,7 +910,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         }
     }
 
-    final class KafkaSessionStateProxy extends KafkaSessionProxy
+    private final class KafkaSessionStateProxy extends KafkaSessionProxy
     {
         private KafkaSessionStateProxy(
             long originId,
@@ -1019,7 +1021,7 @@ public class MqttKafkaSessionFactory implements BindingHandler
         }
     }
 
-    final class KafkaGroupProxy
+    private final class KafkaGroupProxy
     {
         private MessageConsumer kafka;
         private final long originId;
