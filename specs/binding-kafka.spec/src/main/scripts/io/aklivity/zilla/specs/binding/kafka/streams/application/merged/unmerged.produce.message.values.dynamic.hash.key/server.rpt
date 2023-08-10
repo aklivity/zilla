@@ -135,6 +135,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("a")
                                  .build()
                              .build()}
 read "Hello, world #A1"
@@ -144,6 +145,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("a")
                                  .build()
                              .build()}
 read "Hello, world #A2"
@@ -174,6 +176,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("b")
                                  .build()
                              .build()}
 read "Hello, world #B1"
@@ -183,6 +186,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("b")
                                  .build()
                              .build()}
 read "Hello, world #B2"
@@ -213,6 +217,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("c")
                                  .build()
                              .build()}
 read "Hello, world #C1"
@@ -222,6 +227,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .timestamp(newTimestamp)
                                  .ackMode("LEADER_ONLY")
+                                 .key("c")
                                  .build()
                              .build()}
 read "Hello, world #C2"

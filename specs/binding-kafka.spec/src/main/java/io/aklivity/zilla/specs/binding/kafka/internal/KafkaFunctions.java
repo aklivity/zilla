@@ -2712,6 +2712,7 @@ public final class KafkaFunctions
                     matchDeferred(mergedDataEx) &&
                     matchTimestamp(mergedDataEx) &&
                     matchKey(mergedDataEx) &&
+                    matchHashKey(mergedDataEx) &&
                     matchDelta(mergedDataEx) &&
                     matchHeaders(mergedDataEx) &&
                     matchFilters(mergedDataEx);
@@ -2745,6 +2746,12 @@ public final class KafkaFunctions
                 final KafkaMergedDataExFW mergedDataEx)
             {
                 return keyRW == null || keyRW.build().equals(mergedDataEx.key());
+            }
+
+            private boolean matchHashKey(
+                final KafkaMergedDataExFW mergedDataEx)
+            {
+                return hashKeyRW == null || hashKeyRW.build().equals(mergedDataEx.hashKey());
             }
 
             private boolean matchDelta(

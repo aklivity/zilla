@@ -1225,8 +1225,8 @@ public final class KafkaMergedFactory implements BindingHandler
             KafkaKeyFW key)
         {
             final int partitionCount = leadersByPartitionId.size();
-            int keyHash = (hashKey.length() != -1) ? defaultKeyHash(hashKey) :
-                (key.length() != -1) ? defaultKeyHash(key) :
+            final int keyHash = hashKey.length() != -1 ? defaultKeyHash(hashKey) :
+                key.length() != -1 ? defaultKeyHash(key) :
                     nextNullKeyHashData++;
             final int partitionId = partitionCount > 0 ? (0x7fff_ffff & keyHash) % partitionCount : 0;
 

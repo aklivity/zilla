@@ -448,8 +448,8 @@ public class KafkaFunctionsTest
                                          .partition(0, 0L)
                                          .progress(0, 1L)
                                          .key("match")
-                                         .header("name", "value")
                                          .hashKey("hashKey")
+                                         .header("name", "value")
                                          .build()
                                      .build();
 
@@ -1002,14 +1002,13 @@ public class KafkaFunctionsTest
                              .progressItem(p -> p.partitionId(0).partitionOffset(1L))
                              .key(k -> k.length(5)
                                         .value(v -> v.set("match".getBytes(UTF_8))))
+                             .hashKey(k -> k.length(7)
+                                 .value(v -> v.set("hashKey".getBytes(UTF_8))))
                              .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-
                              .headersItem(h -> h.nameLen(4)
                                                 .name(n -> n.set("name".getBytes(UTF_8)))
                                                 .valueLen(5)
-                                                .value(v -> v.set("value".getBytes(UTF_8))))
-                             .hashKey(k -> k.length(5)
-                                 .value(v -> v.set("match".getBytes(UTF_8)))))
+                                                .value(v -> v.set("value".getBytes(UTF_8)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1407,6 +1406,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
                                                  .key(null)
+                                                 .hashKey(null)
                                                  .build()
                                              .build();
 
