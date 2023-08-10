@@ -376,7 +376,7 @@
         <plugin>
           <groupId>org.moditect</groupId>
           <artifactId>moditect-maven-plugin</artifactId>
-          <version>1.0.0.RC1</version>
+          <version>1.0.0.Final</version>
           <configuration>
             <module>
               <moduleInfoFile>src/main/moditect/module-info.java</moduleInfoFile>
