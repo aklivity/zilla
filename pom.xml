@@ -47,7 +47,7 @@
     <antlr4.version>4.11.1</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
     <junit.version>5.8.2</junit.version>
-    <byteman.version>4.0.20</byteman.version>
+    <byteman.version>4.0.21</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.3.1</mockito.version>
     <k3po.version>3.1.0</k3po.version>
