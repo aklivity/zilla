@@ -53,11 +53,9 @@ import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
@@ -109,15 +107,17 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
-                JwtKeyConfig key = JwtKeyConfig.builder()
-                    .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                GuardConfig guard = GuardConfig.builder()
+                    .name("jwt0")
+                    .type(guardType)
+                    .options(JwtOptionsConfig::builder)
+                        .issuer("") // env
+                        .audience("") // env
+                        .key()
+                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                            .build()
+                        .build()
                     .build();
-                OptionsConfig guardOptions = JwtOptionsConfig.builder()
-                    .issuer("") // env
-                    .audience("") // env
-                    .keys(List.of(key))
-                    .build();
-                GuardConfig guard = GuardConfig.builder().name("jwt0").type(guardType).options(guardOptions).build();
                 guards.add(guard);
                 GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
                 guardedRoutes.put(securitySchemeName, guarded);
@@ -126,21 +126,29 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // vaults
         // - client
-        FileSystemStoreConfig trust = FileSystemStoreConfig.builder()
-            .store("") // env
-            .type("") // env
-            .password("") // env
+        VaultConfig clientVault = VaultConfig.builder()
+            .name("client")
+            .type("filesystem")
+            .options(FileSystemOptionsConfig::builder)
+                .trust()
+                    .store("") // env
+                    .type("") // env
+                    .password("") // env
+                    .build()
+                .build()
             .build();
-        FileSystemOptionsConfig clientOptions = FileSystemOptionsConfig.builder().trust(trust).build();
-        VaultConfig clientVault = VaultConfig.builder().name("client").type("filesystem").options(clientOptions).build();
         // - server
-        FileSystemStoreConfig keys = FileSystemStoreConfig.builder()
-            .store("") // env
-            .type("") // env
-            .password("") //env
+        VaultConfig serverVault = VaultConfig.builder()
+            .name("server")
+            .type("filesystem")
+            .options(FileSystemOptionsConfig::builder)
+                .keys()
+                    .store("") // env
+                    .type("") // env
+                    .password("") //env
+                    .build()
+                .build()
             .build();
-        FileSystemOptionsConfig serverOptions = FileSystemOptionsConfig.builder().keys(keys).build();
-        VaultConfig serverVault = VaultConfig.builder().name("server").type("filesystem").options(serverOptions).build();
         List<VaultConfig> vaults = List.of(clientVault, serverVault);
 
         // bindings
