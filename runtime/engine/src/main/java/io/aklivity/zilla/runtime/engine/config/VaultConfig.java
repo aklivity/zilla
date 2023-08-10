@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 public class VaultConfig
 {
@@ -25,7 +26,12 @@ public class VaultConfig
     public final String type;
     public final OptionsConfig options;
 
-    public VaultConfig(
+    public static VaultConfigBuilder<VaultConfig> builder()
+    {
+        return new VaultConfigBuilder<>(identity());
+    }
+
+    VaultConfig(
         String name,
         String type,
         OptionsConfig options)

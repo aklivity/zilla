@@ -19,6 +19,7 @@ import static java.util.Optional.ofNullable;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -28,24 +29,25 @@ public class JwtOptionsConfig extends OptionsConfig
     public final String audience;
     public final List<JwtKeyConfig> keys;
     public final Optional<Duration> challenge;
-
     public final Optional<String> keysURL;
 
-    public JwtOptionsConfig(
+    public static JwtOptionsConfigBuilder<JwtOptionsConfig> builder()
+    {
+        return new JwtOptionsConfigBuilder<>(JwtOptionsConfig.class::cast);
+    }
+
+    public static <T> JwtOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new JwtOptionsConfigBuilder<>(mapper);
+    }
+
+    JwtOptionsConfig(
         String issuer,
         String audience,
         List<JwtKeyConfig> keys,
-        Duration challenge)
-    {
-        this(issuer, audience, keys, challenge, null);
-    }
-
-    public JwtOptionsConfig(
-            String issuer,
-            String audience,
-            List<JwtKeyConfig> keys,
-            Duration challenge,
-            String keysURL)
+        Duration challenge,
+        String keysURL)
     {
         this.issuer = issuer;
         this.audience = audience;

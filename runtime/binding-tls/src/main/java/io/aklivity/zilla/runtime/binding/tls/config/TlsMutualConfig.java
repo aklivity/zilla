@@ -13,20 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.config;
+package io.aklivity.zilla.runtime.binding.tls.config;
 
-import java.util.Map;
-
-public class NamespaceRef
+public enum TlsMutualConfig
 {
-    public final String name;
-    public final Map<String, String> links;
-
-    public NamespaceRef(
-        String name,
-        Map<String, String> links)
-    {
-        this.name = name;
-        this.links = links;
-    }
+    NONE,
+    REQUESTED,
+    REQUIRED
 }

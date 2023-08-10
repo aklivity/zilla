@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.function.Function;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -32,6 +34,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class ConditionConfigAdapterTest
 {
@@ -103,10 +106,47 @@ public class ConditionConfigAdapterTest
     {
         public final String match;
 
-        public TestConditionConfig(
+        public static TestConditionConfigBuilder<TestConditionConfig> builder()
+        {
+            return new TestConditionConfigBuilder<>(TestConditionConfig.class::cast);
+        }
+
+        public static <T> TestConditionConfigBuilder<T> builder(
+            Function<ConditionConfig, T> mapper)
+        {
+            return new TestConditionConfigBuilder<>(mapper);
+        }
+
+        TestConditionConfig(
             String match)
         {
             this.match = match;
+        }
+    }
+
+    public static final class TestConditionConfigBuilder<T> implements ConfigBuilder<T>
+    {
+        private final Function<ConditionConfig, T> mapper;
+
+        private String match;
+
+        TestConditionConfigBuilder(
+            Function<ConditionConfig, T> mapper)
+        {
+            this.mapper = mapper;
+        }
+
+        public TestConditionConfigBuilder<T> match(
+            String match)
+        {
+            this.match = match;
+            return this;
+        }
+
+        @Override
+        public T build()
+        {
+            return mapper.apply(new TestConditionConfig(match));
         }
     }
 

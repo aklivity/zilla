@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tls.config;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -26,17 +27,28 @@ public final class TlsOptionsConfig extends OptionsConfig
     public final List<String> trust;
     public final List<String> sni;
     public final List<String> alpn;
-    public final TlsMutual mutual;
+    public final TlsMutualConfig mutual;
     public final List<String> signers;
     public final boolean trustcacerts;
 
-    public TlsOptionsConfig(
+    public static TlsOptionsConfigBuilder<TlsOptionsConfig> builder()
+    {
+        return new TlsOptionsConfigBuilder<>(TlsOptionsConfig.class::cast);
+    }
+
+    public static <T> TlsOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TlsOptionsConfigBuilder<>(mapper);
+    }
+
+    TlsOptionsConfig(
         String version,
         List<String> keys,
         List<String> trust,
         List<String> sni,
         List<String> alpn,
-        TlsMutual mutual,
+        TlsMutualConfig mutual,
         List<String> signers,
         boolean trustcacerts)
     {

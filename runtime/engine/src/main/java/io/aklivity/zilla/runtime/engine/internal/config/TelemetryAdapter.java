@@ -16,9 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -30,8 +28,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryConfigBuilder;
 
 public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObject>
 {
@@ -77,23 +75,30 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
 
     @Override
     public TelemetryConfig adaptFromJson(
-        JsonObject jsonObject)
+        JsonObject object)
     {
-        List<AttributeConfig> attributes = jsonObject.containsKey(ATTRIBUTES_NAME)
-                ? jsonObject.getJsonObject(ATTRIBUTES_NAME).entrySet().stream()
-                        .map(attribute::adaptFromJson)
-                        .collect(Collectors.toList())
-                : List.of();
-        List<MetricConfig> metrics = jsonObject.containsKey(METRICS_NAME)
-                ? jsonObject.getJsonArray(METRICS_NAME).stream()
-                        .map(metric::adaptFromJson)
-                        .collect(Collectors.toList())
-                : List.of();
-        List<ExporterConfig> exporters = jsonObject.containsKey(EXPORTERS_NAME)
-                ? Arrays.stream(exporter.adaptFromJson(jsonObject.getJsonObject(EXPORTERS_NAME)))
-                        .collect(Collectors.toList())
-                : List.of();
+        TelemetryConfigBuilder<TelemetryConfig> telemetry = TelemetryConfig.builder();
 
-        return new TelemetryConfig(attributes, metrics, exporters);
+        if (object.containsKey(ATTRIBUTES_NAME))
+        {
+            object.getJsonObject(ATTRIBUTES_NAME).entrySet().stream()
+                .map(attribute::adaptFromJson)
+                .forEach(telemetry::attribute);
+        }
+
+        if (object.containsKey(METRICS_NAME))
+        {
+            object.getJsonArray(METRICS_NAME).stream()
+                .map(metric::adaptFromJson)
+                .forEach(telemetry::metric);
+        }
+
+        if (object.containsKey(EXPORTERS_NAME))
+        {
+            Arrays.stream(exporter.adaptFromJson(object.getJsonObject(EXPORTERS_NAME)))
+                .forEach(telemetry::exporter);
+        }
+
+        return telemetry.build();
     }
 }

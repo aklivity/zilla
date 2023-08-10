@@ -37,7 +37,11 @@ public class OtlpExporterConfigTest
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
-        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        ExporterConfig exporter = ExporterConfig.builder()
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN
@@ -54,7 +58,11 @@ public class OtlpExporterConfigTest
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
-        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        ExporterConfig exporter = ExporterConfig.builder()
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN
@@ -71,7 +79,11 @@ public class OtlpExporterConfigTest
         OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
-        ExporterConfig exporter = new ExporterConfig("oltp0", "oltp", options);
+        ExporterConfig exporter = ExporterConfig.builder()
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(exporter);
 
         // WHEN

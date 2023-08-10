@@ -15,13 +15,26 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final String mode;
 
-    public TestBindingOptionsConfig(
+    public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
+    {
+        return new TestBindingOptionsConfigBuilder<>(TestBindingOptionsConfig.class::cast);
+    }
+
+    public static <T> TestBindingOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TestBindingOptionsConfigBuilder<>(mapper);
+    }
+
+    TestBindingOptionsConfig(
         String mode)
     {
         this.mode = mode;

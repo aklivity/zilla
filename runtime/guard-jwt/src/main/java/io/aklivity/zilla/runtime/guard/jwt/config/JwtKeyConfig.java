@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.config;
 
+import static java.util.function.Function.identity;
+
 public class JwtKeyConfig
 {
     public final String alg;
@@ -26,7 +28,12 @@ public class JwtKeyConfig
     public final String x;
     public final String y;
 
-    public JwtKeyConfig(
+    public static JwtKeyConfigBuilder<JwtKeyConfig> builder()
+    {
+        return new JwtKeyConfigBuilder<>(identity());
+    }
+
+    JwtKeyConfig(
         String kty,
         String kid,
         String use,

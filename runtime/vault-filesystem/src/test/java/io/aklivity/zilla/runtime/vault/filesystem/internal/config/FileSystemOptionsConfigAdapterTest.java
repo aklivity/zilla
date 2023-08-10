@@ -80,7 +80,8 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, null, null);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -91,8 +92,13 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithKeys()
     {
-        FileSystemStoreConfig keys = new FileSystemStoreConfig("localhost.p12", "pkcs12", "generated");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, null);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .keys()
+                .store("localhost.p12")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .build();
 
         String text = jsonb.toJson(options);
 

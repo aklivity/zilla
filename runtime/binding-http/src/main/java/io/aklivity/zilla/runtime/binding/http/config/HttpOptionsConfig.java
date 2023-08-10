@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
@@ -29,7 +30,18 @@ public final class HttpOptionsConfig extends OptionsConfig
     public final HttpAccessControlConfig access;
     public final HttpAuthorizationConfig authorization;
 
-    public HttpOptionsConfig(
+    public static HttpOptionsConfigBuilder<HttpOptionsConfig> builder()
+    {
+        return new HttpOptionsConfigBuilder<>(HttpOptionsConfig.class::cast);
+    }
+
+    public static <T> HttpOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new HttpOptionsConfigBuilder<>(mapper);
+    }
+
+    HttpOptionsConfig(
         SortedSet<HttpVersion>  versions,
         Map<String8FW, String16FW> overrides,
         HttpAccessControlConfig access,

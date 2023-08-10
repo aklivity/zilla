@@ -15,35 +15,30 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpAllowConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpExposeConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAllowConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAllowConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
@@ -238,197 +233,144 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        JsonArray versions = object.containsKey(VERSIONS_NAME)
-                ? object.getJsonArray(VERSIONS_NAME)
-                : null;
+        HttpOptionsConfigBuilder<HttpOptionsConfig> httpOptions = HttpOptionsConfig.builder();
 
-        SortedSet<HttpVersion> newVersions = null;
-
-        if (versions != null)
+        if (object.containsKey(VERSIONS_NAME))
         {
-            SortedSet<HttpVersion> newVersions0 = new TreeSet<HttpVersion>();
-            versions.forEach(v ->
-                newVersions0.add(HttpVersion.of(JsonString.class.cast(v).getString())));
-            newVersions = newVersions0;
+            object.getJsonArray(VERSIONS_NAME)
+                .forEach(v -> httpOptions.version(HttpVersion.of(JsonString.class.cast(v).getString())));
         }
 
-        HttpAuthorizationConfig newAuthorization = null;
-
-        JsonObject authorizations = object.containsKey(AUTHORIZATION_NAME)
-                ? object.getJsonObject(AUTHORIZATION_NAME)
-                : null;
-
-        if (authorizations != null)
+        if (object.containsKey(AUTHORIZATION_NAME))
         {
+            HttpAuthorizationConfigBuilder<?> httpAuthorization = httpOptions.authorization();
+
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
             for (String name : authorizations.keySet())
             {
                 JsonObject authorization = authorizations.getJsonObject(name);
-
-                HttpCredentialsConfig newCredentials = null;
-
                 JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
 
                 if (credentials != null)
                 {
-                    List<HttpPatternConfig> newHeaders =
-                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+                    HttpCredentialsConfigBuilder<?> httpCredentials = httpAuthorization
+                        .name(name)
+                        .credentials();
 
-                    List<HttpPatternConfig> newParameters =
-                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_QUERY_NAME);
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_HEADERS_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME)
+                            .forEach((n, v) -> httpCredentials.header()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
 
-                    List<HttpPatternConfig> newCookies =
-                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_COOKIES_NAME);
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_QUERY_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_QUERY_NAME)
+                            .forEach((n, v) -> httpCredentials.parameter()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
 
-                    newCredentials = new HttpCredentialsConfig(newHeaders, newParameters, newCookies);
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_COOKIES_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_COOKIES_NAME)
+                            .forEach((n, v) -> httpCredentials.cookie()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
+
+                    httpCredentials.build();
                 }
-
-                newAuthorization = new HttpAuthorizationConfig(name, newCredentials);
             }
+
+            httpAuthorization.build();
         }
 
-        HttpAccessControlConfig newAccess = null;
-
-        JsonObject access = object.containsKey(ACCESS_CONTROL_NAME)
-                ? object.getJsonObject(ACCESS_CONTROL_NAME)
-                : null;
-
-        if (access != null)
+        if (object.containsKey(ACCESS_CONTROL_NAME))
         {
-            String policy = access.containsKey(POLICY_NAME)
-                    ? access.getString(POLICY_NAME)
-                    : null;
+            JsonObject access = object.getJsonObject(ACCESS_CONTROL_NAME);
 
-            switch (policy)
+            if (access.containsKey(POLICY_NAME))
             {
-            case POLICY_VALUE_SAME_ORIGIN:
-                newAccess = new HttpAccessControlConfig(SAME_ORIGIN);
-                break;
-            case POLICY_VALUE_CROSS_ORIGIN:
-                JsonObject allow = access.containsKey(ALLOW_NAME)
-                        ? access.getJsonObject(ALLOW_NAME)
-                        : null;
+                HttpAccessControlConfigBuilder<?> httpAccess = httpOptions.access();
 
-                HttpAllowConfig newAllow = null;
-                if (allow != null)
+                String policy = access.getString(POLICY_NAME);
+                switch (policy)
                 {
-                    JsonArray origins = allow.containsKey(ALLOW_ORIGINS_NAME)
-                            ? allow.getJsonArray(ALLOW_ORIGINS_NAME)
-                            : null;
+                case POLICY_VALUE_SAME_ORIGIN:
+                    httpAccess.policy(SAME_ORIGIN);
+                    break;
+                case POLICY_VALUE_CROSS_ORIGIN:
+                    httpAccess.policy(CROSS_ORIGIN);
 
-                    Set<String> newOrigins = null;
-                    if (origins != null)
+                    if (access.containsKey(ALLOW_NAME))
                     {
-                        Set<String> newOrigins0 = new LinkedHashSet<>();
-                        origins.forEach(v -> newOrigins0.add(JsonString.class.cast(v).getString()));
-                        newOrigins = newOrigins0;
+                        HttpAllowConfigBuilder<?> httpAllow = httpAccess.allow();
+                        JsonObject allow = access.getJsonObject(ALLOW_NAME);
+
+                        if (allow.containsKey(ALLOW_ORIGINS_NAME))
+                        {
+                            allow.getJsonArray(ALLOW_ORIGINS_NAME)
+                                .forEach(v -> httpAllow.origin(JsonString.class.cast(v).getString()));
+                        }
+
+                        if (allow.containsKey(ALLOW_METHODS_NAME))
+                        {
+                            allow.getJsonArray(ALLOW_METHODS_NAME)
+                                .forEach(v -> httpAllow.method(JsonString.class.cast(v).getString()));
+                        }
+
+                        if (allow.containsKey(ALLOW_HEADERS_NAME))
+                        {
+                            allow.getJsonArray(ALLOW_HEADERS_NAME)
+                                .forEach(v -> httpAllow.header(JsonString.class.cast(v).getString()));
+                        }
+
+                        if (allow.containsKey(ALLOW_CREDENTIALS_NAME))
+                        {
+                            httpAllow.credentials(allow.getBoolean(ALLOW_CREDENTIALS_NAME));
+                        }
+
+                        httpAllow.build();
                     }
 
-                    JsonArray methods = allow.containsKey(ALLOW_METHODS_NAME)
-                            ? allow.getJsonArray(ALLOW_METHODS_NAME)
-                            : null;
-
-                    Set<String> newMethods = null;
-                    if (methods != null)
+                    if (access.containsKey(MAX_AGE_NAME))
                     {
-                        Set<String> newMethods0 = new LinkedHashSet<>();
-                        methods.forEach(v -> newMethods0.add(JsonString.class.cast(v).getString()));
-                        newMethods = newMethods0;
+                        httpAccess.maxAge(Duration.ofSeconds(access.getJsonNumber(MAX_AGE_NAME).longValue()));
                     }
 
-                    JsonArray headers = allow.containsKey(ALLOW_HEADERS_NAME)
-                            ? allow.getJsonArray(ALLOW_HEADERS_NAME)
-                            : null;
-
-                    Set<String> newHeaders = null;
-                    if (headers != null)
+                    if (access.containsKey(EXPOSE_NAME))
                     {
-                        Set<String> newHeaders0 = new LinkedHashSet<>();
-                        headers.forEach(v -> newHeaders0.add(JsonString.class.cast(v).getString()));
-                        newHeaders = newHeaders0;
+                        HttpExposeConfigBuilder<?> httpExpose = httpAccess.expose();
+                        JsonObject expose = access.getJsonObject(EXPOSE_NAME);
+
+                        if (expose.containsKey(ALLOW_HEADERS_NAME))
+                        {
+                            expose.getJsonArray(ALLOW_HEADERS_NAME)
+                                .forEach(v -> httpExpose.header(JsonString.class.cast(v).getString()));
+                        }
+
+                        httpExpose.build();
                     }
 
-                    boolean newCredentials = false;
-                    if (allow.containsKey(ALLOW_CREDENTIALS_NAME))
-                    {
-                        newCredentials = allow.getBoolean(ALLOW_CREDENTIALS_NAME);
-                    }
-
-                    newAllow = new HttpAllowConfig(newOrigins, newMethods, newHeaders, newCredentials);
+                    httpAccess.build();
+                    break;
                 }
-
-                Duration newMaxAge = null;
-
-                JsonNumber maxAge = access.containsKey(MAX_AGE_NAME)
-                        ? access.getJsonNumber(MAX_AGE_NAME)
-                        : null;
-
-                if (maxAge != null)
-                {
-                    newMaxAge = Duration.ofSeconds(maxAge.longValue());
-                }
-
-                HttpExposeConfig newExpose = null;
-
-                JsonObject expose = access.containsKey(EXPOSE_NAME)
-                        ? access.getJsonObject(EXPOSE_NAME)
-                        : null;
-
-                if (expose != null)
-                {
-                    JsonArray headers = expose.containsKey(ALLOW_HEADERS_NAME)
-                            ? expose.getJsonArray(ALLOW_HEADERS_NAME)
-                            : null;
-
-                    Set<String> newHeaders = null;
-                    if (headers != null)
-                    {
-                        Set<String> newHeaders0 = new LinkedHashSet<>();
-                        headers.forEach(v -> newHeaders0.add(JsonString.class.cast(v).getString()));
-                        newHeaders = newHeaders0;
-                    }
-
-                    newExpose = new HttpExposeConfig(newHeaders);
-                }
-
-                newAccess = new HttpAccessControlConfig(CROSS_ORIGIN, newAllow, newMaxAge, newExpose);
-                break;
             }
         }
 
-        JsonObject overrides = object.containsKey(OVERRIDES_NAME)
-                ? object.getJsonObject(OVERRIDES_NAME)
-                : null;
-
-        Map<String8FW, String16FW> newOverrides = null;
-
-        if (overrides != null)
+        if (object.containsKey(OVERRIDES_NAME))
         {
-            Map<String8FW, String16FW> newOverrides0 = new LinkedHashMap<>();
-            overrides.forEach((k, v) ->
-                newOverrides0.put(new String8FW(k), new String16FW(JsonString.class.cast(v).getString())));
-            newOverrides = newOverrides0;
+            object.getJsonObject(OVERRIDES_NAME)
+                .forEach((k, v) ->
+                    httpOptions.override(new String8FW(k), new String16FW(JsonString.class.cast(v).getString())));
         }
 
-        return new HttpOptionsConfig(newVersions, newOverrides, newAccess, newAuthorization);
-    }
-
-    private List<HttpPatternConfig> adaptPatternFromJson(
-        JsonObject object,
-        String property)
-    {
-        List<HttpPatternConfig> newPatterns = null;
-        if (object.containsKey(property))
-        {
-            newPatterns = new ArrayList<>();
-
-            JsonObject patterns = object.getJsonObject(property);
-            for (String name : patterns.keySet())
-            {
-                String pattern = patterns.getString(name);
-
-                newPatterns.add(new HttpPatternConfig(name, pattern));
-            }
-        }
-        return newPatterns;
+        return httpOptions.build();
     }
 }

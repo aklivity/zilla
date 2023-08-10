@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringWriter;
@@ -80,7 +82,11 @@ public final class ConfigWriter
 
             String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
             JsonNode json = new ObjectMapper().readTree(jsonText);
-            new YAMLMapper().writeValue(writer, json);
+            YAMLMapper mapper = YAMLMapper.builder()
+                .disable(WRITE_DOC_START_MARKER)
+                .enable(MINIMIZE_QUOTES)
+                .build();
+            mapper.writeValue(writer, json);
 
             if (!errors.isEmpty())
             {

@@ -18,8 +18,6 @@ import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.s
 import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -49,7 +47,11 @@ public class JwtGuardTest
     @Test
     public void shouldNotVerifyMissingContext() throws Exception
     {
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream", "write:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .role("write:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -67,7 +69,11 @@ public class JwtGuardTest
 
         when(engine.index()).thenReturn(0);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream", "write:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .role("write:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -87,14 +93,22 @@ public class JwtGuardTest
 
         when(engine.index()).thenReturn(0);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream", "write:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .role("write:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
         Guard guard = factory.create("jwt", config);
 
         GuardContext context = guard.supply(engine);
-        context.attach(new GuardConfig("test0", "jwt", new JwtOptionsConfig(null, null, null, null)));
+        context.attach(GuardConfig.builder()
+                .name("test0")
+                .type("jwt")
+                .options(JwtOptionsConfig.builder().build())
+                .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -108,7 +122,11 @@ public class JwtGuardTest
 
         when(engine.index()).thenReturn(0);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream", "write:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .role("write:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -116,10 +134,16 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardHandler handler = context.attach(new GuardConfig("test0", "jwt", options));
+        GuardHandler handler = context.attach(GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .build()
+            .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -147,7 +171,11 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream", "write:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .role("write:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -155,10 +183,16 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardHandler handler = context.attach(new GuardConfig("test0", "jwt", options));
+        GuardHandler handler = context.attach(GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .build()
+            .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -186,7 +220,10 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList("read:stream"));
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .role("read:stream")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -194,10 +231,16 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardHandler handler = context.attach(new GuardConfig("test0", "jwt", options));
+        GuardHandler handler = context.attach(GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .build()
+            .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -225,7 +268,9 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList());
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -233,10 +278,16 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardHandler handler = context.attach(new GuardConfig("test0", "jwt", options));
+        GuardHandler handler = context.attach(GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .build()
+            .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -269,14 +320,22 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardConfig config = new GuardConfig("test0", "jwt", options);
+        GuardConfig config = GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .build()
+            .build();
         config.id = 0x11L;
         GuardHandler handler = context.attach(config);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList());
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .build();
         guarded.id = config.id;
         LongPredicate verifier = guard.verifier(id -> (int)(id >> 4), guarded);
 
@@ -304,7 +363,9 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList());
+        GuardedConfig guarded = GuardedConfig.builder()
+                .name("test0")
+                .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -312,10 +373,16 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardHandler handler = context.attach(new GuardConfig("test0", "jwt", options));
+        GuardHandler handler = context.attach(GuardConfig.builder()
+                .name("test0")
+                .type("jwt")
+                .options(JwtOptionsConfig::builder)
+                    .issuer("test issuer")
+                    .audience("testAudience")
+                    .key(RFC7515_RS256_CONFIG)
+                    .challenge(ofSeconds(3L))
+                    .build()
+                .build());
 
         LongFunction<String> identifier = guard.identifier(s -> 0, guarded);
 
@@ -349,12 +416,21 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        GuardConfig config = new GuardConfig("test0", "jwt", options);
+        GuardConfig config = GuardConfig.builder()
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(challenge)
+                .build()
+            .build();
         config.id = 0x11L;
 
-        GuardedConfig guarded = new GuardedConfig("test0", asList());
+        GuardedConfig guarded = GuardedConfig.builder()
+            .name("test0")
+            .build();
         guarded.id = config.id;
         GuardHandler handler = context.attach(config);
 
