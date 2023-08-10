@@ -30,12 +30,10 @@ connected
 read zilla:data.empty
 
 write ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one", 1)
                .build()}
 
 read ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one", 1)
                .build()}
 
@@ -77,7 +75,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 read ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one", 1)
                .build()}
 

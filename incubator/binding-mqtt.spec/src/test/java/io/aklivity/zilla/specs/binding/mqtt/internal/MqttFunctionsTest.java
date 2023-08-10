@@ -1272,7 +1272,6 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSessionState()
     {
         final byte[] array = MqttFunctions.session()
-            .clientId("client")
             .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
             .subscription("sensor/two")
             .build();
@@ -1280,7 +1279,6 @@ public class MqttFunctionsTest
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals("client", sessionState.clientId().asString());
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
