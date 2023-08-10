@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -357,16 +359,16 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             if (mqttPublishDataEx.responseTopic().asString() != null)
             {
-                final String16FW replyTopic = mqttPublishDataEx.responseTopic();
+                final String16FW responseTopic = mqttPublishDataEx.responseTopic();
                 addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
-                addHeader(helper.kafkaReplyKeyHeaderName, replyTopic);
+                addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
 
-                String[] replyTopicHeaders = replyTopic.asString().split("/");
-                for (int i = 0; i < replyTopicHeaders.length; i++)
+                AtomicInteger offset = new AtomicInteger();
+                Arrays.stream(responseTopic.asString().split("/")).forEach(segment ->
                 {
-                    final String16FW replyTopicHeader = new String16FW(replyTopicHeaders[i]);
-                    addHeader(helper.kafkaReplyFilterHeaderName, replyTopicHeader);
-                }
+                    final int length = segment.length();
+                    addHeader(helper.kafkaReplyFilterHeaderName, responseTopic, offset.getAndAdd(length + 1), length);
+                });
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
@@ -648,6 +650,22 @@ public class MqttKafkaPublishFactory implements BindingHandler
             h.name(key);
             h.valueLen(value.length());
             h.value(buffer, 0, buffer.capacity());
+        });
+    }
+
+    private void addHeader(
+        OctetsFW key,
+        String16FW value,
+        int offset,
+        int length)
+    {
+        DirectBuffer buffer = value.value();
+        kafkaHeadersRW.item(h ->
+        {
+            h.nameLen(key.sizeof());
+            h.name(key);
+            h.valueLen(length);
+            h.value(buffer, offset, length);
         });
     }
 
