@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TcpOptionsConfig extends OptionsConfig
@@ -25,7 +27,18 @@ public final class TcpOptionsConfig extends OptionsConfig
     public final boolean nodelay;
     public final boolean keepalive;
 
-    public TcpOptionsConfig(
+    public static TcpOptionsConfigBuilder<TcpOptionsConfig> builder()
+    {
+        return new TcpOptionsConfigBuilder<>(TcpOptionsConfig.class::cast);
+    }
+
+    public static <T> TcpOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TcpOptionsConfigBuilder<>(mapper);
+    }
+
+    TcpOptionsConfig(
         String host,
         int[] ports,
         int backlog,

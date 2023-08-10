@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 public class ExporterConfig
 {
@@ -25,7 +26,12 @@ public class ExporterConfig
 
     public transient long id;
 
-    public ExporterConfig(
+    public static ExporterConfigBuilder<ExporterConfig> builder()
+    {
+        return new ExporterConfigBuilder<>(identity());
+    }
+
+    ExporterConfig(
         String name,
         String type,
         OptionsConfig options)

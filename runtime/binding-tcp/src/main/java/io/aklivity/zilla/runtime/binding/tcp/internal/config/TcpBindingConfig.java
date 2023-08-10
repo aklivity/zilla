@@ -70,7 +70,7 @@ public final class TcpBindingConfig
 
     private static List<TcpRouteConfig> initDefaultClientRoutes()
     {
-        final RouteConfig route = new RouteConfig(null);
+        final RouteConfig route = RouteConfig.builder().build();
         route.authorized = id -> true;
 
         return singletonList(new TcpRouteConfig(route));

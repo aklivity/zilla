@@ -15,10 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.function.Function.identity;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 import java.net.URI;
@@ -42,7 +43,7 @@ public final class HttpAccessControlConfig
     private static final Pattern HEADERS_PATTERN = Pattern.compile("([^,\\s]+)(:?,\\s*([^,\\\\s]+))*", CASE_INSENSITIVE);
 
     private static final ThreadLocal<Matcher> ORIGIN_MATCHER = withInitial(() -> ORIGIN_PATTERN.matcher(""));
-    private static final ThreadLocal<Matcher> HEADERS_MATCHER = withInitial(() -> HEADERS_PATTERN.matcher(""));
+    static final ThreadLocal<Matcher> HEADERS_MATCHER = withInitial(() -> HEADERS_PATTERN.matcher(""));
 
     private static final ThreadLocal<HttpHeaderFW.Builder> HEADER_BUILDER = ThreadLocal.withInitial(HttpHeaderFW.Builder::new);
 
@@ -82,33 +83,23 @@ public final class HttpAccessControlConfig
         EXPOSED_RESPONSE_HEADERS = unmodifiableSet(headers);
     }
 
-    public enum HttpPolicyConfig
-    {
-        SAME_ORIGIN,
-        CROSS_ORIGIN
-    }
-
     public final HttpPolicyConfig policy;
     public final HttpAllowConfig allow;
     public final Duration maxAge;
     public final HttpExposeConfig expose;
 
-    public HttpAccessControlConfig(
-        HttpPolicyConfig policy)
+    public static HttpAccessControlConfigBuilder<HttpAccessControlConfig> builder()
     {
-        this.policy = policy;
-        this.allow = null;
-        this.maxAge = null;
-        this.expose = null;
+        return new HttpAccessControlConfigBuilder<>(identity());
     }
 
-    public HttpAccessControlConfig(
+    HttpAccessControlConfig(
         HttpPolicyConfig policy,
         HttpAllowConfig allow,
         Duration maxAge,
         HttpExposeConfig expose)
     {
-        this.policy = CROSS_ORIGIN;
+        this.policy = policy;
         this.allow = allow;
         this.maxAge = maxAge;
         this.expose = expose;
@@ -296,119 +287,7 @@ public final class HttpAccessControlConfig
         return matches;
     }
 
-    public static final class HttpAllowConfig
-    {
-        public final Set<String> origins;
-        public final Set<String> methods;
-        public final Set<String> headers;
-        public final boolean credentials;
-
-        private final Set<String> implicitOrigins;
-
-        public HttpAllowConfig(
-            Set<String> origins,
-            Set<String> methods,
-            Set<String> headers,
-            boolean credentials)
-        {
-            this.origins = origins;
-            this.implicitOrigins = origins != null ? asImplicitOrigins(origins) : null;
-            this.methods = methods;
-            this.headers = headers != null ? asCaseless(headers) : null;
-            this.credentials = credentials;
-        }
-
-        private boolean origin(
-            String origin)
-        {
-            return origins == null ||
-                   origins.contains(origin) ||
-                   implicitOrigins.contains(origin);
-        }
-
-        private boolean method(
-            String method)
-        {
-            return methods == null ||
-                   methods.contains(method);
-        }
-
-        private boolean headers(
-            String headers)
-        {
-            return headers == null ||
-                   headersMatch(headers);
-        }
-
-        private boolean headersMatch(
-            String headers)
-        {
-            int match = 0;
-
-            Matcher matchHeaders = HEADERS_MATCHER.get().reset(headers);
-            while (matchHeaders.find())
-            {
-                if (header(matchHeaders.group(1)))
-                {
-                    match++;
-                }
-            }
-
-            return match > 0;
-        }
-
-        private boolean header(
-            String header)
-        {
-            return headers == null ||
-                   headers.contains(header);
-        }
-
-        private boolean originExplicit()
-        {
-            return credentials || origins != null;
-        }
-
-        private boolean methodsExplicit()
-        {
-            return credentials || methods != null;
-        }
-
-        private boolean headersExplicit()
-        {
-            return credentials || headers != null;
-        }
-
-        public boolean credentialsExplicit()
-        {
-            return credentials;
-        }
-    }
-
-    public static final class HttpExposeConfig
-    {
-        public final Set<String> headers;
-
-        public HttpExposeConfig(
-            Set<String> headers)
-        {
-            this.headers = headers;
-        }
-
-        private boolean header(
-            String header)
-        {
-            return headers == null ||
-                    headers.contains(header);
-        }
-
-        private boolean headersExplicit()
-        {
-            return headers != null;
-        }
-    }
-
-    private static Set<String> asCaseless(
+    static Set<String> asCaseless(
         Set<String> cased)
     {
         final Set<String> caseless = new TreeSet<String>(String::compareToIgnoreCase);
@@ -416,7 +295,7 @@ public final class HttpAccessControlConfig
         return caseless;
     }
 
-    private static Set<String> asImplicitOrigins(
+    static Set<String> asImplicitOrigins(
         Set<String> origins)
     {
         Set<String> implicit = new LinkedHashSet<>();

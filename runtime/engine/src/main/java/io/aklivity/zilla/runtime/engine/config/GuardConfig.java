@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
@@ -28,7 +29,12 @@ public class GuardConfig
     public final String type;
     public final OptionsConfig options;
 
-    public GuardConfig(
+    public static final GuardConfigBuilder<GuardConfig> builder()
+    {
+        return new GuardConfigBuilder<>(identity());
+    }
+
+    GuardConfig(
         String name,
         String type,
         OptionsConfig options)

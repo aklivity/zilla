@@ -62,7 +62,9 @@ public class HttpConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        HttpConditionConfig condition = new HttpConditionConfig(singletonMap(":authority", "example.net:443"));
+        HttpConditionConfig condition = HttpConditionConfig.builder()
+            .header(":authority", "example.net:443")
+            .build();
 
         String text = jsonb.toJson(condition);
 
