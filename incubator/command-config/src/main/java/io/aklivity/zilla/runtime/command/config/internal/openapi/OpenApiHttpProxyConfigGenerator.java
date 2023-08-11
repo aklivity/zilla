@@ -160,7 +160,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .host("0.0.0.0")
                 .ports(resolvePortsForScheme("https"))
                 .build()
-            .route(RouteConfig.builder().exit("tls_server0").build())
+            .route()
+                .exit("tls_server0")
+                .build()
             .build();
 
         // - tcp_server1
@@ -172,7 +174,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .host("0.0.0.0")
                 .ports(resolvePortsForScheme("http"))
                 .build()
-            .route(RouteConfig.builder().exit("http_server0").build())
+            .route()
+                .exit("http_server0")
+                .build()
             .build();
 
         // - tls_server0
@@ -186,7 +190,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .alpn(List.of("")) // env
                 .build()
             .vault("server")
-            .route(RouteConfig.builder().exit("http_server0").build())
+            .route()
+                .exit("http_server0")
+                .build()
             .build();
 
         // - http_server0
@@ -220,7 +226,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .name("http_client0")
             .type("http")
             .kind(CLIENT)
-            .route(RouteConfig.builder().exit("tls_client0").build())
+            .route()
+                .exit("tls_client0")
+                .build()
             .build();
 
         // - tls_client0
@@ -235,7 +243,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .trustcacerts(true)
                 .build()
             .vault("client")
-            .route(RouteConfig.builder().exit("tcp_client0").build())
+            .route()
+                .exit("tcp_client0")
+                .build()
             .build();
 
         // - tcp_client0
