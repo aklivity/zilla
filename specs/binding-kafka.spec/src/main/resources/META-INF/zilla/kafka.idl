@@ -198,9 +198,10 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 255: kafka::stream::KafkaMergedFlushEx merged;
+            case 255: kafka::stream::KafkaGroupFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
+            case 2: kafka::stream::KafkaProduceFlushEx group;
         }
 
         struct KafkaResetEx extends core::stream::Extension
@@ -217,6 +218,7 @@ scope kafka
         {
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             string16 topic;
+            string16 groupId = null;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
@@ -244,6 +246,11 @@ scope kafka
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
             KafkaKey key;
+        }
+
+        struct KafkaGroupFlushEx
+        {
+           KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
