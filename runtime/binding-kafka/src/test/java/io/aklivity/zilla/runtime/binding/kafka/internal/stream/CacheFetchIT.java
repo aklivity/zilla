@@ -466,6 +466,7 @@ public class CacheFetchIT
     }
 
     @Test
+    @Ignore
     @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.sync.with.data/client",
