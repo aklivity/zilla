@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -284,13 +283,12 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             item.initMethods();
             for (String method : item.methods().keySet())
             {
-                ConditionConfig when = HttpConditionConfig.builder()
-                    .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
-                    .header(":method", method)
-                    .build();
                 RouteConfigBuilder<RouteConfig> routeBuilder = RouteConfig.builder()
                     .exit(exit)
-                    .when(when);
+                    .when(HttpConditionConfig::builder)
+                        .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
+                        .header(":method", method)
+                        .build();
                 List<Map<String, List<String>>> security = item.methods().get(method).security;
                 if (security != null)
                 {
