@@ -13,21 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-public class KafkaTopicCatalogConfig
+import org.agrona.DirectBuffer;
+
+public interface Validator
 {
-    public final String name;
-    public final KafkaSerDeConfig key;
-    public final KafkaSerDeConfig value;
-
-    public KafkaTopicCatalogConfig(
-        String name,
-        KafkaSerDeConfig key,
-        KafkaSerDeConfig value)
-    {
-        this.name = name;
-        this.key = key;
-        this.value = value;
-    }
+    boolean validate(
+        DirectBuffer data);
 }

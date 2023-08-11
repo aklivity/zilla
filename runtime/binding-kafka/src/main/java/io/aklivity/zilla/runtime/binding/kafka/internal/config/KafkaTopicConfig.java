@@ -25,15 +25,21 @@ public class KafkaTopicConfig
     public final String name;
     public final KafkaOffsetType defaultOffset;
     public final KafkaDeltaType deltaType;
+    public final KafkaTopicKeyValueConfig key;
+    public final KafkaTopicKeyValueConfig value;
 
     public KafkaTopicConfig(
         String name,
         KafkaOffsetType defaultOffset,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaTopicKeyValueConfig key,
+        KafkaTopicKeyValueConfig value)
     {
         this.name = name;
         this.defaultOffset = defaultOffset;
         this.deltaType = deltaType;
+        this.key = key;
+        this.value = value;
     }
 
     @Override

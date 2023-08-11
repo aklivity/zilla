@@ -15,12 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -31,16 +26,18 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
     private static final String CATALOG_STRATEGY = "strategy";
     private static final String CATALOG_VERSION = "version";
     private static final String CATALOG_ID = "id";
-    private static final String TOPICS_NAME = "topics";
-
-    private final KafkaTopicCatalogConfigHandler topicConfigHandler = new KafkaTopicCatalogConfigHandler();
 
     @Override
     public JsonObject adaptToJson(
         KafkaCatalogConfig kafkaCatalogConfig)
     {
-        JsonObjectBuilder catalogs = Json.createObjectBuilder();
         JsonObjectBuilder catalog = Json.createObjectBuilder();
+
+        if (kafkaCatalogConfig.name != null &&
+                !kafkaCatalogConfig.name.isEmpty())
+        {
+            catalog.add(NAME_NAME, kafkaCatalogConfig.name);
+        }
 
         if (kafkaCatalogConfig.strategy != null &&
                 !kafkaCatalogConfig.strategy.isEmpty())
@@ -59,22 +56,7 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
             catalog.add(CATALOG_ID, kafkaCatalogConfig.id);
         }
 
-        if (kafkaCatalogConfig.topics != null &&
-                !kafkaCatalogConfig.topics.isEmpty())
-        {
-            JsonArrayBuilder entries = Json.createArrayBuilder();
-            kafkaCatalogConfig.topics.forEach(t -> entries.add(topicConfigHandler.adaptToJson(t)));
-
-            catalog.add(TOPICS_NAME, entries);
-        }
-
-        if (kafkaCatalogConfig.name != null &&
-                !kafkaCatalogConfig.name.isEmpty())
-        {
-            catalogs.add(kafkaCatalogConfig.name, catalog);
-        }
-
-        return catalogs.build();
+        return catalog.build();
     }
 
     @Override
@@ -83,10 +65,6 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
     {
         String name = catalog.containsKey(NAME_NAME)
                 ? catalog.getString(NAME_NAME)
-                : null;
-
-        JsonArray topicsArray = catalog.containsKey(TOPICS_NAME)
-                ? catalog.getJsonArray(TOPICS_NAME)
                 : null;
 
         String strategy = catalog.containsKey(CATALOG_STRATEGY)
@@ -99,18 +77,9 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
 
         int id = catalog.containsKey(CATALOG_ID)
                 ? catalog.getInt(CATALOG_ID)
-                : null;
+                : 0;
 
-        List<KafkaTopicCatalogConfig> topics = null;
-
-        if (topicsArray != null)
-        {
-            List<KafkaTopicCatalogConfig> topics0 = new ArrayList<>();
-            topicsArray.forEach(t -> topics0.add(topicConfigHandler.adaptFromJson(t.asJsonObject())));
-            topics = topics0;
-        }
-
-        return new KafkaCatalogConfig(name, strategy, version, id, topics);
+        return new KafkaCatalogConfig(name, strategy, version, id);
     }
 
 }

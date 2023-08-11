@@ -28,6 +28,10 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String NAME_NAME = "name";
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
     private static final String DELTA_TYPE_NAME = "deltaType";
+    private static final String EVENT_KEY = "key";
+    private static final String EVENT_VALUE = "value";
+
+    private final KafkaTopicKeyValueConfigAdapter keyValueConfigAdapter = new KafkaTopicKeyValueConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -46,6 +50,16 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
         if (topic.deltaType != null)
         {
             object.add(DELTA_TYPE_NAME, topic.deltaType.toString().toLowerCase());
+        }
+
+        if (topic.key != null)
+        {
+            object.add(EVENT_KEY, keyValueConfigAdapter.adaptToJson(topic.key));
+        }
+
+        if (topic.value != null)
+        {
+            object.add(EVENT_VALUE, keyValueConfigAdapter.adaptToJson(topic.value));
         }
 
         return object.build();
@@ -67,6 +81,28 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
                 ? KafkaDeltaType.valueOf(object.getString(DELTA_TYPE_NAME).toUpperCase())
                 : null;
 
-        return new KafkaTopicConfig(name, defaultOffset, deltaType);
+        JsonObject key = object.containsKey(EVENT_KEY)
+                ? object.getJsonObject(EVENT_KEY)
+                : null;
+
+        KafkaTopicKeyValueConfig keyConfig = null;
+
+        if (key != null)
+        {
+            keyConfig = keyValueConfigAdapter.adaptFromJson(key);
+        }
+
+        JsonObject value = object.containsKey(EVENT_VALUE)
+                ? object.getJsonObject(EVENT_VALUE)
+                : null;
+
+        KafkaTopicKeyValueConfig valueConfig = null;
+
+        if (value != null)
+        {
+            valueConfig = keyValueConfigAdapter.adaptFromJson(value);
+        }
+
+        return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);
     }
 }

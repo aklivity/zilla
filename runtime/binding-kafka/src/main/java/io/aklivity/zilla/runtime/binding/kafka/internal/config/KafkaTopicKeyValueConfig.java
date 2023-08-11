@@ -15,22 +15,21 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-public class KafkaCatalogConfig
-{
-    public final String name;
-    public final String strategy;
-    public final String version;
-    public final int id;
+import java.util.List;
 
-    public KafkaCatalogConfig(
-        String name,
-        String strategy,
-        String version,
-        int id)
+public class KafkaTopicKeyValueConfig
+{
+    public final String type;
+    public final String encoding;
+    public final List<KafkaCatalogConfig> catalog;
+
+    public KafkaTopicKeyValueConfig(
+        String type,
+        String encoding,
+        List<KafkaCatalogConfig> catalog)
     {
-        this.name = name;
-        this.strategy = strategy;
-        this.version = version;
-        this.id = id;
+        this.type = type;
+        this.encoding = encoding;
+        this.catalog = catalog;
     }
 }

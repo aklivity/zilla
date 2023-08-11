@@ -13,25 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import java.util.List;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import org.junit.Test;
 
-public final class KafkaOptionsConfig extends OptionsConfig
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+
+public class ValidatorFactoryTest
 {
-    public final List<String> bootstrap;
-    public final List<KafkaTopicConfig> topics;
-    public final KafkaSaslConfig sasl;
-
-    public KafkaOptionsConfig(
-        List<String> bootstrap,
-        List<KafkaTopicConfig> topics,
-        KafkaSaslConfig sasl)
+    @Test
+    public void shouldLoadAndCreate()
     {
-        this.bootstrap = bootstrap;
-        this.topics = topics;
-        this.sasl = sasl;
+        KafkaTopicKeyValueConfig config = new KafkaTopicKeyValueConfig("test", null, null);
+        ValidatorFactory factory = ValidatorFactory.instantiate();
+        Validator validator = factory.create(config);
+
+        assertThat(validator, instanceOf(TestValidator.class));
     }
 }

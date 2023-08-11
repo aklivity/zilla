@@ -34,7 +34,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -278,7 +277,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final long latestOffset = partition.latestOffset();
                 final KafkaIsolation isolation = kafkaFetchBeginEx.isolation().get();
                 final KafkaSaslConfig sasl = binding.sasl();
-                final KafkaCatalogConfig catalog = binding.catalog();
 
                 newStream = new KafkaFetchStream(
                     application,
@@ -292,8 +290,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     leaderId,
                     initialOffset,
                     isolation,
-                    sasl,
-                    catalog)::onApplication;
+                    sasl)::onApplication;
             }
         }
 
@@ -1748,8 +1745,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long leaderId,
             long initialOffset,
             KafkaIsolation isolation,
-            KafkaSaslConfig sasl,
-            KafkaCatalogConfig catalog)
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.originId = originId;
@@ -1759,7 +1755,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
-                    initialOffset, latestOffset, isolation, sasl, catalog);
+                    initialOffset, latestOffset, isolation, sasl);
         }
 
         private int replyBudget()
@@ -2126,7 +2122,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private final Int2IntHashMap topicPartitions;
             private final int partitionId;
             private final KafkaIsolation isolation;
-            private final KafkaCatalogConfig catalog;
 
             private long nextOffset;
             private long stableOffset;
@@ -2188,8 +2183,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long initialOffset,
                 long latestOffset,
                 KafkaIsolation isolation,
-                KafkaSaslConfig sasl,
-                KafkaCatalogConfig catalog)
+                KafkaSaslConfig sasl)
             {
                 super(sasl, originId, routedId);
                 this.stream = KafkaFetchStream.this;
@@ -2199,7 +2193,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 this.nextOffset = initialOffset;
                 this.latestOffset = latestOffset;
                 this.isolation = isolation;
-                this.catalog = catalog;
                 this.encoder = encodeFetchRequest;
                 this.decoder = decodeReject;
                 this.decodeAbortedTransactions = new Long2LongHashMap(Long.MIN_VALUE);

@@ -283,16 +283,6 @@ public class ClientFetchIT
         k3po.finish();
     }
 
-    /*@Test
-    @Configuration("client.options.catalog.yaml")
-    @Specification({
-        "${app}/message.value.avro/client",
-        "${net}/message.value.avro/server"})
-    public void shouldReceiveMessageValueAvro() throws Exception
-    {
-        k3po.finish();
-    }*/
-
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({

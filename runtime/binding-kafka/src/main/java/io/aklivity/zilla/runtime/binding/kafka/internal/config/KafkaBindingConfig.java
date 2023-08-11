@@ -76,9 +76,4 @@ public final class KafkaBindingConfig
     {
         return options != null ? options.sasl : null;
     }
-
-    public KafkaCatalogConfig catalog()
-    {
-        return options != null ? options.catalog : null;
-    }
 }

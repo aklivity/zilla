@@ -78,127 +78,113 @@
                                         {
                                             "type": "string",
                                             "enum": [ "none", "json_patch" ]
-                                        }
-                                    }
-                                }
-                            },
-                            "catalog":
-                            {
-                                "title": "Catalog",
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "title": "Catalog",
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "properties":
+                                        },
+                                        "key":
                                         {
-                                            "strategy":
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
                                             {
-                                                "title": "Strategy",
-                                                "type": "string",
-                                                "enum": [ "topic", "record", "topic-record" ],
-                                                "default": "topic"
-                                            },
-                                            "version":
-                                            {
-                                                "title": "Version",
-                                                "type": "string",
-                                                "default": "latest"
-                                            },
-                                            "id":
-                                            {
-                                                "title": "ID",
-                                                "type": "integer"
-                                            },
-                                            "topics":
-                                            {
-                                                "title": "Topics",
-                                                "type": "array",
-                                                "items":
+                                                "type":
                                                 {
-                                                    "type": "object",
-                                                    "additionalProperties": false,
-                                                    "properties":
+                                                    "title": "Type",
+                                                    "type": "string",
+                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
+                                                },
+                                                "encoding":
+                                                {
+                                                    "title": "Encoding",
+                                                    "type": "string",
+                                                    "enum": [ "us_ascii", "iso_8859_1", "utf_8", "utf_16be", "utf_16le", "utf_16" ],
+                                                    "default": "utf_8"
+                                                },
+                                                "catalog":
+                                                {
+                                                    "title": "Catalog",
+                                                    "type": "array",
+                                                    "items":
                                                     {
-                                                        "name":
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties":
                                                         {
-                                                            "type": "string"
-                                                        },
-                                                        "key":
-                                                        {
-                                                            "type": "object",
-                                                            "additionalProperties": false,
-                                                            "properties":
+                                                            "name":
                                                             {
-                                                                "type":
-                                                                {
-                                                                    "title": "Type",
-                                                                    "type": "string",
-                                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
-                                                                },
-                                                                "encoding":
-                                                                {
-                                                                    "title": "Encoding",
-                                                                    "type": "string"
-                                                                },
-                                                                "strategy":
-                                                                {
-                                                                    "title": "Strategy",
-                                                                    "type": "string",
-                                                                    "enum": [ "topic", "record", "topic-record" ],
-                                                                    "default": "topic"
-                                                                },
-                                                                "version":
-                                                                {
-                                                                    "title": "Version",
-                                                                    "type": "string",
-                                                                    "default": "latest"
-                                                                },
-                                                                "id":
-                                                                {
-                                                                    "title": "ID",
-                                                                    "type": "integer"
-                                                                }
+                                                                "type": "string"
+                                                            },
+                                                            "strategy":
+                                                            {
+                                                                "title": "Strategy",
+                                                                "type": "string",
+                                                                "enum": [ "topic", "record", "topic-record" ],
+                                                                "default": "topic"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "title": "Version",
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            },
+                                                            "id":
+                                                            {
+                                                                "title": "ID",
+                                                                "type": "integer"
                                                             }
-                                                        },
-                                                        "value":
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "value":
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
+                                            {
+                                                "type":
+                                                {
+                                                    "title": "Type",
+                                                    "type": "string",
+                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
+                                                },
+                                                "encoding":
+                                                {
+                                                    "title": "Encoding",
+                                                    "type": "string",
+                                                    "enum": [ "us_ascii", "iso_8859_1", "utf_8", "utf_16be", "utf_16le", "utf_16" ],
+                                                    "default": "utf_8"
+                                                },
+                                                "catalog":
+                                                {
+                                                    "title": "Catalog",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties":
                                                         {
-                                                            "type": "object",
-                                                            "additionalProperties": false,
-                                                            "properties":
+                                                            "name":
                                                             {
-                                                                "type":
-                                                                {
-                                                                    "title": "Type",
-                                                                    "type": "string",
-                                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
-                                                                },
-                                                                "encoding":
-                                                                {
-                                                                    "title": "Encoding",
-                                                                    "type": "string"
-                                                                },
-                                                                "strategy":
-                                                                {
-                                                                    "title": "Strategy",
-                                                                    "type": "string",
-                                                                    "enum": [ "topic", "record", "topic-record" ],
-                                                                    "default": "topic"
-                                                                },
-                                                                "version":
-                                                                {
-                                                                    "title": "Version",
-                                                                    "type": "string",
-                                                                    "default": "latest"
-                                                                },
-                                                                "id":
-                                                                {
-                                                                    "title": "ID",
-                                                                    "type": "integer"
-                                                                }
+                                                                "type": "string"
+                                                            },
+                                                            "strategy":
+                                                            {
+                                                                "title": "Strategy",
+                                                                "type": "string",
+                                                                "enum": [ "topic", "record", "topic-record" ],
+                                                                "default": "topic"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "title": "Version",
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            },
+                                                            "id":
+                                                            {
+                                                                "title": "ID",
+                                                                "type": "integer"
                                                             }
                                                         }
                                                     }
@@ -206,8 +192,7 @@
                                             }
                                         }
                                     }
-                                },
-                                "additionalProperties": false
+                                }
                             },
                             "sasl":
                             {

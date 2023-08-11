@@ -26,11 +26,11 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public <T> T register(
+    public int register(
         String schemaDefinition,
         String subject)
     {
-        return null;
+        return 1;
     }
 
     @Override

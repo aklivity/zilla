@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 public interface CatalogHandler
 {
-    <T> T register(String schema, String subject);
+    int register(String schema, String subject);
 
     String resolve(String schemaId);
 

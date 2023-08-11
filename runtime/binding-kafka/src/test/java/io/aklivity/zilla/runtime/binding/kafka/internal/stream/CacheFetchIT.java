@@ -293,6 +293,18 @@ public class CacheFetchIT
     }
 
     @Test
+    @Configuration("cache.options.type.string.yaml")
+    @Specification({
+        "${app}/message.value/client",
+        "${app}/message.value/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueTypeString() throws Exception
+    {
+        partition.append(10L);
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.empty/client",

@@ -16,31 +16,31 @@
 
 ---
 name: test
-catalogs:
-  test0:
-    type: test
-    options:
-      host: localhost
-      port: 8081
-      context: default
 bindings:
   app0:
     type: kafka
-    kind: client
-    options:
-      catalog:
-        test0:
-          strategy: topic
-          version: latest
-          topics:
-            - name: test
-              key:
-                type: string
-                encoding: utf_8
-              value:
-                type: avro
-                strategy: topic
+    kind: cache_client
     routes:
-      - exit: net0
+      - exit: cache0
         when:
           - topic: test
+  cache0:
+    type: kafka
+    kind: cache_server
+    options:
+      topics:
+        - name: test
+          key:
+            type: string
+            encoding: utf_8
+          value:
+            type: avro
+            catalog:
+              - name: test0
+                strategy: topic
+                version: latest
+    routes:
+      - exit: app1
+        when:
+          - topic: test
+
