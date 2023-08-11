@@ -25,7 +25,9 @@ public class TestValidator implements Validator
 
     @Override
     public boolean validate(
-        DirectBuffer data)
+        DirectBuffer data,
+        int offset,
+        int length)
     {
         return false;
     }

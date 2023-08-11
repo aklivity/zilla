@@ -887,7 +887,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             if (valueFragment != null)
             {
-                valueValidator.validate(valueFragment.buffer());
+                //valueValidator.validate(valueFragment.buffer(), valueFragment.offset(), valueFragment.sizeof());
                 partition.writeEntryContinue(valueFragment);
             }
 

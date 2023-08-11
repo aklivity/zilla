@@ -41,7 +41,9 @@ public class StringValidator implements Validator
     }
 
     public boolean validate(
-        DirectBuffer data)
+        DirectBuffer data,
+        int offset,
+        int length)
     {
         try
         {

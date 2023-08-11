@@ -20,5 +20,7 @@ import org.agrona.DirectBuffer;
 public interface Validator
 {
     boolean validate(
-        DirectBuffer data);
+        DirectBuffer data,
+        int offset,
+        int length);
 }
