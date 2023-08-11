@@ -26,7 +26,7 @@ bindings:
       alpn:
       - "${{env.TLS_SERVER_ALPN}}"
     exit: http_server0
-  httpServer0:
+  http_server0:
     type: http
     kind: server
     options:

@@ -46,13 +46,13 @@ import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
@@ -122,35 +122,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             }
         }
 
-        // bindings
-        // - http_server0
-        List<RouteConfig> httpServer0routes = generateRoutes("http_client0", guardedRoutes);
-        BindingConfigBuilder<BindingConfig> httpServer0builder = BindingConfig.builder()
-            .name("httpServer0")
-            .type("http")
-            .kind(SERVER)
-            .options(HttpOptionsConfig::builder)
-                .access()
-                    .policy(CROSS_ORIGIN)
-                    .build()
-                .authorization()
-                    .name("jwt0")
-                        .credentials()
-                            .header()
-                            .name("authorization")
-                            .pattern("Bearer {credentials}")
-                            .build()
-                        .build()
-                    .build()
-                .build();
-        for (RouteConfig route : httpServer0routes)
-        {
-            httpServer0builder.route(route);
-        }
-        BindingConfig httpServer0 = httpServer0builder.build();
-
         // namespace
-        return NamespaceConfig.builder()
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0BindingBuilder = NamespaceConfig.builder()
             .name("example")
             .binding()
                 .name("tcp_server0")
@@ -190,7 +163,32 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .exit("http_server0")
                     .build()
                 .build()
-            .binding(httpServer0)
+            .binding()
+                .name("http_server0")
+                .type("http")
+                .kind(SERVER)
+                .options(HttpOptionsConfig::builder)
+                    .access()
+                        .policy(CROSS_ORIGIN)
+                        .build()
+                    .authorization()
+                        .name("jwt0")
+                            .credentials()
+                                .header()
+                                .name("authorization")
+                                .pattern("Bearer {credentials}")
+                                .build()
+                            .build()
+                        .build()
+                    .build();
+
+        for (RouteConfig route : generateRoutes("http_client0", guardedRoutes))
+        {
+            httpServer0BindingBuilder.route(route);
+        }
+
+        NamespaceConfig namespace = httpServer0BindingBuilder
+                .build() // end of binding httpServer0
             .binding()
                 .name("http_client0")
                 .type("http")
@@ -247,6 +245,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .build()
                 .build()
             .build();
+
+        return namespace;
     }
 
     private int[] resolvePortsForScheme(
