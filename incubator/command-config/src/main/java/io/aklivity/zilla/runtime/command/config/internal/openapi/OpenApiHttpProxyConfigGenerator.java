@@ -58,7 +58,6 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 {
@@ -153,67 +152,63 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         // bindings
         // - tcp_server0
-        TcpOptionsConfig tcpServer0Options = TcpOptionsConfig.builder()
-            .host("0.0.0.0")
-            .ports(resolvePortsForScheme("https"))
-            .build();
         BindingConfig tcpServer0 = BindingConfig.builder()
             .name("tcp_server0")
             .type("tcp")
             .kind(SERVER)
-            .options(tcpServer0Options)
+            .options(TcpOptionsConfig::builder)
+                .host("0.0.0.0")
+                .ports(resolvePortsForScheme("https"))
+                .build()
             .route(RouteConfig.builder().exit("tls_server0").build())
             .build();
 
         // - tcp_server1
-        TcpOptionsConfig tcpServer1Options = TcpOptionsConfig.builder()
-            .host("0.0.0.0")
-            .ports(resolvePortsForScheme("http"))
-            .build();
         BindingConfig tcpServer1 = BindingConfig.builder()
             .name("tcp_server1")
             .type("tcp")
             .kind(SERVER)
-            .options(tcpServer1Options)
+            .options(TcpOptionsConfig::builder)
+                .host("0.0.0.0")
+                .ports(resolvePortsForScheme("http"))
+                .build()
             .route(RouteConfig.builder().exit("http_server0").build())
             .build();
 
         // - tls_server0
-        TlsOptionsConfig tlsServer0Options = TlsOptionsConfig.builder()
-            .keys(List.of("")) // env
-            .sni(List.of("")) // env
-            .alpn(List.of("")) // env
-            .build();
         BindingConfig tlsServer0 = BindingConfig.builder()
             .name("tls_server0")
             .type("tls")
             .kind(SERVER)
-            .options(tlsServer0Options)
+            .options(TlsOptionsConfig::builder)
+                .keys(List.of("")) // env
+                .sni(List.of("")) // env
+                .alpn(List.of("")) // env
+                .build()
             .vault("server")
             .route(RouteConfig.builder().exit("http_server0").build())
             .build();
 
         // - http_server0
-        HttpOptionsConfig httpServer0Options = HttpOptionsConfig.builder()
-            .access()
-            .policy(CROSS_ORIGIN)
-            .build()
-            .authorization()
-            .name("jwt0")
-            .credentials()
-            .header()
-            .name("authorization")
-            .pattern("Bearer {credentials}")
-            .build()
-            .build()
-            .build()
-            .build();
         List<RouteConfig> httpServer0routes = generateRoutes("http_client0", guardedRoutes);
         BindingConfigBuilder<BindingConfig> httpServer0builder = BindingConfig.builder()
             .name("httpServer0")
             .type("http")
             .kind(SERVER)
-            .options(httpServer0Options);
+            .options(HttpOptionsConfig::builder)
+                .access()
+                    .policy(CROSS_ORIGIN)
+                    .build()
+                .authorization()
+                    .name("jwt0")
+                        .credentials()
+                            .header()
+                            .name("authorization")
+                            .pattern("Bearer {credentials}")
+                            .build()
+                        .build()
+                    .build()
+                .build();
         for (RouteConfig route : httpServer0routes)
         {
             httpServer0builder.route(route);
@@ -229,31 +224,29 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .build();
 
         // - tls_client0
-        TlsOptionsConfig tlsClient0Options = TlsOptionsConfig.builder()
-            .trust(List.of("")) // env
-            .sni(List.of("")) // env
-            .alpn(List.of("")) // env
-            .trustcacerts(true)
-            .build();
         BindingConfig tlsClient0 = BindingConfig.builder()
             .name("tls_client0")
             .type("tls")
             .kind(CLIENT)
-            .options(tlsClient0Options)
+            .options(TlsOptionsConfig::builder)
+                .trust(List.of("")) // env
+                .sni(List.of("")) // env
+                .alpn(List.of("")) // env
+                .trustcacerts(true)
+                .build()
             .vault("client")
             .route(RouteConfig.builder().exit("tcp_client0").build())
             .build();
 
         // - tcp_client0
-        TcpOptionsConfig tcpClient0Options = TcpOptionsConfig.builder()
-            .host("") // env
-            .ports(new int[]{0}) // env
-            .build();
         BindingConfig tcpClient0 = BindingConfig.builder()
             .name("tcp_client0")
             .type("tcp")
             .kind(CLIENT)
-            .options(tcpClient0Options)
+            .options(TcpOptionsConfig::builder)
+                .host("") // env
+                .ports(new int[]{0}) // env
+                .build()
             .build();
 
         List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpServer0, httpClient0, tlsClient0,
