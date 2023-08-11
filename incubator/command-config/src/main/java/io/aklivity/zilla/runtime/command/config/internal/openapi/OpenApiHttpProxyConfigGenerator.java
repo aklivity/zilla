@@ -55,7 +55,6 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
@@ -124,50 +123,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         }
 
         // bindings
-        // - tcp_server0
-        BindingConfig tcpServer0 = BindingConfig.builder()
-            .name("tcp_server0")
-            .type("tcp")
-            .kind(SERVER)
-            .options(TcpOptionsConfig::builder)
-                .host("0.0.0.0")
-                .ports(resolvePortsForScheme("https"))
-                .build()
-            .route()
-                .exit("tls_server0")
-                .build()
-            .build();
-
-        // - tcp_server1
-        BindingConfig tcpServer1 = BindingConfig.builder()
-            .name("tcp_server1")
-            .type("tcp")
-            .kind(SERVER)
-            .options(TcpOptionsConfig::builder)
-                .host("0.0.0.0")
-                .ports(resolvePortsForScheme("http"))
-                .build()
-            .route()
-                .exit("http_server0")
-                .build()
-            .build();
-
-        // - tls_server0
-        BindingConfig tlsServer0 = BindingConfig.builder()
-            .name("tls_server0")
-            .type("tls")
-            .kind(SERVER)
-            .options(TlsOptionsConfig::builder)
-                .keys(List.of("")) // env
-                .sni(List.of("")) // env
-                .alpn(List.of("")) // env
-                .build()
-            .vault("server")
-            .route()
-                .exit("http_server0")
-                .build()
-            .build();
-
         // - http_server0
         List<RouteConfig> httpServer0routes = generateRoutes("http_client0", guardedRoutes);
         BindingConfigBuilder<BindingConfig> httpServer0builder = BindingConfig.builder()
@@ -194,51 +149,80 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         }
         BindingConfig httpServer0 = httpServer0builder.build();
 
-        // - http_client0
-        BindingConfig httpClient0 = BindingConfig.builder()
-            .name("http_client0")
-            .type("http")
-            .kind(CLIENT)
-            .route()
-                .exit("tls_client0")
-                .build()
-            .build();
-
-        // - tls_client0
-        BindingConfig tlsClient0 = BindingConfig.builder()
-            .name("tls_client0")
-            .type("tls")
-            .kind(CLIENT)
-            .options(TlsOptionsConfig::builder)
-                .trust(List.of("")) // env
-                .sni(List.of("")) // env
-                .alpn(List.of("")) // env
-                .trustcacerts(true)
-                .build()
-            .vault("client")
-            .route()
-                .exit("tcp_client0")
-                .build()
-            .build();
-
-        // - tcp_client0
-        BindingConfig tcpClient0 = BindingConfig.builder()
-            .name("tcp_client0")
-            .type("tcp")
-            .kind(CLIENT)
-            .options(TcpOptionsConfig::builder)
-                .host("") // env
-                .ports(new int[]{0}) // env
-                .build()
-            .build();
-
-        List<BindingConfig> bindings = List.of(tcpServer0, tcpServer1, tlsServer0, httpServer0, httpClient0, tlsClient0,
-            tcpClient0);
-
         // namespace
         return NamespaceConfig.builder()
             .name("example")
-            .bindings(bindings)
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .options(TcpOptionsConfig::builder)
+                    .host("0.0.0.0")
+                    .ports(resolvePortsForScheme("https"))
+                    .build()
+                .route()
+                    .exit("tls_server0")
+                    .build()
+                .build()
+            .binding()
+                .name("tcp_server1")
+                .type("tcp")
+                .kind(SERVER)
+                .options(TcpOptionsConfig::builder)
+                    .host("0.0.0.0")
+                    .ports(resolvePortsForScheme("http"))
+                    .build()
+                .route()
+                    .exit("http_server0")
+                    .build()
+                .build()
+            .binding()
+                .name("tls_server0")
+                .type("tls")
+                .kind(SERVER)
+                .options(TlsOptionsConfig::builder)
+                    .keys(List.of("")) // env
+                    .sni(List.of("")) // env
+                    .alpn(List.of("")) // env
+                    .build()
+                .vault("server")
+                .route()
+                    .exit("http_server0")
+                    .build()
+                .build()
+            .binding(httpServer0)
+            .binding()
+                .name("http_client0")
+                .type("http")
+                .kind(CLIENT)
+                .route()
+                    .exit("tls_client0")
+                    .build()
+                .build()
+            .binding()
+                .name("tls_client0")
+                .type("tls")
+                .kind(CLIENT)
+                .options(TlsOptionsConfig::builder)
+                    .trust(List.of("")) // env
+                    .sni(List.of("")) // env
+                    .alpn(List.of("")) // env
+                    .trustcacerts(true)
+                    .build()
+                .vault("client")
+                .route()
+                    .exit("tcp_client0")
+                    .build()
+                .build()
+            .binding()
+                .name("tcp_client0")
+                .type("tcp")
+                .kind(CLIENT)
+                .options(TcpOptionsConfig::builder)
+                    .host("") // env
+                    .ports(new int[]{0}) // env
+                    .build()
+                .build()
             .guards(guards)
             .vault()
                 .name("client")
