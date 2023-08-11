@@ -166,42 +166,42 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
             META (3),
             DESCRIBE (32),
             FETCH (1),
-            PRODUCE (0),
-            GROUP (10)
+            PRODUCE (0)
         }
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 32: kafka::stream::KafkaDescribeBeginEx describe;
             case 1: kafka::stream::KafkaFetchBeginEx fetch;
             case 0: kafka::stream::KafkaProduceBeginEx produce;
-            case 10: kafka::stream::KafkaGroupBeginEx group;
         }
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
+            case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
             case 0: kafka::stream::KafkaProduceDataEx produce;
-            case 10: kafka::stream::KafkaGroupDataEx group;
         }
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
-            case 2: kafka::stream::KafkaGroupFlushEx group;
         }
 
         struct KafkaResetEx extends core::stream::Extension
