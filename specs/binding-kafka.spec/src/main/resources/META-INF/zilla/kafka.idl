@@ -198,10 +198,10 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 255: kafka::stream::KafkaGroupFlushEx merged;
+            case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
-            case 2: kafka::stream::KafkaProduceFlushEx group;
+            case 2: kafka::stream::KafkaGroupFlushEx group;
         }
 
         struct KafkaResetEx extends core::stream::Extension
