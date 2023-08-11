@@ -64,6 +64,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
+    private static final byte SLASH_BYTE = (byte) '/';
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -361,26 +362,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
                 addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
                 addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
 
-                final DirectBuffer responseBuffer = responseTopic.value();
-
-                final int capacity = responseBuffer.capacity();
-                for (int offset = 0; offset < capacity; )
-                {
-                    int nextIndex = indexOfByte(responseBuffer, offset, (byte) '/');
-                    if (nextIndex == -1)
-                    {
-                        nextIndex = responseBuffer.capacity();
-                    }
-
-                    int length = nextIndex - offset;
-                    addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, length);
-                    offset = nextIndex + 1;
-
-                    if (offset >= capacity)
-                    {
-                        break;
-                    }
-                }
+                addFiltersHeader(responseTopic);
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
@@ -425,6 +407,24 @@ public class MqttKafkaPublishFactory implements BindingHandler
             }
         }
 
+        private void addFiltersHeader(String16FW responseTopic)
+        {
+            final DirectBuffer responseBuffer = responseTopic.value();
+            final int capacity = responseBuffer.capacity();
+
+            int offset = 0;
+            int matchAt = 0;
+            while (offset >= 0 && offset < capacity && matchAt != -1)
+            {
+                matchAt = indexOfByte(responseBuffer, offset, capacity, SLASH_BYTE);
+                if (matchAt != -1)
+                {
+                    addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, matchAt - offset);
+                    offset = matchAt + 1;
+                }
+            }
+            addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, capacity - offset);
+        }
 
         private void onMqttEnd(
             EndFW end)
@@ -695,14 +695,15 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     private int indexOfByte(
         DirectBuffer buffer,
-        int startIndex,
-        byte targetByte)
+        int offset,
+        int limit,
+        byte value)
     {
-        for (int i = startIndex; i < buffer.capacity(); i++)
+        for (int index = offset; index < limit; index++)
         {
-            if (buffer.getByte(i) == targetByte)
+            if (buffer.getByte(index) == value)
             {
-                return i;
+                return index;
             }
         }
         return -1;
