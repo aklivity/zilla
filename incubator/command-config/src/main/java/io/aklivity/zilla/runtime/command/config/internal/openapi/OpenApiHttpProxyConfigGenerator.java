@@ -123,33 +123,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             }
         }
 
-        // vaults
-        // - client
-        VaultConfig clientVault = VaultConfig.builder()
-            .name("client")
-            .type("filesystem")
-            .options(FileSystemOptionsConfig::builder)
-                .trust()
-                    .store("") // env
-                    .type("") // env
-                    .password("") // env
-                    .build()
-                .build()
-            .build();
-        // - server
-        VaultConfig serverVault = VaultConfig.builder()
-            .name("server")
-            .type("filesystem")
-            .options(FileSystemOptionsConfig::builder)
-                .keys()
-                    .store("") // env
-                    .type("") // env
-                    .password("") //env
-                    .build()
-                .build()
-            .build();
-        List<VaultConfig> vaults = List.of(clientVault, serverVault);
-
         // bindings
         // - tcp_server0
         BindingConfig tcpServer0 = BindingConfig.builder()
@@ -267,7 +240,28 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .name("example")
             .bindings(bindings)
             .guards(guards)
-            .vaults(vaults)
+            .vault()
+                .name("client")
+                .type("filesystem")
+                .options(FileSystemOptionsConfig::builder)
+                    .trust()
+                        .store("") // env
+                        .type("") // env
+                        .password("") // env
+                        .build()
+                    .build()
+                .build()
+            .vault()
+                .name("server")
+                .type("filesystem")
+                .options(FileSystemOptionsConfig::builder)
+                    .keys()
+                        .store("") // env
+                        .type("") // env
+                        .password("") //env
+                        .build()
+                    .build()
+                .build()
             .build();
     }
 
