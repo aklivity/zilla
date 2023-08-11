@@ -24,7 +24,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +48,6 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -97,15 +95,16 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
     private NamespaceConfig createNamespaceConfig()
     {
-        // guards
-        List<GuardConfig> guards = new ArrayList<>();
+        NamespaceConfigBuilder<NamespaceConfig> namespaceBuilder = NamespaceConfig.builder()
+            .name("example");
+
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
         for (String securitySchemeName : openApi.components.securitySchemes.keySet())
         {
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
-                GuardConfig guard = GuardConfig.builder()
+                namespaceBuilder.guard()
                     .name("jwt0")
                     .type(guardType)
                     .options(JwtOptionsConfig::builder)
@@ -116,15 +115,12 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                             .build()
                         .build()
                     .build();
-                guards.add(guard);
                 GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
                 guardedRoutes.put(securitySchemeName, guarded);
             }
         }
 
-        // namespace
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0BindingBuilder = NamespaceConfig.builder()
-            .name("example")
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0BindingBuilder = namespaceBuilder
             .binding()
                 .name("tcp_server0")
                 .type("tcp")
@@ -221,7 +217,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .ports(new int[]{0}) // env
                     .build()
                 .build()
-            .guards(guards)
             .vault()
                 .name("client")
                 .type("filesystem")
