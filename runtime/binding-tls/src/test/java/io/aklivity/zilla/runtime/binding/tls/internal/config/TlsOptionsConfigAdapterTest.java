@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.config.TlsMutual.REQUESTED;
+import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig.REQUESTED;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 
 public class TlsOptionsConfigAdapterTest
 {
@@ -58,7 +60,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig("TLSv1.2", null, null, null, null, null, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .version("TLSv1.2")
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -83,7 +87,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithKeys()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, asList("localhost"), null, null, null, null, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+                .keys(asList("localhost"))
+                .build();
 
         String text = jsonb.toJson(options);
 
@@ -108,7 +114,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithTrust()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, null, asList("serverca"), null, null, null, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .trust(asList("serverca"))
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -133,7 +141,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithTrustcacerts()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, null, null, null, null, null, null, true);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .trustcacerts(true)
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -158,7 +168,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithServerName()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, null, null, asList("example.net"), null, null, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .sni(asList("example.net"))
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -183,7 +195,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithAlpn()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, null, null, null, asList("echo"), null, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .alpn(asList("echo"))
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -208,7 +222,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithMutual()
     {
-        TlsOptionsConfig options = new TlsOptionsConfig(null, null, null, null, null, REQUESTED, null, false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .mutual(REQUESTED)
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -233,8 +249,9 @@ public class TlsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithSigners()
     {
-        TlsOptionsConfig options =
-                new TlsOptionsConfig(null, null, null, null, null, null, asList("clientca"), false);
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .signers(asList("clientca"))
+            .build();
 
         String text = jsonb.toJson(options);
 

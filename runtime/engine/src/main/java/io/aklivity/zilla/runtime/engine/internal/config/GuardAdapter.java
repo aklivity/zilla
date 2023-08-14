@@ -21,7 +21,7 @@ import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class GuardAdapter
@@ -62,10 +62,15 @@ public class GuardAdapter
 
         options.adaptType(type);
 
-        OptionsConfig opts = object.containsKey(OPTIONS_NAME) ?
-                options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)) :
-                null;
+        GuardConfigBuilder<GuardConfig> guard = GuardConfig.builder()
+            .name(name)
+            .type(type);
 
-        return new GuardConfig(name, type, opts);
+        if (object.containsKey(OPTIONS_NAME))
+        {
+            guard.options(options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)));
+        }
+
+        return guard.build();
     }
 }

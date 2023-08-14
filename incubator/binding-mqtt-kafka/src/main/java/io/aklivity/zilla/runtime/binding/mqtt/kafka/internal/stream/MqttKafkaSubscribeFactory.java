@@ -73,7 +73,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
-public class MqttKafkaSubscribeFactory implements BindingHandler
+public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 {
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";

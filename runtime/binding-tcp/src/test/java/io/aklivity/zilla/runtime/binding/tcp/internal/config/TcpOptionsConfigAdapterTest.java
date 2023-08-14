@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+
 public class TcpOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -97,7 +99,10 @@ public class TcpOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        TcpOptionsConfig options = new TcpOptionsConfig("localhost", new int[] { 8080 }, 0, true, false);
+        TcpOptionsConfig options = TcpOptionsConfig.builder()
+            .host("localhost")
+            .ports(new int[] { 8080 })
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -128,7 +133,11 @@ public class TcpOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithBacklog()
     {
-        TcpOptionsConfig options = new TcpOptionsConfig("localhost", new int[] { 8080 }, 1000, true, false);
+        TcpOptionsConfig options = TcpOptionsConfig.builder()
+                .host("localhost")
+                .ports(new int[] { 8080 })
+                .backlog(1000)
+                .build();
 
         String text = jsonb.toJson(options);
 

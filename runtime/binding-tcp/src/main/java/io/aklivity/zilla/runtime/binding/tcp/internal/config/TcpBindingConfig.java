@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -69,7 +70,7 @@ public final class TcpBindingConfig
 
     private static List<TcpRouteConfig> initDefaultClientRoutes()
     {
-        final RouteConfig route = new RouteConfig(null);
+        final RouteConfig route = RouteConfig.builder().build();
         route.authorized = id -> true;
 
         return singletonList(new TcpRouteConfig(route));

@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.Set;
 
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 
 public class OtlpExporterConfig
 {

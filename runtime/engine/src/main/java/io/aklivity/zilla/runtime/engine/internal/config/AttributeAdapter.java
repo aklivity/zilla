@@ -38,12 +38,9 @@ public class AttributeAdapter implements JsonbAdapter<AttributeConfig, Map.Entry
     public AttributeConfig adaptFromJson(
         Map.Entry<String, JsonValue> entry)
     {
-        return new AttributeConfig(entry.getKey(), asJsonString(entry.getValue()));
-    }
-
-    private static String asJsonString(
-        JsonValue value)
-    {
-        return ((JsonString) value).getString();
+        return AttributeConfig.builder()
+                .name(entry.getKey())
+                .value(JsonString.class.cast(entry.getValue()).getString())
+                .build();
     }
 }

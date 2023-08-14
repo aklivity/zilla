@@ -164,4 +164,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.multiple.isolated/client",
+        "${net}/session.subscribe.multiple.isolated/server"})
+    public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception
+    {
+        k3po.finish();
+    }
 }

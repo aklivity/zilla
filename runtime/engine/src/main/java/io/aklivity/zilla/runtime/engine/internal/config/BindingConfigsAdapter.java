@@ -15,10 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
+import static io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder.ROUTES_DEFAULT;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,12 +30,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
 {
@@ -49,8 +45,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private static final String OPTIONS_NAME = "options";
     private static final String ROUTES_NAME = "routes";
     private static final String TELEMETRY_NAME = "telemetry";
-
-    private static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
 
     private final KindAdapter kind;
     private final RouteAdapter route;
@@ -100,9 +94,20 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (!ROUTES_DEFAULT.equals(binding.routes))
             {
-                JsonArrayBuilder routes = Json.createArrayBuilder();
-                binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
-                item.add(ROUTES_NAME, routes);
+                RouteConfig lastRoute = binding.routes.get(binding.routes.size() - 1);
+                if (lastRoute.exit != null &&
+                    lastRoute.guarded.isEmpty() &&
+                    lastRoute.when.isEmpty() &&
+                    lastRoute.with == null)
+                {
+                    item.add(EXIT_NAME, lastRoute.exit);
+                }
+                else
+                {
+                    JsonArrayBuilder routes = Json.createArrayBuilder();
+                    binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
+                    item.add(ROUTES_NAME, routes);
+                }
             }
 
             if (binding.telemetryRef != null)
@@ -126,49 +131,56 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
         for (String name : object.keySet())
         {
             JsonObject item = object.getJsonObject(name);
-            String type = item.getString(TYPE_NAME);
 
+            String type = item.getString(TYPE_NAME);
             route.adaptType(type);
             options.adaptType(type);
 
-            String vault = item.containsKey(VAULT_NAME)
-                    ? item.getString(VAULT_NAME)
-                    : null;
-            KindConfig kind = this.kind.adaptFromJson(item.getJsonString(KIND_NAME));
-            OptionsConfig opts = item.containsKey(OPTIONS_NAME) ?
-                    options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)) :
-                    null;
-            MutableInteger order = new MutableInteger();
-            List<RouteConfig> routes = item.containsKey(ROUTES_NAME)
-                    ? item.getJsonArray(ROUTES_NAME)
-                        .stream()
-                        .map(JsonValue::asJsonObject)
-                        .peek(o -> route.adaptFromJsonIndex(order.value++))
-                        .map(route::adaptFromJson)
-                        .collect(toList())
-                    : ROUTES_DEFAULT;
+            BindingConfigBuilder<BindingConfig> binding = BindingConfig.builder()
+                .name(name)
+                .type(type)
+                .kind(kind.adaptFromJson(item.getJsonString(KIND_NAME)));
 
-            RouteConfig exit = item.containsKey(EXIT_NAME)
-                    ? new RouteConfig(routes.size(), item.getString(EXIT_NAME))
-                    : null;
-
-            if (exit != null)
+            if (item.containsKey(VAULT_NAME))
             {
-                List<RouteConfig> routesWithExit = new ArrayList<>();
-                routesWithExit.addAll(routes);
-                routesWithExit.add(exit);
-                routes = routesWithExit;
+                binding.vault(item.getString(VAULT_NAME));
             }
 
-            TelemetryRefConfig telemetryRef = item.containsKey(TELEMETRY_NAME)
-                    ? this.telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME))
-                    : null;
+            if (item.containsKey(OPTIONS_NAME))
+            {
+                binding.options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)));
+            }
 
-            String entry = item.containsKey(ENTRY_NAME)
-                ? item.getString(ENTRY_NAME)
-                : null;
+            MutableInteger order = new MutableInteger();
+            if (item.containsKey(ROUTES_NAME))
+            {
+                item.getJsonArray(ROUTES_NAME)
+                    .stream()
+                    .map(JsonValue::asJsonObject)
+                    .peek(o -> route.adaptFromJsonIndex(order.value++))
+                    .map(route::adaptFromJson)
+                    .forEach(binding::route);
+            }
 
-            bindings.add(new BindingConfig(vault, name, type, kind, entry, opts, routes, telemetryRef));
+            if (item.containsKey(EXIT_NAME))
+            {
+                binding.route()
+                    .order(order.value++)
+                    .exit(item.getString(EXIT_NAME))
+                    .build();
+            }
+
+            if (item.containsKey(TELEMETRY_NAME))
+            {
+                binding.telemetry(telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME)));
+            }
+
+            if (item.containsKey(ENTRY_NAME))
+            {
+                binding.entry(item.getString(ENTRY_NAME));
+            }
+
+            bindings.add(binding.build());
         }
 
         return bindings.toArray(BindingConfig[]::new);

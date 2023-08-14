@@ -14,20 +14,31 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
+import java.lang.reflect.Method;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import org.agrona.LangUtil;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttKafkaConfiguration extends Configuration
 {
     private static final ConfigurationDef MQTT_KAFKA_CONFIG;
 
-    public static final PropertyDef<String> KAFKA_MESSAGES_TOPIC;
-    public static final PropertyDef<String> KAFKA_RETAINED_MESSAGES_TOPIC;
+    public static final PropertyDef<String> MESSAGES_TOPIC;
+    public static final PropertyDef<String> RETAINED_MESSAGES_TOPIC;
+    public static final PropertyDef<String> SESSIONS_TOPIC;
+    public static final PropertyDef<SessionIdSupplier> SESSION_ID;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt.kafka");
-        KAFKA_MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
-        KAFKA_RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
+        MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
+        RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
+        SESSIONS_TOPIC = config.property("sessions.topic", "mqtt_sessions");
+        SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
+            MqttKafkaConfiguration::decodeSessionIdSupplier, MqttKafkaConfiguration::defaultSessionIdSupplier);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -37,13 +48,59 @@ public class MqttKafkaConfiguration extends Configuration
         super(MQTT_KAFKA_CONFIG, config);
     }
 
-    public String messagesTopic()
+    public Supplier<String> sessionIdSupplier()
     {
-        return KAFKA_MESSAGES_TOPIC.get(this);
+        return SESSION_ID.get(this);
     }
 
-    public String retainedMessagesTopic()
+    @FunctionalInterface
+    public interface SessionIdSupplier extends Supplier<String>
     {
-        return KAFKA_RETAINED_MESSAGES_TOPIC.get(this);
+    }
+
+    private static SessionIdSupplier decodeSessionIdSupplier(
+        Configuration config,
+        String value)
+    {
+        try
+        {
+            String className = value.substring(0, value.indexOf("$$Lambda"));
+            Class<?> lambdaClass = Class.forName(className);
+
+            Method targetMethod = null;
+            for (Method method : lambdaClass.getDeclaredMethods())
+            {
+                if (method.isSynthetic())
+                {
+                    targetMethod = method;
+                    break;
+                }
+            }
+
+            Method finalTargetMethod = targetMethod;
+            return () ->
+            {
+                try
+                {
+                    finalTargetMethod.setAccessible(true);
+                    return (String) finalTargetMethod.invoke(null);
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                }
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+        return null;
+    }
+
+    private static SessionIdSupplier defaultSessionIdSupplier(
+        Configuration config)
+    {
+        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 }

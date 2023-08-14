@@ -475,4 +475,94 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.abort.reconnect.non.clean.start/client",
+        "${kafka}/session.abort.reconnect.non.clean.start/server"})
+    public void shouldReconnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.client.takeover/client",
+        "${kafka}/session.client.takeover/server"})
+    public void shouldTakeOverSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.exists.clean.start/client",
+        "${kafka}/session.exists.clean.start/server"})
+    public void shouldRemoveSessionAtCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe/client",
+        "${kafka}/session.subscribe/server"})
+    public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.via.session.state/client",
+        "${kafka}/session.subscribe.via.session.state/server"})
+    public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.unsubscribe.after.subscribe/client",
+        "${kafka}/session.unsubscribe.after.subscribe/server"})
+    public void shouldUnsubscribeAndUpdateSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.unsubscribe.via.session.state/client",
+        "${kafka}/session.unsubscribe.via.session.state/server"})
+    public void shouldUnsubscribeViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.client.sent.reset/client",
+        "${kafka}/session.client.sent.reset/server"})
+    public void shouldSessionStreamReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.server.sent.reset/client",
+        "${kafka}/session.server.sent.reset/server"})
+    public void shouldSessionStreamReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.group.server.sent.reset/client",
+        "${kafka}/session.group.server.sent.reset/server"})
+    public void shouldGroupStreamReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

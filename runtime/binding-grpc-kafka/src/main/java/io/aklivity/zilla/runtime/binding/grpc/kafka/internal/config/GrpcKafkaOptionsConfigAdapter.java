@@ -20,6 +20,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaIdempotencyConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaReliabilityConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;

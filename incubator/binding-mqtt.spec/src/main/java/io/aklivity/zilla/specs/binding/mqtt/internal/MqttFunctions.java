@@ -688,13 +688,6 @@ public final class MqttFunctions
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public MqttSessionStateBuilder clientId(
-            String clientId)
-        {
-            sessionStateRW.clientId(clientId);
-            return this;
-        }
-
         public MqttSessionStateBuilder subscription(
             String pattern)
         {

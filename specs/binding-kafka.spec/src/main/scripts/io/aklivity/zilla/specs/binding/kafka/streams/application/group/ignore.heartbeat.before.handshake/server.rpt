@@ -33,6 +33,16 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("test")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+write flush
+
 read advised zilla:flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -40,6 +50,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .members(1)
                                  .build()
                              .build()}
 write flush

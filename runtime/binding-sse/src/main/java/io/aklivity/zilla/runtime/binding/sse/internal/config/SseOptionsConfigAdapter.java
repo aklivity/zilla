@@ -20,6 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -27,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String RETRY_NAME = "retry";
+    public static final int RETRY_DEFAULT = 2000;
 
     @Override
     public Kind kind()
@@ -48,7 +50,7 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (sseOptions.retry != SseOptionsConfig.RETRY_DEFAULT)
+        if (sseOptions.retry != SseOptionsConfigAdapter.RETRY_DEFAULT)
         {
             object.add(RETRY_NAME, sseOptions.retry);
         }
@@ -62,7 +64,7 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     {
         int retry = object.containsKey(RETRY_NAME)
                 ? object.getInt(RETRY_NAME)
-                : SseOptionsConfig.RETRY_DEFAULT;
+                : SseOptionsConfigAdapter.RETRY_DEFAULT;
 
         return new SseOptionsConfig(retry);
     }

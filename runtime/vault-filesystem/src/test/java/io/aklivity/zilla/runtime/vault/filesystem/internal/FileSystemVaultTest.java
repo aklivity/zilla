@@ -25,17 +25,25 @@ import java.security.KeyStore.TrustedCertificateEntry;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class FileSystemVaultTest
 {
     @Test
     public void shouldResolveServer() throws Exception
     {
-        FileSystemStore keys = new FileSystemStore("stores/server/keys", "pkcs12", "generated");
-        FileSystemStore trust = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, trust, null);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .keys()
+                .store("stores/server/keys")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .trust()
+                .store("stores/server/trust")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);
 
@@ -49,9 +57,18 @@ public class FileSystemVaultTest
     @Test
     public void shouldResolveClient() throws Exception
     {
-        FileSystemStore keys = new FileSystemStore("stores/client/keys", "pkcs12", "generated");
-        FileSystemStore signers = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, signers);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .keys()
+                .store("stores/client/keys")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .signers()
+                .store("stores/server/trust")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);
 

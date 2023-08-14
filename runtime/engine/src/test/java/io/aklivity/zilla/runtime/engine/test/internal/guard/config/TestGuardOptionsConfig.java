@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard.config;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -28,7 +29,18 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final Duration challenge;
     public final List<String> roles;
 
-    public TestGuardOptionsConfig(
+    public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
+    {
+        return new TestGuardOptionsConfigBuilder<>(TestGuardOptionsConfig.class::cast);
+    }
+
+    public static <T> TestGuardOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TestGuardOptionsConfigBuilder<>(mapper);
+    }
+
+    TestGuardOptionsConfig(
         String credentials,
         Duration lifetime,
         Duration challenge,

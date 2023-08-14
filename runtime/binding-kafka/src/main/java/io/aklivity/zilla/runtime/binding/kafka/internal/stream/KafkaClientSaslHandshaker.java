@@ -33,9 +33,9 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.ScramMechanism;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAuthenticateRequestFW;
@@ -90,7 +90,7 @@ public abstract class KafkaClientSaslHandshaker
     private MessageDigest messageDigest;
     private Mac mac;
     private Supplier<String> nonceSupplier;
-    private ScramMechanism mechanism;
+    private KafkaScramMechanism mechanism;
     private Matcher serverResponseMatcher;
     private byte[] result, ui, prev;
 
@@ -321,7 +321,7 @@ public abstract class KafkaClientSaslHandshaker
                 long traceId,
                 long budgetId)
         {
-            mechanism = ScramMechanism.forMechanismName(sasl.mechanism.toUpperCase());
+            mechanism = KafkaScramMechanism.forMechanismName(sasl.mechanism.toUpperCase());
             try
             {
                 messageDigest = MessageDigest.getInstance(mechanism.hashAlgorithm());

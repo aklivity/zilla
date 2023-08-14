@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import static java.util.function.Function.identity;
+
 import java.util.List;
 
 public class TelemetryConfig
@@ -25,7 +27,12 @@ public class TelemetryConfig
     public final List<MetricConfig> metrics;
     public final List<ExporterConfig> exporters;
 
-    public TelemetryConfig(
+    public static TelemetryConfigBuilder<TelemetryConfig> builder()
+    {
+        return new TelemetryConfigBuilder<>(identity());
+    }
+
+    TelemetryConfig(
         List<AttributeConfig> attributes,
         List<MetricConfig> metrics,
         List<ExporterConfig> exporters)

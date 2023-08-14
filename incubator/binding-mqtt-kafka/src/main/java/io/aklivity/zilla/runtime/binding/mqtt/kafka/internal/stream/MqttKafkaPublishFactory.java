@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
-public class MqttKafkaPublishFactory implements BindingHandler
+public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
@@ -542,23 +542,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity);
-        }
-
-        private void doMqttData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            OctetsFW payload,
-            Flyweight extension)
-        {
-            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
-
-            replySeq += reserved;
-
-            assert replySeq <= replyAck + replyMax;
         }
 
         private void doMqttFlush(

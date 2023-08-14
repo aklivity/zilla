@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+
 public class HttpConditionConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -60,7 +62,9 @@ public class HttpConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        HttpConditionConfig condition = new HttpConditionConfig(singletonMap(":authority", "example.net:443"));
+        HttpConditionConfig condition = HttpConditionConfig.builder()
+            .header(":authority", "example.net:443")
+            .build();
 
         String text = jsonb.toJson(condition);
 

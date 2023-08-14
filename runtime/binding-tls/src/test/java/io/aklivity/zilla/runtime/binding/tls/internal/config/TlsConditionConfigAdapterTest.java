@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+
 public class TlsConditionConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -58,7 +60,10 @@ public class TlsConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        TlsConditionConfig condition = new TlsConditionConfig("example.net", "echo");
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .authority("example.net")
+            .alpn("echo")
+            .build();
 
         String text = jsonb.toJson(condition);
 

@@ -33,7 +33,6 @@ write zilla:data.empty
 write flush
 
 write ${mqtt:session()
-               .clientId("client")
                .subscription("sensor/one")
                .build()}
 write flush

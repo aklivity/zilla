@@ -21,8 +21,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.List;
-
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -35,10 +33,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
@@ -105,11 +100,20 @@ public class TelemetryConfigsAdapterTest
     public void shouldWriteTelemetry()
     {
         // GIVEN
-        TelemetryConfig telemetry = new TelemetryConfig(
-                List.of(new AttributeConfig("test.attribute", "example")),
-                List.of(new MetricConfig("test", "test.counter")),
-                List.of(new ExporterConfig("test0", "test", null))
-        );
+        TelemetryConfig telemetry = TelemetryConfig.builder()
+                .attribute()
+                    .name("test.attribute")
+                    .value("example")
+                    .build()
+                .metric()
+                    .group("test")
+                    .name("test.counter")
+                    .build()
+                .exporter()
+                    .name("test0")
+                    .type("test")
+                    .build()
+                .build();
 
         // WHEN
         String text = jsonb.toJson(telemetry);
@@ -171,11 +175,23 @@ public class TelemetryConfigsAdapterTest
     public void shouldWriteTelemetryWithExporterOptions()
     {
         // GIVEN
-        TelemetryConfig telemetry = new TelemetryConfig(
-                List.of(new AttributeConfig("test.attribute", "example")),
-                List.of(new MetricConfig("test", "test.counter")),
-                List.of(new ExporterConfig("test0", "test", new TestExporterOptionsConfig("test42")))
-        );
+        TelemetryConfig telemetry = TelemetryConfig.builder()
+                .attribute()
+                    .name("test.attribute")
+                    .value("example")
+                    .build()
+                .metric()
+                    .group("test")
+                    .name("test.counter")
+                    .build()
+                .exporter()
+                    .name("test0")
+                    .type("test")
+                    .options(TestExporterOptionsConfig::builder)
+                        .mode("test42")
+                        .build()
+                    .build()
+                .build();
 
         // WHEN
         String text = jsonb.toJson(telemetry);

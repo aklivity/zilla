@@ -29,12 +29,21 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("test")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
 
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .members(1)
                                  .build()
                              .build()}
 read zilla:data.null
@@ -58,12 +67,21 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("test")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
 
-read zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .members(1)
                                  .build()
                              .build()}
 read zilla:data.null

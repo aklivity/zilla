@@ -16,9 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,7 +24,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.List;
+import java.time.Duration;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -40,16 +38,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultOptionsConfig;
 
 public class NamespaceConfigAdapterTest
 {
@@ -93,13 +89,15 @@ public class NamespaceConfigAdapterTest
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
         assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
-        assertThat(config.references, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.references, emptyCollectionOf(NamespaceRefConfig.class));
     }
 
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+            .name("test")
+            .build();
 
         String text = jsonb.toJson(config);
 
@@ -135,17 +133,22 @@ public class NamespaceConfigAdapterTest
         assertThat(config.bindings.get(0).type, equalTo("test"));
         assertThat(config.bindings.get(0).kind, equalTo(SERVER));
         assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
-        assertThat(config.references, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.references, emptyCollectionOf(NamespaceRefConfig.class));
     }
 
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, null, emptyList(), null);
-        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), null,
-                singletonList(binding), emptyList(), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .binding()
+                    .name("test")
+                    .type("test")
+                    .kind(SERVER)
+                    .build()
+                .build();
 
-        String text = jsonb.toJson(namespace);
+        String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":{\"test\":{\"type\":\"test\",\"kind\":\"server\"}}}"));
@@ -181,13 +184,23 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithGuard()
     {
-        GuardConfig guard = new GuardConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), singletonList(guard), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .guard()
+                    .name("default")
+                    .type("test")
+                    .options(TestGuardOptionsConfig::builder)
+                        .credentials("token")
+                        .lifetime(Duration.ofSeconds(10))
+                        .build()
+                    .build()
+                .build();
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"}}}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"credentials\":\"token\",\"lifetime\":\"PT10S\"}}}}"));
     }
 
     @Test
@@ -220,13 +233,22 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithVault()
     {
-        VaultConfig vault = new VaultConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), singletonList(vault));
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .vault()
+                    .name("default")
+                    .type("test")
+                    .options(TestVaultOptionsConfig::builder)
+                        .mode("test")
+                        .build()
+                    .build()
+                .build();
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"mode\":\"test\"}}}}"));
     }
 
     @Test
@@ -258,12 +280,26 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithTelemetry()
     {
-        TelemetryConfig telemetry = new TelemetryConfig(
-                List.of(new AttributeConfig("test.attribute", "example")),
-                List.of(new MetricConfig("test", "test.counter")),
-                List.of(new ExporterConfig("test0", "test", new TestExporterOptionsConfig("test42")))
-        );
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), telemetry, emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .telemetry()
+                    .attribute()
+                        .name("test.attribute")
+                        .value("example")
+                        .build()
+                    .metric()
+                        .group("test")
+                        .name("test.counter")
+                        .build()
+                    .exporter()
+                        .name("test0")
+                        .type("test")
+                        .options(TestExporterOptionsConfig::builder)
+                            .mode("test42")
+                            .build()
+                        .build()
+                    .build()
+                .build();
 
         String text = jsonb.toJson(config);
 
@@ -303,9 +339,12 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithReference()
     {
-        NamespaceRef reference = new NamespaceRef("test", emptyMap());
-        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), null,
-                emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .namespace()
+                    .name("test")
+                    .build()
+                .build();
 
         String text = jsonb.toJson(config);
 
