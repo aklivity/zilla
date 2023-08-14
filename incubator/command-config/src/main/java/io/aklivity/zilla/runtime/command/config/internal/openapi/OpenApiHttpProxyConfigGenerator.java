@@ -176,10 +176,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         .build()
                     .build();
 
-        for (RouteConfig route : generateRoutes("http_client0", guardedRoutes))
-        {
-            httpServer0.route(route);
-        }
+        addRoutes(httpServer0, "http_client0", guardedRoutes);
 
         return httpServer0
                 .build() // end of binding httpServer0
@@ -270,7 +267,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return result;
     }
 
-    private List<RouteConfig> generateRoutes(
+    private void addRoutes(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0,
         String exit,
         Map<String, GuardedConfig> guardedRoutes)
     {
@@ -300,10 +298,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         }
                     }
                 }
-                routes.add(routeBuilder.build());
+                httpServer0.route(routeBuilder.build());
             }
         }
-        return routes;
     }
 
     private String writeConfig(
