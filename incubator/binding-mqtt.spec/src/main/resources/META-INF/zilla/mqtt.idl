@@ -168,16 +168,15 @@ scope mqtt
             MqttUserProperty[] properties;
         }
 
-        enum MqttSessionDataType (uint8)
+        enum MqttSessionDataKind
         {
-            STATE(0),
-            WILL(1)
+            STATE,
+            WILL
         }
 
-        union MqttSessionDataEx switch (MqttSessionDataType) extends core::stream::Extension
+        struct MqttSessionDataEx
         {
-            case STATE: uint8 state;
-            case WILL: uint8 will;
+            MqttSessionDataKind kind;
         }
 
         struct MqttResetEx extends core::stream::Extension
