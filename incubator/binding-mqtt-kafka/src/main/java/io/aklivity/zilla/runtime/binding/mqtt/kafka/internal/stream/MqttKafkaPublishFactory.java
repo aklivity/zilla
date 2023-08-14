@@ -693,20 +693,22 @@ public class MqttKafkaPublishFactory implements BindingHandler
         });
     }
 
-    private int indexOfByte(
+    private static int indexOfByte(
         DirectBuffer buffer,
         int offset,
         int limit,
         byte value)
     {
+        int byteAt = -1;
         for (int index = offset; index < limit; index++)
         {
             if (buffer.getByte(index) == value)
             {
-                return index;
+                byteAt = index;
+                break;
             }
         }
-        return -1;
+        return byteAt;
     }
 
 
