@@ -71,7 +71,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
     public String generate()
     {
-        return writeConfig(createNamespaceConfig());
+        return writeConfig(createNamespace());
     }
 
     private OpenApi parseOpenApi(
@@ -92,9 +92,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return openApi;
     }
 
-    private NamespaceConfig createNamespaceConfig()
+    private NamespaceConfig createNamespace()
     {
-        NamespaceConfigBuilder<NamespaceConfig> namespaceBuilder = NamespaceConfig.builder()
+        NamespaceConfigBuilder<NamespaceConfig> namespace = NamespaceConfig.builder()
             .name("example");
 
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
@@ -103,7 +103,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
-                namespaceBuilder.guard()
+                namespace.guard()
                     .name("jwt0")
                     .type(guardType)
                     .options(JwtOptionsConfig::builder)
@@ -119,7 +119,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             }
         }
 
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0BindingBuilder = namespaceBuilder
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0 = namespace
             .binding()
                 .name("tcp_server0")
                 .type("tcp")
@@ -179,10 +179,10 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
         for (RouteConfig route : generateRoutes("http_client0", guardedRoutes))
         {
-            httpServer0BindingBuilder.route(route);
+            httpServer0.route(route);
         }
 
-        NamespaceConfig namespace = httpServer0BindingBuilder
+        return httpServer0
                 .build() // end of binding httpServer0
             .binding()
                 .name("http_client0")
@@ -239,8 +239,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .build()
                 .build()
             .build();
-
-        return namespace;
     }
 
     private int[] resolvePortsForScheme(
