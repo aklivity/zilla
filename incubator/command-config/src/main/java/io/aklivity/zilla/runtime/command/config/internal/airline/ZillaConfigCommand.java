@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
+import com.github.rvesse.airline.annotations.restrictions.AllowedValues;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
@@ -36,6 +37,7 @@ public final class ZillaConfigCommand extends ZillaCommand
         description = "Template name:\n" +
             "- openapi.http.proxy\n")
     @Required
+    @AllowedValues(allowedValues = {"openapi.http.proxy"})
     public String template;
 
     @Option(name = {"-i", "--input"},
