@@ -34,7 +34,7 @@ public class OpenApiHttpProxyConfigGeneratorTest
         OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputPath);
 
         // WHEN
-        String result = generator.generateConfig();
+        String result = generator.generate();
 
         // THEN
         assertThat(result, equalTo(expectedResult));

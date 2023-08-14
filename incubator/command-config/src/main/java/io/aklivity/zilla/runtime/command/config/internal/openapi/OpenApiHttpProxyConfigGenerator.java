@@ -69,7 +69,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.configWriter = new ConfigWriter(null);
     }
 
-    public String generateConfig()
+    public String generate()
     {
         return writeConfig(createNamespaceConfig());
     }

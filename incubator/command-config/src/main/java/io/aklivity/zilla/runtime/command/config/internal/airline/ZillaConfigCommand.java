@@ -57,7 +57,7 @@ public final class ZillaConfigCommand extends ZillaCommand
         ConfigGenerator generator = configGenerators.get(template);
         try
         {
-            Files.writeString(output, generator.generateConfig());
+            Files.writeString(output, generator.generate());
         }
         catch (IOException ex)
         {

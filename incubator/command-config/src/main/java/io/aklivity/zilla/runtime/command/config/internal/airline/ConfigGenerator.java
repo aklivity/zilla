@@ -16,5 +16,5 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 
 public interface ConfigGenerator
 {
-    String generateConfig();
+    String generate();
 }
