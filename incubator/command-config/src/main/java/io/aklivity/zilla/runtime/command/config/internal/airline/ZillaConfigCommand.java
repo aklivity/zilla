@@ -36,6 +36,10 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.OpenApiHttpProx
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
 {
+    private static final Map<String, Function<InputStream, ConfigGenerator>> GENERATORS = Map.of(
+        "openapi.http.proxy", OpenApiHttpProxyConfigGenerator::new
+    );
+
     @Option(name = {"-t", "--template"},
         description = "Template name:\n" +
             "- openapi.http.proxy\n")
@@ -56,12 +60,9 @@ public final class ZillaConfigCommand extends ZillaCommand
     @Override
     public void run()
     {
-        Map<String, Function<InputStream, ConfigGenerator>> generators = Map.of(
-            "openapi.http.proxy", OpenApiHttpProxyConfigGenerator::new
-        );
         try (InputStream inputStream = new FileInputStream(input.toFile()))
         {
-            ConfigGenerator generator = generators.get(template).apply(inputStream);
+            ConfigGenerator generator = GENERATORS.get(template).apply(inputStream);
             Files.writeString(output, generator.generate());
         }
         catch (IOException ex)
