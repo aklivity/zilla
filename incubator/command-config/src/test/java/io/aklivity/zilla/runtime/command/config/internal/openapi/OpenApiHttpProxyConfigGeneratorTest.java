@@ -29,16 +29,17 @@ public class OpenApiHttpProxyConfigGeneratorTest
     @Test
     public void shouldGenerateConfig() throws Exception
     {
-        // GIVEN
-        String expectedResult = Files.readString(Path.of(getClass().getResource("zilla.yaml").getFile()));
-        InputStream inputStream = new FileInputStream(getClass().getResource("openapi.yaml").getFile());
-        OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputStream);
+        try (InputStream inputStream = getClass().getResourceAsStream("openapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("zilla.yaml").getFile()));
+            OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputStream);
 
-        // WHEN
-        String result = generator.generate();
-        inputStream.close();
+            // WHEN
+            String result = generator.generate();
 
-        // THEN
-        assertThat(result, equalTo(expectedResult));
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
     }
 }
