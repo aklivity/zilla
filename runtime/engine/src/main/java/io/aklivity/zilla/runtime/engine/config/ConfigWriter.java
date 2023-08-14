@@ -107,10 +107,10 @@ public final class ConfigWriter
             String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
             JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
             JsonObject patched = patch.apply(jsonObject);
-            StringWriter stringWriter = new StringWriter();
-            JsonWriter jsonWriter = provider.createWriter(stringWriter);
+            StringWriter patchedText = new StringWriter();
+            JsonWriter jsonWriter = provider.createWriter(patchedText);
             jsonWriter.write(patched);
-            String patchedJson = stringWriter.toString();
+            String patchedJson = patchedText.toString();
 
             JsonNode json = new ObjectMapper().readTree(patchedJson);
             YAMLMapper mapper = YAMLMapper.builder()
