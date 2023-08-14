@@ -407,7 +407,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
             }
         }
 
-        private void addFiltersHeader(String16FW responseTopic)
+        private void addFiltersHeader(
+            String16FW responseTopic)
         {
             final DirectBuffer responseBuffer = responseTopic.value();
             final int capacity = responseBuffer.capacity();
