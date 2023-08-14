@@ -14,13 +14,8 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 public class PathItem
 {
-    private Map<String, Operation> methods;
-
     public Operation get;
     public Operation put;
     public Operation post;
@@ -29,46 +24,4 @@ public class PathItem
     public Operation head;
     public Operation patch;
     public Operation trace;
-
-    public void initMethods()
-    {
-        methods = new LinkedHashMap<>();
-        if (get != null)
-        {
-            methods.put("GET", get);
-        }
-        if (put != null)
-        {
-            methods.put("PUT", put);
-        }
-        if (post != null)
-        {
-            methods.put("POST", post);
-        }
-        if (delete != null)
-        {
-            methods.put("DELETE", delete);
-        }
-        if (options != null)
-        {
-            methods.put("OPTIONS", options);
-        }
-        if (head != null)
-        {
-            methods.put("HEAD", head);
-        }
-        if (patch != null)
-        {
-            methods.put("PATCH", patch);
-        }
-        if (trace != null)
-        {
-            methods.put("TRACE", trace);
-        }
-    }
-
-    public Map<String, Operation> methods()
-    {
-        return methods;
-    }
 }

@@ -12,9 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.openapi.model;
+package io.aklivity.zilla.runtime.command.config.internal.openapi.model2;
 
-public class Server
+import java.net.URI;
+
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
+
+public final class Server2
 {
-    public String url;
+    private URI url;
+
+    private Server2(
+        Server server)
+    {
+        this.url = URI.create(server.url);
+    }
+
+    public URI url()
+    {
+        return url;
+    }
+
+    public static Server2 of(
+        Server server)
+    {
+        return new Server2(server);
+    }
 }

@@ -43,8 +43,9 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem2;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -261,9 +262,10 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         URI result = null;
         for (Server server : openApi.servers)
         {
-            if (scheme.equals(server.url().getScheme()))
+            Server2 server2 = Server2.of(server);
+            if (scheme.equals(server2.url().getScheme()))
             {
-                result = server.url();
+                result = server2.url();
                 break;
             }
         }
@@ -277,8 +279,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         List<RouteConfig> routes = new LinkedList<>();
         for (String path : openApi.paths.keySet())
         {
-            PathItem item = openApi.paths.get(path);
-            item.initMethods();
+            PathItem2 item = PathItem2.of(openApi.paths.get(path));
             for (String method : item.methods().keySet())
             {
                 RouteConfigBuilder<RouteConfig> routeBuilder = RouteConfig.builder()
