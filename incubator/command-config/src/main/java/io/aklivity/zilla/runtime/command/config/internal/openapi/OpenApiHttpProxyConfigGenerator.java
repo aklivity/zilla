@@ -23,7 +23,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -272,7 +271,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         String exit,
         Map<String, GuardedConfig> guardedRoutes)
     {
-        List<RouteConfig> routes = new LinkedList<>();
         for (String path : openApi.paths.keySet())
         {
             PathItem2 item = PathItem2.of(openApi.paths.get(path));
