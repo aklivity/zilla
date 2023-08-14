@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
@@ -64,17 +65,6 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .expiry(30)
                 .serverReference("localhost:1883")
-                .will()
-                    .topic("will.client")
-                    .delay(20)
-                    .expiryInterval(15)
-                    .contentType("message")
-                    .format("TEXT")
-                    .responseTopic("will.client.response")
-                    .correlation("request-id-1")
-                    .userProperty("name", "value")
-                    .payload("client failed")
-                    .build()
                 .build()
             .build();
 
@@ -85,20 +75,6 @@ public class MqttFunctionsTest
         assertEquals("client", mqttBeginEx.session().clientId().asString());
         assertEquals("localhost:1883", mqttBeginEx.session().serverReference().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
-        assertEquals("will.client", mqttBeginEx.session().will().topic().asString());
-        assertEquals(20, mqttBeginEx.session().will().delay());
-        assertEquals(15, mqttBeginEx.session().will().expiryInterval());
-        assertEquals("message", mqttBeginEx.session().will().contentType().asString());
-        assertEquals("TEXT", mqttBeginEx.session().will().format().toString());
-        assertEquals("will.client.response", mqttBeginEx.session().will().responseTopic().asString());
-        assertEquals("request-id-1", mqttBeginEx.session().will().correlation()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertNotNull(mqttBeginEx.session().will().properties()
-            .matchFirst(h ->
-                "name".equals(h.key().asString()) &&
-                    "value".equals(h.value().asString())));
-        assertEquals("client failed", mqttBeginEx.session().will().payload()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
     @Test
@@ -127,13 +103,6 @@ public class MqttFunctionsTest
             .typeId(0)
                 .session()
                 .clientId("client")
-                .will()
-                    .topic("will.client")
-                    .qos("AT_LEAST_ONCE")
-                    .flags("RETAIN")
-                    .correlationBytes("request-id-1".getBytes(UTF_8))
-                    .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
-                    .build()
                 .build()
             .build();
 
@@ -142,14 +111,6 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("will.client", mqttBeginEx.session().will().topic().asString());
-        assertEquals(1, mqttBeginEx.session().will().flags());
-        assertEquals(0b0001, mqttBeginEx.session().will().flags());
-        assertEquals("BINARY", mqttBeginEx.session().will().format().toString());
-        assertEquals("request-id-1", mqttBeginEx.session().will().correlation()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, mqttBeginEx.session().will().payload()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)).getBytes());
     }
 
     @Test
@@ -324,19 +285,6 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .expiry(10)
                 .serverReference("localhost:1883")
-                .will()
-                    .topic("willTopic")
-                    .delay(10)
-                    .qos("AT_MOST_ONCE")
-                    .flags("RETAIN")
-                    .expiryInterval(20)
-                    .contentType("message")
-                    .format("TEXT")
-                    .responseTopic("willResponseTopic")
-                    .correlation("correlationData")
-                    .userProperty("key1", "value1")
-                    .payload("will message")
-                    .build()
                 .build()
             .build();
 
@@ -348,21 +296,7 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
-                .serverReference("localhost:1883")
-                .will(c ->
-                {
-                    c.topic("willTopic");
-                    c.delay(10);
-                    c.qos(0);
-                    c.flags(1);
-                    c.expiryInterval(20);
-                    c.contentType("message");
-                    c.format(f -> f.set(MqttPayloadFormat.TEXT));
-                    c.responseTopic("willResponseTopic");
-                    c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
-                    c.propertiesItem(p -> p.key("key1").value("value1"));
-                    c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
-                }))
+                .serverReference("localhost:1883"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -398,18 +332,6 @@ public class MqttFunctionsTest
                 .session()
                 .clientId("client")
                 .expiry(10)
-                    .will()
-                    .topic("willTopic")
-                    .delay(10)
-                    .qos("AT_MOST_ONCE")
-                    .expiryInterval(20)
-                    .contentType("message")
-                    .format("TEXT")
-                    .responseTopic("willResponseTopic")
-                    .correlationBytes("correlationData".getBytes(UTF_8))
-                    .userProperty("key1", "value1")
-                    .payloadBytes("will message".getBytes(UTF_8))
-                    .build()
                 .build()
             .build();
 
@@ -420,20 +342,7 @@ public class MqttFunctionsTest
             .typeId(0x00)
             .session(s -> s
                 .clientId("client")
-                .expiry(10)
-                .will(c ->
-                {
-                    c.topic("willTopic");
-                    c.delay(10);
-                    c.qos(0);
-                    c.expiryInterval(20);
-                    c.contentType("message");
-                    c.format(f -> f.set(MqttPayloadFormat.TEXT));
-                    c.responseTopic("willResponseTopic");
-                    c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
-                    c.propertiesItem(p -> p.key("key1").value("value1"));
-                    c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
-                }))
+                .expiry(10))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1291,5 +1200,67 @@ public class MqttFunctionsTest
                 "sensor/two".equals(f.pattern().asString()) &&
                     0 == f.qos() &&
                     0b0000 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeWillMessage()
+    {
+        final byte[] array = MqttFunctions.will()
+                .topic("will.client")
+                .delay(20)
+                .expiryInterval(15)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("will.client.response")
+                .correlation("request-id-1")
+                .userProperty("name", "value")
+                .payload("client failed")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttMessageFW willMessage = new MqttMessageFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals("will.client", willMessage.topic().asString());
+        assertEquals(20, willMessage.delay());
+        assertEquals(15, willMessage.expiryInterval());
+        assertEquals("message", willMessage.contentType().asString());
+        assertEquals("TEXT", willMessage.format().toString());
+        assertEquals("will.client.response", willMessage.responseTopic().asString());
+        assertEquals("request-id-1", willMessage.correlation()
+            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+        assertNotNull(willMessage.properties()
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
+        assertEquals("client failed", willMessage.payload()
+            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+    }
+
+    @Test
+    public void shouldEncodeWillMessageBytesPayload()
+    {
+        final byte[] array = MqttFunctions.will()
+            .topic("will.client")
+            .qos("AT_LEAST_ONCE")
+            .flags("RETAIN")
+            .responseTopic("response_topic")
+            .generationId("1")
+            .correlationBytes("request-id-1".getBytes(UTF_8))
+            .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttMessageFW willMessage = new MqttMessageFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals("will.client", willMessage.topic().asString());
+        assertEquals(1, willMessage.flags());
+        assertEquals(0b0001, willMessage.flags());
+        assertEquals("BINARY", willMessage.format().toString());
+        assertEquals("response_topic", willMessage.responseTopic().asString());
+        assertEquals("1", willMessage.generationId().asString());
+        assertEquals("request-id-1", willMessage.correlation()
+            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, willMessage.payload()
+            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)).getBytes());
     }
 }

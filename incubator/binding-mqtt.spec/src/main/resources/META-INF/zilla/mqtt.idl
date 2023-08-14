@@ -91,6 +91,7 @@ scope mqtt
         string16 contentType = null;
         MqttPayloadFormat format = BINARY;
         string16 responseTopic = null;
+        string16 generationId = null;
         MqttBinary correlation;
         MqttUserProperty[] properties;
         MqttBinary payload;
@@ -117,7 +118,6 @@ scope mqtt
             string16 clientId;
             int32 expiry = 0;
             string16 serverReference = null;
-            MqttMessage will;
         }
 
         struct MqttSubscribeBeginEx
@@ -137,6 +137,7 @@ scope mqtt
         {
             case 0: mqtt::stream::MqttPublishDataEx publish;
             case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
+            case 2: mqtt::stream::MqttSessionDataEx session;
         }
 
         struct MqttSubscribeDataEx
@@ -165,6 +166,18 @@ scope mqtt
             string16 responseTopic = null;
             MqttBinary correlation;
             MqttUserProperty[] properties;
+        }
+
+        enum MqttSessionDataType (uint8)
+        {
+            STATE(0),
+            WILL(1)
+        }
+
+        union MqttSessionDataEx switch (MqttSessionDataType) extends core::stream::Extension
+        {
+            case STATE: uint8 state;
+            case WILL: uint8 will;
         }
 
         struct MqttResetEx extends core::stream::Extension
