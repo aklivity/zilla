@@ -20,10 +20,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,9 +62,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private final ConfigWriter configWriter;
 
     public OpenApiHttpProxyConfigGenerator(
-        Path input)
+        InputStream inputStream)
     {
-        this.openApi = parseOpenApi(input);
+        this.openApi = parseOpenApi(inputStream);
         this.configWriter = new ConfigWriter(null);
     }
 
@@ -76,10 +74,10 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     }
 
     private OpenApi parseOpenApi(
-        Path input)
+        InputStream inputStream)
     {
         OpenApi openApi = null;
-        try (InputStream inputStream = new FileInputStream(input.toFile()))
+        try
         {
             Jsonb jsonb = JsonbBuilder.create();
             openApi = jsonb.fromJson(inputStream, OpenApi.class);

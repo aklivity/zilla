@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.command.config.internal.openapi;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -28,13 +30,13 @@ public class OpenApiHttpProxyConfigGeneratorTest
     public void shouldGenerateConfig() throws Exception
     {
         // GIVEN
-        Path expectedPath = Path.of(getClass().getResource("zilla.yaml").toURI());
-        String expectedResult = Files.readString(expectedPath);
-        Path inputPath = Path.of(getClass().getResource("openapi.yaml").toURI());
-        OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputPath);
+        String expectedResult = Files.readString(Path.of(getClass().getResource("zilla.yaml").getFile()));
+        InputStream inputStream = new FileInputStream(getClass().getResource("openapi.yaml").getFile());
+        OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputStream);
 
         // WHEN
         String result = generator.generate();
+        inputStream.close();
 
         // THEN
         assertThat(result, equalTo(expectedResult));

@@ -16,11 +16,14 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -53,12 +56,12 @@ public final class ZillaConfigCommand extends ZillaCommand
     @Override
     public void run()
     {
-        Map<String, ConfigGenerator> configGenerators = Map.of(
-            "openapi.http.proxy", new OpenApiHttpProxyConfigGenerator(input)
+        Map<String, Function<InputStream, ConfigGenerator>> generators = Map.of(
+            "openapi.http.proxy", OpenApiHttpProxyConfigGenerator::new
         );
-        ConfigGenerator generator = configGenerators.get(template);
-        try
+        try (InputStream inputStream = new FileInputStream(input.toFile()))
         {
+            ConfigGenerator generator = generators.get(template).apply(inputStream);
             Files.writeString(output, generator.generate());
         }
         catch (IOException ex)
