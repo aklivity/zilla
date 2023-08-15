@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -39,6 +39,13 @@ public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpOptionsConfigBuilder<T>>) getClass();
     }
 
     public HttpOptionsConfigBuilder<T> version(

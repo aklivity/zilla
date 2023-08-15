@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public class JwtKeyConfigBuilder<T> implements ConfigBuilder<T>
+public class JwtKeyConfigBuilder<T> extends ConfigBuilder<T, JwtKeyConfigBuilder<T>>
 {
     private final Function<JwtKeyConfig, T> mapper;
 
@@ -36,6 +36,13 @@ public class JwtKeyConfigBuilder<T> implements ConfigBuilder<T>
         Function<JwtKeyConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<JwtKeyConfigBuilder<T>> thisType()
+    {
+        return (Class<JwtKeyConfigBuilder<T>>) getClass();
     }
 
     public JwtKeyConfigBuilder<T> kty(

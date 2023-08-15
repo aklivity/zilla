@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpPatternConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpPatternConfigBuilder<T> extends ConfigBuilder<T, HttpPatternConfigBuilder<T>>
 {
     private final Function<HttpPatternConfig, T> mapper;
 
@@ -30,6 +30,13 @@ public final class HttpPatternConfigBuilder<T> implements ConfigBuilder<T>
         Function<HttpPatternConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpPatternConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpPatternConfigBuilder<T>>) getClass();
     }
 
     public HttpPatternConfigBuilder<T> name(

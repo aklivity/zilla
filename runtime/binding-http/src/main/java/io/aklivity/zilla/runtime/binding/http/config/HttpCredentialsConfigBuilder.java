@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpCredentialsConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpCredentialsConfigBuilder<T> extends ConfigBuilder<T, HttpCredentialsConfigBuilder<T>>
 {
     private final Function<HttpCredentialsConfig, T> mapper;
 
@@ -33,6 +33,13 @@ public final class HttpCredentialsConfigBuilder<T> implements ConfigBuilder<T>
         Function<HttpCredentialsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpCredentialsConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpCredentialsConfigBuilder<T>>) getClass();
     }
 
     public HttpPatternConfigBuilder<HttpCredentialsConfigBuilder<T>> header()

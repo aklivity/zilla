@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -107,6 +108,7 @@ public class NamespaceRefConfigAdapterTest
     public void shouldWriteReferenceWithLink()
     {
         NamespaceRefConfig reference = NamespaceRefConfig.builder()
+                .inject(identity())
                 .name("test")
                 .link("self", "/test")
                 .build();
