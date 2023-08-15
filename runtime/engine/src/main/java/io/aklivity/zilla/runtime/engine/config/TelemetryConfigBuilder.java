@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class TelemetryConfigBuilder<T> implements ConfigBuilder<T>
+public final class TelemetryConfigBuilder<T> extends ConfigBuilder<T, TelemetryConfigBuilder<T>>
 {
     public static final List<AttributeConfig> ATTRIBUTES_DEFAULT = List.of();
     public static final List<MetricConfig> METRICS_DEFAULT = List.of();
@@ -36,6 +36,13 @@ public final class TelemetryConfigBuilder<T> implements ConfigBuilder<T>
         Function<TelemetryConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TelemetryConfigBuilder<T>> thisType()
+    {
+        return (Class<TelemetryConfigBuilder<T>>) getClass();
     }
 
     public AttributeConfigBuilder<TelemetryConfigBuilder<T>> attribute()

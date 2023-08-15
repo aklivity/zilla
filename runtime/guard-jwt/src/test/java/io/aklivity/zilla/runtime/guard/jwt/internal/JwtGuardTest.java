@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.s
 import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
+import static java.util.function.Function.identity;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -48,6 +49,7 @@ public class JwtGuardTest
     public void shouldNotVerifyMissingContext() throws Exception
     {
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .role("read:stream")
                 .role("write:stream")
@@ -70,6 +72,7 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .role("read:stream")
                 .role("write:stream")
@@ -94,6 +97,7 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .role("read:stream")
                 .role("write:stream")
@@ -105,6 +109,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
         context.attach(GuardConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .type("jwt")
                 .options(JwtOptionsConfig.builder().build())
@@ -135,9 +140,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardHandler handler = context.attach(GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
@@ -172,6 +179,7 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .role("read:stream")
                 .role("write:stream")
@@ -184,9 +192,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardHandler handler = context.attach(GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
@@ -221,6 +231,7 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .role("read:stream")
                 .build();
@@ -232,9 +243,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardHandler handler = context.attach(GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
@@ -269,6 +282,7 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .build();
 
@@ -279,9 +293,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardHandler handler = context.attach(GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
@@ -321,9 +337,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardConfig config = GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
@@ -364,6 +382,7 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .build();
 
@@ -374,9 +393,11 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         GuardHandler handler = context.attach(GuardConfig.builder()
+                .inject(identity())
                 .name("test0")
                 .type("jwt")
                 .options(JwtOptionsConfig::builder)
+                    .inject(identity())
                     .issuer("test issuer")
                     .audience("testAudience")
                     .key(RFC7515_RS256_CONFIG)
@@ -417,9 +438,11 @@ public class JwtGuardTest
 
         Duration challenge = ofSeconds(3L);
         GuardConfig config = GuardConfig.builder()
+            .inject(identity())
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
+                .inject(identity())
                 .issuer("test issuer")
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)

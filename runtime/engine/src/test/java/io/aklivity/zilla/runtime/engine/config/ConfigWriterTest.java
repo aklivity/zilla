@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -60,14 +61,18 @@ public class ConfigWriterTest
         NamespaceConfig config = NamespaceConfig.builder()
                 .name("test")
                 .binding()
+                    .inject(identity())
                     .name("test0")
                     .type("test")
                     .kind(SERVER)
                     .options(TestBindingOptionsConfig::builder)
+                        .inject(identity())
                         .mode("test")
                         .build()
                     .route()
+                        .inject(identity())
                         .when(TestConditionConfig::builder)
+                            .inject(identity())
                             .match("test")
                             .build()
                         .exit("exit0")

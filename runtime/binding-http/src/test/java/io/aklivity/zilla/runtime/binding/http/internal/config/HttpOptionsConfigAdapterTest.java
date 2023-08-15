@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -125,12 +126,15 @@ public class HttpOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         HttpOptionsConfig options = HttpOptionsConfig.builder()
+            .inject(identity())
             .version(HttpVersion.HTTP_1_1)
             .version(HttpVersion.HTTP_2)
             .override(new String8FW(":authority"), new String16FW("example.com:443"))
             .access()
+                .inject(identity())
                 .policy(CROSS_ORIGIN)
                 .allow()
+                    .inject(identity())
                     .origin("https://example.com:9090")
                     .method("DELETE")
                     .header("x-api-key")
@@ -138,13 +142,16 @@ public class HttpOptionsConfigAdapterTest
                     .build()
                 .maxAge(Duration.ofSeconds(10))
                 .expose()
+                    .inject(identity())
                     .header("x-custom-header")
                     .build()
                 .build()
             .authorization()
                 .name("test0")
                 .credentials()
+                    .inject(identity())
                     .header()
+                        .inject(identity())
                         .name("authorization")
                         .pattern("Bearer {credentials}")
                         .build()

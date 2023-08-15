@@ -20,7 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class FileSystemOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, FileSystemOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -32,6 +32,13 @@ public final class FileSystemOptionsConfigBuilder<T> implements ConfigBuilder<T>
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<FileSystemOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<FileSystemOptionsConfigBuilder<T>>) getClass();
     }
 
     public FileSystemStoreConfigBuilder<FileSystemOptionsConfigBuilder<T>> keys()

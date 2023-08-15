@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RF
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -46,6 +47,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -78,6 +80,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -106,6 +109,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -133,6 +137,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -161,6 +166,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -190,6 +196,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -211,6 +218,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -234,6 +242,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenIssuerDiffers() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -255,6 +264,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenAudienceDiffers() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -276,6 +286,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenExpired() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -300,6 +311,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenNotYetValid() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -325,6 +337,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(30L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -350,6 +363,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -384,6 +398,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -419,6 +434,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -453,6 +469,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -489,6 +506,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -525,6 +543,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)
@@ -560,6 +579,7 @@ public class JwtGuardHandlerTest
     {
         Duration challenge = ofSeconds(30L);
         JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
             .key(RFC7515_RS256_CONFIG)

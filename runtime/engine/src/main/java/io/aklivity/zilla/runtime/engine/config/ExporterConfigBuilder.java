@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.function.Function;
 
-public final class ExporterConfigBuilder<T> implements ConfigBuilder<T>
+public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterConfigBuilder<T>>
 {
     private final Function<ExporterConfig, T> mapper;
 
@@ -29,6 +29,13 @@ public final class ExporterConfigBuilder<T> implements ConfigBuilder<T>
         Function<ExporterConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<ExporterConfigBuilder<T>> thisType()
+    {
+        return (Class<ExporterConfigBuilder<T>>) getClass();
     }
 
     public ExporterConfigBuilder<T> name(
@@ -45,7 +52,7 @@ public final class ExporterConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<ExporterConfigBuilder<T>>> C options(
+    public <C extends ConfigBuilder<ExporterConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, ExporterConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class RouteConfigBuilder<T> implements ConfigBuilder<T>
+public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBuilder<T>>
 {
     public static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
     public static final List<GuardedConfig> GUARDED_DEFAULT = emptyList();
@@ -41,6 +41,13 @@ public final class RouteConfigBuilder<T> implements ConfigBuilder<T>
         this.mapper = mapper;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<RouteConfigBuilder<T>> thisType()
+    {
+        return (Class<RouteConfigBuilder<T>>) getClass();
+    }
+
     public RouteConfigBuilder<T> order(
         int order)
     {
@@ -55,7 +62,7 @@ public final class RouteConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<RouteConfigBuilder<T>>> C when(
+    public <C extends ConfigBuilder<RouteConfigBuilder<T>, C>> C when(
         Function<Function<ConditionConfig, RouteConfigBuilder<T>>, C> condition)
     {
         return condition.apply(this::when);
@@ -72,7 +79,7 @@ public final class RouteConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <B extends ConfigBuilder<RouteConfigBuilder<T>>> B with(
+    public <B extends ConfigBuilder<RouteConfigBuilder<T>, B>> B with(
         Function<Function<WithConfig, RouteConfigBuilder<T>>, B> with)
     {
         return with.apply(this::with);
