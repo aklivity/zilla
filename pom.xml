@@ -44,10 +44,10 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <checkstyle.config.location>io/aklivity/zilla/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
-    <antlr4.version>4.11.1</antlr4.version>
+    <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
     <junit.version>5.8.2</junit.version>
-    <byteman.version>4.0.20</byteman.version>
+    <byteman.version>4.0.21</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.3.1</mockito.version>
     <k3po.version>3.1.0</k3po.version>
@@ -123,7 +123,7 @@
       <dependency>
         <groupId>com.squareup</groupId>
         <artifactId>javapoet</artifactId>
-        <version>1.9.0</version>
+        <version>1.13.0</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -163,7 +163,7 @@
       <dependency>
         <groupId>org.apache.maven.plugin-tools</groupId>
         <artifactId>maven-plugin-annotations</artifactId>
-        <version>3.5</version>
+        <version>3.9.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven.plugin-testing</groupId>
@@ -279,7 +279,7 @@
         <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
-          <version>4.1</version>
+          <version>4.2</version>
           <configuration>
             <header>COPYRIGHT</header>
             <properties>
@@ -361,7 +361,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
+          <version>3.11.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -376,7 +376,7 @@
         <plugin>
           <groupId>org.moditect</groupId>
           <artifactId>moditect-maven-plugin</artifactId>
-          <version>1.0.0.RC1</version>
+          <version>1.0.0.Final</version>
           <configuration>
             <module>
               <moduleInfoFile>src/main/moditect/module-info.java</moduleInfoFile>
@@ -402,7 +402,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -690,7 +690,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.0.1</version>
+            <version>3.3.0</version>
             <executions>
               <execution>
                 <goals>

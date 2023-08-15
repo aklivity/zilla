@@ -15,17 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, JsonObject>
 {
@@ -51,13 +48,17 @@ public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, Jso
 
     @Override
     public TelemetryRefConfig adaptFromJson(
-        JsonObject jsonObject)
+        JsonObject object)
     {
-        List<MetricRefConfig> metricRefs = jsonObject.containsKey(METRICS_NAME)
-                ? jsonObject.getJsonArray(METRICS_NAME).stream()
-                        .map(metricRef::adaptFromJson)
-                        .collect(Collectors.toList())
-                : List.of();
-        return new TelemetryRefConfig(metricRefs);
+        TelemetryRefConfigBuilder<TelemetryRefConfig> telemetry = TelemetryRefConfig.builder();
+
+        if (object.containsKey(METRICS_NAME))
+        {
+            object.getJsonArray(METRICS_NAME).stream()
+                .map(metricRef::adaptFromJson)
+                .forEach(telemetry::metric);
+        }
+
+        return telemetry.build();
     }
 }

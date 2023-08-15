@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 import java.util.List;
 import java.util.function.ToLongFunction;
@@ -39,7 +40,12 @@ public class BindingConfig
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
 
-    public BindingConfig(
+    public static BindingConfigBuilder<BindingConfig> builder()
+    {
+        return new BindingConfigBuilder<>(identity());
+    }
+
+    BindingConfig(
         String vault,
         String name,
         String type,

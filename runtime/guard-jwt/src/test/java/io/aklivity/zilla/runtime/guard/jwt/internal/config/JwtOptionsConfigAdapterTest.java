@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.config;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -31,7 +30,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtOptionsConfigAdapterTest
@@ -106,24 +104,31 @@ public class JwtOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        JwtKeyConfig key0 = new JwtKeyConfig(
-                "EC", "1", "enc",
-                null, null, null,
-                "P-256", "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4", "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM");
-        JwtKeyConfig key1 = new JwtKeyConfig(
-                "RSA", "2011-04-29", null,
-                "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
-                "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMs" +
-                "tn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
-                "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
-                "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqb" +
-                "w0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw", "AQAB", "RS256",
-                null, null, null);
-        JwtOptionsConfig options = new JwtOptionsConfig(
-                "https://auth.example.com",
-                "https://api.example.com",
-                asList(key0, key1),
-                Duration.ofSeconds(30));
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+                .issuer("https://auth.example.com")
+                .audience("https://api.example.com")
+                .key()
+                    .kty("EC")
+                    .kid("1")
+                    .use("enc")
+                    .crv("P-256")
+                    .x("MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4")
+                    .y("4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM")
+                    .build()
+                .key()
+                    .kty("RSA")
+                    .kid("2011-04-29")
+                    .n("0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
+                       "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMs" +
+                       "tn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
+                       "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
+                       "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqb" +
+                       "w0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw")
+                    .e("AQAB")
+                    .alg("RS256")
+                    .build()
+                .challenge(Duration.ofSeconds(30))
+                .build();
 
         String text = jsonb.toJson(options);
 

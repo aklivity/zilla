@@ -231,10 +231,11 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
-            int64 filters = -1;          // INIT only
+            int64 filters = -1;         // INIT only
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
             KafkaDelta delta;           // INIT + FIN
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }

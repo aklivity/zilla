@@ -15,13 +15,20 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.config;
 
-public class FileSystemStoreConfig
+import static java.util.function.Function.identity;
+
+public final class FileSystemStoreConfig
 {
     public final String store;
     public final String type;
     public final String password;
 
-    public FileSystemStoreConfig(
+    public static FileSystemStoreConfigBuilder<FileSystemStoreConfig> builder()
+    {
+        return new FileSystemStoreConfigBuilder<>(identity());
+    }
+
+    FileSystemStoreConfig(
         String store,
         String type,
         String password)

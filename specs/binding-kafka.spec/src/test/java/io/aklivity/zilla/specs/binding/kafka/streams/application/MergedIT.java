@@ -272,6 +272,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.values.dynamic.hash.key/client",
+        "${app}/merged.produce.message.values.dynamic.hash.key/server"})
+    public void shouldProduceMergedMessageValuesDynamicHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.message.flags.incomplete/client",
         "${app}/merged.produce.message.flags.incomplete/server"})
     public void shouldProduceMergedMessageWithIncompleteFlags() throws Exception
@@ -485,6 +494,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.values.dynamic.hashed/client",
         "${app}/unmerged.produce.message.values.dynamic.hashed/server"})
     public void shouldProduceUnmergedMessageValuesDynamicHashed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.values.dynamic.hash.key/client",
+        "${app}/unmerged.produce.message.values.dynamic.hash.key/server"})
+    public void shouldProduceUnMergedMessageValuesDynamicHashKey() throws Exception
     {
         k3po.finish();
     }

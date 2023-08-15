@@ -15,12 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.RouteConfig.GUARDED_DEFAULT;
-import static io.aklivity.zilla.runtime.engine.config.RouteConfig.WHEN_DEFAULT;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import static io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder.GUARDED_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder.WHEN_DEFAULT;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -30,11 +26,11 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 {
@@ -113,37 +109,46 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     public RouteConfig adaptFromJson(
         JsonObject object)
     {
-        String newExit = object.containsKey(EXIT_NAME)
-                ? object.getString(EXIT_NAME)
-                : null;
-        List<ConditionConfig> newWhen = object.containsKey(WHEN_NAME)
-                ? object.getJsonArray(WHEN_NAME)
-                    .stream().map(JsonValue::asJsonObject)
-                    .map(condition::adaptFromJson)
-                    .collect(Collectors.toList())
-                : WHEN_DEFAULT;
-        WithConfig newWith = object.containsKey(WITH_NAME)
-                ? with.adaptFromJson(object.getJsonObject(WITH_NAME))
-                : null;
+        RouteConfigBuilder<RouteConfig> route = RouteConfig.builder()
+            .order(index);
 
-        List<GuardedConfig> newGuarded = GUARDED_DEFAULT;
+        if (object.containsKey(EXIT_NAME))
+        {
+            route.exit(object.getString(EXIT_NAME));
+        }
+
+        if (object.containsKey(WHEN_NAME))
+        {
+            object.getJsonArray(WHEN_NAME)
+                .stream()
+                .map(JsonValue::asJsonObject)
+                .map(condition::adaptFromJson)
+                .forEach(route::when);
+        }
+
+        if (object.containsKey(WITH_NAME))
+        {
+            route.with(with.adaptFromJson(object.getJsonObject(WITH_NAME)));
+        }
+
         if (object.containsKey(GUARDED_NAME))
         {
-            newGuarded = new ArrayList<>();
-
             JsonObject guarded = object.getJsonObject(GUARDED_NAME);
             for (String name : guarded.keySet())
             {
-                List<String> roles = guarded.getJsonArray(name)
+                GuardedConfigBuilder<?> guardedBy = route.guarded()
+                    .name(name);
+
+                guarded.getJsonArray(name)
                     .stream()
                     .map(JsonString.class::cast)
                     .map(JsonString::getString)
-                    .collect(Collectors.toList());
+                    .forEach(guardedBy::role);
 
-                newGuarded.add(new GuardedConfig(name, roles));
+                guardedBy.build();
             }
         }
 
-        return new RouteConfig(index, newExit, newWhen, newWith, newGuarded);
+        return route.build();
     }
 }

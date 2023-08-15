@@ -21,6 +21,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfigBuilder;
 
 public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSystemStoreConfig, JsonObject>
 {
@@ -53,10 +54,19 @@ public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSyst
     public FileSystemStoreConfig adaptFromJson(
         JsonObject object)
     {
-        String store = object.getString(STORE_NAME);
-        String type = object.containsKey(TYPE_NAME) ? object.getString(TYPE_NAME) : null;
-        String password = object.containsKey(PASSWORD_NAME) ? object.getString(PASSWORD_NAME) : null;
+        FileSystemStoreConfigBuilder<FileSystemStoreConfig> fsStore = FileSystemStoreConfig.builder()
+            .store(object.getString(STORE_NAME));
 
-        return new FileSystemStoreConfig(store, type, password);
+        if (object.containsKey(TYPE_NAME))
+        {
+            fsStore.type(object.getString(TYPE_NAME));
+        }
+
+        if (object.containsKey(PASSWORD_NAME))
+        {
+            fsStore.password(object.getString(PASSWORD_NAME));
+        }
+
+        return fsStore.build();
     }
 }

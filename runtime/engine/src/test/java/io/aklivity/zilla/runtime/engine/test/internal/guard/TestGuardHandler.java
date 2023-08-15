@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
-import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_CHALLENGE_NEVER;
-import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_LIFETIME_FOREVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 
 import java.time.Duration;
 import java.time.Instant;

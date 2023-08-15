@@ -448,6 +448,7 @@ public class KafkaFunctionsTest
                                          .partition(0, 0L)
                                          .progress(0, 1L)
                                          .key("match")
+                                         .hashKey("hashKey")
                                          .header("name", "value")
                                          .build()
                                      .build();
@@ -485,6 +486,10 @@ public class KafkaFunctionsTest
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
+
+        assertEquals("hashKey", mergedDataEx.hashKey()
+            .value()
+            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
     @Test
@@ -983,6 +988,7 @@ public class KafkaFunctionsTest
                                                  .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
+                                                 .hashKey("hashKey")
                                                  .build()
                                              .build();
 
@@ -996,8 +1002,9 @@ public class KafkaFunctionsTest
                              .progressItem(p -> p.partitionId(0).partitionOffset(1L))
                              .key(k -> k.length(5)
                                         .value(v -> v.set("match".getBytes(UTF_8))))
+                             .hashKey(k -> k.length(7)
+                                 .value(v -> v.set("hashKey".getBytes(UTF_8))))
                              .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-
                              .headersItem(h -> h.nameLen(4)
                                                 .name(n -> n.set("name".getBytes(UTF_8)))
                                                 .valueLen(5)
@@ -1399,6 +1406,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
                                                  .key(null)
+                                                 .hashKey(null)
                                                  .build()
                                              .build();
 

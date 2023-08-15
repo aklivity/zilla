@@ -75,7 +75,9 @@ public class OptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        OptionsConfig options = new TestBindingOptionsConfig("test");
+        OptionsConfig options = TestBindingOptionsConfig.builder()
+            .mode("test")
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -100,7 +102,9 @@ public class OptionsConfigAdapterTest
     @Test
     public void shouldWriteNullWhenNotAdapting()
     {
-        OptionsConfig options = new TestBindingOptionsConfig("test");
+        OptionsConfig options = TestBindingOptionsConfig.builder()
+                .mode("test")
+                .build();
 
         adapter.adaptType(null);
         String text = jsonb.toJson(options);
