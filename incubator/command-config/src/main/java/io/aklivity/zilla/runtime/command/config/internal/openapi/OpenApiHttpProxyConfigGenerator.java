@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
-import io.aklivity.zilla.runtime.engine.config.GuardConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -96,9 +95,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
         return NamespaceConfig.builder()
             .name("example")
-            .guard()
-                .inject(guard -> injectGuard(guard, guardedRoutes))
-                .build()
+            .inject(namespace -> injectGuard(namespace, guardedRoutes))
             .binding()
                 .name("tcp_server0")
                 .type("tcp")
@@ -214,8 +211,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .build();
     }
 
-    private GuardConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectGuard(
-        GuardConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> guard,
+    private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
+        NamespaceConfigBuilder<NamespaceConfig> namespace,
         Map<String, GuardedConfig> guardedRoutes)
     {
         for (String securitySchemeName : openApi.components.securitySchemes.keySet())
@@ -223,22 +220,23 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
             if ("jwt".equals(guardType))
             {
-                guard
-                    .name("jwt0")
-                    .type(guardType)
-                    .options(JwtOptionsConfig::builder)
-                        .issuer("") // env
-                        .audience("") // env
-                        .key()
-                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                namespace
+                    .guard()
+                        .name("jwt0")
+                        .type(guardType)
+                        .options(JwtOptionsConfig::builder)
+                            .issuer("") // env
+                            .audience("") // env
+                            .key()
+                                .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                                .build()
                             .build()
-                        .build()
-                    .build();
+                        .build();
                 GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
                 guardedRoutes.put(securitySchemeName, guarded);
             }
         }
-        return guard;
+        return namespace;
     }
 
     private int[] resolvePortsForScheme(
