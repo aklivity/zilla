@@ -97,7 +97,7 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/config/internal/openapi/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/config/internal/openapi/**/*</exclude>
           </excludes>
         </configuration>
       </plugin>

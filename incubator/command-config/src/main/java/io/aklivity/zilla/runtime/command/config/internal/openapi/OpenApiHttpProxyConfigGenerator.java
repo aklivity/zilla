@@ -36,6 +36,7 @@ import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
@@ -55,21 +56,33 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 {
-    private static final JsonPatch ENV_VARS_PATCH = createEnvVarsPatch();
-
     private final OpenApi openApi;
+    private final int[] allPorts;
+    private final int[] httpPorts;
+    private final int[] httpsPorts;
+    private final boolean isPlainEnabled;
+    private final boolean isTlsEnabled;
+    private final NamespaceConfig namespace;
+    private final JsonPatch envVarsPatch;
     private final ConfigWriter configWriter;
 
     public OpenApiHttpProxyConfigGenerator(
         InputStream inputStream)
     {
         this.openApi = parseOpenApi(inputStream);
+        this.allPorts = resolveAllPorts();
+        this.httpPorts = resolvePortsForScheme("http");
+        this.httpsPorts = resolvePortsForScheme("https");
+        this.isPlainEnabled = httpPorts != null;
+        this.isTlsEnabled = httpsPorts != null;
+        this.namespace = createNamespace();
+        this.envVarsPatch = createEnvVarsPatch();
         this.configWriter = new ConfigWriter(null);
     }
 
     public String generate()
     {
-        return writeConfig(createNamespace());
+        return writeConfig(namespace);
     }
 
     private OpenApi parseOpenApi(
@@ -90,50 +103,56 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return openApi;
     }
 
+    private int[] resolveAllPorts()
+    {
+        int[] ports = new int[openApi.servers.size()];
+        for (int i = 0; i < openApi.servers.size(); i++)
+        {
+            Server2 server2 = Server2.of(openApi.servers.get(i));
+            URI url = server2.url();
+            ports[i] = url.getPort();
+        }
+        return ports;
+    }
+
+    private int[] resolvePortsForScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        int[] ports = null;
+        URI url = findFirstServerUrlWithScheme(scheme);
+        if (url != null)
+        {
+            ports = new int[] {url.getPort()};
+        }
+        return ports;
+    }
+
+    private URI findFirstServerUrlWithScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        URI result = null;
+        for (Server server : openApi.servers)
+        {
+            Server2 server2 = Server2.of(server);
+            if (scheme.equals(server2.url().getScheme()))
+            {
+                result = server2.url();
+                break;
+            }
+        }
+        return result;
+    }
+
     private NamespaceConfig createNamespace()
     {
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
         return NamespaceConfig.builder()
             .name("example")
             .inject(namespace -> injectGuard(namespace, guardedRoutes))
-            .binding()
-                .name("tcp_server0")
-                .type("tcp")
-                .kind(SERVER)
-                .options(TcpOptionsConfig::builder)
-                    .host("0.0.0.0")
-                    .ports(resolvePortsForScheme("https"))
-                    .build()
-                .route()
-                    .exit("tls_server0")
-                    .build()
-                .build()
-            .binding()
-                .name("tcp_server1")
-                .type("tcp")
-                .kind(SERVER)
-                .options(TcpOptionsConfig::builder)
-                    .host("0.0.0.0")
-                    .ports(resolvePortsForScheme("http"))
-                    .build()
-                .route()
-                    .exit("http_server0")
-                    .build()
-                .build()
-            .binding()
-                .name("tls_server0")
-                .type("tls")
-                .kind(SERVER)
-                .options(TlsOptionsConfig::builder)
-                    .keys(List.of("")) // env
-                    .sni(List.of("")) // env
-                    .alpn(List.of("")) // env
-                    .build()
-                .vault("server")
-                .route()
-                    .exit("http_server0")
-                    .build()
-                .build()
+            .inject(namespace -> injectTcpServer(namespace, "http_server0", "tls_server0"))
+            .inject(namespace -> injectTlsServer(namespace))
             .binding()
                 .name("http_server0")
                 .type("http")
@@ -158,25 +177,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .name("http_client0")
                 .type("http")
                 .kind(CLIENT)
-                .route()
-                    .exit("tls_client0")
-                    .build()
+                .inject(binding -> injectHttpClientRoute(binding, "tcp_client0", "tls_client0"))
                 .build()
-            .binding()
-                .name("tls_client0")
-                .type("tls")
-                .kind(CLIENT)
-                .options(TlsOptionsConfig::builder)
-                    .trust(List.of("")) // env
-                    .sni(List.of("")) // env
-                    .alpn(List.of("")) // env
-                    .trustcacerts(true)
-                    .build()
-                .vault("client")
-                .route()
-                    .exit("tcp_client0")
-                    .build()
-                .build()
+            .inject(namespace -> injectTlsClient(namespace))
             .binding()
                 .name("tcp_client0")
                 .type("tcp")
@@ -186,28 +189,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .ports(new int[]{0}) // env
                     .build()
                 .build()
-            .vault()
-                .name("client")
-                .type("filesystem")
-                .options(FileSystemOptionsConfig::builder)
-                    .trust()
-                        .store("") // env
-                        .type("") // env
-                        .password("") // env
-                        .build()
-                    .build()
-                .build()
-            .vault()
-                .name("server")
-                .type("filesystem")
-                .options(FileSystemOptionsConfig::builder)
-                    .keys()
-                        .store("") // env
-                        .type("") // env
-                        .password("") //env
-                        .build()
-                    .build()
-                .build()
+            .inject(namespace -> injectVaults(namespace, isTlsEnabled))
             .build();
     }
 
@@ -239,34 +221,61 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return namespace;
     }
 
-    private int[] resolvePortsForScheme(
-        String scheme)
+    private NamespaceConfigBuilder<NamespaceConfig> injectTcpServer(
+        NamespaceConfigBuilder<NamespaceConfig> namespace,
+        String plainExit,
+        String tlsExit)
     {
-        requireNonNull(scheme);
-        int[] httpPorts = null;
-        URI httpServerUrl = findFirstServerUrlWithScheme(scheme);
-        if (httpServerUrl != null)
-        {
-            httpPorts = new int[] {httpServerUrl.getPort()};
-        }
-        return httpPorts;
+        namespace
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .options(TcpOptionsConfig::builder)
+                    .host("0.0.0.0")
+                    .ports(allPorts)
+                    .build()
+                .inject(binding -> injectTcpRoutes(binding, plainExit, tlsExit))
+                .build();
+        return namespace;
     }
 
-    private URI findFirstServerUrlWithScheme(
-        String scheme)
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTcpRoutes(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
+        String plainExit,
+        String tlsExit)
     {
-        requireNonNull(scheme);
-        URI result = null;
-        for (Server server : openApi.servers)
+        if (isPlainEnabled && isTlsEnabled)
         {
-            Server2 server2 = Server2.of(server);
-            if (scheme.equals(server2.url().getScheme()))
-            {
-                result = server2.url();
-                break;
-            }
+            binding
+                .route()
+                    .when(TcpConditionConfig::builder)
+                        .ports(httpPorts)
+                        .build()
+                    .exit(plainExit)
+                    .build()
+                .route()
+                    .when(TcpConditionConfig::builder)
+                        .ports(httpsPorts)
+                        .build()
+                    .exit(tlsExit)
+                    .build();
         }
-        return result;
+        else if (isPlainEnabled)
+        {
+            binding
+                .route()
+                    .exit(plainExit)
+                    .build();
+        }
+        else if (isTlsEnabled)
+        {
+            binding
+                .route()
+                    .exit(tlsExit)
+                    .build();
+        }
+        return binding;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectRoutes(
@@ -305,23 +314,113 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return binding;
     }
 
-    private String writeConfig(
-        NamespaceConfig namespace)
+    private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        return configWriter.write(namespace, ENV_VARS_PATCH);
+        if (isTlsEnabled)
+        {
+            namespace
+                .binding()
+                    .name("tls_client0")
+                    .type("tls")
+                    .kind(CLIENT)
+                    .options(TlsOptionsConfig::builder)
+                        .trust(List.of("")) // env
+                        .sni(List.of("")) // env
+                        .alpn(List.of("")) // env
+                        .trustcacerts(true)
+                        .build()
+                    .vault("client")
+                    .route()
+                        .exit("tcp_client0")
+                        .build()
+                    .build();
+        }
+        return namespace;
     }
 
-    private static JsonPatch createEnvVarsPatch()
+    private NamespaceConfigBuilder<NamespaceConfig> injectTlsServer(
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    {
+        if (isTlsEnabled)
+        {
+            namespace
+                .binding()
+                    .name("tls_server0")
+                    .type("tls")
+                    .kind(SERVER)
+                    .options(TlsOptionsConfig::builder)
+                        .keys(List.of("")) // env
+                        .sni(List.of("")) // env
+                        .alpn(List.of("")) // env
+                        .build()
+                    .vault("server")
+                    .route()
+                        .exit("http_server0")
+                        .build()
+                    .build();
+        }
+        return namespace;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
+        String plainExit,
+        String tlsExit)
+    {
+        if (isTlsEnabled)
+        {
+            binding
+                .route()
+                    .exit(tlsExit)
+                    .build();
+        }
+        else
+        {
+            binding
+                .route()
+                    .exit(plainExit)
+                    .build();
+        }
+        return binding;
+    }
+
+    private NamespaceConfigBuilder<NamespaceConfig> injectVaults(
+        NamespaceConfigBuilder<NamespaceConfig> namespace,
+        boolean isTlsEnabled)
+    {
+        if (isTlsEnabled)
+        {
+            namespace
+                .vault()
+                .name("client")
+                .type("filesystem")
+                .options(FileSystemOptionsConfig::builder)
+                    .trust()
+                        .store("") // env
+                        .type("") // env
+                        .password("") // env
+                        .build()
+                    .build()
+                .build()
+            .vault()
+                .name("server")
+                .type("filesystem")
+                .options(FileSystemOptionsConfig::builder)
+                    .keys()
+                        .store("") // env
+                        .type("") // env
+                        .password("") //env
+                        .build()
+                    .build()
+                .build();
+        }
+        return namespace;
+    }
+
+    private JsonPatch createEnvVarsPatch()
     {
         Map<String, String> ops = new HashMap<>();
-        // tls_server0 binding
-        ops.put("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
-        ops.put("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
-        ops.put("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
-        // tls_client0 binding
-        ops.put("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
-        ops.put("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
-        ops.put("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
         // tcp_client0 binding
         ops.put("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
         ops.put("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
@@ -337,14 +436,26 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         ops.put("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
         ops.put("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
         ops.put("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
-        // client vault
-        ops.put("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
-        ops.put("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
-        ops.put("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
-        // server vault
-        ops.put("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
-        ops.put("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
-        ops.put("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+
+        if (isTlsEnabled)
+        {
+            // tls_server0 binding
+            ops.put("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+            ops.put("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
+            ops.put("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
+            // tls_client0 binding
+            ops.put("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
+            ops.put("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
+            ops.put("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
+            // client vault
+            ops.put("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
+            ops.put("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
+            ops.put("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
+            // server vault
+            ops.put("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
+            ops.put("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
+            ops.put("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+        }
 
         JsonArrayBuilder patch = Json.createArrayBuilder();
         for (Map.Entry<String, String> entry: ops.entrySet())
@@ -359,4 +470,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return JsonProvider.provider().createPatch(patch.build());
     }
 
+    private String writeConfig(
+        NamespaceConfig namespace)
+    {
+        return configWriter.write(namespace, envVarsPatch);
+    }
 }

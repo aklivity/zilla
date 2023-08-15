@@ -10,8 +10,6 @@ servers:
   - url: https://localhost:9090
 paths:
   /items:
-    servers:
-      - url: https://items.com:9090
     post:
       summary: Create an item
       operationId: createItem
@@ -31,8 +29,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-      servers:
-        - url: https://postitems.com:9090
       security:
         - bearerAuth: []
     get:

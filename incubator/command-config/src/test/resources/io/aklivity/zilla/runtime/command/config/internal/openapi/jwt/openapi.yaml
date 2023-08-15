@@ -1,0 +1,166 @@
+openapi: 3.1.0
+hello: $.openapi
+info:
+  version: 1.0.0
+  title: Zilla CRUD V1
+  license:
+    name: Aklivity Community License
+servers:
+  - url: http://localhost:8080
+paths:
+  /items:
+    post:
+      summary: Create an item
+      operationId: createItem
+      tags:
+        - items
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/Item'
+      responses:
+        '204':
+          description: No Content
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - bearerAuth: []
+    get:
+      summary: List all items
+      operationId: listItems
+      tags:
+        - items
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: integer
+            maximum: 100
+            format: int32
+      responses:
+        '200':
+          description: A paged array of items
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Items"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - bearerAuth: []
+  /items/{id}:
+    get:
+      summary: Get an item
+      operationId: showItemById
+      tags:
+        - items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the item to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      summary: Update an item by key
+      operationId: updateItem
+      tags:
+        - items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the item to update
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete an item by key
+      operationId: deleteItem
+      tags:
+        - items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the item to delete
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - greeting
+      properties:
+        greeting:
+          type: string
+        tag:
+          type: string
+    Items:
+      type: array
+      maxItems: 100
+      items:
+        $ref: "#/components/schemas/Item"
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
