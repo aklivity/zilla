@@ -30,10 +30,11 @@ read  [0x10 0x13]                    # CONNECT
       [0x00]                         # properties = none
       [0x00 0x06] "client"           # client id
 
-write [0x20 0x05]                    # CONNACK
+write [0x20 0x0a]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
-      [0x02]                         # properties
+      [0x07]                         # properties
+      [0x27] 66560                   # maximum packet size = 66560
       [0x24 0x00]                    # maximum qos = at most once
 
 read  [0x34 0x39]                    # PUBLISH, qos = exactly once

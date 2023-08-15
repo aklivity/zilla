@@ -30,10 +30,11 @@ read  [0x10 0x13]                    # CONNECT
       [0x00]                         # properties = none
       [0x00 0x06] "client"           # client id
 
-write  [0x20 0x03]                   # CONNACK
-       [0x00]                        # flags = none
-       [0x00]                        # reason code
-       [0x00]                        # properties = none
+write [0x20 0x08]                   # CONNACK
+      [0x00]                        # flags = none
+      [0x00]                        # reason code
+      [0x05]                        # properties = none
+      [0x27] 66560                  # maximum packet size = 66560
 
 read  [0x82 0x12]                    # SUBSCRIBE
       [0x00 0x01]                    # packet id = 1

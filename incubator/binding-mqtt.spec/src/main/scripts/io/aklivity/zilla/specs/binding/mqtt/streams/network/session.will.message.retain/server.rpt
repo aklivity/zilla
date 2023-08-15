@@ -34,7 +34,8 @@ read  [0x10 0x3a]                                      # CONNECT
       [0x00 0x09] "wills/one"                          # will topic
       [0x00 0x1a] "client one session expired"         # will payload
 
-write [0x20 0x03]                                      # CONNACK
+write [0x20 0x08]                                      # CONNACK
       [0x00]                                           # flags = none
       [0x00]                                           # reason code
-      [0x00]                                           # properties = none
+      [0x05]                                           # properties = none
+      [0x27] 66560                                     # maximum packet size = 66560
