@@ -31,7 +31,7 @@ import com.github.rvesse.airline.annotations.restrictions.AllowedValues;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.OpenApiHttpProxyConfigGenerator;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.http.proxy.OpenApiHttpProxyConfigGenerator;
 
 @Command(name = "config", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
