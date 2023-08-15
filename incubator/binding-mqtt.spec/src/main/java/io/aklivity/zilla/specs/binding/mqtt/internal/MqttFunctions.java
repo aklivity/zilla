@@ -51,6 +51,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeg
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
@@ -340,6 +342,13 @@ public final class MqttFunctions
             return new MqttDataExBuilder.MqttPublishDataExBuilder();
         }
 
+        public MqttDataExBuilder.MqttSessionDataExBuilder session()
+        {
+            dataExRW.kind(MqttExtensionKind.SESSION.value());
+
+            return new MqttDataExBuilder.MqttSessionDataExBuilder();
+        }
+
         public byte[] build()
         {
             final MqttDataExFW dataEx = dataExRO;
@@ -525,8 +534,32 @@ public final class MqttFunctions
 
             public MqttDataExBuilder build()
             {
-                final MqttPublishDataExFW publishBeginEx = publishDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, publishBeginEx.limit());
+                final MqttPublishDataExFW publishDataEx = publishDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, publishDataEx.limit());
+                return MqttDataExBuilder.this;
+            }
+        }
+
+        public final class MqttSessionDataExBuilder
+        {
+            private final MqttSessionDataExFW.Builder sessionDataExRW = new MqttSessionDataExFW.Builder();
+
+            private MqttSessionDataExBuilder()
+            {
+                sessionDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_SESSION, writeBuffer.capacity());
+            }
+
+            public MqttSessionDataExBuilder kind(
+                String kind)
+            {
+                sessionDataExRW.kind(k -> k.set(MqttSessionDataKind.valueOf(kind)));
+                return this;
+            }
+
+            public MqttDataExBuilder build()
+            {
+                final MqttSessionDataExFW sessionDataEx = sessionDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, sessionDataEx.limit());
                 return MqttDataExBuilder.this;
             }
         }
@@ -787,13 +820,6 @@ public final class MqttFunctions
             String topic)
         {
             willMessageRW.responseTopic(topic);
-            return this;
-        }
-
-        public MqttWillMessageBuilder generationId(
-            String generationId)
-        {
-            willMessageRW.generationId(generationId);
             return this;
         }
 

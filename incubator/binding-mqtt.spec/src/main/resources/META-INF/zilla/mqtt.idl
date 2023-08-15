@@ -91,7 +91,6 @@ scope mqtt
         string16 contentType = null;
         MqttPayloadFormat format = BINARY;
         string16 responseTopic = null;
-        string16 generationId = null;
         MqttBinary correlation;
         MqttUserProperty[] properties;
         MqttBinary payload;

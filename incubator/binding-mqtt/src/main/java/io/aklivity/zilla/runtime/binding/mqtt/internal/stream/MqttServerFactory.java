@@ -151,6 +151,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
@@ -818,6 +819,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode = SUCCESS;
 
             final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
+            int flags = 0;
             decode:
             {
                 if (mqttConnect == null)
@@ -826,7 +828,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                int flags = mqttConnect.flags();
+                flags = mqttConnect.flags();
 
                 reasonCode = decodeConnectType(mqttConnect, flags);
                 if (reasonCode != SUCCESS)
@@ -853,6 +855,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
+            }
+            else if (progress == limit && !session)
+            {
+                if (isSetPassword(flags) || isSetUsername(flags) || isSetWillFlag(flags))
+                {
+                    reasonCode = MALFORMED_PACKET;
+                }
+                server.doEncodeConnack(traceId, authorization, reasonCode, server.assignedClientId,
+                    false, null);
+                server.connected = true;
+                server.decoder = decodePacketType;
             }
         }
 
@@ -1680,6 +1693,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     resolveSession(traceId, authorization, resolved.id);
                 }
+                else
+                {
+                    decoder = decodeConnectPayload;
+                }
 
                 doCancelConnectTimeout();
             }
@@ -1754,25 +1771,69 @@ public final class MqttServerFactory implements MqttStreamFactory
                     doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
                     connected = true;
                 }
+
+                final int flags = connectFlags;
+                final boolean willFlagSet = isSetWillFlag(flags);
+                final int willFlags = decodeWillFlags(flags);
+                final int willQos = decodeWillQos(flags);
+
+                if (session && willFlagSet)
+                {
+                    final MqttDataExFW.Builder sessionDataExBuilder =
+                        mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                            .typeId(mqttTypeId)
+                            .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.WILL)));
+
+                    final MqttMessageFW.Builder willMessageBuilder =
+                        mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                        .topic(payload.willTopic)
+                        .delay(payload.willDelay)
+                        .qos(willQos)
+                        .flags(willFlags)
+                        .expiryInterval(payload.expiryInterval)
+                        .contentType(payload.contentType)
+                        .format(f -> f.set(payload.payloadFormat))
+                        .responseTopic(payload.responseTopic)
+                        .correlation(c -> c.bytes(payload.correlationData));
+
+                    final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
+                    userProperties.forEach(
+                        c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
+                    willMessageBuilder.payload(p -> p.bytes(payload.willPayload.bytes()));
+
+                    final MqttMessageFW will = willMessageBuilder.build();
+                    final int payloadSize = willMessageBuilder.sizeof();
+
+                    sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), will);
+                }
+                decoder = decodePacketType;
             }
 
-            if (reasonCode == BAD_USER_NAME_OR_PASSWORD)
+            if (reasonCode != SUCCESS)
             {
                 doCancelConnectTimeout();
+
+                if (reasonCode != BAD_USER_NAME_OR_PASSWORD)
+                {
+                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
+                }
+
+                if (session)
+                {
+                    sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                }
                 doNetworkEnd(traceId, authorization);
-                sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
+
                 decoder = decodeIgnoreAll;
                 progress = limit;
             }
-            else if (reasonCode != SUCCESS)
+            else if (progress == limit)
             {
-                doCancelConnectTimeout();
                 doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
-                doNetworkEnd(traceId, authorization);
-                sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
-                decoder = decodeIgnoreAll;
-                progress = limit;
+                connected = true;
+                decoder = decodePacketType;
             }
+
 
             return progress;
         }
@@ -1782,10 +1843,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             long resolvedId)
         {
-            //final int flags = connect.flags();
-
-            //final boolean willFlagSet = isSetWillFlag(flags);
-
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .session(sessionBuilder ->
@@ -1793,28 +1850,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionBuilder.clientId(clientId);
                     sessionBuilder.expiry(sessionExpiryInterval);
                     sessionBuilder.serverReference(serverReference);
-                    //                    if (willFlagSet)
-                    //                    {
-                    //                        final int willFlags = decodeWillFlags(flags);
-                    //                        final int willQos = decodeWillQos(flags);
-                    //                        final MqttMessageFW.Builder willMessageBuilder =
-                    //                            mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
-                    //                            .topic(payload.willTopic)
-                    //                            .delay(payload.willDelay)
-                    //                            .qos(willQos)
-                    //                            .flags(willFlags)
-                    //                            .expiryInterval(payload.expiryInterval)
-                    //                            .contentType(payload.contentType)
-                    //                            .format(f -> f.set(payload.payloadFormat))
-                    //                            .responseTopic(payload.responseTopic)
-                    //                            .correlation(c -> c.bytes(payload.correlationData));
-                    //
-                    //                        final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
-                    //                        userProperties.forEach(
-                    //                            c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
-                    //                        willMessageBuilder.payload(p -> p.bytes(payload.willPayload.bytes()));
-                    //                        sessionBuilder.will(willMessageBuilder.build());
-                    //                    }
                 });
 
             if (sessionStream == null)
@@ -1997,6 +2032,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (session)
                 {
+                    final MqttDataExFW.Builder sessionDataExBuilder =
+                        mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                            .typeId(mqttTypeId)
+                            .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
+
                     final MqttSessionStateFW.Builder state =
                         mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
@@ -2020,7 +2060,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttSessionStateFW sessionState = state.build();
                     final int payloadSize = sessionState.sizeof();
 
-                    sessionStream.doSessionData(traceId, payloadSize, sessionState);
+                    sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
                 }
                 else
                 {
@@ -2130,6 +2170,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             List<String> topicFilters)
         {
+            final MqttDataExFW.Builder sessionDataExBuilder =
+                mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
+
             List<Subscription> currentState = sessionStream.subscriptions();
             List<Subscription> newState = currentState.stream()
                 .filter(subscription -> !topicFilters.contains(subscription.filter))
@@ -2150,7 +2195,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttSessionStateFW sessionState = sessionStateBuilder.build();
             final int payloadSize = sessionState.sizeof();
 
-            sessionStream.doSessionData(traceId, payloadSize, sessionState);
+            sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
         }
 
         private void sendUnsuback(
@@ -3092,7 +3137,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialPad = padding;
 
                 assert initialAck <= initialSeq;
-                
+
                 if (!wasOpen)
                 {
                     decoder = decodeConnectPayload;
@@ -3211,7 +3256,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             if (cleanStart)
                             {
-                                doSessionData(traceId, 0, emptyRO);
+                                doSessionData(traceId, 0, emptyRO, emptyRO);
                             }
                             else
                             {
@@ -3336,13 +3381,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSessionData(
                 long traceId,
                 int reserved,
-                Flyweight sessionState)
+                Flyweight dataEx,
+                Flyweight payload)
             {
                 assert MqttState.initialOpening(state);
 
-                final DirectBuffer buffer = sessionState.buffer();
-                final int offset = sessionState.offset();
-                final int limit = sessionState.limit();
+                final DirectBuffer buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
                 final int length = limit - offset;
                 assert reserved >= length + initialPad;
 
@@ -3351,7 +3397,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (!MqttState.closed(state))
                 {
                     doData(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, sessionId, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
+                        traceId, sessionId, budgetId, reserved, buffer, offset, length, dataEx);
 
                     initialSeq += reserved;
                     assert initialSeq <= initialAck + initialMax;

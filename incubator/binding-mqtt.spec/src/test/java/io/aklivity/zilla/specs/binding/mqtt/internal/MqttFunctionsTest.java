@@ -1128,6 +1128,23 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSessionDataEx()
+    {
+        final byte[] array = MqttFunctions.dataEx()
+            .typeId(0)
+            .session()
+                .kind("WILL")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttPublishDataEx.typeId());
+        assertEquals("WILL", mqttPublishDataEx.session().kind().toString());
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeFlushEx()
     {
         final byte[] array = MqttFunctions.flushEx()
@@ -1244,7 +1261,6 @@ public class MqttFunctionsTest
             .qos("AT_LEAST_ONCE")
             .flags("RETAIN")
             .responseTopic("response_topic")
-            .generationId("1")
             .correlationBytes("request-id-1".getBytes(UTF_8))
             .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
             .build();
@@ -1257,7 +1273,6 @@ public class MqttFunctionsTest
         assertEquals(0b0001, willMessage.flags());
         assertEquals("BINARY", willMessage.format().toString());
         assertEquals("response_topic", willMessage.responseTopic().asString());
-        assertEquals("1", willMessage.generationId().asString());
         assertEquals("request-id-1", willMessage.correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, willMessage.payload()
