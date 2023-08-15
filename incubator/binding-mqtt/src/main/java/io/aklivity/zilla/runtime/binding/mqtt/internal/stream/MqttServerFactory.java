@@ -317,6 +317,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
     private final boolean session;
     private final String serverReference;
+    private int maximumPacketSize;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -417,6 +418,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.keepAliveMinimum = config.keepAliveMinimum();
         this.keepAliveMaximum = config.keepAliveMaximum();
         this.maximumQos = config.maximumQos();
+        this.maximumPacketSize = writeBuffer.capacity();
         this.retainedMessages = config.retainAvailable() ? (byte) 1 : 0;
         this.wildcardSubscriptions = config.wildcardSubscriptionAvailable() ? (byte) 1 : 0;
         this.subscriptionIdentifiers = config.subscriptionIdentifierAvailable() ? (byte) 1 : 0;
@@ -1261,7 +1263,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean connected;
 
         private short topicAliasMaximum = 0;
-        private int maximumPacketSize = Integer.MAX_VALUE;
         private int sessionExpiryInterval = 0;
         private boolean assignedClientId = false;
         private int propertyMask = 0;
@@ -1599,14 +1600,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break;
                 case KIND_RECEIVE_MAXIMUM:
                 case KIND_MAXIMUM_PACKET_SIZE:
-                    final int maximumPacketSize = (int) mqttProperty.maximumPacketSize();
-                    if (maximumPacketSize == 0 || isSetMaximumPacketSize(propertyMask))
+                    final int maxConnectPacketSize = (int) mqttProperty.maximumPacketSize();
+                    if (maxConnectPacketSize == 0 || isSetMaximumPacketSize(propertyMask))
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
                     this.propertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
-                    this.maximumPacketSize = maximumPacketSize;
+                    //TODO: remove this once we will support large messages
+                    maximumPacketSize = Math.min(maxConnectPacketSize, maximumPacketSize);
                     break;
                 case KIND_REQUEST_RESPONSE_INFORMATION:
                 case KIND_REQUEST_PROBLEM_INFORMATION:
@@ -2561,6 +2563,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertyFW mqttProperty;
             if (reasonCode == SUCCESS)
             {
+                //TODO: remove this once we support large messages
+                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    .maximumPacketSize(maximumPacketSize)
+                    .build();
+                propertiesSize = mqttProperty.limit();
+
                 if (sessionExpiryInterval > sessionExpiryIntervalLimit)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
