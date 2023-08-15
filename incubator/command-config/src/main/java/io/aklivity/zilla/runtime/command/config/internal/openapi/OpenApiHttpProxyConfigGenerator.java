@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.GuardConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -92,32 +93,12 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
     private NamespaceConfig createNamespace()
     {
-        NamespaceConfigBuilder<NamespaceConfig> namespace = NamespaceConfig.builder()
-            .name("example");
-
         Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
-        for (String securitySchemeName : openApi.components.securitySchemes.keySet())
-        {
-            String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-            if ("jwt".equals(guardType))
-            {
-                namespace.guard()
-                    .name("jwt0")
-                    .type(guardType)
-                    .options(JwtOptionsConfig::builder)
-                        .issuer("") // env
-                        .audience("") // env
-                        .key()
-                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
-                            .build()
-                        .build()
-                    .build();
-                GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
-                guardedRoutes.put(securitySchemeName, guarded);
-            }
-        }
-
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0 = namespace
+        return NamespaceConfig.builder()
+            .name("example")
+            .guard()
+                .inject(guard -> injectGuard(guard, guardedRoutes))
+                .build()
             .binding()
                 .name("tcp_server0")
                 .type("tcp")
@@ -173,12 +154,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                                 .build()
                             .build()
                         .build()
-                    .build();
-
-        addRoutes(httpServer0, "http_client0", guardedRoutes);
-
-        return httpServer0
-                .build() // end of binding httpServer0
+                    .build()
+                .inject(binding -> injectRoutes(binding, "http_client0", guardedRoutes))
+                .build()
             .binding()
                 .name("http_client0")
                 .type("http")
@@ -236,6 +214,33 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .build();
     }
 
+    private GuardConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectGuard(
+        GuardConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> guard,
+        Map<String, GuardedConfig> guardedRoutes)
+    {
+        for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+        {
+            String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+            if ("jwt".equals(guardType))
+            {
+                guard
+                    .name("jwt0")
+                    .type(guardType)
+                    .options(JwtOptionsConfig::builder)
+                        .issuer("") // env
+                        .audience("") // env
+                        .key()
+                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                            .build()
+                        .build()
+                    .build();
+                GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
+                guardedRoutes.put(securitySchemeName, guarded);
+            }
+        }
+        return guard;
+    }
+
     private int[] resolvePortsForScheme(
         String scheme)
     {
@@ -266,8 +271,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return result;
     }
 
-    private void addRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> httpServer0,
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectRoutes(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
         String exit,
         Map<String, GuardedConfig> guardedRoutes)
     {
@@ -296,9 +301,10 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         }
                     }
                 }
-                httpServer0.route(routeBuilder.build());
+                binding.route(routeBuilder.build());
             }
         }
+        return binding;
     }
 
     private String writeConfig(
