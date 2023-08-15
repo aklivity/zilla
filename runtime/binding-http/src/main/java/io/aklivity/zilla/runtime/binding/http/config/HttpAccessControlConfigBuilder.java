@@ -20,7 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpAccessControlConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpAccessControlConfigBuilder<T> extends ConfigBuilder<T, HttpAccessControlConfigBuilder<T>>
 {
     private final Function<HttpAccessControlConfig, T> mapper;
 
@@ -33,6 +33,13 @@ public final class HttpAccessControlConfigBuilder<T> implements ConfigBuilder<T>
         Function<HttpAccessControlConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Class<HttpAccessControlConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpAccessControlConfigBuilder<T>>) getClass();
     }
 
     public HttpAccessControlConfigBuilder<T> policy(

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
 
+import static java.util.function.Function.identity;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -55,7 +57,8 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> testOptions = TestExporterOptionsConfig.builder();
+        TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> testOptions = TestExporterOptionsConfig.builder()
+                .inject(identity());
 
         if (object != null)
         {

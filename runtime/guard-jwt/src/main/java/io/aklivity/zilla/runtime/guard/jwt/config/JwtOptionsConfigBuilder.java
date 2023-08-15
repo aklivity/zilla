@@ -22,7 +22,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class JwtOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -36,6 +36,13 @@ public class JwtOptionsConfigBuilder<T> implements ConfigBuilder<T>
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<JwtOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<JwtOptionsConfigBuilder<T>>) getClass();
     }
 
     public JwtOptionsConfigBuilder<T> issuer(

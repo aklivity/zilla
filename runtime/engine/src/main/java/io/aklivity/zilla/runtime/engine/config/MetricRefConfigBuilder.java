@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.function.Function;
 
-public final class MetricRefConfigBuilder<T> implements ConfigBuilder<T>
+public final class MetricRefConfigBuilder<T> extends ConfigBuilder<T, MetricRefConfigBuilder<T>>
 {
     private final Function<MetricRefConfig, T> mapper;
 
@@ -27,6 +27,13 @@ public final class MetricRefConfigBuilder<T> implements ConfigBuilder<T>
         Function<MetricRefConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<MetricRefConfigBuilder<T>> thisType()
+    {
+        return (Class<MetricRefConfigBuilder<T>>) getClass();
     }
 
     public MetricRefConfigBuilder<T> name(

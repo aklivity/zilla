@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -101,15 +102,19 @@ public class TelemetryConfigsAdapterTest
     {
         // GIVEN
         TelemetryConfig telemetry = TelemetryConfig.builder()
+                .inject(identity())
                 .attribute()
+                    .inject(identity())
                     .name("test.attribute")
                     .value("example")
                     .build()
                 .metric()
+                    .inject(identity())
                     .group("test")
                     .name("test.counter")
                     .build()
                 .exporter()
+                    .inject(identity())
                     .name("test0")
                     .type("test")
                     .build()
@@ -176,18 +181,23 @@ public class TelemetryConfigsAdapterTest
     {
         // GIVEN
         TelemetryConfig telemetry = TelemetryConfig.builder()
+                .inject(identity())
                 .attribute()
+                    .inject(identity())
                     .name("test.attribute")
                     .value("example")
                     .build()
                 .metric()
+                    .inject(identity())
                     .group("test")
                     .name("test.counter")
                     .build()
                 .exporter()
+                    .inject(identity())
                     .name("test0")
                     .type("test")
                     .options(TestExporterOptionsConfig::builder)
+                        .inject(identity())
                         .mode("test42")
                         .build()
                     .build()

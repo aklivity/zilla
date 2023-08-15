@@ -22,7 +22,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpConditionConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpConditionConfigBuilder<T> extends ConfigBuilder<T, HttpConditionConfigBuilder<T>>
 {
     private final Function<ConditionConfig, T> mapper;
 
@@ -32,6 +32,13 @@ public final class HttpConditionConfigBuilder<T> implements ConfigBuilder<T>
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpConditionConfigBuilder<T>>) getClass();
     }
 
     public HttpConditionConfigBuilder<T> header(

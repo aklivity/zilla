@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.function.Function;
 
-public final class AttributeConfigBuilder<T> implements ConfigBuilder<T>
+public final class AttributeConfigBuilder<T> extends ConfigBuilder<T, AttributeConfigBuilder<T>>
 {
     private final Function<AttributeConfig, T> mapper;
 
@@ -28,6 +28,13 @@ public final class AttributeConfigBuilder<T> implements ConfigBuilder<T>
         Function<AttributeConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<AttributeConfigBuilder<T>> thisType()
+    {
+        return (Class<AttributeConfigBuilder<T>>) getClass();
     }
 
     public AttributeConfigBuilder<T> name(

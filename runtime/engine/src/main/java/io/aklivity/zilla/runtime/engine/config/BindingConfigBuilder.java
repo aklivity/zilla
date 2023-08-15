@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
+public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
 
@@ -41,6 +41,13 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         Function<BindingConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<BindingConfigBuilder<T>> thisType()
+    {
+        return (Class<BindingConfigBuilder<T>>) getClass();
     }
 
     public BindingConfigBuilder<T> vault(
@@ -78,7 +85,7 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<BindingConfigBuilder<T>>> C options(
+    public <C extends ConfigBuilder<BindingConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, BindingConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);

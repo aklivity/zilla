@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -110,8 +111,10 @@ public class RouteConfigAdapterTest
     public void shouldWriteRouteGuarded()
     {
         RouteConfig route = RouteConfig.builder()
+                .inject(identity())
                 .exit("test")
                 .guarded()
+                    .inject(identity())
                     .name("test")
                     .role("role")
                     .build()
@@ -147,8 +150,10 @@ public class RouteConfigAdapterTest
     public void shouldWriteRouteWhenMatch()
     {
         RouteConfig route = RouteConfig.builder()
+                .inject(identity())
                 .exit("test")
                 .when(TestConditionConfig::builder)
+                    .inject(identity())
                     .match("test")
                     .build()
                 .build();

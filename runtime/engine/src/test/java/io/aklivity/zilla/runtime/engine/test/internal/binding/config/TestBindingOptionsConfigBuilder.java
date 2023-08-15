@@ -20,7 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class TestBindingOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, TestBindingOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -30,6 +30,13 @@ public final class TestBindingOptionsConfigBuilder<T> implements ConfigBuilder<T
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TestBindingOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<TestBindingOptionsConfigBuilder<T>>) getClass();
     }
 
     public TestBindingOptionsConfigBuilder<T> mode(
