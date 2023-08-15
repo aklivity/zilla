@@ -36,6 +36,7 @@ import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -46,10 +47,8 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
@@ -62,6 +61,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private final int[] httpsPorts;
     private final boolean isPlainEnabled;
     private final boolean isTlsEnabled;
+    private final Map<String, String> securitySchemes;
+    private final boolean isJwtEnabled;
     private final NamespaceConfig namespace;
     private final JsonPatch envVarsPatch;
     private final ConfigWriter configWriter;
@@ -75,6 +76,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.httpsPorts = resolvePortsForScheme("https");
         this.isPlainEnabled = httpPorts != null;
         this.isTlsEnabled = httpsPorts != null;
+        this.securitySchemes = resolveSecuritySchemes();
+        this.isJwtEnabled = !securitySchemes.isEmpty();
         this.namespace = createNamespace();
         this.envVarsPatch = createEnvVarsPatch();
         this.configWriter = new ConfigWriter(null);
@@ -145,12 +148,29 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return result;
     }
 
+    private Map<String, String> resolveSecuritySchemes()
+    {
+        requireNonNull(openApi);
+        Map<String, String> result = new HashMap<>();
+        if (openApi.components != null && openApi.components.securitySchemes != null)
+        {
+            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+            {
+                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                if ("jwt".equals(guardType))
+                {
+                    result.put(securitySchemeName, guardType);
+                }
+            }
+        }
+        return result;
+    }
+
     private NamespaceConfig createNamespace()
     {
-        Map<String, GuardedConfig> guardedRoutes = new HashMap<>();
         return NamespaceConfig.builder()
             .name("example")
-            .inject(namespace -> injectGuard(namespace, guardedRoutes))
+            .inject(namespace -> injectGuard(namespace))
             .inject(namespace -> injectTcpServer(namespace, "http_server0", "tls_server0"))
             .inject(namespace -> injectTlsServer(namespace))
             .binding()
@@ -161,17 +181,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .access()
                         .policy(CROSS_ORIGIN)
                         .build()
-                    .authorization()
-                        .name("jwt0")
-                            .credentials()
-                                .header()
-                                .name("authorization")
-                                .pattern("Bearer {credentials}")
-                                .build()
-                            .build()
-                        .build()
+                    .inject(options -> injectHttpServerOptions(options))
                     .build()
-                .inject(binding -> injectRoutes(binding, "http_client0", guardedRoutes))
+                .inject(binding -> injectHttpServerRoutes(binding, "http_client0"))
                 .build()
             .binding()
                 .name("http_client0")
@@ -194,29 +206,22 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
-        NamespaceConfigBuilder<NamespaceConfig> namespace,
-        Map<String, GuardedConfig> guardedRoutes)
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+        if (isJwtEnabled)
         {
-            String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-            if ("jwt".equals(guardType))
-            {
-                namespace
-                    .guard()
-                        .name("jwt0")
-                        .type(guardType)
-                        .options(JwtOptionsConfig::builder)
-                            .issuer("") // env
-                            .audience("") // env
-                            .key()
-                                .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
-                                .build()
+            namespace
+                .guard()
+                    .name("jwt0")
+                    .type("jwt")
+                    .options(JwtOptionsConfig::builder)
+                        .issuer("") // env
+                        .audience("") // env
+                        .key()
+                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
                             .build()
-                        .build();
-                GuardedConfig guarded = GuardedConfig.builder().name("jwt0").role("echo:stream").build();
-                guardedRoutes.put(securitySchemeName, guarded);
-            }
+                        .build()
+                    .build();
         }
         return namespace;
     }
@@ -278,40 +283,72 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return binding;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectRoutes(
+    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerOptions(
+        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    {
+        if (isJwtEnabled)
+        {
+            options
+                .authorization()
+                    .name("jwt0")
+                        .credentials()
+                            .header()
+                                .name("authorization")
+                                .pattern("Bearer {credentials}")
+                                .build()
+                        .build()
+                    .build();
+        }
+        return options;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
-        String exit,
-        Map<String, GuardedConfig> guardedRoutes)
+        String exit)
     {
         for (String path : openApi.paths.keySet())
         {
             PathItem2 item = PathItem2.of(openApi.paths.get(path));
             for (String method : item.methods().keySet())
             {
-                RouteConfigBuilder<RouteConfig> routeBuilder = RouteConfig.builder()
+                binding
+                    .route()
                     .exit(exit)
                     .when(HttpConditionConfig::builder)
                         .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
                         .header(":method", method)
-                        .build();
-                List<Map<String, List<String>>> security = item.methods().get(method).security;
-                if (security != null)
-                {
-                    for (Map<String, List<String>> securityItem : security)
-                    {
-                        for (String securityItemLabel : securityItem.keySet())
-                        {
-                            if (guardedRoutes.containsKey(securityItemLabel))
-                            {
-                                routeBuilder.guarded(guardedRoutes.get(securityItemLabel));
-                            }
-                        }
-                    }
-                }
-                binding.route(routeBuilder.build());
+                        .build()
+                    .inject(route -> injectHttpServerRouteGuarded(route, item, method))
+                    .build();
             }
         }
         return binding;
+    }
+
+    private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
+        PathItem2 item,
+        String method)
+    {
+        List<Map<String, List<String>>> security = item.methods().get(method).security;
+        if (security != null)
+        {
+            for (Map<String, List<String>> securityItem : security)
+            {
+                for (String securityItemLabel : securityItem.keySet())
+                {
+                    if (isJwtEnabled && "jwt".equals(securitySchemes.get(securityItemLabel)))
+                    {
+                        route
+                            .guarded()
+                            .name("jwt0")
+                            .role("echo:stream")
+                            .build();
+                    }
+                }
+            }
+        }
+        return route;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
@@ -424,18 +461,22 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         // tcp_client0 binding
         ops.put("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
         ops.put("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
-        // jwt0 guard
-        ops.put("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
-        ops.put("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
-        ops.put("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
-        ops.put("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
-        ops.put("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
-        ops.put("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
-        ops.put("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
-        ops.put("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
-        ops.put("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
-        ops.put("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
-        ops.put("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
+
+        if (isJwtEnabled)
+        {
+            // jwt0 guard
+            ops.put("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
+            ops.put("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
+            ops.put("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
+            ops.put("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
+            ops.put("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
+            ops.put("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
+            ops.put("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
+            ops.put("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
+            ops.put("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
+            ops.put("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
+            ops.put("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
+        }
 
         if (isTlsEnabled)
         {

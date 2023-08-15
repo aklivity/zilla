@@ -26,6 +26,23 @@ import org.junit.jupiter.api.Test;
 public class OpenApiHttpProxyConfigGeneratorTest
 {
     @Test
+    public void shouldGeneratePlainConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("plain/openapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("plain/zilla.yaml").getFile()));
+            OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
     public void shouldGenerateJwtConfig() throws Exception
     {
         try (InputStream inputStream = getClass().getResourceAsStream("jwt/openapi.yaml"))
