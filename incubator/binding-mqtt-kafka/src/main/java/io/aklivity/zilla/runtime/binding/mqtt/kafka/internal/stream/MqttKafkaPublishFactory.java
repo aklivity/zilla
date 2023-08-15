@@ -64,6 +64,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
+    private static final byte SLASH_BYTE = (byte) '/';
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -327,7 +328,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             for (OctetsFW topicHeader : topicNameHeaders)
             {
-                addHeader(helper.kafkaTopicHeaderName, topicHeader);
+                addHeader(helper.kafkaFilterHeaderName, topicHeader);
             }
 
             addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
@@ -357,7 +358,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             if (mqttPublishDataEx.responseTopic().asString() != null)
             {
-                addHeader(helper.kafkaReplyToHeaderName, mqttPublishDataEx.responseTopic());
+                final String16FW responseTopic = mqttPublishDataEx.responseTopic();
+                addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
+                addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
+
+                addFiltersHeader(responseTopic);
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
@@ -402,6 +407,25 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void addFiltersHeader(
+            String16FW responseTopic)
+        {
+            final DirectBuffer responseBuffer = responseTopic.value();
+            final int capacity = responseBuffer.capacity();
+
+            int offset = 0;
+            int matchAt = 0;
+            while (offset >= 0 && offset < capacity && matchAt != -1)
+            {
+                matchAt = indexOfByte(responseBuffer, offset, capacity, SLASH_BYTE);
+                if (matchAt != -1)
+                {
+                    addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, matchAt - offset);
+                    offset = matchAt + 1;
+                }
+            }
+            addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, capacity - offset);
+        }
 
         private void onMqttEnd(
             EndFW end)
@@ -625,6 +649,21 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         });
     }
 
+    private void addHeader(
+        OctetsFW key,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        kafkaHeadersRW.item(h ->
+        {
+            h.nameLen(key.sizeof());
+            h.name(key);
+            h.valueLen(length);
+            h.value(buffer, offset, length);
+        });
+    }
+
     private void addHeader(String16FW key, String16FW value)
     {
         DirectBuffer keyBuffer = key.value();
@@ -636,6 +675,24 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             h.valueLen(value.length());
             h.value(valueBuffer, 0, valueBuffer.capacity());
         });
+    }
+
+    private static int indexOfByte(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        byte value)
+    {
+        int byteAt = -1;
+        for (int index = offset; index < limit; index++)
+        {
+            if (buffer.getByte(index) == value)
+            {
+                byteAt = index;
+                break;
+            }
+        }
+        return byteAt;
     }
 
 
