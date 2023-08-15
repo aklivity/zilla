@@ -31,7 +31,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_KEY = "key";
     private static final String EVENT_VALUE = "value";
 
-    private final KafkaTopicKeyValueConfigAdapter keyValueConfigAdapter = new KafkaTopicKeyValueConfigAdapter();
+    private final KafkaTopicKeyValueConfigAdapter config = new KafkaTopicKeyValueConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -54,12 +54,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            object.add(EVENT_KEY, keyValueConfigAdapter.adaptToJson(topic.key));
+            object.add(EVENT_KEY, config.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            object.add(EVENT_VALUE, keyValueConfigAdapter.adaptToJson(topic.value));
+            object.add(EVENT_VALUE, config.adaptToJson(topic.value));
         }
 
         return object.build();
@@ -89,7 +89,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (key != null)
         {
-            keyConfig = keyValueConfigAdapter.adaptFromJson(key);
+            keyConfig = config.adaptFromJson(key);
         }
 
         JsonObject value = object.containsKey(EVENT_VALUE)
@@ -100,7 +100,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (value != null)
         {
-            valueConfig = keyValueConfigAdapter.adaptFromJson(value);
+            valueConfig = config.adaptFromJson(value);
         }
 
         return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);

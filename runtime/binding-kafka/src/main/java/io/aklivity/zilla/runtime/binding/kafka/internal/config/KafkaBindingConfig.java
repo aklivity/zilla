@@ -15,11 +15,17 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfigFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -31,6 +37,9 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
+    KafkaTopicConfig config = null;
+    private final ValidatorFactory validator = ValidatorFactory.instantiate();
+    private final ValidatorConfigFactory validatorConfig = ValidatorConfigFactory.instantiate();
 
     public KafkaBindingConfig(
         BindingConfig binding)
@@ -75,5 +84,47 @@ public final class KafkaBindingConfig
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;
+    }
+
+    public KafkaDeltaType supplyDeltaType(
+        String topic,
+        KafkaDeltaType deltaType)
+    {
+        if (config == null)
+        {
+            config = topic(topic);
+        }
+
+        return config != null ? config.deltaType : deltaType;
+    }
+
+    public KafkaOffsetType supplyDefaultOffset(
+        String topic)
+    {
+        if (config == null)
+        {
+            config = topic(topic);
+        }
+
+        return config != null ? config.defaultOffset : HISTORICAL;
+    }
+
+    public Validator supplyValidator(
+        String topic,
+        boolean isKey)
+    {
+        if (config == null)
+        {
+            config = topic(topic);
+        }
+
+        KafkaTopicKeyValueConfig kVConfig = config != null ? (isKey ? config.key : config.value) : null;
+
+        if (kVConfig != null)
+        {
+            return validator.create(kVConfig.type, validatorConfig.config(kVConfig));
+        }
+
+        return null;
     }
 }

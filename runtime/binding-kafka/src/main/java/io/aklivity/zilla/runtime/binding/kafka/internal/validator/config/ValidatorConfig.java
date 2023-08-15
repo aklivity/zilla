@@ -13,14 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import java.nio.charset.Charset;
 
-public interface ValidatorFactorySpi
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
+
+public interface ValidatorConfig
 {
-    String type();
+    Charset encoding();
 
-    Validator create(
-        ValidatorConfig config);
+    KafkaCatalogConfig catalog();
 }

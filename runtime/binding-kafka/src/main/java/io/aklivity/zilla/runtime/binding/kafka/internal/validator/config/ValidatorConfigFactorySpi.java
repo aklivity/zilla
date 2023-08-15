@@ -13,14 +13,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
 
-public interface ValidatorFactorySpi
+public interface ValidatorConfigFactorySpi
 {
     String type();
 
-    Validator create(
-        ValidatorConfig config);
+    ValidatorConfig config(
+        KafkaTopicKeyValueConfig config);
 }

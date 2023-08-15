@@ -63,6 +63,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 
 public final class KafkaCachePartition
 {
@@ -320,13 +321,15 @@ public final class KafkaCachePartition
         OctetsFW value,
         KafkaCacheEntryFW ancestor,
         int entryFlags,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        Validator keyValidator,
+        Validator valueValidator)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
         writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType);
+        writeEntryFinish(headers, deltaType, keyValidator, valueValidator);
     }
 
     public void writeEntryStart(
@@ -417,7 +420,9 @@ public final class KafkaCachePartition
 
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        Validator keyValidator,
+        Validator valueValidator)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -491,6 +496,16 @@ public final class KafkaCachePartition
             final int deltaLength = diffOut.position();
             diffBuffer.putInt(0, deltaLength);
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
+        }
+
+        if (keyValidator != null && !keyValidator.validate(headEntry.key().value()))
+        {
+            System.out.println("Key Validation failed");
+        }
+
+        if (valueValidator != null && !valueValidator.validate(headEntry.value()))
+        {
+            System.out.println("Value Validation failed");
         }
 
         headSegment.lastOffset(progress);

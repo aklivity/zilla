@@ -30,9 +30,6 @@ bindings:
     options:
       topics:
         - name: test
-          key:
-            type: string
-            encoding: utf_8
           value:
             type: string
             encoding: utf_8

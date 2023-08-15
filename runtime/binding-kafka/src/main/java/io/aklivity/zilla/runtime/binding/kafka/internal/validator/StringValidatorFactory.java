@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
 public class StringValidatorFactory implements ValidatorFactorySpi
 {
@@ -26,8 +26,8 @@ public class StringValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public StringValidator create(
-        KafkaTopicKeyValueConfig config)
+    public Validator create(
+        ValidatorConfig config)
     {
         return new StringValidator(config);
     }

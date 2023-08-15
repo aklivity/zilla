@@ -35,32 +35,32 @@ public class KafkaTopicKeyValueConfigAdapter implements JsonbAdapter<KafkaTopicK
 
     @Override
     public JsonObject adaptToJson(
-        KafkaTopicKeyValueConfig kafkaTopicKeyValueConfig)
+        KafkaTopicKeyValueConfig config)
     {
-        JsonObjectBuilder schema = Json.createObjectBuilder();
+        JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        if (kafkaTopicKeyValueConfig.type != null &&
-                !kafkaTopicKeyValueConfig.type.isEmpty())
+        if (config.type != null &&
+            !config.type.isEmpty())
         {
-            schema.add(CATALOG_TYPE, kafkaTopicKeyValueConfig.type);
+            catalog.add(CATALOG_TYPE, config.type);
         }
 
-        if (kafkaTopicKeyValueConfig.encoding != null &&
-                !kafkaTopicKeyValueConfig.encoding.isEmpty())
+        if (config.encoding != null &&
+            !config.encoding.isEmpty())
         {
-            schema.add(ENCODING, kafkaTopicKeyValueConfig.encoding);
+            catalog.add(ENCODING, config.encoding);
         }
 
-        if (kafkaTopicKeyValueConfig.catalog != null &&
-                !kafkaTopicKeyValueConfig.catalog.isEmpty())
+        if (config.catalog != null &&
+            !config.catalog.isEmpty())
         {
             JsonArrayBuilder entries = Json.createArrayBuilder();
-            kafkaTopicKeyValueConfig.catalog.forEach(c -> entries.add(catalog.adaptToJson(c)));
+            config.catalog.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
 
-            schema.add(CATALOG_NAME, entries);
+            catalog.add(CATALOG_NAME, entries);
         }
 
-        return schema.build();
+        return catalog.build();
     }
 
     @Override

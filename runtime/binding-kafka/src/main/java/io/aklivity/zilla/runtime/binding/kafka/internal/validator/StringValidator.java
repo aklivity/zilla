@@ -15,43 +15,44 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.CharsetDecoder;
 
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
 public class StringValidator implements Validator
 {
-    Charset encoding;
+    private Charset encoding;
+    private CharsetDecoder decoder;
 
     public StringValidator(
-        KafkaTopicKeyValueConfig config)
+        ValidatorConfig config)
     {
-        if (config.encoding != null)
-        {
-            switch (config.encoding)
-            {
-            case "utf_8":
-                encoding = StandardCharsets.UTF_8;
-            }
-
-        }
+        this.encoding = config.encoding();
+        this.decoder = encoding.newDecoder();
     }
 
+    @Override
     public boolean validate(
-        DirectBuffer data,
-        int offset,
-        int length)
+        OctetsFW payload)
     {
-        try
+        boolean valid = false;
+        if (payload != null)
         {
-            return (data == null ? null : new String(data.byteArray(), encoding)) == null ? false : true;
+            byte[] payloadBytes = new byte[payload.sizeof()];
+            payload.value().getBytes(0, payloadBytes);
+            try
+            {
+                decoder.decode(ByteBuffer.wrap(payloadBytes));
+                valid = true;
+            }
+            catch (CharacterCodingException ex)
+            {
+            }
         }
-        catch (Throwable ex)
-        {
-            return false;
-        }
+        return valid;
     }
 }

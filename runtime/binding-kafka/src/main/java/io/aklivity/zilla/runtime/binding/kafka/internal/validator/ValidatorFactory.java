@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
 public final class ValidatorFactory
 {
@@ -40,9 +40,9 @@ public final class ValidatorFactory
     }
 
     public Validator create(
-        KafkaTopicKeyValueConfig config)
+        String type,
+        ValidatorConfig config)
     {
-        String type = config.type;
         requireNonNull(type, "name");
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);

@@ -15,12 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 
 public interface Validator
 {
     boolean validate(
-        DirectBuffer data,
-        int offset,
-        int length);
+        OctetsFW payload);
 }

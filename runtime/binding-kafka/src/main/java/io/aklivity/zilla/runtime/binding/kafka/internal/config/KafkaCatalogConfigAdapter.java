@@ -29,31 +29,31 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
 
     @Override
     public JsonObject adaptToJson(
-        KafkaCatalogConfig kafkaCatalogConfig)
+        KafkaCatalogConfig config)
     {
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        if (kafkaCatalogConfig.name != null &&
-                !kafkaCatalogConfig.name.isEmpty())
+        if (config.name != null &&
+            !config.name.isEmpty())
         {
-            catalog.add(NAME_NAME, kafkaCatalogConfig.name);
+            catalog.add(NAME_NAME, config.name);
         }
 
-        if (kafkaCatalogConfig.strategy != null &&
-                !kafkaCatalogConfig.strategy.isEmpty())
+        if (config.strategy != null &&
+            !config.strategy.isEmpty())
         {
-            catalog.add(CATALOG_STRATEGY, kafkaCatalogConfig.strategy);
+            catalog.add(CATALOG_STRATEGY, config.strategy);
         }
 
-        if (kafkaCatalogConfig.version != null &&
-                !kafkaCatalogConfig.version.isEmpty())
+        if (config.version != null &&
+            !config.version.isEmpty())
         {
-            catalog.add(CATALOG_VERSION, kafkaCatalogConfig.version);
+            catalog.add(CATALOG_VERSION, config.version);
         }
 
-        if (kafkaCatalogConfig.id > 0)
+        if (config.id > 0)
         {
-            catalog.add(CATALOG_ID, kafkaCatalogConfig.id);
+            catalog.add(CATALOG_ID, config.id);
         }
 
         return catalog.build();

@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheP
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -52,8 +51,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -86,7 +83,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -161,7 +157,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final int reconnectDelay;
-    private final ValidatorFactory validatorFactory = ValidatorFactory.instantiate();
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -231,19 +226,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)
             {
-                final KafkaTopicConfig topic = binding.topic(topicName);
-                final KafkaDeltaType routeDeltaType = topic != null ? topic.deltaType : deltaType;
-                final KafkaOffsetType defaultOffset = topic != null ? topic.defaultOffset : HISTORICAL;
+                final KafkaDeltaType routeDeltaType = binding.supplyDeltaType(topicName, deltaType);
+                final KafkaOffsetType defaultOffset = binding.supplyDefaultOffset(topicName);
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(routedId), supplyLocalName.apply(routedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final KafkaTopicKeyValueConfig keyConfig = topic != null ? topic.key : null;
-                final KafkaTopicKeyValueConfig valueConfig = topic != null ? topic.value : null;
-                final Validator keyValidator =
-                        keyConfig != null ? validatorFactory.create(keyConfig) : null;
-                final Validator valueValidator =
-                        valueConfig != null ? validatorFactory.create(valueConfig) : null;
+                final Validator keyValidator = binding.supplyValidator(topicName, true);
+                final Validator valueValidator = binding.supplyValidator(topicName, false);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
                         affinity, partition, routeDeltaType, defaultOffset, keyValidator, valueValidator);
@@ -778,7 +768,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(partitionOffset, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE);
+                        entryFlags, KafkaDeltaType.NONE, keyValidator, valueValidator);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -887,7 +877,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             if (valueFragment != null)
             {
-                //valueValidator.validate(valueFragment.buffer(), valueFragment.offset(), valueFragment.sizeof());
                 partition.writeEntryContinue(valueFragment);
             }
 
@@ -907,7 +896,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType);
+                partition.writeEntryFinish(headers, deltaType, keyValidator, valueValidator);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

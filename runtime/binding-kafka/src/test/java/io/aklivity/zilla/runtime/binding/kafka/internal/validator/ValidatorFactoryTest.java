@@ -21,15 +21,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfigFactory;
 
 public class ValidatorFactoryTest
 {
     @Test
     public void shouldLoadAndCreate()
     {
-        KafkaTopicKeyValueConfig config = new KafkaTopicKeyValueConfig("test", null, null);
+        KafkaTopicKeyValueConfig kVconfig = new KafkaTopicKeyValueConfig("test", null, null);
         ValidatorFactory factory = ValidatorFactory.instantiate();
-        Validator validator = factory.create(config);
+        ValidatorConfigFactory config = ValidatorConfigFactory.instantiate();
+        Validator validator = factory.create("test", config.config(kVconfig));
 
         assertThat(validator, instanceOf(TestValidator.class));
     }
