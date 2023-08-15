@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.KE
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_SUBSCRIPTION_EXISTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_TOO_LARGE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PAYLOAD_FORMAT_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QOS_NOT_SUPPORTED;
@@ -316,7 +317,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
     private final boolean session;
-    private final String serverReference;
+    private final String serverRef;
     private int maximumPacketSize;
 
     {
@@ -433,7 +434,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
-        this.serverReference = config.serverReference();
+        this.serverRef = config.serverReference();
     }
 
     @Override
@@ -766,11 +767,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break decode;
             }
 
-            if (limit - packet.limit() >= length)
-            {
-                server.decodeablePacketBytes = packet.sizeof() + length;
-                server.decoder = decodePacketType;
-            }
+            server.decodeablePacketBytes = packet.sizeof() + length;
+            server.decoder = decodePacketType;
         }
 
         return offset;
@@ -793,7 +791,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
             final MqttServerDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
 
-            if (limit - packet.limit() >= length)
+            if (packet.sizeof() + length > maximumPacketSize)
+            {
+                server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
+                server.decoder = decodeIgnoreAll;
+            }
+            else if (limit - packet.limit() >= length)
             {
                 server.decodeablePacketBytes = packet.sizeof() + length;
                 server.decoder = decoder;
@@ -1851,7 +1854,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     sessionBuilder.clientId(clientId);
                     sessionBuilder.expiry(sessionExpiryInterval);
-                    sessionBuilder.serverReference(serverReference);
+                    sessionBuilder.serverRef(serverRef);
                 });
 
             if (sessionStream == null)
@@ -3177,20 +3180,20 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (mqttResetEx != null)
                 {
-                    String16FW serverReference = mqttResetEx.serverReference();
-                    boolean serverReferenceExists = serverReference != null;
+                    String16FW serverRef = mqttResetEx.serverRef();
+                    boolean serverRefExists = serverRef != null;
 
-                    byte reasonCode = serverReferenceExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
+                    byte reasonCode = serverRefExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
 
                     if (!connected)
                     {
                         doCancelConnectTimeout();
                         doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
-                            false, serverReference);
+                            false, serverRef);
                     }
                     else
                     {
-                        doEncodeDisconnect(traceId, authorization, reasonCode, serverReferenceExists ? serverReference : null);
+                        doEncodeDisconnect(traceId, authorization, reasonCode, serverRefExists ? serverRef : null);
                     }
                 }
                 setInitialClosed();

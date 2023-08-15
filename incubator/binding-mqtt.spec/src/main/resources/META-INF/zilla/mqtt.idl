@@ -116,7 +116,7 @@ scope mqtt
         {
             string16 clientId;
             int32 expiry = 0;
-            string16 serverReference = null;
+            string16 serverRef = null;
         }
 
         struct MqttSubscribeBeginEx
@@ -180,7 +180,7 @@ scope mqtt
 
         struct MqttResetEx extends core::stream::Extension
         {
-            string16 serverReference = null;
+            string16 serverRef = null;
         }
 
         struct MqttEndEx extends core::stream::Extension

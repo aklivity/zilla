@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
@@ -125,6 +126,18 @@ public final class MqttFunctions
         return new MqttWillMessageBuilder();
     }
 
+    @Function
+    public static byte[] randomBytes(
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        for (int i = 0; i < length; i++)
+        {
+            bytes[i] = (byte) ThreadLocalRandom.current().nextInt(0x100);
+        }
+        return bytes;
+    }
+
     public static final class MqttBeginExBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -198,10 +211,10 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder serverReference(
-                String serverReference)
+            public MqttSessionBeginExBuilder serverRef(
+                String serverRef)
             {
-                sessionBeginExRW.serverReference(serverReference);
+                sessionBeginExRW.serverRef(serverRef);
                 return this;
             }
 
@@ -690,10 +703,10 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttResetExBuilder serverReference(
-            String serverReference)
+        public MqttResetExBuilder serverRef(
+            String serverRef)
         {
-            resetExRW.serverReference(serverReference);
+            resetExRW.serverRef(serverRef);
             return this;
         }
 
@@ -1121,7 +1134,7 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
-            private String16FW serverReference;
+            private String16FW serverRef;
             private Integer expiry;
 
             private MqttSessionBeginExMatcherBuilder()
@@ -1142,10 +1155,10 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExMatcherBuilder serverReference(
-                String serverReference)
+            public MqttSessionBeginExMatcherBuilder serverRef(
+                String serverRef)
             {
-                this.serverReference = new String16FW(serverReference);
+                this.serverRef = new String16FW(serverRef);
                 return this;
             }
 
@@ -1160,7 +1173,7 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
-                    matchServerReference(sessionBeginEx);
+                    matchserverRef(sessionBeginEx);
             }
 
             private boolean matchClientId(
@@ -1175,10 +1188,10 @@ public final class MqttFunctions
                 return expiry == null || expiry == sessionBeginEx.expiry();
             }
 
-            private boolean matchServerReference(
+            private boolean matchserverRef(
                 final MqttSessionBeginExFW sessionBeginEx)
             {
-                return serverReference == null || serverReference.equals(sessionBeginEx.serverReference());
+                return serverRef == null || serverRef.equals(sessionBeginEx.serverRef());
             }
         }
     }

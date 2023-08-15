@@ -403,6 +403,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.will.message.too.large/client",
+        "${net}/connect.reject.will.message.too.large/server"})
+    public void shouldRejectLargeWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.subscribe.unfragmented/client",
         "${net}/connect.subscribe.unfragmented/server"})
     public void shouldConnectAndSubscribeUnfragmented() throws Exception

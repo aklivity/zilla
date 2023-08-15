@@ -300,4 +300,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.message.too.large/client",
+        "${net}/publish.reject.message.too.large/server"})
+    public void shouldRejectMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
 }

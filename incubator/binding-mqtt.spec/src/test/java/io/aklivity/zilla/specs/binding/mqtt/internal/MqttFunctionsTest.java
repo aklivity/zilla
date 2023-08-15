@@ -64,7 +64,7 @@ public class MqttFunctionsTest
                 .session()
                 .clientId("client")
                 .expiry(30)
-                .serverReference("localhost:1883")
+                .serverRef("localhost:1883")
                 .build()
             .build();
 
@@ -73,7 +73,7 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("localhost:1883", mqttBeginEx.session().serverReference().asString());
+        assertEquals("localhost:1883", mqttBeginEx.session().serverRef().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
     }
 
@@ -284,7 +284,7 @@ public class MqttFunctionsTest
             .session()
                 .clientId("client")
                 .expiry(10)
-                .serverReference("localhost:1883")
+                .serverRef("localhost:1883")
                 .build()
             .build();
 
@@ -296,7 +296,7 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
-                .serverReference("localhost:1883"))
+                .serverRef("localhost:1883"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1185,13 +1185,13 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.resetEx()
             .typeId(0)
-            .serverReference("localhost:1883")
+            .serverRef("localhost:1883")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0, mqttResetEx.typeId());
-        assertEquals("localhost:1883", mqttResetEx.serverReference().asString());
+        assertEquals("localhost:1883", mqttResetEx.serverRef().asString());
     }
 
     @Test

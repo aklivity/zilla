@@ -31,7 +31,7 @@ write  [0x10 0x13]                     # CONNECT
 read  [0x20 0x08]                      # CONNACK
       [0x00]                           # flags = none
       [0x00]                           # reason code
-      [0x05]                           # properties = none
+      [0x05]                           # properties
       [0x27] 66560                     # maximum packet size = 66560
 
 write [0x82 0x12]                      # SUBSCRIBE
