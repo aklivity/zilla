@@ -345,5 +345,50 @@ scope kafka
             string16 memberId;
             int32 members;
         }
+
+        struct KafkaConsumerBeginEx
+        {
+            string16 topic;
+            string16 groupId;
+        }
+
+        struct KafkaConsumerDataEx
+        {
+            KafkaPartition[] partitions;
+        }
+
+        struct KafkaOffsetFetch
+        {
+            string16 topic;
+            int32[] partitions;
+        }
+
+        struct KafkaOffsetFetchBeginEx
+        {
+            string16 groupId;
+            KafkaOffsetFetch[] topics;
+        }
+
+        struct KafkaOffsetFetchDataEx
+        {
+            KafkaOffset[] offsets;
+        }
+
+        struct KafkaOffsetCommitBeginEx
+        {
+            string16 groupId;
+            string16 topic;
+        }
+
+        struct KafkaOffsetCommit
+        {
+             int32 partitionId;
+             int64 committedOffset;
+        }
+
+        struct KafkaOffsetCommitDataEx
+        {
+            KafkaOffsetCommit committedOffset;
+        }
     }
 }
