@@ -311,7 +311,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(clientId.length())
-                    .value(clientId.value(), 0, clientId.length())))
+                        .value(clientId.value(), 0, clientId.length())))
                 .build();
 
             if (sessionState != null)
@@ -797,6 +797,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(delegate.clientIdMigrate.length())
                         .value(delegate.clientIdMigrate.value(), 0, delegate.clientIdMigrate.length()))
+                    .hashKey(b -> b.length(delegate.clientId.length())
+                        .value(delegate.clientId.value(), 0, delegate.clientId.length()))
                     .headersItem(c -> c.nameLen(SENDER_ID_NAME.length())
                         .name(SENDER_ID_NAME.value(), 0, SENDER_ID_NAME.length())
                         .valueLen(delegate.sessionId.length())
