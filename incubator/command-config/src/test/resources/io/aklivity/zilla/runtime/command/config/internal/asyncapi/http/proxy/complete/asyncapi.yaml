@@ -1,0 +1,93 @@
+asyncapi: 3.0.0
+info:
+  title: HTTP Zilla Proxy
+  version: 1.0.0
+  license:
+    name:  Aklivity Community License
+servers:
+  production:
+    host: https://localhost:9090
+    protocol: http
+    protocolVersion: '1.1'
+    security:
+      - httpBearerToken: []
+defaultContentType: application/json
+
+channels:
+  items:
+    address: /items
+    messages:
+      items:
+        $ref: '#/components/messages/item'
+  itemsbyid:
+    address: /items/{id}
+    parameters:
+      id:
+        description: Event ID.
+        schema:
+          type: string
+    messages:
+      items:
+        $ref: '#/components/messages/item'
+
+operations:
+  postEvents:
+    action: send
+    bindings:
+      http:
+        type: request
+        method: POST
+    channel:
+      $ref: '#/channels/items'
+  getEvents:
+    action: receive
+    bindings:
+      http:
+        type: request
+        method: GET
+        query:
+          type: object
+          properties:
+            limit:
+              type: number
+    channel:
+      $ref: '#/channels/itemsbyid'
+
+components:
+  correlationIds:
+    itemsCorrelationId:
+      location: '$message.header#/Idempotency-Key'
+  messages:
+    item:
+      name: event
+      title: An event
+      correlationId:
+        $ref: "#/components/correlationIds/itemsCorrelationId"
+      headers:
+        type: object
+        properties:
+          Idempotency-Key:
+            description: Unique identifier for a given event
+            type: string
+          authorization:
+            description: Bearer {credentials}
+            type: string
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          item:
+            $ref: "#/components/schemas/item"
+  schemas:
+    item:
+      type: object
+      properties:
+        greeting:
+          type: string
+      required:
+        - greeting
+  securitySchemes:
+    httpBearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt

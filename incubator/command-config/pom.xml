@@ -98,6 +98,7 @@
         <configuration>
           <excludes>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/config/internal/openapi/**/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/config/internal/asyncapi/**/*</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -127,6 +128,9 @@
           <excludes>
             <exclude>io/aklivity/zilla/runtime/command/config/internal/types/**/*.class</exclude>
             <exclude>io/aklivity/zilla/runtime/command/config/internal/openapi/model/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/command/config/internal/openapi/model2/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/command/config/internal/asyncapi/model/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/command/config/internal/asyncapi/model2/*.class</exclude>
           </excludes>
           <rules>
             <rule>
