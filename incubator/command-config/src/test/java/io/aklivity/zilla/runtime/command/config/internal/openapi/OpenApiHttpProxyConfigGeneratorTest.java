@@ -60,6 +60,23 @@ public class OpenApiHttpProxyConfigGeneratorTest
     }
 
     @Test
+    public void shouldGenerateTlsConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("tls/openapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("tls/zilla.yaml").getFile()));
+            OpenApiHttpProxyConfigGenerator generator = new OpenApiHttpProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
     public void shouldGenerateCompleteConfig() throws Exception
     {
         try (InputStream inputStream = getClass().getResourceAsStream("complete/openapi.yaml"))
