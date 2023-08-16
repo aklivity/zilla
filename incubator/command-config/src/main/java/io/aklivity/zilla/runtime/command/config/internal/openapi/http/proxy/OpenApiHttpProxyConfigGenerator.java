@@ -65,8 +65,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private boolean isTlsEnabled;
     private Map<String, String> securitySchemes;
     private boolean isJwtEnabled;
-    private JsonPatch envVarsPatch;
-    private ConfigWriter configWriter;
 
     public OpenApiHttpProxyConfigGenerator(
         InputStream inputStream)
@@ -84,9 +82,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
-        this.envVarsPatch = createEnvVarsPatch();
-        this.configWriter = new ConfigWriter(null);
-        return configWriter.write(createNamespace(), envVarsPatch);
+        ConfigWriter configWriter = new ConfigWriter(null);
+        return configWriter.write(createNamespace(), createEnvVarsPatch());
     }
 
     private OpenApi parseOpenApi(
@@ -171,7 +168,16 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return NamespaceConfig.builder()
             .name("example")
             .inject(this::injectGuard)
-            .inject(this::injectTcpServer)
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .options(TcpOptionsConfig::builder)
+                    .host("0.0.0.0")
+                    .ports(allPorts)
+                    .build()
+                .inject(this::injectTcpRoutes)
+                .build()
             .inject(this::injectTlsServer)
             .binding()
                 .name("http_server0")
@@ -223,23 +229,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         .build()
                     .build();
         }
-        return namespace;
-    }
-
-    private NamespaceConfigBuilder<NamespaceConfig> injectTcpServer(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
-    {
-        namespace
-            .binding()
-                .name("tcp_server0")
-                .type("tcp")
-                .kind(SERVER)
-                .options(TcpOptionsConfig::builder)
-                    .host("0.0.0.0")
-                    .ports(allPorts)
-                    .build()
-                .inject(this::injectTcpRoutes)
-                .build();
         return namespace;
     }
 
