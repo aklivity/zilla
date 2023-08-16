@@ -37,6 +37,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#migrate")
+                               .hashKey("client-1")
                                .header("sender-id", "sender-1")
                                .build()
                            .build()}

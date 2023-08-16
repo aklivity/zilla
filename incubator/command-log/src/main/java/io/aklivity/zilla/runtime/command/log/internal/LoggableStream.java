@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttEndReasonCode;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
@@ -1310,34 +1309,10 @@ public final class LoggableStream implements AutoCloseable
     {
         final String clientId = session.clientId().asString();
         final int expiry = session.expiry();
-        final MqttMessageFW will = session.will();
+        final String serverRef = session.serverRef().asString();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[session] %s %d", clientId, expiry));
-        if (will != null)
-        {
-            final String willTopic = will.topic().asString();
-            final int delay = will.delay();
-            final int flags = will.flags();
-            final int expiryInterval = will.expiryInterval();
-            final String contentType = will.contentType().asString();
-            final MqttPayloadFormat format = will.format().get();
-            final String responseTopic = will.responseTopic().asString();
-            final String correlation = asString(will.correlation().bytes());
-            final Array32FW<MqttUserPropertyFW> userProperties = will.properties();
-            final String payload = asString(will.payload().bytes());
-            out.printf(verboseFormat, index, offset, timestamp, format("will topic: %s", willTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("will delay: %d", delay));
-            out.printf(verboseFormat, index, offset, timestamp, format("will flags: %d", flags));
-            out.printf(verboseFormat, index, offset, timestamp, format("will expiry: %d", expiryInterval));
-            out.printf(verboseFormat, index, offset, timestamp, format("will content type: %s", contentType));
-            out.printf(verboseFormat, index, offset, timestamp, format("will format: %s", format.name()));
-            out.printf(verboseFormat, index, offset, timestamp, format("will response topic: %s", responseTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("will correlation: %s", correlation));
-            out.printf(verboseFormat, index, offset, timestamp, format("will payload: %s", payload));
-            userProperties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
-                format("will user property: %s %s ", u.key(), u.value())));
-        }
+            format("[session] %s %d %s", clientId, expiry, serverRef));
     }
 
     private void onMqttDataEx(
