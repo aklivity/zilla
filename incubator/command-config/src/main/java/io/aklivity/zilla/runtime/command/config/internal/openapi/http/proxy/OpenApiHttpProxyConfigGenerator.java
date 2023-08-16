@@ -90,11 +90,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         InputStream inputStream)
     {
         OpenApi openApi = null;
-        try
+        try (Jsonb jsonb = JsonbBuilder.create())
         {
-            Jsonb jsonb = JsonbBuilder.create();
             openApi = jsonb.fromJson(inputStream, OpenApi.class);
-            jsonb.close();
         }
         catch (Exception ex)
         {
