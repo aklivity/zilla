@@ -176,7 +176,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .host("0.0.0.0")
                     .ports(allPorts)
                     .build()
-                .inject(this::injectTcpRoutes)
+                .inject(this::injectPlainTcpRoute)
+                .inject(this::injectTlsTcpRoute)
+                .inject(this::injectPlainAndTlsTcpRoutes)
                 .build()
             .inject(this::injectTlsServer)
             .binding()
@@ -232,7 +234,33 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return namespace;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTcpRoutes(
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainTcpRoute(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        if (isPlainEnabled && !isTlsEnabled)
+        {
+            binding
+                .route()
+                    .exit("http_server0")
+                    .build();
+        }
+        return binding;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTlsTcpRoute(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        if (isTlsEnabled && !isPlainEnabled)
+        {
+            binding
+                .route()
+                    .exit("tls_server0")
+                    .build();
+        }
+        return binding;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainAndTlsTcpRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
         if (isPlainEnabled && isTlsEnabled)
@@ -248,20 +276,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .when(TcpConditionConfig::builder)
                         .ports(httpsPorts)
                         .build()
-                    .exit("tls_server0")
-                    .build();
-        }
-        else if (isPlainEnabled)
-        {
-            binding
-                .route()
-                    .exit("http_server0")
-                    .build();
-        }
-        else if (isTlsEnabled)
-        {
-            binding
-                .route()
                     .exit("tls_server0")
                     .build();
         }
