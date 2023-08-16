@@ -25,7 +25,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -79,6 +78,9 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDa
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
@@ -635,6 +637,13 @@ public final class KafkaFunctions
             return new KafkaOffsetFetchBeginExBuilder();
         }
 
+        public KafkaOffsetCommitBeginExBuilder offsetCommit()
+        {
+            beginExRW.kind(KafkaApi.OFFSET_COMMIT.value());
+
+            return new KafkaOffsetCommitBeginExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaBeginExFW beginEx = beginExRO;
@@ -1119,6 +1128,38 @@ public final class KafkaFunctions
                 return KafkaBeginExBuilder.this;
             }
         }
+
+        public final class KafkaOffsetCommitBeginExBuilder
+        {
+            private final KafkaOffsetCommitBeginExFW.Builder offsetCommitBeginExRW = new KafkaOffsetCommitBeginExFW.Builder();
+
+
+            private KafkaOffsetCommitBeginExBuilder()
+            {
+                offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitBeginExBuilder groupId(
+                String groupId)
+            {
+                offsetCommitBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder topic(
+                String topic)
+            {
+                offsetCommitBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = offsetCommitBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, offsetCommitBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
     }
 
     public static final class KafkaDataExBuilder
@@ -1195,6 +1236,13 @@ public final class KafkaFunctions
             dataExRW.kind(KafkaApi.OFFSET_FETCH.value());
 
             return new KafkaOffsetFetchDataExBuilder();
+        }
+
+        public KafkaOffsetCommitDataExBuilder offsetCommit()
+        {
+            dataExRW.kind(KafkaApi.OFFSET_COMMIT.value());
+
+            return new KafkaOffsetCommitDataExBuilder();
         }
 
         public byte[] build()
@@ -1799,6 +1847,37 @@ public final class KafkaFunctions
             {
                 final KafkaOffsetFetchDataExFW offsetFetchDataEx = offsetFetchDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, offsetFetchDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+        }
+
+        public final class KafkaOffsetCommitDataExBuilder
+        {
+            private final KafkaOffsetCommitDataExFW.Builder offsetCommitDataExRW = new KafkaOffsetCommitDataExFW.Builder();
+
+            private KafkaOffsetCommitDataExBuilder()
+            {
+                offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitDataExBuilder partitionId(
+                int partitionId)
+            {
+                offsetCommitDataExRW.partitionId(partitionId);
+                return this;
+            }
+
+            public KafkaOffsetCommitDataExBuilder partitionOffset(
+                long partitionId)
+            {
+                offsetCommitDataExRW.partitionOffset(partitionId);
+                return this;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                final KafkaOffsetCommitDataExFW consumerDataEx = offsetCommitDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
                 return KafkaDataExBuilder.this;
             }
         }

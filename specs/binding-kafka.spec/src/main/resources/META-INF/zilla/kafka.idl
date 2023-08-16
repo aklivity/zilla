@@ -166,6 +166,7 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            OFFSET_COMMIT (250),
             OFFSET_FETCH (251),
             CONSUMER (252),
             GROUP (253),
@@ -179,6 +180,7 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 250: kafka::stream::KafkaOffsetCommitBeginEx commitFetch;
             case 251: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
             case 252: kafka::stream::KafkaConsumerBeginEx consumer;
             case 253: kafka::stream::KafkaGroupBeginEx group;
@@ -192,6 +194,7 @@ scope kafka
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
+            case 250: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
             case 251: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 253: kafka::stream::KafkaGroupDataEx group;

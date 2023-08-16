@@ -36,8 +36,6 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicFW;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -77,7 +75,11 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDa
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -3862,6 +3864,27 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateOffsetCommitBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .offsetCommit()
+                .groupId("test")
+                .topic("topic")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.OFFSET_COMMIT.value(), beginEx.kind());
+
+        final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.commitFetch();
+        assertEquals("test", offsetCommitBeginEx.groupId().asString());
+        assertEquals("topic", offsetCommitBeginEx.topic().asString());
+    }
+
+    @Test
     public void shouldMatchGroupBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -3948,6 +3971,27 @@ public class KafkaFunctionsTest
         assertEquals("test", offsetFetchDataEx.topic().topic().asString());
         assertEquals(1L, offset.stableOffset());
         assertEquals(2L, offset.latestOffset());
+    }
+
+    @Test
+    public void shouldGenerateOffsetCommitDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .offsetCommit()
+                .partitionId(0)
+                .partitionOffset(1L)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.OFFSET_COMMIT.value(), dataEx.kind());
+
+        final KafkaOffsetCommitDataExFW offsetCommitDataEx = dataEx.offsetCommit();
+        assertEquals(0, offsetCommitDataEx.partitionId());
+        assertEquals(1L, offsetCommitDataEx.partitionOffset());
     }
 
     @Test
