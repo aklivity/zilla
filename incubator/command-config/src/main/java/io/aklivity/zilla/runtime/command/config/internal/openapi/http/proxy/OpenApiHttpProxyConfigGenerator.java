@@ -100,7 +100,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         }
         catch (Exception ex)
         {
-            ex.printStackTrace();
             rethrowUnchecked(ex);
         }
         return openApi;

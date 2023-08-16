@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,7 +64,7 @@ public final class ZillaConfigCommand extends ZillaCommand
             ConfigGenerator generator = GENERATORS.get(template).apply(inputStream);
             Files.writeString(output, generator.generate());
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             ex.printStackTrace();
             rethrowUnchecked(ex);
