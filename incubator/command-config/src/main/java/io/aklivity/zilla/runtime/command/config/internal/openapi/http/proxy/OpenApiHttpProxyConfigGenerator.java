@@ -170,9 +170,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     {
         return NamespaceConfig.builder()
             .name("example")
-            .inject(namespace -> injectGuard(namespace))
-            .inject(namespace -> injectTcpServer(namespace, "http_server0", "tls_server0"))
-            .inject(namespace -> injectTlsServer(namespace))
+            .inject(this::injectGuard)
+            .inject(this::injectTcpServer)
+            .inject(this::injectTlsServer)
             .binding()
                 .name("http_server0")
                 .type("http")
@@ -181,17 +181,17 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .access()
                         .policy(CROSS_ORIGIN)
                         .build()
-                    .inject(options -> injectHttpServerOptions(options))
+                    .inject(this::injectHttpServerOptions)
                     .build()
-                .inject(binding -> injectHttpServerRoutes(binding, "http_client0"))
+                .inject(this::injectHttpServerRoutes)
                 .build()
             .binding()
                 .name("http_client0")
                 .type("http")
                 .kind(CLIENT)
-                .inject(binding -> injectHttpClientRoute(binding, "tcp_client0", "tls_client0"))
+                .inject(this::injectHttpClientRoute)
                 .build()
-            .inject(namespace -> injectTlsClient(namespace))
+            .inject(this::injectTlsClient)
             .binding()
                 .name("tcp_client0")
                 .type("tcp")
@@ -201,7 +201,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .ports(new int[]{0}) // env
                     .build()
                 .build()
-            .inject(namespace -> injectVaults(namespace, isTlsEnabled))
+            .inject(this::injectVaults)
             .build();
     }
 
@@ -227,9 +227,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTcpServer(
-        NamespaceConfigBuilder<NamespaceConfig> namespace,
-        String plainExit,
-        String tlsExit)
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
         namespace
             .binding()
@@ -240,15 +238,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .host("0.0.0.0")
                     .ports(allPorts)
                     .build()
-                .inject(binding -> injectTcpRoutes(binding, plainExit, tlsExit))
+                .inject(this::injectTcpRoutes)
                 .build();
         return namespace;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTcpRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
-        String plainExit,
-        String tlsExit)
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
         if (isPlainEnabled && isTlsEnabled)
         {
@@ -257,27 +253,27 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .when(TcpConditionConfig::builder)
                         .ports(httpPorts)
                         .build()
-                    .exit(plainExit)
+                    .exit("http_server0")
                     .build()
                 .route()
                     .when(TcpConditionConfig::builder)
                         .ports(httpsPorts)
                         .build()
-                    .exit(tlsExit)
+                    .exit("tls_server0")
                     .build();
         }
         else if (isPlainEnabled)
         {
             binding
                 .route()
-                    .exit(plainExit)
+                    .exit("http_server0")
                     .build();
         }
         else if (isTlsEnabled)
         {
             binding
                 .route()
-                    .exit(tlsExit)
+                    .exit("tls_server0")
                     .build();
         }
         return binding;
@@ -303,8 +299,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
-        String exit)
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
         for (String path : openApi.paths.keySet())
         {
@@ -313,7 +308,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             {
                 binding
                     .route()
-                    .exit(exit)
+                    .exit("http_client0")
                     .when(HttpConditionConfig::builder)
                         .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
                         .header(":method", method)
@@ -401,30 +396,27 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding,
-        String plainExit,
-        String tlsExit)
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
         if (isTlsEnabled)
         {
             binding
                 .route()
-                    .exit(tlsExit)
+                    .exit("tls_client0")
                     .build();
         }
         else
         {
             binding
                 .route()
-                    .exit(plainExit)
+                    .exit("tcp_client0")
                     .build();
         }
         return binding;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectVaults(
-        NamespaceConfigBuilder<NamespaceConfig> namespace,
-        boolean isTlsEnabled)
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
         if (isTlsEnabled)
         {
