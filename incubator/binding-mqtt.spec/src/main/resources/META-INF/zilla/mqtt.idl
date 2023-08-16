@@ -15,6 +15,12 @@
  */
 scope mqtt
 {
+    enum MqttSessionFlags (uint8)
+    {
+        CLEAN_START(1),
+        WILL(2)
+    }
+
     enum MqttSubscribeFlags (uint8)
     {
         SEND_RETAINED(0),
@@ -117,6 +123,7 @@ scope mqtt
             string16 clientId;
             int32 expiry = 0;
             string16 serverRef = null;
+            uint8 flags = 0;
         }
 
         struct MqttSubscribeBeginEx

@@ -80,6 +80,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
+                                .flags("CLEAN_START")
                                 .build()
                              .build()}
 

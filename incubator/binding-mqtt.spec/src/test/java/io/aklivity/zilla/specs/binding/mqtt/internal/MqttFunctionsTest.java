@@ -65,6 +65,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .expiry(30)
                 .serverRef("localhost:1883")
+                .flags("WILL", "CLEAN_START")
                 .build()
             .build();
 
@@ -75,6 +76,7 @@ public class MqttFunctionsTest
         assertEquals("client", mqttBeginEx.session().clientId().asString());
         assertEquals("localhost:1883", mqttBeginEx.session().serverRef().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
+        assertEquals(6, mqttBeginEx.session().flags());
     }
 
     @Test
@@ -285,6 +287,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .expiry(10)
                 .serverRef("localhost:1883")
+                .flags("CLEAN_START")
                 .build()
             .build();
 
@@ -296,7 +299,8 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
-                .serverRef("localhost:1883"))
+                .serverRef("localhost:1883")
+                .flags(2))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

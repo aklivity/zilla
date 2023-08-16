@@ -24,6 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("one")
+                                .flags("WILL", "CLEAN_START")
                                 .build()
                              .build()}
 

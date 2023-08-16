@@ -22,6 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                            .typeId(zilla:id("mqtt"))
                            .session()
                               .clientId("one")
+                              .flags("WILL", "CLEAN_START")
                               .build()
                            .build()}
 

@@ -1696,7 +1696,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (session)
                 {
-                    resolveSession(traceId, authorization, resolved.id);
+                    resolveSession(traceId, authorization, resolved.id, connectFlags);
                 }
                 else
                 {
@@ -1846,16 +1846,17 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void resolveSession(
             long traceId,
             long authorization,
-            long resolvedId)
+            long resolvedId,
+            int flags)
         {
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
-                .session(sessionBuilder ->
-                {
-                    sessionBuilder.clientId(clientId);
-                    sessionBuilder.expiry(sessionExpiryInterval);
-                    sessionBuilder.serverRef(serverRef);
-                });
+                .session(sessionBuilder -> sessionBuilder
+                    .clientId(clientId)
+                    .expiry(sessionExpiryInterval)
+                    .serverRef(serverRef)
+                    .flags(flags)
+                );
 
             if (sessionStream == null)
             {

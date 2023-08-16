@@ -37,6 +37,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttQoS;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
@@ -215,6 +216,16 @@ public final class MqttFunctions
                 String serverRef)
             {
                 sessionBeginExRW.serverRef(serverRef);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder flags(
+                String... flagNames)
+            {
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(flag -> 1 << MqttSessionFlags.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                sessionBeginExRW.flags(flags);
                 return this;
             }
 
@@ -1136,6 +1147,7 @@ public final class MqttFunctions
             private String16FW clientId;
             private String16FW serverRef;
             private Integer expiry;
+            private Integer flags;
 
             private MqttSessionBeginExMatcherBuilder()
             {
@@ -1162,6 +1174,16 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionBeginExMatcherBuilder flags(
+                String... flagNames)
+            {
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(flag -> 1 << MqttSessionFlags.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                this.flags = flags;
+                return this;
+            }
+
             public MqttBeginExMatcherBuilder build()
             {
                 return MqttBeginExMatcherBuilder.this;
@@ -1173,6 +1195,7 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
+                    matchFlags(sessionBeginEx) &&
                     matchserverRef(sessionBeginEx);
             }
 
@@ -1186,6 +1209,12 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return expiry == null || expiry == sessionBeginEx.expiry();
+            }
+
+            private boolean matchFlags(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return flags == null || flags == sessionBeginEx.flags();
             }
 
             private boolean matchserverRef(
