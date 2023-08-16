@@ -55,20 +55,26 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 {
-    private final OpenApi openApi;
-    private final int[] allPorts;
-    private final int[] httpPorts;
-    private final int[] httpsPorts;
-    private final boolean isPlainEnabled;
-    private final boolean isTlsEnabled;
-    private final Map<String, String> securitySchemes;
-    private final boolean isJwtEnabled;
-    private final NamespaceConfig namespace;
-    private final JsonPatch envVarsPatch;
-    private final ConfigWriter configWriter;
+    private final InputStream inputStream;
+
+    private OpenApi openApi;
+    private int[] allPorts;
+    private int[] httpPorts;
+    private int[] httpsPorts;
+    private boolean isPlainEnabled;
+    private boolean isTlsEnabled;
+    private Map<String, String> securitySchemes;
+    private boolean isJwtEnabled;
+    private JsonPatch envVarsPatch;
+    private ConfigWriter configWriter;
 
     public OpenApiHttpProxyConfigGenerator(
         InputStream inputStream)
+    {
+        this.inputStream = inputStream;
+    }
+
+    public String generate()
     {
         this.openApi = parseOpenApi(inputStream);
         this.allPorts = resolveAllPorts();
@@ -78,14 +84,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
-        this.namespace = createNamespace();
         this.envVarsPatch = createEnvVarsPatch();
         this.configWriter = new ConfigWriter(null);
-    }
-
-    public String generate()
-    {
-        return writeConfig(namespace);
+        return configWriter.write(createNamespace(), envVarsPatch);
     }
 
     private OpenApi parseOpenApi(
@@ -508,11 +509,5 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             patch.add(op);
         }
         return JsonProvider.provider().createPatch(patch.build());
-    }
-
-    private String writeConfig(
-        NamespaceConfig namespace)
-    {
-        return configWriter.write(namespace, envVarsPatch);
     }
 }
