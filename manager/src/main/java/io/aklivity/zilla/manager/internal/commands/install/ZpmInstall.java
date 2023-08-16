@@ -731,7 +731,7 @@ public final class ZpmInstall extends ZpmCommand
         {
             for (JarEntry entry : list(sourceJar.entries()))
             {
-                Path entryPath = targetDir.resolve(entry.getName());
+                Path entryPath = targetDir.resolve(entry.getName()).normalize();
                 if (!entryPath.startsWith(targetDir))
                 {
                     throw new IOException("Bad zip entry");
