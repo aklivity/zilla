@@ -290,13 +290,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             options
                 .authorization()
                     .name("jwt0")
-                        .credentials()
-                            .header()
-                                .name("authorization")
-                                .pattern("Bearer {credentials}")
-                                .build()
-                        .build()
-                    .build();
+                    .credentials()
+                        .header()
+                            .name("authorization")
+                            .pattern("Bearer {credentials}")
+                            .build()
+                    .build()
+                .build();
         }
         return options;
     }
