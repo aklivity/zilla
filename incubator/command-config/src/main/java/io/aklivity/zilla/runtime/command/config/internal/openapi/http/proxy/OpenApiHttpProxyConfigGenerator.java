@@ -167,7 +167,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     {
         return NamespaceConfig.builder()
             .name("example")
-            .inject(this::injectGuard)
             .binding()
                 .name("tcp_server0")
                 .type("tcp")
@@ -209,29 +208,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .ports(new int[]{0}) // env
                     .build()
                 .build()
+            .inject(this::injectGuard)
             .inject(this::injectVaults)
             .build();
-    }
-
-    private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
-    {
-        if (isJwtEnabled)
-        {
-            namespace
-                .guard()
-                    .name("jwt0")
-                    .type("jwt")
-                    .options(JwtOptionsConfig::builder)
-                        .issuer("") // env
-                        .audience("") // env
-                        .key()
-                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainTcpRoute(
@@ -280,6 +259,30 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .build();
         }
         return binding;
+    }
+
+    private NamespaceConfigBuilder<NamespaceConfig> injectTlsServer(
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    {
+        if (isTlsEnabled)
+        {
+            namespace
+                .binding()
+                    .name("tls_server0")
+                    .type("tls")
+                    .kind(SERVER)
+                    .options(TlsOptionsConfig::builder)
+                        .keys(List.of("")) // env
+                        .sni(List.of("")) // env
+                        .alpn(List.of("")) // env
+                        .build()
+                    .vault("server")
+                    .route()
+                        .exit("http_server0")
+                        .build()
+                    .build();
+        }
+        return namespace;
     }
 
     private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerOptions(
@@ -348,6 +351,26 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return route;
     }
 
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        if (isTlsEnabled)
+        {
+            binding
+                .route()
+                    .exit("tls_client0")
+                    .build();
+        }
+        else
+        {
+            binding
+                .route()
+                    .exit("tcp_client0")
+                    .build();
+        }
+        return binding;
+    }
+
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
@@ -373,48 +396,25 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return namespace;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectTlsServer(
+    private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        if (isTlsEnabled)
+        if (isJwtEnabled)
         {
             namespace
-                .binding()
-                    .name("tls_server0")
-                    .type("tls")
-                    .kind(SERVER)
-                    .options(TlsOptionsConfig::builder)
-                        .keys(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
-                        .build()
-                    .vault("server")
-                    .route()
-                        .exit("http_server0")
+                .guard()
+                    .name("jwt0")
+                    .type("jwt")
+                    .options(JwtOptionsConfig::builder)
+                        .issuer("") // env
+                        .audience("") // env
+                        .key()
+                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
+                            .build()
                         .build()
                     .build();
         }
         return namespace;
-    }
-
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
-    {
-        if (isTlsEnabled)
-        {
-            binding
-                .route()
-                    .exit("tls_client0")
-                    .build();
-        }
-        else
-        {
-            binding
-                .route()
-                    .exit("tcp_client0")
-                    .build();
-        }
-        return binding;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectVaults(
