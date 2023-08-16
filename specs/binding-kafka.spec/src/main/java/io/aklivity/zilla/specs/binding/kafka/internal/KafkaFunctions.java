@@ -1062,7 +1062,7 @@ public final class KafkaFunctions
 
             private KafkaConsumerBeginExBuilder()
             {
-                consumerBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
+                consumerBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
             }
 
             public KafkaConsumerBeginExBuilder groupId(
@@ -1101,7 +1101,7 @@ public final class KafkaFunctions
 
             private KafkaOffsetFetchBeginExBuilder()
             {
-                offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
+                offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_FETCH, writeBuffer.capacity());
             }
 
             public KafkaOffsetFetchBeginExBuilder groupId(
@@ -1136,7 +1136,7 @@ public final class KafkaFunctions
 
             private KafkaOffsetCommitBeginExBuilder()
             {
-                offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
+                offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
             public KafkaOffsetCommitBeginExBuilder groupId(
@@ -1828,7 +1828,7 @@ public final class KafkaFunctions
 
             private KafkaOffsetFetchDataExBuilder()
             {
-                offsetFetchDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                offsetFetchDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
 
             public KafkaOffsetFetchDataExBuilder topic(
@@ -1857,7 +1857,7 @@ public final class KafkaFunctions
 
             private KafkaOffsetCommitDataExBuilder()
             {
-                offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
             public KafkaOffsetCommitDataExBuilder partitionId(

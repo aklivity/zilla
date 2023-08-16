@@ -166,13 +166,13 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
-            OFFSET_COMMIT (250),
-            OFFSET_FETCH (251),
             CONSUMER (252),
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
             META (3),
+            OFFSET_COMMIT (8),
+            OFFSET_FETCH (9),
             DESCRIBE (32),
             FETCH (1),
             PRODUCE (0)
@@ -180,13 +180,13 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
-            case 250: kafka::stream::KafkaOffsetCommitBeginEx commitFetch;
-            case 251: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
             case 252: kafka::stream::KafkaConsumerBeginEx consumer;
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
+            case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
+            case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeBeginEx describe;
             case 1: kafka::stream::KafkaFetchBeginEx fetch;
             case 0: kafka::stream::KafkaProduceBeginEx produce;
@@ -194,12 +194,12 @@ scope kafka
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
-            case 250: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
-            case 251: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
+            case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
+            case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
             case 0: kafka::stream::KafkaProduceDataEx produce;

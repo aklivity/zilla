@@ -3879,7 +3879,7 @@ public class KafkaFunctionsTest
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.OFFSET_COMMIT.value(), beginEx.kind());
 
-        final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.commitFetch();
+        final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.offsetCommit();
         assertEquals("test", offsetCommitBeginEx.groupId().asString());
         assertEquals("topic", offsetCommitBeginEx.topic().asString());
     }
