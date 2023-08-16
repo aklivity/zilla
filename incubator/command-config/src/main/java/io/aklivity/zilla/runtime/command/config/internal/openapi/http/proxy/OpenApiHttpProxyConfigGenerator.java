@@ -325,9 +325,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     {
                         route
                             .guarded()
-                            .name("jwt0")
-                            .role("echo:stream")
-                            .build();
+                                .name("jwt0")
+                                .role("echo:stream")
+                                .build();
                     }
                 }
             }
