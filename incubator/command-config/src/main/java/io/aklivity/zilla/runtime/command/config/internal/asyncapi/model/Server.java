@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
+import java.util.List;
+import java.util.Map;
+
 public class Server
 {
     public String host;
+    public List<Map<String, List<String>>> security;
 }

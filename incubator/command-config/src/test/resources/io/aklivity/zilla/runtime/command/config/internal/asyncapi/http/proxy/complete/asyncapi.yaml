@@ -5,12 +5,16 @@ info:
   license:
     name:  Aklivity Community License
 servers:
-  production:
+  secure:
     host: https://localhost:9090
     protocol: http
     protocolVersion: '1.1'
     security:
       - httpBearerToken: []
+  plain:
+    host: http://localhost:8080
+    protocol: http
+    protocolVersion: '1.1'
 defaultContentType: application/json
 
 channels:

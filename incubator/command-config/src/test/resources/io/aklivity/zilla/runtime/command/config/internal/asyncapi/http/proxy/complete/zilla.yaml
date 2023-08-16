@@ -42,34 +42,35 @@ bindings:
     - exit: http_client0
       when:
       - headers:
-          :path: /items
+          :scheme: http
+          :authority: localhost:8080
+          :path: /items/*
           :method: GET
-      guarded:
-        jwt0:
-        - echo:stream
     - exit: http_client0
       when:
       - headers:
+          :scheme: http
+          :authority: localhost:8080
+          :path: /items
+          :method: POST
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: https
+          :authority: localhost:9090
+          :path: /items/*
+          :method: GET
+      guarded:
+        jwt0: []
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: https
+          :authority: localhost:9090
           :path: /items
           :method: POST
       guarded:
-        jwt0:
-        - echo:stream
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: GET
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: PUT
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: DELETE
+        jwt0: []
   http_client0:
     type: http
     kind: client

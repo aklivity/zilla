@@ -19,4 +19,5 @@ import java.util.Map;
 public class Operation
 {
     public Map<String, Binding> bindings;
+    public Channel channel;
 }

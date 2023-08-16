@@ -38,7 +38,7 @@ public class AsyncApiHttpProxyConfigGeneratorTest
             String result = generator.generate();
 
             // THEN
-            assertThat(result, equalTo("hello")); // TODO: Ati
+            assertThat(result, equalTo(expectedResult));
         }
     }
 }
