@@ -25,16 +25,14 @@ bindings:
           :path: /items
           :method: GET
       guarded:
-        jwt0:
-        - echo:stream
+        jwt0: []
     - exit: http_client0
       when:
       - headers:
           :path: /items
           :method: POST
       guarded:
-        jwt0:
-        - echo:stream
+        jwt0: []
     - exit: http_client0
       when:
       - headers:
