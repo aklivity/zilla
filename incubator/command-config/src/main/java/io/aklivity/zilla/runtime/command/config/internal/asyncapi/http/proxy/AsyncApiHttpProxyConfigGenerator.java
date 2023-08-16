@@ -96,11 +96,9 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
         InputStream inputStream)
     {
         AsyncApi asyncApi = null;
-        try
+        try (Jsonb jsonb = JsonbBuilder.create())
         {
-            Jsonb jsonb = JsonbBuilder.create();
             asyncApi = jsonb.fromJson(inputStream, AsyncApi.class);
-            jsonb.close();
         }
         catch (Exception ex)
         {

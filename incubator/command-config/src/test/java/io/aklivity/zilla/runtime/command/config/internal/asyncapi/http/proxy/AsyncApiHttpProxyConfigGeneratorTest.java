@@ -26,6 +26,57 @@ import org.junit.jupiter.api.Test;
 public class AsyncApiHttpProxyConfigGeneratorTest
 {
     @Test
+    public void shouldGeneratePlainConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("plain/asyncapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("plain/zilla.yaml").getFile()));
+            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
+    public void shouldGenerateJwtConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("jwt/asyncapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("jwt/zilla.yaml").getFile()));
+            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
+    public void shouldGenerateTlsConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("tls/asyncapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("tls/zilla.yaml").getFile()));
+            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
     public void shouldGenerateCompleteConfig() throws Exception
     {
         try (InputStream inputStream = getClass().getResourceAsStream("complete/asyncapi.yaml"))
