@@ -36,6 +36,8 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicFW;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -59,6 +61,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -73,6 +77,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDa
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -212,6 +217,8 @@ public class KafkaFunctionsTest
                                      .merged()
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .topic("topic")
+                                         .groupId("groupId")
+                                         .consumerId("consumerId")
                                          .partition(0, 1L)
                                          .filter()
                                              .key("match")
@@ -232,6 +239,8 @@ public class KafkaFunctionsTest
 
         final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
         assertEquals("topic", mergedBeginEx.topic().asString());
+        assertEquals("groupId", mergedBeginEx.groupId().asString());
+        assertEquals("consumerId", mergedBeginEx.consumerId().asString());
 
         assertNotNull(mergedBeginEx.partitions()
                 .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 1L));
@@ -3808,6 +3817,51 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateConsumerBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .consumer()
+            .groupId("test")
+            .topic("topic")
+            .partition(1)
+            .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.CONSUMER.value(), beginEx.kind());
+
+        final KafkaConsumerBeginExFW consumerBeginEx = beginEx.consumer();
+        assertEquals("test", consumerBeginEx.groupId().asString());
+        assertEquals("topic", consumerBeginEx.topic().asString());
+        assertEquals(1, consumerBeginEx.partitionIds().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateOffsetFetchBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .offsetFetch()
+            .groupId("test")
+            .topic("topic", 0)
+            .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.OFFSET_FETCH.value(), beginEx.kind());
+
+        final KafkaOffsetFetchBeginExFW offsetFetchBeginEx = beginEx.offsetFetch();
+        KafkaOffsetFetchTopicFW topic = offsetFetchBeginEx.topics()
+            .matchFirst(t -> t.topic().asString().equals("topic"));
+        assertEquals(1, topic.partitions().fieldCount());
+    }
+
+    @Test
     public void shouldMatchGroupBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -3853,6 +3907,47 @@ public class KafkaFunctionsTest
         assertEquals("test1", groupDataEx.leaderId().asString());
         assertEquals("test2", groupDataEx.memberId().asString());
         assertTrue(groupDataEx.members() == 2);
+    }
+
+    @Test
+    public void shouldGenerateConsumerDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .consumer()
+                .partition(0)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
+
+        final KafkaConsumerDataExFW consumerDataEx = dataEx.consumer();
+        assertTrue(consumerDataEx.partitions().fieldCount() == 1);
+    }
+
+    @Test
+    public void shouldGenerateOffsetFetchDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .offsetFetch()
+                .topic("test", 0, 1L, 2L)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.OFFSET_FETCH.value(), dataEx.kind());
+
+        final KafkaOffsetFetchDataExFW offsetFetchDataEx = dataEx.offsetFetch();
+        KafkaOffsetFW offset = offsetFetchDataEx.topic().offsets().matchFirst(o -> o.partitionId() == 0);
+        assertEquals("test", offsetFetchDataEx.topic().topic().asString());
+        assertEquals(1L, offset.stableOffset());
+        assertEquals(2L, offset.latestOffset());
     }
 
     @Test
