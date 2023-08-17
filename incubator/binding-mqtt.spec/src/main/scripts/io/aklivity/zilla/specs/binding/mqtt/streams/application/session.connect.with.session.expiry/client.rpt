@@ -21,8 +21,8 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .clientId("one")
                                 .expiry(1)
+                                .clientId("one")
                                 .build()
                               .build()}
 connected

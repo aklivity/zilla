@@ -120,10 +120,10 @@ scope mqtt
 
         struct MqttSessionBeginEx
         {
-            string16 clientId;
-            int32 expiry = 0;
-            string16 serverRef = null;
             uint8 flags = 0;
+            int32 expiry = 0;
+            string16 clientId;
+            string16 serverRef = null;
         }
 
         struct MqttSubscribeBeginEx

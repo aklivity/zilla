@@ -231,8 +231,8 @@ public final class MqttFunctions
 
             public MqttBeginExBuilder build()
             {
-                final MqttSessionBeginExFW subscribeBeginEx = sessionBeginExRW.build();
-                beginExRO.wrap(writeBuffer, 0, subscribeBeginEx.limit());
+                final MqttSessionBeginExFW sessionBeginEx = sessionBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, sessionBeginEx.limit());
                 return MqttBeginExBuilder.this;
             }
         }
@@ -1177,10 +1177,9 @@ public final class MqttFunctions
             public MqttSessionBeginExMatcherBuilder flags(
                 String... flagNames)
             {
-                int flags = Arrays.stream(flagNames)
+                this.flags = Arrays.stream(flagNames)
                     .mapToInt(flag -> 1 << MqttSessionFlags.valueOf(flag).value())
                     .reduce(0, (a, b) -> a | b);
-                this.flags = flags;
                 return this;
             }
 

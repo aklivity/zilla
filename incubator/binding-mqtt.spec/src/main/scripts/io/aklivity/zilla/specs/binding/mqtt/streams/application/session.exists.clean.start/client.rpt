@@ -79,8 +79,8 @@ connect await SESSION_READY
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client")
                                 .flags("CLEAN_START")
+                                .clientId("client")
                                 .build()
                              .build()}
 

@@ -403,9 +403,9 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.reject.will.message.too.large/client",
-        "${net}/connect.reject.will.message.too.large/server"})
-    public void shouldRejectLargeWillMessage() throws Exception
+        "${net}/connect.reject.packet.too.large/client",
+        "${net}/connect.reject.packet.too.large/server"})
+    public void shouldRejectPacketTooLarge() throws Exception
     {
         k3po.finish();
     }

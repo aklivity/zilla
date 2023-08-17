@@ -872,6 +872,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.connected = true;
                 server.decoder = decodePacketType;
             }
+            else if (!session)
+            {
+                server.decoder = decodeConnectPayload;
+            }
         }
 
         return progress;
@@ -893,6 +897,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length > 0)
         {
             progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
+        }
+        if (progress == limit)
+        {
+            server.decoder = decodePacketType;
         }
 
         return progress;
@@ -1259,7 +1267,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutAt;
 
         private boolean serverDefinedKeepAlive = false;
-        private boolean cleanStart = false;
         private short keepAlive;
         private long keepAliveTimeout;
         private int connectFlags;
@@ -1684,10 +1691,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
 
-                if (isCleanStart(connect.flags()))
-                {
-                    this.cleanStart = true;
-                }
                 keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
                 serverDefinedKeepAlive = keepAlive != connect.keepAlive();
                 keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
@@ -1697,10 +1700,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (session)
                 {
                     resolveSession(traceId, authorization, resolved.id, connectFlags);
-                }
-                else
-                {
-                    decoder = decodeConnectPayload;
                 }
 
                 doCancelConnectTimeout();
@@ -1787,7 +1786,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttDataExFW.Builder sessionDataExBuilder =
                         mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                             .typeId(mqttTypeId)
-                            .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.WILL)));
+                            .session(s -> s.kind(k -> k.set(MqttSessionDataKind.WILL)));
 
                     final MqttMessageFW.Builder willMessageBuilder =
                         mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
@@ -1836,7 +1835,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
                 connected = true;
-                decoder = decodePacketType;
             }
 
 
@@ -1852,10 +1850,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .session(sessionBuilder -> sessionBuilder
-                    .clientId(clientId)
-                    .expiry(sessionExpiryInterval)
-                    .serverRef(serverRef)
                     .flags(flags)
+                    .expiry(sessionExpiryInterval)
+                    .clientId(clientId)
+                    .serverRef(serverRef)
                 );
 
             if (sessionStream == null)
@@ -3266,7 +3264,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         boolean sessionPresent = false;
                         if (sessionState != null)
                         {
-                            if (cleanStart)
+                            if (isCleanStart(connectFlags))
                             {
                                 doSessionData(traceId, 0, emptyRO, emptyRO);
                             }

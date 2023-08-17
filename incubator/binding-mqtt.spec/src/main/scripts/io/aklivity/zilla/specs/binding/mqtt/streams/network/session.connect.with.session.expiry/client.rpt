@@ -18,18 +18,17 @@ connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
-  option zilla:byteorder "network"
 
 connected
 
-write [0x10 0x10]                                             # CONNECT
-      [0x00 0x04] "MQTT"                                      # protocol name
-      [0x05]                                                  # protocol version
-      [0x00]                                                  # flags = none
-      [0x00 0x3c]                                             # keep alive = 60s
-      [0x05]                                                  # properties
-      [0x11] 1                                                # session expiry interval
-      [0x00 0x03] "one"                                       # client id
+write [0x10 0x10]                    # CONNECT
+      [0x00 0x04] "MQTT"             # protocol name
+      [0x05]                         # protocol version
+      [0x00]                         # flags = none
+      [0x00 0x3c]                    # keep alive = 60s
+      [0x05]                         # properties
+      [0x11] 1                       # session expiry interval
+      [0x00 0x03] "one"              # client id
 
 read  [0x20 0x08]                    # CONNACK
       [0x00]                         # flags = none

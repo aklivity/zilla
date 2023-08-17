@@ -75,9 +75,9 @@ read  [0x20 0x08]                    # CONNACK
       [0x05]                         # properties = none
       [0x27] 66560                   # maximum packet size = 66560
 
-read  [0x30 0x18]                   # PUBLISH
-      [0x00 0x0a] "sensor/one"      # topic name
-      [0x04]                        # properties
-      [0x0b 0x01]                   # subscription id = 1
-      [0x01 0x01]                   # format = utf-8
-      "message"                     # payload
+read  [0x30 0x18]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      [0x04]                         # properties
+      [0x0b 0x01]                    # subscription id = 1
+      [0x01 0x01]                    # format = utf-8
+      "message"                      # payload

@@ -62,10 +62,10 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
                 .session()
-                .clientId("client")
-                .expiry(30)
-                .serverRef("localhost:1883")
                 .flags("WILL", "CLEAN_START")
+                .expiry(30)
+                .clientId("client")
+                .serverRef("localhost:1883")
                 .build()
             .build();
 
@@ -85,8 +85,8 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
                 .session()
-                .clientId("client")
                 .expiry(30)
+                .clientId("client")
                 .build()
             .build();
 
@@ -284,10 +284,10 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchBeginEx()
             .session()
-                .clientId("client")
-                .expiry(10)
-                .serverRef("localhost:1883")
                 .flags("CLEAN_START")
+                .expiry(10)
+                .clientId("client")
+                .serverRef("localhost:1883")
                 .build()
             .build();
 
@@ -297,10 +297,10 @@ public class MqttFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
-                .clientId("client")
+                .flags(2)
                 .expiry(10)
-                .serverRef("localhost:1883")
-                .flags(2))
+                .clientId("client")
+                .serverRef("localhost:1883"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -311,8 +311,8 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchBeginEx()
             .session()
-                .clientId("client")
                 .expiry(10)
+                .clientId("client")
                 .build()
             .build();
 
@@ -322,8 +322,8 @@ public class MqttFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
-                .clientId("client")
-                .expiry(10))
+                .expiry(10)
+                .clientId("client"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -334,8 +334,8 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchBeginEx()
                 .session()
-                .clientId("client")
                 .expiry(10)
+                .clientId("client")
                 .build()
             .build();
 
@@ -345,8 +345,8 @@ public class MqttFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
-                .clientId("client")
-                .expiry(10))
+                .expiry(10)
+                .clientId("client"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
