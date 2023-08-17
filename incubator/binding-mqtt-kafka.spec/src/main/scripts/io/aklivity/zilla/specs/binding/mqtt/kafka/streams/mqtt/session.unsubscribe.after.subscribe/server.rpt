@@ -23,8 +23,8 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("client-1")
                                 .expiry(1)
+                                .clientId("client-1")
                                 .build()
                              .build()}
 
