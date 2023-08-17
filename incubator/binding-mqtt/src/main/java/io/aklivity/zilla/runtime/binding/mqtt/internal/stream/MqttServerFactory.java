@@ -861,18 +861,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (progress == limit && !session)
-            {
-                if (isSetPassword(flags) || isSetUsername(flags) || isSetWillFlag(flags))
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-                server.doEncodeConnack(traceId, authorization, reasonCode, server.assignedClientId,
-                    false, null);
-                server.connected = true;
-                server.decoder = decodePacketType;
-            }
-            else if (!session)
+            else
             {
                 server.decoder = decodeConnectPayload;
             }
@@ -897,10 +886,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length > 0)
         {
             progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
-        }
-        if (progress == limit)
-        {
-            server.decoder = decodePacketType;
+
+            if (progress == limit)
+            {
+                server.decoder = decodePacketType;
+            }
         }
 
         return progress;
@@ -1728,7 +1718,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             {
                 final MqttConnectPayload payload = mqttConnectPayloadRO.reset();
-                progress = payload.decode(buffer, progress, limit, connectFlags);
+                int connectPayloadLimit = payload.decode(buffer, progress, limit, connectFlags);
                 reasonCode = payload.reasonCode;
 
                 if (reasonCode != SUCCESS)
@@ -1790,15 +1780,15 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     final MqttMessageFW.Builder willMessageBuilder =
                         mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
-                        .topic(payload.willTopic)
-                        .delay(payload.willDelay)
-                        .qos(willQos)
-                        .flags(willFlags)
-                        .expiryInterval(payload.expiryInterval)
-                        .contentType(payload.contentType)
-                        .format(f -> f.set(payload.payloadFormat))
-                        .responseTopic(payload.responseTopic)
-                        .correlation(c -> c.bytes(payload.correlationData));
+                            .topic(payload.willTopic)
+                            .delay(payload.willDelay)
+                            .qos(willQos)
+                            .flags(willFlags)
+                            .expiryInterval(payload.expiryInterval)
+                            .contentType(payload.contentType)
+                            .format(f -> f.set(payload.payloadFormat))
+                            .responseTopic(payload.responseTopic)
+                            .correlation(c -> c.bytes(payload.correlationData));
 
                     final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
                     userProperties.forEach(
@@ -1806,11 +1796,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     willMessageBuilder.payload(p -> p.bytes(payload.willPayload.bytes()));
 
                     final MqttMessageFW will = willMessageBuilder.build();
-                    final int payloadSize = willMessageBuilder.sizeof();
+                    final int willPayloadSize = willMessageBuilder.sizeof();
 
-                    sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), will);
+                    if (!sessionStream.hasSessionWindow(willPayloadSize))
+                    {
+                        break decode;
+                    }
+                    sessionStream.doSessionData(traceId, willPayloadSize, sessionDataExBuilder.build(), will);
+                    progress = connectPayloadLimit;
                 }
-                decoder = decodePacketType;
             }
 
             if (reasonCode != SUCCESS)
@@ -3150,7 +3144,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!wasOpen)
                 {
-                    decoder = decodeConnectPayload;
                     decodeNetwork(traceId);
                 }
 
@@ -3386,6 +3379,12 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     doSessionWindow(traceId, 0, 0);
                 }
+            }
+
+            private boolean hasSessionWindow(
+                int length)
+            {
+                return initialSeq - initialAck >= length + initialPad;
             }
 
             private void doSessionData(
