@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig.REQUESTED;
 import static java.util.Arrays.asList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -61,6 +62,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .version("TLSv1.2")
             .build();
 
@@ -88,6 +90,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithKeys()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+                .inject(identity())
                 .keys(asList("localhost"))
                 .build();
 
@@ -115,6 +118,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithTrust()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .trust(asList("serverca"))
             .build();
 
@@ -142,6 +146,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithTrustcacerts()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .trustcacerts(true)
             .build();
 
@@ -169,6 +174,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithServerName()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .sni(asList("example.net"))
             .build();
 
@@ -196,6 +202,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithAlpn()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .alpn(asList("echo"))
             .build();
 
@@ -223,6 +230,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithMutual()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .mutual(REQUESTED)
             .build();
 
@@ -250,6 +258,7 @@ public class TlsOptionsConfigAdapterTest
     public void shouldWriteOptionsWithSigners()
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
             .signers(asList("clientca"))
             .build();
 

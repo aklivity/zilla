@@ -19,7 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-public final class TelemetryRefConfigBuilder<T> implements ConfigBuilder<T>
+public final class TelemetryRefConfigBuilder<T> extends ConfigBuilder<T, TelemetryRefConfigBuilder<T>>
 {
     private final Function<TelemetryRefConfig, T> mapper;
 
@@ -29,6 +29,13 @@ public final class TelemetryRefConfigBuilder<T> implements ConfigBuilder<T>
         Function<TelemetryRefConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TelemetryRefConfigBuilder<T>> thisType()
+    {
+        return (Class<TelemetryRefConfigBuilder<T>>) getClass();
     }
 
     public MetricRefConfigBuilder<TelemetryRefConfigBuilder<T>> metric()

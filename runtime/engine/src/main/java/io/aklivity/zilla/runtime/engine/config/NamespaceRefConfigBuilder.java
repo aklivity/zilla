@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class NamespaceRefConfigBuilder<T> implements ConfigBuilder<T>
+public final class NamespaceRefConfigBuilder<T> extends ConfigBuilder<T, NamespaceRefConfigBuilder<T>>
 {
     public static final Map<String, String> LINKS_DEFAULT = emptyMap();
 
@@ -35,6 +35,13 @@ public final class NamespaceRefConfigBuilder<T> implements ConfigBuilder<T>
         Function<NamespaceRefConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<NamespaceRefConfigBuilder<T>> thisType()
+    {
+        return (Class<NamespaceRefConfigBuilder<T>>) getClass();
     }
 
     public NamespaceRefConfigBuilder<T> name(

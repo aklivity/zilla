@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpAllowConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpAllowConfigBuilder<T> extends ConfigBuilder<T, HttpAllowConfigBuilder<T>>
 {
     private final Function<HttpAllowConfig, T> mapper;
 
@@ -34,6 +34,13 @@ public final class HttpAllowConfigBuilder<T> implements ConfigBuilder<T>
         Function<HttpAllowConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpAllowConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpAllowConfigBuilder<T>>) getClass();
     }
 
     public HttpAllowConfigBuilder<T>  origin(

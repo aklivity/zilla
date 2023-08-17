@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.function.Function;
 
-public final class GuardConfigBuilder<T> implements ConfigBuilder<T>
+public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBuilder<T>>
 {
     private final Function<GuardConfig, T> mapper;
 
@@ -29,6 +29,13 @@ public final class GuardConfigBuilder<T> implements ConfigBuilder<T>
         Function<GuardConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GuardConfigBuilder<T>> thisType()
+    {
+        return (Class<GuardConfigBuilder<T>>) getClass();
     }
 
     public GuardConfigBuilder<T> name(
@@ -45,7 +52,7 @@ public final class GuardConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<GuardConfigBuilder<T>>> C options(
+    public <C extends ConfigBuilder<GuardConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, GuardConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);

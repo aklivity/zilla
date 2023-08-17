@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -61,6 +62,7 @@ public class TlsConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
             .authority("example.net")
             .alpn("echo")
             .build();

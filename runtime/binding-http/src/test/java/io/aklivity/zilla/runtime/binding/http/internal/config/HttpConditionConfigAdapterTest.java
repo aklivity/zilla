@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -63,6 +64,7 @@ public class HttpConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         HttpConditionConfig condition = HttpConditionConfig.builder()
+            .inject(identity())
             .header(":authority", "example.net:443")
             .build();
 

@@ -20,7 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class TlsConditionConfigBuilder<T> implements ConfigBuilder<T>
+public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsConditionConfigBuilder<T>>
 {
     private final Function<ConditionConfig, T> mapper;
 
@@ -31,6 +31,13 @@ public final class TlsConditionConfigBuilder<T> implements ConfigBuilder<T>
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TlsConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<TlsConditionConfigBuilder<T>>) getClass();
     }
 
     public TlsConditionConfigBuilder<T> authority(

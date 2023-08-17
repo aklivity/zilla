@@ -124,7 +124,7 @@ public class ConditionConfigAdapterTest
         }
     }
 
-    public static final class TestConditionConfigBuilder<T> implements ConfigBuilder<T>
+    public static final class TestConditionConfigBuilder<T> extends ConfigBuilder<T, TestConditionConfigBuilder<T>>
     {
         private final Function<ConditionConfig, T> mapper;
 
@@ -134,6 +134,13 @@ public class ConditionConfigAdapterTest
             Function<ConditionConfig, T> mapper)
         {
             this.mapper = mapper;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected Class<TestConditionConfigBuilder<T>> thisType()
+        {
+            return (Class<TestConditionConfigBuilder<T>>) getClass();
         }
 
         public TestConditionConfigBuilder<T> match(

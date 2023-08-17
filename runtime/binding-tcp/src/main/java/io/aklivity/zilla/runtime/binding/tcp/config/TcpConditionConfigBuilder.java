@@ -20,7 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class TcpConditionConfigBuilder<T> implements ConfigBuilder<T>
+public final class TcpConditionConfigBuilder<T> extends ConfigBuilder<T, TcpConditionConfigBuilder<T>>
 {
     private final Function<ConditionConfig, T> mapper;
 
@@ -32,6 +32,13 @@ public final class TcpConditionConfigBuilder<T> implements ConfigBuilder<T>
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TcpConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<TcpConditionConfigBuilder<T>>) getClass();
     }
 
     public TcpConditionConfigBuilder<T> cidr(

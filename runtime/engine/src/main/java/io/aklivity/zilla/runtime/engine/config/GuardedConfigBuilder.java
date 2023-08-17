@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class GuardedConfigBuilder<T> implements ConfigBuilder<T>
+public final class GuardedConfigBuilder<T> extends ConfigBuilder<T, GuardedConfigBuilder<T>>
 {
     public static final List<String> ROLES_DEFAULT = emptyList();
 
@@ -35,6 +35,13 @@ public final class GuardedConfigBuilder<T> implements ConfigBuilder<T>
         Function<GuardedConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GuardedConfigBuilder<T>> thisType()
+    {
+        return (Class<GuardedConfigBuilder<T>>) getClass();
     }
 
     public GuardedConfigBuilder<T> name(
