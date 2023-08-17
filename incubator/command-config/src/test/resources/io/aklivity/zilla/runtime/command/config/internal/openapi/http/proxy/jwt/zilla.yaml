@@ -28,14 +28,16 @@ bindings:
           :path: /items
           :method: GET
       guarded:
-        jwt0: []
+        jwt0:
+        - list:items
     - exit: http_client0
       when:
       - headers:
           :path: /items
           :method: POST
       guarded:
-        jwt0: []
+        jwt0:
+        - create:items
     - exit: http_client0
       when:
       - headers:

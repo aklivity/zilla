@@ -30,7 +30,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
       security:
-        - bearerAuth: []
+        - bearerAuth:
+            - create:items
     get:
       summary: List all items
       operationId: listItems
@@ -64,7 +65,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
       security:
-        - bearerAuth: []
+        - bearerAuth:
+            - list:items
   /items/{id}:
     get:
       summary: Get an item

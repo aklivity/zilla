@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
@@ -324,12 +325,26 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         route
                             .guarded()
                                 .name("jwt0")
+                                .inject(guarded -> injectGuardedRoles(guarded, securityItem.get(securityItemLabel)))
                                 .build();
                     }
                 }
             }
         }
         return route;
+    }
+
+    private GuardedConfigBuilder<RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>>>
+        injectGuardedRoles(
+        GuardedConfigBuilder<RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>>> guarded,
+        List<String> roles)
+    {
+        for (String role : roles)
+        {
+            guarded
+                .role(role);
+        }
+        return guarded;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
