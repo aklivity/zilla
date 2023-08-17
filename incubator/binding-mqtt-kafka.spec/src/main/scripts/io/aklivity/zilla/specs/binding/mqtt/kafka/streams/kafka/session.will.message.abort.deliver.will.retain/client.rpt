@@ -31,7 +31,6 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write notify FIRST_WILL_SIGNAL_SENT
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -41,7 +40,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 read ${mqtt:willSignal()
            .clientId("client-1")
            .delay(1)
@@ -50,8 +48,6 @@ read ${mqtt:willSignal()
            .willId("1")
        .build()}
 
-
-write notify SECOND_WILL_SIGNAL_SENT
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -61,7 +57,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 read ${mqtt:willSignal()
            .clientId("client-1")
            .delay(1)
@@ -69,6 +64,7 @@ read ${mqtt:willSignal()
            .lifetimeId("1")
            .willId("1")
         .build()}
+read notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
@@ -80,8 +76,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
-write zilla:data.null
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -93,15 +87,9 @@ write zilla:data.ext ${kafka:dataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
-
-write zilla:data.null
 write flush
 
-
-write notify WILL_STREAM_DONE
-
-connect await WILL_STREAM_DONE
-        "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -157,13 +145,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write zilla:data.empty
 write flush
+write notify INITIAL_MIGRATE_SENT
 
 write close
 read closed
 
-write notify INIT_MIGRATE_FINISHED
 
-connect await INIT_MIGRATE_FINISHED
+connect await INITIAL_MIGRATE_SENT
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -187,13 +175,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
+read notify RECEIVED_LEADER_DATA
 
 write abort
 
 
-write notify GROUP_FINISHED
-
-connect await GROUP_FINISHED
+connect await RECEIVED_LEADER_DATA
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -226,13 +213,12 @@ write zilla:data.ext ${kafka:dataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
-
 write ${mqtt:will()
-            .topic("wills/one")
+            .topic("obituaries")
             .delay(1)
             .flags("RETAIN")
             .format("TEXT")
-            .payload("client one session expired")
+            .payload("client-1 disconnected abruptly")
             .lifetimeId("1")
             .willId("1")
       .build()}
@@ -248,7 +234,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 write ${mqtt:willSignal()
             .clientId("client-1")
             .delay(1)
@@ -265,6 +250,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .partition(-1, -1)
                                .key("client-1#will-signal")
                                .hashKey("client-1")
+                               .header("type", "will-signal")
                                .build()
                            .build()}
 
@@ -281,9 +267,7 @@ write abort
 read aborted
 
 
-write notify SESSION_STATE_FINISHED
-
-connect await SESSION_STATE_FINISHED
+connect await RECEIVED_WILL_DELIVER_AT_SIGNAL
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -311,11 +295,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 
 read ${mqtt:will()
-           .topic("wills/one")
+           .topic("obituaries")
            .delay(1)
            .flags("RETAIN")
            .format("TEXT")
-           .payload("client one session expired")
+           .payload("client-1 disconnected abruptly")
            .lifetimeId("1")
            .willId("1")
        .build()}
@@ -348,23 +332,21 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("wills/one")
+                               .key("obituaries")
                                .header("zilla:topic", "wills")
                                .header("zilla:topic", "one")
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}
 
-write "client one session expired"
+write "client-1 disconnected abruptly"
 write flush
 
 write close
 read closed
 
-write notify WILL_MESSAGE_SENT
 
-
-connect await WILL_MESSAGE_SENT
+connect await WILL_MESSAGE_FETCHED
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -386,15 +368,16 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("wills/one")
+                               .key("obituaries")
                                .header("zilla:topic", "wills")
                                .header("zilla:topic", "one")
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}
 
-write "client one session expired"
+write "client-1 disconnected abruptly"
 write flush
 
 write close
 read closed
+

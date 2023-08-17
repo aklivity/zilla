@@ -17,7 +17,7 @@ accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-# Per zilla stream responsible for will delivery
+
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
@@ -34,7 +34,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read await WILL_SIGNAL_SENT
+write await RECEIVED_WILL_DELIVER_LATER_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -44,16 +44,17 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 write ${mqtt:willSignal()
-         .clientId("client-1")
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+            .clientId("client-1")
+            .delay(1)
+            .deliverAt(-1)
+            .lifetimeId("1")
+            .willId("1")
+        .build()}
 write flush
 
-read await WILL_SIGNAL_REMOVED
-# Client disconnected normally, we'll receive the removal of the will-signal
+# will signal for client-1, deliver at (now + delay)
+write await RECEIVED_WILL_DELIVER_AT_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -63,8 +64,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
-write zilla:data.empty
 write flush
 
 
@@ -74,7 +73,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
+                                .capabilities("FETCH_ONLY")
                                 .topic("mqtt_sessions")
                                 .filter()
                                     .key("client-1#will-signal")
@@ -84,6 +83,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+# no will signals
 write advise zilla:flush
 
 read closed
@@ -113,13 +113,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#migrate")
-                               .header("sender-id", "sender-1")
                                .hashKey("client-1")
+                               .header("sender-id", "sender-1")
                                .build()
                            .build()}
 read zilla:data.empty
-
-write notify INITIAL_MIGRATE_SENT
 
 read closed
 write close
@@ -138,13 +136,11 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-# wait so that we won't be the leader too early, before the lifetimeId arrives
-read await INITIAL_MIGRATE_SENT
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
+                                 .leaderId("member-1")
+                                 .memberId("member-1")
                                  .members(1)
                                  .build()
                              .build()}
@@ -172,8 +168,12 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+# no session state
+# no migrate signals
+
 write advise zilla:flush
 
+# will message for client-1
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -183,15 +183,16 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
-
 read ${mqtt:will()
-         .topic("wills/one")
-         .format("TEXT")
-         .payload("client one session expired")
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+           .topic("obituaries")
+           .delay(1)
+           .format("TEXT")
+           .payload("client-1 disconnected abruptly")
+           .lifetimeId("1")
+           .willId("1")
+      .build()}
 
+# will signal for client-1, deliver later
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -202,16 +203,16 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 read ${mqtt:willSignal()
-         .clientId("client-1")
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+           .clientId("client-1")
+           .delay(1)
+           .deliverAt(-1)
+           .lifetimeId("1")
+           .willId("1")
+       .build()}
 
-write notify WILL_SIGNAL_SENT
+write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
 
-#Client disconnected normally -> remove will message + signal
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -221,9 +222,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
+read zilla:data.null
 
-read zilla:data.empty
-
+# will signal for client-1, deliver at (now + delay)
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -234,10 +235,10 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
+#TODO: deliverAt: now() + will delay, where we provide a timeSupplier from the test
+read zilla:data.null
 
-read zilla:data.empty
-
-write notify WILL_SIGNAL_REMOVED
+write notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
 read closed
 write close

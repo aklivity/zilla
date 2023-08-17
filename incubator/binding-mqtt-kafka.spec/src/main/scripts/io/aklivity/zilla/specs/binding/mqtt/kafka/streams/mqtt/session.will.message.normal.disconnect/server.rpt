@@ -39,9 +39,9 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:will()
-               .topic("wills/one")
+               .topic("obituaries")
                .format("TEXT")
-               .payload("client one session expired")
+               .payload("client-1 disconnected abruptly")
                .build()}
 
 write zilla:data.empty

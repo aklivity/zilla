@@ -34,7 +34,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write await FIRST_WILL_SIGNAL_SENT
+write await RECEIVED_WILL_DELIVER_LATER_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -44,7 +44,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-
 write ${mqtt:willSignal()
             .clientId("client-1")
             .delay(1)
@@ -55,7 +54,7 @@ write ${mqtt:willSignal()
 write flush
 
 # will signal for client-1, deliver at (now + delay)
-write await SECOND_WILL_SIGNAL_SENT
+write await RECEIVED_WILL_DELIVER_AT_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -150,8 +149,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
-write notify INITIAL_MIGRATE_SENT
-
 read closed
 write close
 
@@ -169,8 +166,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-# wait so that we won't be the leader too early, before the lifetimeId arrives
-read await INITIAL_MIGRATE_SENT
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
@@ -219,11 +214,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read ${mqtt:will()
-           .topic("wills/one")
+           .topic("obituaries")
            .delay(1)
            .flags("RETAIN")
            .format("TEXT")
-           .payload("client one session expired")
+           .payload("client-1 disconnected abruptly")
            .lifetimeId("1")
            .willId("1")
       .build()}
@@ -247,7 +242,7 @@ read ${mqtt:willSignal()
            .willId("1")
        .build()}
 
-write notify FIRST_WILL_SIGNAL_SENT
+write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
 
 # will signal for client-1, deliver at (now + delay)
 read zilla:data.ext ${kafka:matchDataEx()
@@ -268,7 +263,7 @@ read ${mqtt:willSignal()
            .willId("1")
        .build()}
 
-write notify SECOND_WILL_SIGNAL_SENT
+write notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
 read aborted
 write abort
@@ -299,11 +294,11 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write ${mqtt:will()
-            .topic("wills/one")
+            .topic("obituaries")
             .delay(1)
             .flags("RETAIN")
             .format("TEXT")
-            .payload("client one session expired")
+            .payload("client-1 disconnected abruptly")
             .lifetimeId("1")
             .willId("1")
         .build()}
@@ -334,13 +329,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("wills/one")
+                               .key("obituaries")
                                .header("zilla:topic", "wills")
                                .header("zilla:topic", "one")
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}
-read "client one session expired"
+read "client-1 disconnected abruptly"
 
 read closed
 write close
@@ -366,13 +361,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("wills/one")
+                               .key("obituaries")
                                .header("zilla:topic", "wills")
                                .header("zilla:topic", "one")
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}
-read "client one session expired"
+read "client-1 disconnected abruptly"
 
 read closed
 write close
