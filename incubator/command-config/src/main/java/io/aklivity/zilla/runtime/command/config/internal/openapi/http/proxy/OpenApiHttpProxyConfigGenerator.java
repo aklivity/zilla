@@ -30,6 +30,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
+import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.spi.JsonProvider;
@@ -335,21 +336,11 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        if (isTlsEnabled)
-        {
+        return
             binding
                 .route()
-                    .exit("tls_client0")
+                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build();
-        }
-        else
-        {
-            binding
-                .route()
-                    .exit("tcp_client0")
-                    .build();
-        }
-        return binding;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
@@ -432,60 +423,47 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
     private JsonPatch createEnvVarsPatch()
     {
-        JsonArrayBuilder patch = Json.createArrayBuilder();
-        addOp(patch, "/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
-        addOp(patch, "/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
+        JsonPatchBuilder patch = Json.createPatchBuilder();
+        patch.replace("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
+        patch.replace("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
 
         if (isJwtEnabled)
         {
             // jwt0 guard
-            addOp(patch, "/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
-            addOp(patch, "/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
-            addOp(patch, "/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
+            patch.replace("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
+            patch.replace("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
+            patch.replace("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
+            patch.replace("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
+            patch.replace("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
+            patch.replace("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
+            patch.replace("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
+            patch.replace("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
+            patch.replace("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
+            patch.replace("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
+            patch.replace("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
         }
 
         if (isTlsEnabled)
         {
             // tls_server0 binding
-            addOp(patch, "/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
-            addOp(patch, "/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
-            addOp(patch, "/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
+            patch.replace("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+            patch.replace("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
+            patch.replace("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
             // tls_client0 binding
-            addOp(patch, "/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
-            addOp(patch, "/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
-            addOp(patch, "/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
+            patch.replace("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
+            patch.replace("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
+            patch.replace("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
             // client vault
-            addOp(patch, "/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
-            addOp(patch, "/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
-            addOp(patch, "/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
+            patch.replace("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
+            patch.replace("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
+            patch.replace("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
             // server vault
-            addOp(patch, "/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
-            addOp(patch, "/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
-            addOp(patch, "/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+            patch.replace("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
+            patch.replace("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
+            patch.replace("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
         }
 
-        return JsonProvider.provider().createPatch(patch.build());
-    }
-
-    private void addOp(
-        JsonArrayBuilder patch,
-        String path,
-        String value)
-    {
-        JsonObject op = Json.createObjectBuilder()
-            .add("op", "replace")
-            .add("path", path)
-            .add("value", value)
-            .build();
-        patch.add(op);
+        return patch.build();
     }
 
     private List<String> createUnquotedEnvVars()
