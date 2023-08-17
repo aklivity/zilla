@@ -22,8 +22,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
                                    .capabilities("FETCH_ONLY")
+                                   .groupId("client-1")
+                                   .consumerId("")
                                    .topic("test")
-
                                    .partition(0, 1)
                                    .partition(1, 1)
                                    .partition(-1, 1)
@@ -44,7 +45,7 @@ read "Hello, world #A1"
 
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
-                                .()
+                                .group()
                                     .partition(0, 1, 2)
                                     .build()
                                 .build()}
