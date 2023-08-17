@@ -6,7 +6,10 @@ bindings:
     options:
       host: 0.0.0.0
       port: 9090
-    exit: tls_server0
+    routes:
+    - exit: tls_server0
+      when:
+      - port: 9090
   tls_server0:
     vault: server
     type: tls

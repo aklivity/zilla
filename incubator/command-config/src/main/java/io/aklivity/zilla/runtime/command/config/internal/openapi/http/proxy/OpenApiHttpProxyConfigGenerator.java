@@ -175,7 +175,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                     .build()
                 .inject(this::injectPlainTcpRoute)
                 .inject(this::injectTlsTcpRoute)
-                .inject(this::injectPlainAndTlsTcpRoutes)
                 .build()
             .inject(this::injectTlsServer)
             .binding()
@@ -214,10 +213,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainTcpRoute(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        if (isPlainEnabled && !isTlsEnabled)
+        if (isPlainEnabled)
         {
             binding
                 .route()
+                    .when(TcpConditionConfig::builder)
+                        .ports(httpPorts)
+                        .build()
                     .exit("http_server0")
                     .build();
         }
@@ -227,28 +229,9 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTlsTcpRoute(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        if (isTlsEnabled && !isPlainEnabled)
+        if (isTlsEnabled)
         {
             binding
-                .route()
-                    .exit("tls_server0")
-                    .build();
-        }
-        return binding;
-    }
-
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainAndTlsTcpRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
-    {
-        if (isPlainEnabled && isTlsEnabled)
-        {
-            binding
-                .route()
-                    .when(TcpConditionConfig::builder)
-                        .ports(httpPorts)
-                        .build()
-                    .exit("http_server0")
-                    .build()
                 .route()
                     .when(TcpConditionConfig::builder)
                         .ports(httpsPorts)
