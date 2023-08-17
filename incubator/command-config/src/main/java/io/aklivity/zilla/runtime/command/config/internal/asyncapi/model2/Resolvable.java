@@ -15,31 +15,25 @@
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
-
-public final class Channel2 extends Resolvable<Channel>
+public abstract class Resolvable<T>
 {
-    private final Channel channel;
+    protected Map<String, T> map;
+    protected String regex;
 
-    private Channel2(
-        Map<String, Channel> channels,
-        Channel channel)
+    protected T resolveRef(
+        String ref)
     {
-        super.map = channels;
-        super.regex = "#/channels/(\\w+)";
-        this.channel = channel.ref == null ? channel : resolveRef(channel.ref);
-    }
-
-    public String address()
-    {
-        return channel.address;
-    }
-
-    public static Channel2 of(
-        Map<String, Channel> channels,
-        Channel channel)
-    {
-        return new Channel2(channels, channel);
+        T result = null;
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(ref);
+        if (matcher.matches())
+        {
+            String key = matcher.group(1);
+            result = map.get(key);
+        }
+        return result;
     }
 }
