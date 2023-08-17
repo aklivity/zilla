@@ -274,6 +274,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             final int sessionExpiry = mqttSessionBeginEx.expiry();
             sessionExpiryMillis = mqttSessionBeginEx.expiry() == 0 ? Integer.MAX_VALUE : (int) SECONDS.toMillis(sessionExpiry);
+            //TODO: open these two streams once we received the lifetimeId (or flush if it doesn't exists)
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity, null, clientIdMigrate, sessionId);
             group.doKafkaBegin(traceId, authorization, affinity);
         }

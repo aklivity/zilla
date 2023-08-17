@@ -22,7 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
-                                .groupId("mqtt-will-consumer-group")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
@@ -43,12 +43,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 
 read ${mqtt:willSignal()
-         .clientId("client-1")
-         .delay(1)
-         .deliverAt(-1)
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+           .clientId("client-1")
+           .delay(1)
+           .deliverAt(-1)
+           .lifetimeId("1")
+           .willId("1")
+       .build()}
 
 
 write notify SECOND_WILL_SIGNAL_SENT
@@ -63,12 +63,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 
 read ${mqtt:willSignal()
-         .clientId("client-1")
-         .delay(1)
-         .deliverAt(2)
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+           .clientId("client-1")
+           .delay(1)
+           .deliverAt(2)
+           .lifetimeId("1")
+           .willId("1")
+        .build()}
 
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
@@ -81,7 +81,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 
-write zilla:data.empty
+write zilla:data.null
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -94,7 +94,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 
-write zilla:data.empty
+write zilla:data.null
 write flush
 
 
@@ -108,7 +108,7 @@ connect await WILL_STREAM_DONE
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
+                                .capabilities("FETCH_ONLY")
                                 .topic("mqtt_sessions")
                                 .filter()
                                     .key("client-1#will-signal")
@@ -138,7 +138,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .topic("mqtt_sessions")
                                 .filter()
                                     .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender1")
+                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}
@@ -152,7 +152,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .partition(-1, -1)
                                .key("client-1#migrate")
                                .hashKey("client-1")
-                               .header("sender-id", "sender1")
+                               .header("sender-id", "sender-1")
                                .build()
                            .build()}
 write zilla:data.empty
@@ -182,8 +182,8 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
+                                 .leaderId("member-1")
+                                 .memberId("member-1")
                                  .members(1)
                                  .build()
                              .build()}
@@ -208,7 +208,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                     .build()
                                 .filter()
                                     .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender1")
+                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}
@@ -228,13 +228,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 
 write ${mqtt:will()
-          .topic("wills/one")
-          .delay(1)
-          .flags("RETAIN")
-          .format("TEXT")
-          .payload("client one session expired")
-          .lifetimeId("1")
-          .willId("1")
+            .topic("wills/one")
+            .delay(1)
+            .flags("RETAIN")
+            .format("TEXT")
+            .payload("client one session expired")
+            .lifetimeId("1")
+            .willId("1")
       .build()}
 write flush
 
@@ -250,12 +250,12 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 
 write ${mqtt:willSignal()
-         .clientId("client-1")
-         .delay(1)
-         .deliverAt(-1)
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+            .clientId("client-1")
+            .delay(1)
+            .deliverAt(-1)
+            .lifetimeId("1")
+            .willId("1")
+        .build()}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -269,12 +269,12 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 
 write ${mqtt:willSignal()
-         .clientId("client-1")
-         .delay(1)
-         .deliverAt(2)
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+            .clientId("client-1")
+            .delay(1)
+            .deliverAt(2)
+            .lifetimeId("1")
+            .willId("1")
+        .build()}
 write flush
 
 write abort
@@ -311,14 +311,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 
 read ${mqtt:will()
-         .topic("wills/one")
-         .delay(1)
-         .flags("RETAIN")
-         .format("TEXT")
-         .payload("client one session expired")
-         .lifetimeId("1")
-         .willId("1")
-     .build()}
+           .topic("wills/one")
+           .delay(1)
+           .flags("RETAIN")
+           .format("TEXT")
+           .payload("client one session expired")
+           .lifetimeId("1")
+           .willId("1")
+       .build()}
 
 write close
 read closed
