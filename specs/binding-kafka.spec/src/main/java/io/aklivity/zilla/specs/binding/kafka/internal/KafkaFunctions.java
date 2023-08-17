@@ -1101,7 +1101,7 @@ public final class KafkaFunctions
 
             private KafkaOffsetFetchBeginExBuilder()
             {
-                offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_FETCH, writeBuffer.capacity());
+                offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
 
             public KafkaOffsetFetchBeginExBuilder groupId(
