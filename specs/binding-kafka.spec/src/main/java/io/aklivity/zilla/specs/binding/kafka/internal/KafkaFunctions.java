@@ -73,6 +73,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -1925,6 +1926,13 @@ public final class KafkaFunctions
             return new KafkaProduceFlushExBuilder();
         }
 
+        public KafkaGroupFlushExBuilder group()
+        {
+            flushExRW.kind(KafkaApi.GROUP.value());
+
+            return new KafkaGroupFlushExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaFlushExFW flushEx = flushExRO;
@@ -2163,6 +2171,53 @@ public final class KafkaFunctions
             {
                 final KafkaProduceFlushExFW produceFlushEx = produceFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, produceFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
+        }
+
+        public final class KafkaGroupFlushExBuilder
+        {
+            private final KafkaGroupFlushExFW.Builder groupFlushExRW = new KafkaGroupFlushExFW.Builder();
+
+            private KafkaGroupFlushExBuilder()
+            {
+                groupFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+            public KafkaGroupFlushExBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long latestOffset)
+            {
+                partition(partitionId, partitionOffset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
+                groupFlushExRW.partition(p -> p.partitionId(partitionId)
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset));
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                final KafkaGroupFlushExFW groupFlushEx = groupFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, groupFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
         }
