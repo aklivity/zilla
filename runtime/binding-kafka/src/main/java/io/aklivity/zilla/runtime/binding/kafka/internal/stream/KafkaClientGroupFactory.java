@@ -2507,26 +2507,31 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
+            final boolean isLeader = leader.equals(memberId);
+
             final SyncGroupRequestFW syncGroupRequest =
                 syncGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .groupId(delegate.groupId)
                     .generatedId(generationId)
                     .memberId(memberId)
                     .groupInstanceId(delegate.groupMembership.instanceId)
-                    .assignmentCount(members.size())
+                    .assignmentCount(isLeader ? members.size() : 0)
                     .build();
 
             encodeProgress = syncGroupRequest.limit();
 
-            for (int i = 0; i < members.size(); i++)
+            if (isLeader)
             {
-                final AssignmentFW groupAssignment =
-                    assignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .memberId(members.get(i))
-                        .value(assignment)
-                        .build();
+                for (int i = 0; i < members.size(); i++)
+                {
+                    final AssignmentFW groupAssignment =
+                        assignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                            .memberId(members.get(i))
+                            .value(assignment)
+                            .build();
 
-                encodeProgress = groupAssignment.limit();
+                    encodeProgress = groupAssignment.limit();
+                }
             }
 
             final int requestId = nextRequestId++;
