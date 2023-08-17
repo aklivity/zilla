@@ -22,8 +22,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.List;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonPatch;
@@ -135,7 +133,7 @@ public class ConfigWriterTest
         JsonPatch patch = JsonProvider.provider().createPatch(ops);
 
         // WHEN
-        String text = yaml.write(config, patch, List.of());
+        String text = yaml.write(config, patch);
 
         // THEN
         assertThat(text, not(nullValue()));
@@ -145,58 +143,6 @@ public class ConfigWriterTest
                 "bindings:",
                 "  test0:",
                 "    type: newType",
-                "    kind: server",
-                "    options:",
-                "      mode: test",
-                "    routes:",
-                "    - exit: exit0",
-                "      when:",
-                "      - match: test",
-                ""
-            })));
-    }
-
-    @Test
-    public void shouldPatchAndUnquoteAndWriteNamespace()
-    {
-        // GIVEN
-        NamespaceConfig config = NamespaceConfig.builder()
-                .name("test")
-                .binding()
-                    .name("test0")
-                    .type("test")
-                    .kind(SERVER)
-                    .options(TestBindingOptionsConfig::builder)
-                        .mode("test")
-                        .build()
-                    .route()
-                        .when(TestConditionConfig::builder)
-                            .match("test")
-                            .build()
-                        .exit("exit0")
-                        .build()
-                    .build()
-                .build();
-        JsonArray ops = Json.createArrayBuilder()
-            .add(Json.createObjectBuilder()
-                .add("op", "replace")
-                .add("path", "/bindings/test0/type")
-                .add("value", "${{env.INTEGER}}")
-                .build())
-            .build();
-        JsonPatch patch = JsonProvider.provider().createPatch(ops);
-
-        // WHEN
-        String text = yaml.write(config, patch, List.of("INTEGER"));
-
-        // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(String.join("\n",
-            new String[] {
-                "name: test",
-                "bindings:",
-                "  test0:",
-                "    type: ${{env.INTEGER}}",
                 "    kind: server",
                 "    options:",
                 "      mode: test",
