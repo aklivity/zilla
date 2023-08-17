@@ -33,6 +33,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String type;
     private KindConfig kind;
     private String entry;
+    private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
     private TelemetryRefConfig telemetry;
@@ -85,6 +86,13 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         return this;
     }
 
+    public BindingConfigBuilder<T> exit(
+        String exit)
+    {
+        this.exit = exit;
+        return this;
+    }
+
     public <C extends ConfigBuilder<BindingConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, BindingConfigBuilder<T>>, C> options)
     {
@@ -100,7 +108,8 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
 
     public RouteConfigBuilder<BindingConfigBuilder<T>> route()
     {
-        return new RouteConfigBuilder<>(this::route);
+        return new RouteConfigBuilder<>(this::route)
+            .order(routes != null ? routes.size() : 0);
     }
 
     public BindingConfigBuilder<T> route(
@@ -110,6 +119,9 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         {
             routes = new LinkedList<>();
         }
+
+        assert route.order == routes.size();
+
         routes.add(route);
         return this;
     }
@@ -129,6 +141,13 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     @Override
     public T build()
     {
+        if (exit != null)
+        {
+            route()
+                .exit(exit)
+                .build();
+        }
+
         return mapper.apply(new BindingConfig(
             vault,
             name,
