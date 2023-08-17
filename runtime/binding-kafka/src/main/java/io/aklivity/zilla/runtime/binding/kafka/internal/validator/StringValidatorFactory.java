@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
 public class StringValidatorFactory implements ValidatorFactorySpi
@@ -29,6 +30,6 @@ public class StringValidatorFactory implements ValidatorFactorySpi
     public Validator create(
         ValidatorConfig config)
     {
-        return new StringValidator(config);
+        return new StringValidator(StringValidatorConfig.class.cast(config));
     }
 }

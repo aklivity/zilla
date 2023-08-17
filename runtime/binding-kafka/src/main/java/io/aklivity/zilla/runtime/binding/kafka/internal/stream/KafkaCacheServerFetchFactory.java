@@ -232,8 +232,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final Validator keyValidator = binding.supplyValidator(topicName, true);
-                final Validator valueValidator = binding.supplyValidator(topicName, false);
+                final Validator keyValidator =
+                    binding.validatorsMap != null ? binding.validatorsMap.get(topicName).key : null;
+                final Validator valueValidator =
+                    binding.validatorsMap != null ? binding.validatorsMap.get(topicName).value : null;
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
                         affinity, partition, routeDeltaType, defaultOffset, keyValidator, valueValidator);

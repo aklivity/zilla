@@ -20,5 +20,5 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 public interface Validator
 {
     boolean validate(
-        OctetsFW payload);
+        OctetsFW data);
 }

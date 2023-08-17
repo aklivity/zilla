@@ -16,6 +16,13 @@
 
 ---
 name: test
+catalogs:
+  test0:
+    type: test
+    options:
+      host: localhost
+      port: 8081
+      context: default
 bindings:
   app0:
     type: kafka

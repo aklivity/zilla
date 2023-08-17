@@ -34,7 +34,9 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public String resolve(String subject, String version)
+    public String resolve(
+        String subject,
+        String version)
     {
         return null;
     }

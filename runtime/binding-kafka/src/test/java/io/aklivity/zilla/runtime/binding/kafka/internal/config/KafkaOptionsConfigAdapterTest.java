@@ -82,11 +82,10 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH,
-                    new KafkaTopicKeyValueConfig("string", "utf_8",
-                    singletonList(new KafkaCatalogConfig("test0", "topic", "latest", 0))),
-                    new KafkaTopicKeyValueConfig("avro", null,
-                    singletonList(new KafkaCatalogConfig("test0", "topic", "latest", 0))))),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, new KafkaTopicKeyValueConfig(
+               "string", "utf_8", singletonList(new KafkaCatalogConfig("test0", "topic", "latest", 0))),
+                    new KafkaTopicKeyValueConfig("avro", null, singletonList(new KafkaCatalogConfig(
+              "test0", "topic", "latest", 0))))),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);

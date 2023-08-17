@@ -15,39 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
-
-public class StringValidatorConfig implements ValidatorConfig
+public final class StringValidatorConfig extends ValidatorConfig
 {
-    KafkaTopicKeyValueConfig config;
+    public final String encoding;
 
-    public StringValidatorConfig(KafkaTopicKeyValueConfig config)
+    public StringValidatorConfig(
+        String encoding)
     {
-        this.config = config;
-    }
-
-    @Override
-    public Charset encoding()
-    {
-        if (config.encoding != null)
-        {
-            switch (config.encoding)
-            {
-            case "utf_8":
-                return StandardCharsets.UTF_8;
-            }
-
-        }
-        return StandardCharsets.UTF_8;
-    }
-
-    @Override
-    public KafkaCatalogConfig catalog()
-    {
-        return null;
+        super("string");
+        this.encoding = encoding != null ? encoding : "utf_8";
     }
 }

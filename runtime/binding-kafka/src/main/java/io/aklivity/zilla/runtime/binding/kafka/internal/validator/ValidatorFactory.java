@@ -34,11 +34,6 @@ public final class ValidatorFactory
         return instantiate(load(ValidatorFactorySpi.class));
     }
 
-    public Iterable<String> names()
-    {
-        return validatorSpis.keySet();
-    }
-
     public Validator create(
         String type,
         ValidatorConfig config)

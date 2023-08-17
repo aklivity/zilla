@@ -15,44 +15,78 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
 
 public class StringValidator implements Validator
 {
-    private Charset encoding;
-    private CharsetDecoder decoder;
+    private String encoding;
 
     public StringValidator(
-        ValidatorConfig config)
+        StringValidatorConfig config)
     {
-        this.encoding = config.encoding();
-        this.decoder = encoding.newDecoder();
+        this.encoding = config.encoding;
     }
 
     @Override
     public boolean validate(
-        OctetsFW payload)
+        OctetsFW data)
     {
-        boolean valid = false;
-        if (payload != null)
+        boolean valid = true;
+        if (data != null)
         {
-            byte[] payloadBytes = new byte[payload.sizeof()];
-            payload.value().getBytes(0, payloadBytes);
-            try
+            byte[] payloadBytes = new byte[data.sizeof()];
+            data.value().getBytes(0, payloadBytes);
+            switch (encoding)
             {
-                decoder.decode(ByteBuffer.wrap(payloadBytes));
-                valid = true;
-            }
-            catch (CharacterCodingException ex)
-            {
+            case "utf_8":
+                valid = isValidUTF8(payloadBytes);
             }
         }
         return valid;
+    }
+
+    private boolean isValidUTF8(
+        byte[] byteArray)
+    {
+        int i = 0;
+        while (i < byteArray.length)
+        {
+            int numBytes;
+            if ((byteArray[i] & 0b10000000) == 0b00000000)
+            {
+                numBytes = 1;
+            }
+            else if ((byteArray[i] & 0b11100000) == 0b11000000)
+            {
+                numBytes = 2;
+            }
+            else if ((byteArray[i] & 0b11110000) == 0b11100000)
+            {
+                numBytes = 3;
+            }
+            else if ((byteArray[i] & 0b11111000) == 0b11110000)
+            {
+                numBytes = 4;
+            }
+            else
+            {
+                return false;
+            }
+
+            for (int j = 1; j < numBytes; j++)
+            {
+                if (i + j >= byteArray.length)
+                {
+                    return false;
+                }
+                if ((byteArray[i + j] & 0b11000000) != 0b10000000)
+                {
+                    return false;
+                }
+            }
+            i += numBytes;
+        }
+        return true;
     }
 }

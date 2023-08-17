@@ -89,13 +89,40 @@
                                                 {
                                                     "title": "Type",
                                                     "type": "string",
-                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
+                                                    "enum":
+                                                    [
+                                                        "byte_array",
+                                                        "byte_buffer",
+                                                        "bytes",
+                                                        "double",
+                                                        "float",
+                                                        "integer",
+                                                        "avro",
+                                                        "json",
+                                                        "json_decoder",
+                                                        "json_schema",
+                                                        "list",
+                                                        "long",
+                                                        "short",
+                                                        "string",
+                                                        "uuid",
+                                                        "void",
+                                                        "wrapper_key"
+                                                    ]
                                                 },
                                                 "encoding":
                                                 {
                                                     "title": "Encoding",
                                                     "type": "string",
-                                                    "enum": [ "us_ascii", "iso_8859_1", "utf_8", "utf_16be", "utf_16le", "utf_16" ],
+                                                    "enum":
+                                                    [
+                                                        "us_ascii",
+                                                        "iso_8859_1",
+                                                        "utf_8",
+                                                        "utf_16be",
+                                                        "utf_16le",
+                                                        "utf_16"
+                                                    ],
                                                     "default": "utf_8"
                                                 },
                                                 "catalog":
@@ -145,13 +172,40 @@
                                                 {
                                                     "title": "Type",
                                                     "type": "string",
-                                                    "enum": [ "byte_array", "byte_buffer", "bytes", "double", "float", "integer", "avro", "json", "json_decoder", "json_schema", "list", "long", "short", "string", "uuid", "void", "wrapper_key" ]
+                                                    "enum":
+                                                    [
+                                                        "byte_array",
+                                                        "byte_buffer",
+                                                        "bytes",
+                                                        "double",
+                                                        "float",
+                                                        "integer",
+                                                        "avro",
+                                                        "json",
+                                                        "json_decoder",
+                                                        "json_schema",
+                                                        "list",
+                                                        "long",
+                                                        "short",
+                                                        "string",
+                                                        "uuid",
+                                                        "void",
+                                                        "wrapper_key"
+                                                    ]
                                                 },
                                                 "encoding":
                                                 {
                                                     "title": "Encoding",
                                                     "type": "string",
-                                                    "enum": [ "us_ascii", "iso_8859_1", "utf_8", "utf_16be", "utf_16le", "utf_16" ],
+                                                    "enum":
+                                                    [
+                                                        "us_ascii",
+                                                        "iso_8859_1",
+                                                        "utf_8",
+                                                        "utf_16be",
+                                                        "utf_16le",
+                                                        "utf_16"
+                                                    ],
                                                     "default": "utf_8"
                                                 },
                                                 "catalog":

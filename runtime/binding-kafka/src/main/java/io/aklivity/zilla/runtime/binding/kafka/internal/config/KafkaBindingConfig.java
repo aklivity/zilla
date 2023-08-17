@@ -19,13 +19,14 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.ToLongFunction;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfigFactory;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -36,10 +37,8 @@ public final class KafkaBindingConfig
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
-    public final ToLongFunction<String> resolveId;
-    KafkaTopicConfig config = null;
     private final ValidatorFactory validator = ValidatorFactory.instantiate();
-    private final ValidatorConfigFactory validatorConfig = ValidatorConfigFactory.instantiate();
+    public final Map<String, KafkaTopicValidators> validatorsMap;
 
     public KafkaBindingConfig(
         BindingConfig binding)
@@ -49,7 +48,13 @@ public final class KafkaBindingConfig
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
-        this.resolveId = binding.resolveId;
+        this.validatorsMap = options != null &&
+                options.topics != null
+                    ? options.topics.stream()
+                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicValidators(
+                        t.key != null ? validator.create(t.key.type, supplyValidatorConfig(t.key.type, t.key)) : null,
+                        t.value != null ? validator.create(t.value.type, supplyValidatorConfig(t.value.type, t.value)) : null
+                        ))) : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -90,39 +95,30 @@ public final class KafkaBindingConfig
         String topic,
         KafkaDeltaType deltaType)
     {
-        if (config == null)
-        {
-            config = topic(topic);
-        }
-
-        return config != null ? config.deltaType : deltaType;
+        return topic != null &&
+                options != null &&
+                options.topics != null
+                    ? options.topics.stream().filter(t -> topic.equals(t.name)).findFirst().orElse(null).deltaType
+                    : deltaType;
     }
 
     public KafkaOffsetType supplyDefaultOffset(
         String topic)
     {
-        if (config == null)
-        {
-            config = topic(topic);
-        }
-
-        return config != null ? config.defaultOffset : HISTORICAL;
+        return topic != null &&
+                options != null &&
+                options.topics != null
+                    ? options.topics.stream().filter(t -> topic.equals(t.name)).findFirst().orElse(null).defaultOffset
+                    : HISTORICAL;
     }
 
-    public Validator supplyValidator(
-        String topic,
-        boolean isKey)
+    private ValidatorConfig supplyValidatorConfig(
+        String type,
+        KafkaTopicKeyValueConfig config)
     {
-        if (config == null)
+        if ("string".equals(type))
         {
-            config = topic(topic);
-        }
-
-        KafkaTopicKeyValueConfig kVConfig = config != null ? (isKey ? config.key : config.value) : null;
-
-        if (kVConfig != null)
-        {
-            return validator.create(kVConfig.type, validatorConfig.config(kVConfig));
+            return new StringValidatorConfig(config.encoding);
         }
 
         return null;

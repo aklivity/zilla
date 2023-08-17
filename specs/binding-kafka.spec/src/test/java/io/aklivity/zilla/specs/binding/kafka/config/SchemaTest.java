@@ -117,7 +117,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCacheOptionsCatalog()
     {
-        JsonObject config = schema.validate("cache.options.catalog.yaml");
+        JsonObject config = schema.validate("cache.options.type.avro.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -15,13 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import java.nio.charset.Charset;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
-
-public interface ValidatorConfig
+public abstract class ValidatorConfig extends OptionsConfig
 {
-    Charset encoding();
+    public final String type;
 
-    KafkaCatalogConfig catalog();
+    public ValidatorConfig(
+        String type)
+    {
+        this.type = type;
+    }
 }

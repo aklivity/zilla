@@ -13,22 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicKeyValueConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 
-public class StringValidatorConfigFactory implements ValidatorConfigFactorySpi
+public class KafkaTopicValidators
 {
-    @Override
-    public String type()
-    {
-        return "string";
-    }
+    public final Validator key;
+    public final Validator value;
 
-    @Override
-    public StringValidatorConfig config(
-        KafkaTopicKeyValueConfig config)
+    public KafkaTopicValidators(
+        Validator key,
+        Validator value)
     {
-        return new StringValidatorConfig(config);
+        this.key = key;
+        this.value = value;
     }
 }
