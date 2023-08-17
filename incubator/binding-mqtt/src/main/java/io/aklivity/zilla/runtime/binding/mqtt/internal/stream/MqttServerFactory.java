@@ -319,6 +319,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final boolean session;
     private final String serverRef;
     private int maximumPacketSize;
+    private int decodableRemainingBytes;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -833,6 +834,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
+                decodableRemainingBytes = mqttConnect.remainingLength();
                 flags = mqttConnect.flags();
 
                 reasonCode = decodeConnectType(mqttConnect, flags);
@@ -854,6 +856,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect);
+
+                final int decodedLength = progress - offset - 2;
+                decodableRemainingBytes -= decodedLength;
             }
 
             if (reasonCode != SUCCESS)
@@ -879,18 +884,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         final int offset,
         final int limit)
     {
-        final int length = limit - offset;
-
         int progress = offset;
 
-        if (length > 0)
+        progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
+        if (decodableRemainingBytes == 0)
         {
-            progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
-
-            if (progress == limit)
-            {
-                server.decoder = decodePacketType;
-            }
+            server.decoder = decodePacketType;
         }
 
         return progress;
@@ -1762,7 +1761,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!session)
                 {
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
+                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
+                        false, null);
                     connected = true;
                 }
 
@@ -1803,8 +1803,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     sessionStream.doSessionData(traceId, willPayloadSize, sessionDataExBuilder.build(), will);
-                    progress = connectPayloadLimit;
                 }
+                decodableRemainingBytes -= connectPayloadLimit - progress;
+                progress = connectPayloadLimit;
             }
 
             if (reasonCode != SUCCESS)
@@ -1824,11 +1825,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decoder = decodeIgnoreAll;
                 progress = limit;
-            }
-            else if (progress == limit)
-            {
-                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
-                connected = true;
             }
 
 
@@ -3384,7 +3380,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private boolean hasSessionWindow(
                 int length)
             {
-                return initialSeq - initialAck >= length + initialPad;
+                return initialMax - (initialSeq - initialAck) >= length + initialPad;
             }
 
             private void doSessionData(
