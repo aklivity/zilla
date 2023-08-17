@@ -432,57 +432,59 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
 
     private JsonPatch createEnvVarsPatch()
     {
-        Map<String, String> ops = new HashMap<>();
-        // tcp_client0 binding
-        ops.put("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
-        ops.put("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
+        JsonArrayBuilder patch = Json.createArrayBuilder();
+        addOp(patch, "/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
+        addOp(patch, "/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
 
         if (isJwtEnabled)
         {
             // jwt0 guard
-            ops.put("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
-            ops.put("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
-            ops.put("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
-            ops.put("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
-            ops.put("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
-            ops.put("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
-            ops.put("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
-            ops.put("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
-            ops.put("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
-            ops.put("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
-            ops.put("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
+            addOp(patch, "/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
+            addOp(patch, "/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
+            addOp(patch, "/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
         }
 
         if (isTlsEnabled)
         {
             // tls_server0 binding
-            ops.put("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
-            ops.put("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
-            ops.put("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
+            addOp(patch, "/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+            addOp(patch, "/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
+            addOp(patch, "/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
             // tls_client0 binding
-            ops.put("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
-            ops.put("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
-            ops.put("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
+            addOp(patch, "/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
+            addOp(patch, "/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
+            addOp(patch, "/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
             // client vault
-            ops.put("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
-            ops.put("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
-            ops.put("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
+            addOp(patch, "/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
+            addOp(patch, "/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
+            addOp(patch, "/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
             // server vault
-            ops.put("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
-            ops.put("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
-            ops.put("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+            addOp(patch, "/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
+            addOp(patch, "/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
+            addOp(patch, "/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
         }
 
-        JsonArrayBuilder patch = Json.createArrayBuilder();
-        for (Map.Entry<String, String> entry: ops.entrySet())
-        {
-            JsonObject op = Json.createObjectBuilder()
-                .add("op", "replace")
-                .add("path", entry.getKey())
-                .add("value", entry.getValue())
-                .build();
-            patch.add(op);
-        }
         return JsonProvider.provider().createPatch(patch.build());
+    }
+
+    private void addOp(
+        JsonArrayBuilder patch,
+        String path,
+        String value)
+    {
+        JsonObject op = Json.createObjectBuilder()
+            .add("op", "replace")
+            .add("path", path)
+            .add("value", value)
+            .build();
+        patch.add(op);
     }
 }
