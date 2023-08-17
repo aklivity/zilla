@@ -83,7 +83,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
         ConfigWriter configWriter = new ConfigWriter(null);
-        return configWriter.write(createNamespace(), createEnvVarsPatch());
+        return configWriter.write(createNamespace(), createEnvVarsPatch(), createUnquotedEnvVars());
     }
 
     private OpenApi parseOpenApi(
@@ -486,5 +486,10 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             .add("value", value)
             .build();
         patch.add(op);
+    }
+
+    private List<String> createUnquotedEnvVars()
+    {
+        return List.of("TCP_CLIENT_PORT");
     }
 }

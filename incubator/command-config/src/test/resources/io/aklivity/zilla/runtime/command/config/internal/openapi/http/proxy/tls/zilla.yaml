@@ -76,7 +76,7 @@ bindings:
     kind: client
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
-      port: "${{env.TCP_CLIENT_PORT}}"
+      port: ${{env.TCP_CLIENT_PORT}}
 vaults:
   client:
     type: filesystem

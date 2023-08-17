@@ -24,6 +24,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
@@ -56,38 +57,41 @@ public final class ConfigWriter
         NamespaceConfig namespace,
         Writer writer)
     {
-        write0(namespace, writer, NOOP_PATCH);
+        write0(namespace, writer, NOOP_PATCH, List.of());
     }
 
     public void write(
         NamespaceConfig namespace,
         Writer writer,
-        JsonPatch patch)
+        JsonPatch patch,
+        List<String> unquotables)
     {
-        write0(namespace, writer, patch);
+        write0(namespace, writer, patch, unquotables);
     }
 
     public String write(
         NamespaceConfig namespace)
     {
         StringWriter writer = new StringWriter();
-        write0(namespace, writer, NOOP_PATCH);
+        write0(namespace, writer, NOOP_PATCH, List.of());
         return writer.toString();
     }
 
     public String write(
         NamespaceConfig namespace,
-        JsonPatch patch)
+        JsonPatch patch,
+        List<String> unquotedEnvVars)
     {
         StringWriter writer = new StringWriter();
-        write0(namespace, writer, patch);
+        write0(namespace, writer, patch, unquotedEnvVars);
         return writer.toString();
     }
 
     private void write0(
         NamespaceConfig namespace,
         Writer writer,
-        JsonPatch patch)
+        JsonPatch patch,
+        List<String> unquotedEnvVars)
     {
         List<Exception> errors = new LinkedList<>();
 
@@ -105,6 +109,7 @@ public final class ConfigWriter
                 .withConfig(config)
                 .build();
             String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
+
             JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
             JsonObject patched = patch.apply(jsonObject);
             StringWriter patchedText = new StringWriter();
@@ -117,7 +122,17 @@ public final class ConfigWriter
                 .disable(WRITE_DOC_START_MARKER)
                 .enable(MINIMIZE_QUOTES)
                 .build();
-            mapper.writeValue(writer, json);
+            String yaml = mapper.writeValueAsString(json);
+
+            for (String envVar : unquotedEnvVars)
+            {
+                yaml = yaml.replaceAll(
+                    Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
+                    String.format("\\${{env.%s}}", envVar)
+                );
+            }
+
+            writer.write(yaml);
 
             if (!errors.isEmpty())
             {
