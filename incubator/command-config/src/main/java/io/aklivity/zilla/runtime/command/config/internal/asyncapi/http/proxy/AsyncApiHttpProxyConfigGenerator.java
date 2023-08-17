@@ -89,7 +89,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
         this.authorizationHeader = resolveAuthorizationHeader();
         this.isJwtEnabled = !securitySchemes.isEmpty();
         ConfigWriter configWriter = new ConfigWriter(null);
-        return configWriter.write(createNamespace(), createEnvVarsPatch());
+        return configWriter.write(createNamespace(), createEnvVarsPatch(), createUnquotedEnvVars());
     }
 
     private AsyncApi parseAsyncApi(
@@ -535,5 +535,10 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
             patch.add(op);
         }
         return JsonProvider.provider().createPatch(patch.build());
+    }
+
+    private List<String> createUnquotedEnvVars()
+    {
+        return List.of("TCP_CLIENT_PORT");
     }
 }
