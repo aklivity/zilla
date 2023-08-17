@@ -19,29 +19,45 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class MqttConditionConfig extends ConditionConfig
+public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttConditionConfigBuilder<T>>
 {
-    public final String topic;
-    public final MqttCapabilities capabilities;
+    private final Function<ConditionConfig, T> mapper;
 
-    public static MqttConditionConfigBuilder<MqttConditionConfig> builder()
-    {
-        return new MqttConditionConfigBuilder<>(MqttConditionConfig.class::cast);
-    }
+    private String topic;
+    private MqttCapabilities capabilities;
 
-    public static <T> MqttConditionConfigBuilder<T> builder(
+    MqttConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
-        return new MqttConditionConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    MqttConditionConfig(
-        String topic,
-        MqttCapabilities capabilities)
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<MqttConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<MqttConditionConfigBuilder<T>>) getClass();
+    }
+
+    public MqttConditionConfigBuilder<T> topic(
+        String topic)
     {
         this.topic = topic;
+        return this;
+    }
+
+    public MqttConditionConfigBuilder<T> capabilities(
+        MqttCapabilities capabilities)
+    {
         this.capabilities = capabilities;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new MqttConditionConfig(topic, capabilities));
     }
 }
-
