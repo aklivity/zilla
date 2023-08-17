@@ -477,16 +477,21 @@ scope protocol
                 string16 groupInstanceId = null;
             }
 
+            struct TopicPartition
+            {
+                int32 partitionId;
+            }
+
             struct ConsumerAssignment
             {
                 string16 consumerId;
-                int32[] partitionIds;
+                TopicPartition[] partitions;
             }
 
             struct MemberAssignment
             {
                 string16 topic;
-                int32[] partitionIds;
+                TopicPartition[] partitions;
                 octets userdata;
             }
         }
