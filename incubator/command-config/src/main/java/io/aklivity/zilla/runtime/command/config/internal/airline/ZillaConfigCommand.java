@@ -40,8 +40,7 @@ public final class ZillaConfigCommand extends ZillaCommand
     );
 
     @Option(name = {"-t", "--template"},
-        description = "Template name:\n" +
-            "- openapi.http.proxy\n")
+        description = "Template name")
     @Required
     @AllowedValues(allowedValues = {"openapi.http.proxy"})
     public String template;
