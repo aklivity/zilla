@@ -8,6 +8,7 @@ Listens on tcp port `9090` and will echo grpc message sent by client.
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
+- ghz
 
 ### Setup
 
@@ -73,6 +74,15 @@ Paste below message.
 {
   "message": "Hello World"
 }
+```
+
+### Bench
+
+```bash
+ghz --config bench.json \
+    --proto proto/echo.proto \
+    --call example.EchoService/EchoBidiStream \
+    localhost:9090
 ```
 
 ### Teardown

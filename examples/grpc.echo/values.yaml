@@ -7,5 +7,7 @@ readinessProbePort: 9090
 
 service:
   ports:
+    - port: 8080
+      name: http
     - port: 9090
       name: https

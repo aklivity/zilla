@@ -8,6 +8,7 @@ Listens on https port `9090` and will exchange grpc message in probuf format thr
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
+- ghz
 
 ### Setup
 
@@ -192,6 +193,15 @@ output:
 
 ```text
 % Reached end of topic echo-messages [0] at offset 4
+```
+
+### Bench
+
+```bash
+ghz --config bench.json \
+    --proto proto/echo.proto \
+    --call example.EchoService/EchoBidiStream \
+    localhost:9090
 ```
 
 ### Teardown

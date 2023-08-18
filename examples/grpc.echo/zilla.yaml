@@ -1,4 +1,3 @@
----
 name: example
 vaults:
   server:
@@ -14,8 +13,16 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 9090
-    exit: tls_server0
+      port:
+        - 8080
+        - 9090
+    routes:
+      - when:
+          - port: 8080
+        exit: http_server0
+      - when:
+          - port: 9090
+        exit: tls_server0
   tls_server0:
     type: tls
     kind: server
@@ -36,12 +43,7 @@ bindings:
         - h2
       access-control:
         policy: cross-origin
-    routes:
-      - when:
-          - headers:
-              :scheme: https
-              :authority: localhost:9090
-        exit: grpc_server0
+    exit: grpc_server0
   grpc_server0:
     type: grpc
     kind: server
