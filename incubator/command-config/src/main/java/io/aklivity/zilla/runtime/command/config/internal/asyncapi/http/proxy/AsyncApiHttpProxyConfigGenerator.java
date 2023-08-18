@@ -415,27 +415,27 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
         {
             namespace
                 .vault()
-                .name("client")
-                .type("filesystem")
-                .options(FileSystemOptionsConfig::builder)
-                    .trust()
-                        .store("") // env
-                        .type("") // env
-                        .password("") // env
+                    .name("client")
+                    .type("filesystem")
+                    .options(FileSystemOptionsConfig::builder)
+                        .trust()
+                            .store("") // env
+                            .type("") // env
+                            .password("") // env
+                            .build()
                         .build()
                     .build()
-                .build()
-            .vault()
-                .name("server")
-                .type("filesystem")
-                .options(FileSystemOptionsConfig::builder)
-                    .keys()
-                        .store("") // env
-                        .type("") // env
-                        .password("") //env
+                .vault()
+                    .name("server")
+                    .type("filesystem")
+                    .options(FileSystemOptionsConfig::builder)
+                        .keys()
+                            .store("") // env
+                            .type("") // env
+                            .password("") //env
+                            .build()
                         .build()
-                    .build()
-                .build();
+                    .build();
         }
         return namespace;
     }
