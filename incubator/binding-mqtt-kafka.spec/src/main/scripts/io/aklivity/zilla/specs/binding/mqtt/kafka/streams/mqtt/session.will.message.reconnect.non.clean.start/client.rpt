@@ -13,76 +13,67 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .expiry(1)
-                                .clientId("client-1")
-                                .build()
-                             .build()}
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .flags("WILL")
+                              .expiry(1)
+                              .clientId("one")
+                              .build()
+                           .build()}
 
 connected
 
-read zilla:data.empty
-
-write notify READ_SESSION_EMPTY
-
-write ${mqtt:session()
-               .subscription("sensor/one", 1)
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("WILL")
+                                .build()
+                             .build()}
+write ${mqtt:will()
+               .topic("obituaries")
+               .format("TEXT")
+               .payload("client-1 disconnected abruptly")
                .build()}
 write flush
 
-read ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
-
-write notify SESSION_READY
+read zilla:data.empty
+read notify RECEIVED_CONNACK_TRIGGER
 
 read closed
 write close
 
-
-connect await READ_SESSION_EMPTY
+connect await RECEIVED_CONNACK_TRIGGER
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .subscribe()
-                                .clientId("client-1")
-                                .filter("sensor/one", 1)
-                                .build()
-                              .build()}
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .flags("WILL")
+                              .expiry(1)
+                              .clientId("one")
+                              .build()
+                           .build()}
 
 connected
 
-write close
-read closed
-
-connect await SESSION_READY
-        "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-
-write zilla:begin.ext ${mqtt:beginEx()
+write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .expiry(1)
-                                .clientId("client-1")
+                                .kind("WILL")
                                 .build()
                              .build()}
+write ${mqtt:will()
+            .topic("obituaries")
+            .format("TEXT")
+            .payload("client-1 disappeared abruptly")
+            .build()}
+write flush
 
-connected
-
-read ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
-
-write zilla:data.empty
+read zilla:data.empty

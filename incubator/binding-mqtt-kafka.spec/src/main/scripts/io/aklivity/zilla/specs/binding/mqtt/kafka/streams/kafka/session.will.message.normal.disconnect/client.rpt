@@ -44,7 +44,7 @@ read ${mqtt:willSignal()
            .clientId("client-1")
            .delay(1)
            .deliverAt(-1)
-           .lifetimeId("1")
+           .lifetimeId("2")
            .willId("1")
        .build()}
 
@@ -77,14 +77,29 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read advised zilla:flush
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+read ${mqtt:willSignal()
+           .clientId("client-1")
+           .delay(1)
+           .deliverAt(-1)
+           .lifetimeId("2")
+           .willId("1")
+       .build()}
+read notify RECEIVED_WILL_SIGNAL
 
 write close
 read closed
 
-write notify LIFETIME_FETCHED
 
-connect await LIFETIME_FETCHED
+connect await RECEIVED_WILL_SIGNAL
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -116,13 +131,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write zilla:data.empty
 write flush
-write notify INITIAL_MIGRATE_SENT
+write notify SENT_INITIAL_MIGRATE_SIGNAL
 
 write close
 read closed
 
 
-connect await INITIAL_MIGRATE_SENT
+connect await SENT_INITIAL_MIGRATE_SIGNAL
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -146,12 +161,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
-read notify RECEIVED_LEADER_DATA
+read zilla:data.null
+read notify RECEIVED_GROUP_MEMBERS_LEADER
 
 write close
 
 
-connect await RECEIVED_LEADER_DATA
+connect await RECEIVED_GROUP_MEMBERS_LEADER
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -180,7 +196,7 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will")
+                               .key("client-1#will-2")
                                .hashKey("client-1")
                                .build()
                            .build()}
@@ -189,7 +205,7 @@ write ${mqtt:will()
             .delay(1)
             .format("TEXT")
             .payload("client-1 disconnected abruptly")
-            .lifetimeId("1")
+            .lifetimeId("2")
             .willId("1")
       .build()}
 write flush
@@ -208,7 +224,7 @@ write ${mqtt:willSignal()
             .clientId("client-1")
             .delay(1)
             .deliverAt(-1)
-            .lifetimeId("1")
+            .lifetimeId("2")
             .willId("1")
         .build()}
 write flush
@@ -218,7 +234,7 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will")
+                               .key("client-1#will-2")
                                .hashKey("client-1")
                                .build()
                            .build()}

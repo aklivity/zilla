@@ -520,4 +520,22 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.clean.start/client",
+        "${mqtt}/session.will.message.clean.start/server"})
+    public void shouldSendWillMessageOnClientReconnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message/client",
+        "${mqtt}/session.will.message/server"})
+    public void shouldSaveWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

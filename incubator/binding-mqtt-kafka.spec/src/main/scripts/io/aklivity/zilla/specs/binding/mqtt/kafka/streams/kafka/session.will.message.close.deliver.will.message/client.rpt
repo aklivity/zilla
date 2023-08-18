@@ -83,7 +83,7 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will")
+                               .key("client-1#will-1")
                                .hashKey("client-1")
                                .build()
                            .build()}
@@ -107,13 +107,13 @@ write zilla:begin.ext ${kafka:beginEx()
 connected
 
 read advised zilla:flush
+read notify RECEIVED_WILL_SIGNAL_NOT_PRESENT
 
 write close
 read closed
 
-write notify LIFETIME_FETCHED
 
-connect await LIFETIME_FETCHED
+connect await RECEIVED_WILL_SIGNAL_NOT_PRESENT
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -145,13 +145,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write zilla:data.empty
 write flush
-write notify INITIAL_MIGRATE_SENT
+write notify SENT_INITIAL_MIGRATE_SIGNAL
 
 write close
 read closed
 
 
-connect await INITIAL_MIGRATE_SENT
+connect await SENT_INITIAL_MIGRATE_SIGNAL
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -175,12 +175,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
-read notify RECEIVED_LEADER_DATA
+read zilla:data.null
+read notify RECEIVED_GROUP_MEMBERS_LEADER
 
 write close
 
 
-connect await RECEIVED_LEADER_DATA
+connect await RECEIVED_GROUP_MEMBERS_LEADER
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -202,6 +203,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+# no will signals
+# no session state
 read advised zilla:flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -209,7 +212,7 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will")
+                               .key("client-1#will-1")
                                .hashKey("client-1")
                                .build()
                            .build()}
@@ -277,7 +280,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt_sessions")
                                 .filter()
-                                    .key("client-1#will")
+                                    .key("client-1#will-1")
                                     .build()
                                 .build()
                             .build()}
@@ -289,7 +292,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will")
+                               .key("client-1#will-1")
                                .build()
                            .build()}
 
@@ -301,14 +304,14 @@ read ${mqtt:will()
            .lifetimeId("1")
            .willId("1")
        .build()}
+read notify RECEIVED_SESSION_WILL_MESSAGE
 
 write close
 read closed
 
-write notify WILL_MESSAGE_FETCHED
 
 
-connect await WILL_MESSAGE_FETCHED
+connect await RECEIVED_SESSION_WILL_MESSAGE
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -331,8 +334,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("obituaries")
-                               .header("zilla:topic", "wills")
-                               .header("zilla:topic", "one")
+                               .header("zilla:topic", "obituaries")
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}

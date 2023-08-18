@@ -594,4 +594,33 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.clean.start/client",
+        "${kafka}/session.will.message.clean.start/server"})
+    public void shouldGenerateLifeTimeIdOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    //TODO: use this with mqtt: session.will.message
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+    public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    //TODO: use this with mqtt: session.will.message
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+    public void shouldSendWillMessageOnSessionTakeover() throws Exception
+    {
+        k3po.finish();
+    }
 }
