@@ -22,6 +22,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import jakarta.json.Json;
@@ -30,11 +31,13 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
@@ -151,7 +154,7 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
                 .name("mqtt_server0")
                 .type("mqtt")
                 .kind(SERVER)
-                .exit("mqtt_client0")
+                .inject(this::injectMqttServerRoutes)
                 .build()
             .binding()
                 .name("mqtt_client0")
@@ -225,6 +228,22 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
                     .build();
         }
         return namespace;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttServerRoutes(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        for (Map.Entry<String, Channel> entry : asyncApi.channels.entrySet())
+        {
+            binding
+                .route()
+                    .when(MqttConditionConfig::builder)
+                        .topic(entry.getValue().address.replaceAll("\\{[^}]+\\}", "*"))
+                        .build()
+                    .exit("mqtt_client0")
+                .build();
+        }
+        return binding;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(

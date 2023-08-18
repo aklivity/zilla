@@ -30,7 +30,10 @@ bindings:
   mqtt_server0:
     type: mqtt
     kind: server
-    exit: mqtt_client0
+    routes:
+    - exit: mqtt_client0
+      when:
+      - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
   mqtt_client0:
     type: mqtt
     kind: client
