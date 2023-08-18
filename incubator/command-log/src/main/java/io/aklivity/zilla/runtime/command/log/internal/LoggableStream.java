@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
@@ -98,7 +97,6 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceD
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishDataExFW;
@@ -144,7 +142,6 @@ public final class LoggableStream implements AutoCloseable
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
-    private final MqttEndExFW mqttEndExRO = new MqttEndExFW();
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
@@ -268,7 +265,6 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttBeginEx);
             dataHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttDataEx);
             flushHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttFlushEx);
-            endHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttEndEx);
         }
 
         if (hasExtensionType.test("amqp"))
@@ -1393,18 +1389,6 @@ public final class LoggableStream implements AutoCloseable
 
         filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));
-    }
-
-    private void onMqttEndEx(
-        final EndFW end)
-    {
-        final int offset = end.offset() - HEADER_LENGTH;
-        final long timestamp = end.timestamp();
-        final OctetsFW extension = end.extension();
-
-        final MqttEndExFW mqttEndEx = mqttEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final MqttEndReasonCode reasonCode = mqttEndEx.reasonCode().get();
-        out.printf(verboseFormat, index, offset, timestamp, format("%s", reasonCode.name()));
     }
 
     private void onAmqpBeginEx(
