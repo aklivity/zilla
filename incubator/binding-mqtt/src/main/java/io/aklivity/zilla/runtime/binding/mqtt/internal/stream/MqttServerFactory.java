@@ -887,6 +887,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int progress = offset;
 
         progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
+        decodableRemainingBytes -= progress - offset;
         if (decodableRemainingBytes == 0)
         {
             server.decoder = decodePacketType;
@@ -1804,7 +1805,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     sessionStream.doSessionData(traceId, willPayloadSize, sessionDataExBuilder.build(), will);
                 }
-                decodableRemainingBytes -= connectPayloadLimit - progress;
                 progress = connectPayloadLimit;
             }
 
