@@ -334,15 +334,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return route;
     }
 
-    private GuardedConfigBuilder<RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>>>
-        injectGuardedRoles(
-        GuardedConfigBuilder<RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>>> guarded,
+    private <C> GuardedConfigBuilder<C> injectGuardedRoles(
+        GuardedConfigBuilder<C> guarded,
         List<String> roles)
     {
         for (String role : roles)
         {
-            guarded
-                .role(role);
+            guarded.role(role);
         }
         return guarded;
     }
