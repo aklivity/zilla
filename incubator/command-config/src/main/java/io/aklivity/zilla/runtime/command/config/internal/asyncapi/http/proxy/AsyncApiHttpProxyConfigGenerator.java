@@ -207,7 +207,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
                 .inject(this::injectTlsTcpRoute)
                 .build()
             .inject(this::injectTlsServer)
-                .binding()
+            .binding()
                 .name("http_server0")
                 .type("http")
                 .kind(SERVER)
@@ -341,8 +341,8 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
         return binding;
     }
 
-    private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
-        RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
         Server2 server2)
     {
         if (server2.security() != null)
