@@ -347,8 +347,8 @@ public final class SseServerFactory implements SseStreamFactory
         private long httpReplyBud;
         private int httpReplyPad;
         private long httpReplyAuth;
-        private BudgetDebitor replyDebitor;
-        private long replyDebitorIndex = NO_DEBITOR_INDEX;
+        private BudgetDebitor replyDeb;
+        private long replyDebIndex = NO_DEBITOR_INDEX;
 
         private SseServer(
             MessageConsumer network,
@@ -518,13 +518,13 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert httpReplyAck <= httpReplySeq;
 
-            if (httpReplyBud != 0L && replyDebitorIndex == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
             {
-                replyDebitor = supplyDebitor.apply(budgetId);
-                replyDebitorIndex = replyDebitor.acquire(budgetId, replyId, this::flushNetwork);
+                replyDeb = supplyDebitor.apply(budgetId);
+                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushNetwork);
             }
 
-            if (httpReplyBud != 0L && replyDebitorIndex == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
             {
                 doNetAbort(traceId, authorization);
                 stream.doAppEndDeferred(traceId, authorization);
@@ -617,7 +617,7 @@ public final class SseServerFactory implements SseStreamFactory
                     buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                     networkSlotOffset += data.sizeof();
 
-                    if (replyDebitorIndex != NO_DEBITOR_INDEX)
+                    if (replyDebIndex != NO_DEBITOR_INDEX)
                     {
                         deferredClaim += data.reserved();
                     }
@@ -784,9 +784,9 @@ public final class SseServerFactory implements SseStreamFactory
                 }
 
                 int claimed = reserved;
-                if (replyDebitorIndex != NO_DEBITOR_INDEX)
+                if (replyDebIndex != NO_DEBITOR_INDEX)
                 {
-                    claimed = replyDebitor.claim(traceId, replyDebitorIndex, replyId,
+                    claimed = replyDeb.claim(traceId, replyDebIndex, replyId,
                         reserved, reserved, 0);
                 }
 
@@ -805,9 +805,9 @@ public final class SseServerFactory implements SseStreamFactory
 
             if (deferredClaim > 0)
             {
-                assert replyDebitorIndex != NO_DEBITOR_INDEX;
+                assert replyDebIndex != NO_DEBITOR_INDEX;
 
-                int claimed = replyDebitor.claim(traceId, replyDebitorIndex, replyId,
+                int claimed = replyDeb.claim(traceId, replyDebIndex, replyId,
                     deferredClaim, deferredClaim, 0);
 
                 if (claimed == deferredClaim)
@@ -851,11 +851,11 @@ public final class SseServerFactory implements SseStreamFactory
 
         private void cleanupDebitorIfNecessary()
         {
-            if (replyDebitorIndex != NO_DEBITOR_INDEX)
+            if (replyDebIndex != NO_DEBITOR_INDEX)
             {
-                replyDebitor.release(replyDebitorIndex, replyId);
-                replyDebitor = null;
-                replyDebitorIndex = NO_DEBITOR_INDEX;
+                replyDeb.release(replyDebIndex, replyId);
+                replyDeb = null;
+                replyDebIndex = NO_DEBITOR_INDEX;
             }
         }
 
@@ -1100,7 +1100,7 @@ public final class SseServerFactory implements SseStreamFactory
                         buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                         networkSlotOffset += data.sizeof();
 
-                        if (replyDebitorIndex != NO_DEBITOR_INDEX)
+                        if (replyDebIndex != NO_DEBITOR_INDEX)
                         {
                             deferredClaim += data.reserved();
                         }

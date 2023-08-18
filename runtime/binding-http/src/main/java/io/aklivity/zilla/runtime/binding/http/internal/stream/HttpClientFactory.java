@@ -5061,15 +5061,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         private HpackContext context;
 
-        void encodePromise(
-            HpackContext encodeContext,
-            Array32FW<HttpHeaderFW> headers,
-            HpackHeaderBlockFW.Builder headerBlock)
-        {
-            reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
-        }
-
         void encodeHeaders(
             HpackContext encodeContext,
             Array32FW<HttpHeaderFW> headers,
