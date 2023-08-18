@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -140,6 +141,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithBinding()
     {
         NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
                 .name("test")
                 .binding()
                     .name("test")
@@ -185,6 +187,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithGuard()
     {
         NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
                 .name("test")
                 .guard()
                     .name("default")
@@ -234,6 +237,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithVault()
     {
         NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
                 .name("test")
                 .vault()
                     .name("default")
@@ -281,6 +285,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithTelemetry()
     {
         NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
                 .name("test")
                 .telemetry()
                     .attribute()
@@ -340,6 +345,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithReference()
     {
         NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
                 .name("test")
                 .namespace()
                     .name("test")

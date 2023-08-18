@@ -176,6 +176,7 @@ public final class ZillaStartCommand extends ZillaCommand
         catch (Throwable ex)
         {
             System.out.println("error");
+            onError.onError(ex);
             rethrowUnchecked(ex);
         }
     }

@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Function;
 
-public final class VaultConfigBuilder<T> implements ConfigBuilder<T>
+public final class VaultConfigBuilder<T> extends ConfigBuilder<T, VaultConfigBuilder<T>>
 {
     private final Function<VaultConfig, T> mapper;
 
@@ -31,6 +31,13 @@ public final class VaultConfigBuilder<T> implements ConfigBuilder<T>
         Function<VaultConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<VaultConfigBuilder<T>> thisType()
+    {
+        return (Class<VaultConfigBuilder<T>>) getClass();
     }
 
     public VaultConfigBuilder<T> name(
@@ -47,7 +54,7 @@ public final class VaultConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<VaultConfigBuilder<T>>> C options(
+    public <C extends ConfigBuilder<VaultConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, VaultConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);

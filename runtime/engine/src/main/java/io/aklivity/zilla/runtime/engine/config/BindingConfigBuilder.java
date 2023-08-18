@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
+public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
 
@@ -33,6 +33,7 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
     private String type;
     private KindConfig kind;
     private String entry;
+    private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
     private TelemetryRefConfig telemetry;
@@ -41,6 +42,13 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         Function<BindingConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<BindingConfigBuilder<T>> thisType()
+    {
+        return (Class<BindingConfigBuilder<T>>) getClass();
     }
 
     public BindingConfigBuilder<T> vault(
@@ -78,7 +86,14 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public <C extends ConfigBuilder<BindingConfigBuilder<T>>> C options(
+    public BindingConfigBuilder<T> exit(
+        String exit)
+    {
+        this.exit = exit;
+        return this;
+    }
+
+    public <C extends ConfigBuilder<BindingConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, BindingConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);
@@ -93,7 +108,8 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
 
     public RouteConfigBuilder<BindingConfigBuilder<T>> route()
     {
-        return new RouteConfigBuilder<>(this::route);
+        return new RouteConfigBuilder<>(this::route)
+            .order(routes != null ? routes.size() : 0);
     }
 
     public BindingConfigBuilder<T> route(
@@ -103,6 +119,9 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
         {
             routes = new LinkedList<>();
         }
+
+        assert route.order == routes.size();
+
         routes.add(route);
         return this;
     }
@@ -122,6 +141,13 @@ public final class BindingConfigBuilder<T> implements ConfigBuilder<T>
     @Override
     public T build()
     {
+        if (exit != null)
+        {
+            route()
+                .exit(exit)
+                .build();
+        }
+
         return mapper.apply(new BindingConfig(
             vault,
             name,

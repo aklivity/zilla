@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -65,6 +66,7 @@ public class TcpConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         TcpConditionConfig condition = TcpConditionConfig.builder()
+            .inject(identity())
             .cidr("127.0.0.0/24")
             .authority("*.example.net")
             .ports(new int[] { 8080 })

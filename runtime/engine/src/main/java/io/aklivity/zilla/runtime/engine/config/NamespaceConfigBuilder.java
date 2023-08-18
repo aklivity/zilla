@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class NamespaceConfigBuilder<T>
+public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceConfigBuilder<T>>
 {
     public static final List<NamespaceRefConfig> NAMESPACES_DEFAULT = emptyList();
     public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
@@ -43,6 +43,13 @@ public class NamespaceConfigBuilder<T>
         Function<NamespaceConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<NamespaceConfigBuilder<T>> thisType()
+    {
+        return (Class<NamespaceConfigBuilder<T>>) getClass();
     }
 
     public NamespaceConfigBuilder<T> name(

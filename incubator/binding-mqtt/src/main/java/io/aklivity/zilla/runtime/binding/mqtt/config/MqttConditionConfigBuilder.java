@@ -13,49 +13,51 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.config;
+package io.aklivity.zilla.runtime.binding.mqtt.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class HttpPatternConfigBuilder<T> extends ConfigBuilder<T, HttpPatternConfigBuilder<T>>
+public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttConditionConfigBuilder<T>>
 {
-    private final Function<HttpPatternConfig, T> mapper;
+    private final Function<ConditionConfig, T> mapper;
 
-    private String name;
-    private String pattern;
+    private String topic;
+    private MqttCapabilities capabilities;
 
-    HttpPatternConfigBuilder(
-        Function<HttpPatternConfig, T> mapper)
+    MqttConditionConfigBuilder(
+        Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<HttpPatternConfigBuilder<T>> thisType()
+    protected Class<MqttConditionConfigBuilder<T>> thisType()
     {
-        return (Class<HttpPatternConfigBuilder<T>>) getClass();
+        return (Class<MqttConditionConfigBuilder<T>>) getClass();
     }
 
-    public HttpPatternConfigBuilder<T> name(
-        String name)
+    public MqttConditionConfigBuilder<T> topic(
+        String topic)
     {
-        this.name = name;
+        this.topic = topic;
         return this;
     }
 
-    public HttpPatternConfigBuilder<T> pattern(
-        String pattern)
+    public MqttConditionConfigBuilder<T> capabilities(
+        MqttCapabilities capabilities)
     {
-        this.pattern = pattern;
+        this.capabilities = capabilities;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new HttpPatternConfig(name, pattern));
+        return mapper.apply(new MqttConditionConfig(topic, capabilities));
     }
 }

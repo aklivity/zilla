@@ -70,6 +70,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -2110,6 +2111,26 @@ public class KafkaFunctionsTest
         assertEquals(0, partition.partitionId());
         assertEquals(1L, partition.partitionOffset());
         assertEquals(1L, partition.latestOffset());
+    }
+
+    @Test
+    public void shouldGenerateGroupFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .group()
+                .partition(0, 1L)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
+        final KafkaOffsetFW partition = groupFlushEx.partition();
+        assertEquals(0, partition.partitionId());
+        assertEquals(1L, partition.partitionOffset());
     }
 
     @Test

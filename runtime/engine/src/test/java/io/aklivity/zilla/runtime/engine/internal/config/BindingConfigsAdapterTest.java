@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyCollectionOf;
@@ -87,6 +88,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .inject(identity())
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -130,6 +132,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .inject(identity())
                 .vault("test")
                 .name("test")
                 .type("test")
@@ -178,6 +181,7 @@ public class BindingConfigsAdapterTest
                 .type("test")
                 .kind(SERVER)
                 .options(TestBindingOptionsConfig::builder)
+                    .inject(identity())
                     .mode("test")
                     .build()
                 .build()
@@ -223,12 +227,11 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .inject(identity())
                 .name("test")
                 .type("test")
                 .kind(SERVER)
-                .route()
-                    .exit("test")
-                    .build()
+                .exit("test")
                 .build()
         };
 
@@ -249,6 +252,7 @@ public class BindingConfigsAdapterTest
                 .route()
                     .exit("test")
                     .guarded()
+                        .inject(identity())
                         .name("test0")
                         .role("read")
                         .build()

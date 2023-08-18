@@ -15,7 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-public interface ConfigBuilder<T>
+import java.util.function.Function;
+
+public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
 {
-    T build();
+    protected abstract Class<B> thisType();
+
+    public final <R> R inject(
+        Function<B, R> visitor)
+    {
+        return visitor.apply(thisType().cast(this));
+    }
+
+    public abstract T build();
 }
