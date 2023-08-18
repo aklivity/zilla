@@ -22,14 +22,13 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
+import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -70,7 +69,8 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
         ConfigWriter configWriter = new ConfigWriter(null);
-        return configWriter.write(createNamespace(), createEnvVarsPatch(), createUnquotedEnvVars());
+        String yaml = configWriter.write(createNamespace(), createEnvVarsPatch());
+        return unquoteEnvVars(yaml);
     }
 
     private AsyncApi parseAsyncApi(
@@ -310,46 +310,46 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
 
     private JsonPatch createEnvVarsPatch()
     {
-        JsonArrayBuilder patch = Json.createArrayBuilder();
-        addOp(patch, "/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
-        addOp(patch, "/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
+        JsonPatchBuilder patch = Json.createPatchBuilder();
+        patch.replace("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
+        patch.replace("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
 
         if (isTlsEnabled)
         {
             // tls_server0 binding
-            addOp(patch, "/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
-            addOp(patch, "/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
-            addOp(patch, "/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
+            patch.replace("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+            patch.replace("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
+            patch.replace("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
             // tls_client0 binding
-            addOp(patch, "/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
-            addOp(patch, "/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
-            addOp(patch, "/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
+            patch.replace("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
+            patch.replace("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
+            patch.replace("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
             // client vault
-            addOp(patch, "/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
-            addOp(patch, "/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
-            addOp(patch, "/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
+            patch.replace("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
+            patch.replace("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
+            patch.replace("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
             // server vault
-            addOp(patch, "/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
-            addOp(patch, "/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
-            addOp(patch, "/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
+            patch.replace("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
+            patch.replace("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
+            patch.replace("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
         }
 
-        return JsonProvider.provider().createPatch(patch.build());
+        return patch.build();
     }
 
-    private void addOp(
-        JsonArrayBuilder patch,
-        String path,
-        String value)
+    private String unquoteEnvVars(
+        String yaml)
     {
-        JsonObject op = Json.createObjectBuilder()
-            .add("op", "replace")
-            .add("path", path)
-            .add("value", value)
-            .build();
-        patch.add(op);
+        List<String> unquotedEnvVars = List.of("TCP_CLIENT_PORT");
+        for (String envVar : unquotedEnvVars)
+        {
+            yaml = yaml.replaceAll(
+                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
+                String.format("\\${{env.%s}}", envVar)
+            );
+        }
+        return yaml;
     }
-
     private List<String> createUnquotedEnvVars()
     {
         return List.of("TCP_CLIENT_PORT");
