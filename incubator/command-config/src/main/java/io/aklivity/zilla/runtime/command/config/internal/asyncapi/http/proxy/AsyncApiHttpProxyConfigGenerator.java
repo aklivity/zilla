@@ -222,7 +222,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
                 .name("http_client0")
                 .type("http")
                 .kind(CLIENT)
-                .inject(this::injectHttpClientRoute)
+                .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                 .build()
             .inject(this::injectTlsClient)
             .binding()
@@ -287,9 +287,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
                         .alpn(List.of("")) // env
                         .build()
                     .vault("server")
-                    .route()
-                        .exit("http_server0")
-                        .build()
+                    .exit("http_server0")
                     .build();
         }
         return namespace;
@@ -366,26 +364,6 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
         return route;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
-    {
-        if (isTlsEnabled)
-        {
-            binding
-                .route()
-                    .exit("tls_client0")
-                    .build();
-        }
-        else
-        {
-            binding
-                .route()
-                    .exit("tcp_client0")
-                    .build();
-        }
-        return binding;
-    }
-
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
@@ -403,9 +381,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
                         .trustcacerts(true)
                         .build()
                     .vault("client")
-                    .route()
-                        .exit("tcp_client0")
-                        .build()
+                    .exit("tcp_client0")
                     .build();
         }
         return namespace;
