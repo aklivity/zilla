@@ -205,7 +205,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
-        "${app}/session.will.message.disconnect.with.will.message/server"})
+        "${app}/session.will.message.abort/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -219,7 +219,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.will.message.no.ping.within.keep.alive/client",
-        "${app}/session.will.message.no.ping.within.keep.alive/server"})
+        "${app}/session.will.message.abort/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")

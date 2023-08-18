@@ -44,10 +44,5 @@ write flush
 
 read zilla:data.empty
 
-write zilla:end.ext ${mqtt:endEx()
-                        .typeId(zilla:id("mqtt"))
-                        .reason("DISCONNECT")
-                        .build()}
-
 write close
 read closed

@@ -29,13 +29,11 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
@@ -1168,20 +1166,6 @@ public class MqttFunctionsTest
                     1 == f.subscriptionId() &&
                     0 == f.qos() &&
                     0b0001 == f.flags()));
-    }
-
-    @Test
-    public void shouldEncodeMqttAbortExAsUnsubscribe()
-    {
-        final byte[] array = MqttFunctions.endEx()
-            .typeId(0)
-            .reason("KEEP_ALIVE_EXPIRY")
-            .build();
-
-        DirectBuffer buffer = new UnsafeBuffer(array);
-        MqttEndExFW mqttEndEx = new MqttEndExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0, mqttEndEx.typeId());
-        assertEquals(MqttEndReasonCode.KEEP_ALIVE_EXPIRY, mqttEndEx.reasonCode().get());
     }
 
     @Test

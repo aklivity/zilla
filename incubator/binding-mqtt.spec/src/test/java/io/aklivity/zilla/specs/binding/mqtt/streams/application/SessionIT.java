@@ -57,18 +57,9 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.will.message.disconnect.with.will.message/client",
-        "${app}/session.will.message.disconnect.with.will.message/server"})
-    public void shouldSendReasonForEndAfterDisconnectWithWillMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/session.will.message.no.ping.within.keep.alive/client",
-        "${app}/session.will.message.no.ping.within.keep.alive/server"})
-    public void shouldSendReasonForEndAfterKeepAliveTimeout() throws Exception
+        "${app}/session.will.message.abort/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldAbortSessionStreamWhenWillDelivery() throws Exception
     {
         k3po.finish();
     }

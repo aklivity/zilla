@@ -112,7 +112,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
@@ -148,7 +147,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
@@ -244,7 +242,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttBeginExFW.Builder mqttPublishBeginExRW = new MqttBeginExFW.Builder();
     private final MqttBeginExFW.Builder mqttSubscribeBeginExRW = new MqttBeginExFW.Builder();
     private final MqttBeginExFW.Builder mqttSessionBeginExRW = new MqttBeginExFW.Builder();
-    private final MqttEndExFW.Builder mqttEndExRW = new MqttEndExFW.Builder();
     private final MqttDataExFW.Builder mqttPublishDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSubscribeDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSessionDataExRW = new MqttDataExFW.Builder();
@@ -1521,10 +1518,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (session)
                 {
-                    final MqttEndExFW.Builder builder = mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                        .typeId(mqttTypeId)
-                        .reasonCode(r -> r.set(MqttEndReasonCode.KEEP_ALIVE_EXPIRY));
-                    sessionStream.doSessionAppEnd(traceId, builder.build());
+                    sessionStream.doSessionAbort(traceId);
                 }
                 onDecodeError(traceId, authorization, KEEP_ALIVE_TIMEOUT);
                 decoder = decodeIgnoreAll;
@@ -2253,13 +2247,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             state = MqttState.closingInitial(state);
             if (session)
             {
-                final MqttEndExFW.Builder builder = mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                    .typeId(mqttTypeId)
-                    .reasonCode(r -> r.set(
-                        disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE ?
-                            MqttEndReasonCode.DISCONNECT_WITH_WILL :
-                            MqttEndReasonCode.DISCONNECT));
-                sessionStream.doSessionAppEnd(traceId, builder.build());
+                if (disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
+                {
+                    sessionStream.doSessionAbort(traceId);
+                }
+                else
+                {
+                    sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                }
             }
             closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);

@@ -48,13 +48,6 @@ scope mqtt
         SESSION(3)
     }
 
-    enum MqttEndReasonCode (uint8)
-    {
-        DISCONNECT(0),
-        KEEP_ALIVE_EXPIRY(1),
-        DISCONNECT_WITH_WILL(2)
-    }
-
     enum MqttPayloadFormat
     {
         BINARY,
@@ -188,11 +181,6 @@ scope mqtt
         struct MqttResetEx extends core::stream::Extension
         {
             string16 serverRef = null;
-        }
-
-        struct MqttEndEx extends core::stream::Extension
-        {
-            MqttEndReasonCode reasonCode = DISCONNECT;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

@@ -31,7 +31,6 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
@@ -46,7 +45,6 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
@@ -101,12 +99,6 @@ public final class MqttFunctions
     public static MqttFlushExBuilder flushEx()
     {
         return new MqttFlushExBuilder();
-    }
-
-    @Function
-    public static MqttEndExBuilder endEx()
-    {
-        return new MqttEndExBuilder();
     }
 
     @Function
@@ -660,39 +652,6 @@ public final class MqttFunctions
             final MqttFlushExFW flushEx = flushExRO;
             final byte[] array = new byte[flushEx.sizeof()];
             flushEx.buffer().getBytes(flushEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class MqttEndExBuilder
-    {
-        private final MqttEndExFW.Builder endExRW;
-
-        private MqttEndExBuilder()
-        {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.endExRW = new MqttEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public MqttEndExBuilder typeId(
-            int typeId)
-        {
-            endExRW.typeId(typeId);
-            return this;
-        }
-
-        public MqttEndExBuilder reason(
-            String reason)
-        {
-            endExRW.reasonCode(r -> r.set(MqttEndReasonCode.valueOf(reason)));
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final MqttEndExFW endEx = endExRW.build();
-            final byte[] array = new byte[endEx.sizeof()];
-            endEx.buffer().getBytes(endEx.offset(), array);
             return array;
         }
     }
