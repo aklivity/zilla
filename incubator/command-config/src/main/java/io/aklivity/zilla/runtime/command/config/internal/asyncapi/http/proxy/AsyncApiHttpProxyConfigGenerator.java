@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Channel
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Server2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
@@ -355,6 +356,7 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
                         route
                             .guarded()
                                 .name("jwt0")
+                                .inject(guarded -> injectGuardedRoles(guarded, securityItem.get(securityItemLabel)))
                                 .build();
                         break;
                     }
@@ -362,6 +364,17 @@ public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
             }
         }
         return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectGuardedRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        for (String role : roles)
+        {
+            guarded.role(role);
+        }
+        return guarded;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(

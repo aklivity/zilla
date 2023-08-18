@@ -10,7 +10,8 @@ servers:
     protocol: http
     protocolVersion: '1.1'
     security:
-      - httpBearerToken: []
+      - httpBearerToken:
+          - public
 defaultContentType: application/json
 
 channels:

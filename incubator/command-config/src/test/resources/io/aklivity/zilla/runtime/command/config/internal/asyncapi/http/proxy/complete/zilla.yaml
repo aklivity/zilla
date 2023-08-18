@@ -61,7 +61,8 @@ bindings:
           :path: /items/*
           :method: GET
       guarded:
-        jwt0: []
+        jwt0:
+        - public
     - exit: http_client0
       when:
       - headers:
@@ -70,7 +71,8 @@ bindings:
           :path: /items
           :method: POST
       guarded:
-        jwt0: []
+        jwt0:
+        - public
   http_client0:
     type: http
     kind: client

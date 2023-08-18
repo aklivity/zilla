@@ -10,7 +10,8 @@ servers:
     protocol: http
     protocolVersion: '1.1'
     security:
-      - httpBearerToken: []
+      - httpBearerToken:
+          - public
   plain:
     host: http://localhost:8080
     protocol: http
