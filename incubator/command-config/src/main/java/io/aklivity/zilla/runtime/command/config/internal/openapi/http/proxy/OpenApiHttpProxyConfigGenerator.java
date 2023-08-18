@@ -194,7 +194,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                 .name("http_client0")
                 .type("http")
                 .kind(CLIENT)
-                .inject(this::injectHttpClientRoute)
+                .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                 .build()
             .inject(this::injectTlsClient)
             .binding()
@@ -259,9 +259,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         .alpn(List.of("")) // env
                         .build()
                     .vault("server")
-                    .route()
-                        .exit("http_server0")
-                        .build()
+                    .exit("http_server0")
                     .build();
         }
         return namespace;
@@ -296,13 +294,13 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
             {
                 binding
                     .route()
-                    .exit("http_client0")
-                    .when(HttpConditionConfig::builder)
-                        .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
-                        .header(":method", method)
-                        .build()
-                    .inject(route -> injectHttpServerRouteGuarded(route, item, method))
-                    .build();
+                        .exit("http_client0")
+                        .when(HttpConditionConfig::builder)
+                            .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
+                            .header(":method", method)
+                            .build()
+                        .inject(route -> injectHttpServerRouteGuarded(route, item, method))
+                        .build();
             }
         }
         return binding;
@@ -345,16 +343,6 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return guarded;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpClientRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
-    {
-        return
-            binding
-                .route()
-                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
-                    .build();
-    }
-
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
@@ -372,9 +360,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
                         .trustcacerts(true)
                         .build()
                     .vault("client")
-                    .route()
-                        .exit("tcp_client0")
-                        .build()
+                    .exit("tcp_client0")
                     .build();
         }
         return namespace;
