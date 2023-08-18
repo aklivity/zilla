@@ -23,9 +23,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonPatch;
-import jakarta.json.spi.JsonProvider;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -123,14 +121,9 @@ public class ConfigWriterTest
                         .build()
                     .build()
                 .build();
-        JsonArray ops = Json.createArrayBuilder()
-            .add(Json.createObjectBuilder()
-                .add("op", "replace")
-                .add("path", "/bindings/test0/type")
-                .add("value", "newType")
-                .build())
+        JsonPatch patch = Json.createPatchBuilder()
+            .replace("/bindings/test0/type", "newType")
             .build();
-        JsonPatch patch = JsonProvider.provider().createPatch(ops);
 
         // WHEN
         String text = yaml.write(config, patch);
