@@ -151,15 +151,13 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
                 .name("mqtt_server0")
                 .type("mqtt")
                 .kind(SERVER)
-                .route()
-                    .exit("mqtt_client0")
-                    .build()
+                .exit("mqtt_client0")
                 .build()
             .binding()
                 .name("mqtt_client0")
                 .type("mqtt")
                 .kind(CLIENT)
-                .inject(this::injectMqttClientRoute)
+                .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                 .build()
             .inject(this::injectTlsClient)
             .binding()
@@ -223,32 +221,10 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
                         .alpn(List.of("")) // env
                         .build()
                     .vault("server")
-                    .route()
-                        .exit("mqtt_server0")
-                        .build()
+                    .exit("mqtt_server0")
                     .build();
         }
         return namespace;
-    }
-
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttClientRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
-    {
-        if (isTlsEnabled)
-        {
-            binding
-                .route()
-                    .exit("tls_client0")
-                    .build();
-        }
-        else
-        {
-            binding
-                .route()
-                    .exit("tcp_client0")
-                    .build();
-        }
-        return binding;
     }
 
     private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
@@ -268,9 +244,7 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
                         .trustcacerts(true)
                         .build()
                     .vault("client")
-                    .route()
-                        .exit("tcp_client0")
-                        .build()
+                    .exit("tcp_client0")
                     .build();
         }
         return namespace;
