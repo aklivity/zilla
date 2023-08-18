@@ -487,18 +487,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.will.message.disconnect.with.will.message/client",
-        "${mqtt}/session.will.message.disconnect.with.will.message/server"})
-    public void shouldSendWillMessageOnDisconnectWithWill() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.will.message.no.ping.within.keep.alive/client",
-        "${mqtt}/session.will.message.no.ping.within.keep.alive/server"})
-    public void shouldSendWillMessageOnKeepAliveExpiry() throws Exception
+        "${mqtt}/session.will.message.abort.deliver.will/client",
+        "${mqtt}/session.will.message.abort.deliver.will/server"})
+    public void shouldSendWillMessageOnAbort() throws Exception
     {
         k3po.finish();
     }

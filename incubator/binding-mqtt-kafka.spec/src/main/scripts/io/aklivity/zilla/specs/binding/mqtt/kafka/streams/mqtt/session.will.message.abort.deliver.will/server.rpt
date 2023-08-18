@@ -13,42 +13,40 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/mqtt0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-write zilla:begin.ext ${mqtt:beginEx()
-                           .typeId(zilla:id("mqtt"))
-                           .session()
-                              .flags("WILL")
-                              .expiry(1)
-                              .clientId("one")
-                              .build()
-                           .build()}
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("WILL")
+                                .expiry(1)
+                                .clientId("one")
+                                .build()
+                             .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
+
+read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .kind("WILL")
                                 .build()
                              .build()}
 
-write ${mqtt:will()
+read ${mqtt:will()
                .topic("obituaries")
                .delay(1)
                .format("TEXT")
                .payload("client-1 disconnected abruptly")
                .build()}
+
+write zilla:data.empty
 write flush
 
-read zilla:data.empty
-
-write zilla:end.ext ${mqtt:endEx()
-                        .typeId(zilla:id("mqtt"))
-                        .reason("KEEP_ALIVE_EXPIRY")
-                        .build()}
-
-write close
-read closed
+read aborted
+write abort
