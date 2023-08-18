@@ -274,6 +274,9 @@
                             <include>io/aklivity/zilla/manager/**</include>
                             <include>io/aklivity/zilla/incubator/**</include>
                             <include>org/agrona/**</include>
+                            <include>org/apache/apache/**</include>
+                            <include>org/apache/maven/maven/**</include>
+                            <include>org/apache/maven/maven-parent/**</include>
                             <include>jakarta/json/**</include>
                             <include>jakarta/inject/**</include>
                             <include>org/leadpony/justify/**</include>

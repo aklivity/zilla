@@ -476,6 +476,24 @@ scope protocol
                 string16 memberId;
                 string16 groupInstanceId = null;
             }
+
+            struct TopicPartition
+            {
+                int32 partitionId;
+            }
+
+            struct ConsumerAssignment
+            {
+                string16 consumerId;
+                TopicPartition[] partitions;
+            }
+
+            struct MemberAssignment
+            {
+                string16 topic;
+                TopicPartition[] partitions;
+                octets userdata;
+            }
         }
 
         scope sasl
