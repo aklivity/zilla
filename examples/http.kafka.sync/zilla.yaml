@@ -8,6 +8,18 @@ vaults:
         store: tls/localhost.p12
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
+telemetry:
+  metrics:
+    - stream.active.received
+    - stream.active.sent
+    - stream.opens.received
+    - stream.opens.sent
+    - stream.data.received
+    - stream.data.sent
+    - stream.errors.received
+    - stream.errors.sent
+    - stream.closes.received
+    - stream.closes.sent
 bindings:
   tcp_server0:
     type: tcp
@@ -24,6 +36,9 @@ bindings:
         - when: 
             - port: 8080
           exit: http_server0
+    telemetry:
+      metrics:
+        - stream.*
   tls_server0:
     type: tls
     kind: server
@@ -37,6 +52,9 @@ bindings:
         - http/1.1
         - h2
     exit: http_server0
+    telemetry:
+      metrics:
+        - stream.*
   http_server0:
     type: http
     kind: server
@@ -49,6 +67,9 @@ bindings:
               :scheme: https
               :authority: localhost:9090
         exit: http_kafka_proxy0
+    telemetry:
+      metrics:
+        - stream.*
   http_kafka_proxy0:
     type: http-kafka
     kind: proxy
@@ -61,10 +82,16 @@ bindings:
           topic: items-requests
           key: ${params.id}
           reply-to: items-responses
+    telemetry:
+      metrics:
+        - stream.*
   kafka_cache_client0:
     type: kafka
     kind: cache_client
     exit: kafka_cache_server0
+    telemetry:
+      metrics:
+        - stream.*
   kafka_cache_server0:
     type: kafka
     kind: cache_server
@@ -72,10 +99,16 @@ bindings:
       bootstrap:
         - items-responses
     exit: kafka_client0
+    telemetry:
+      metrics:
+        - stream.*
   kafka_client0:
     type: kafka
     kind: client
     exit: tcp_client0
+    telemetry:
+      metrics:
+        - stream.*
   tcp_client0:
     type: tcp
     kind: client
@@ -85,3 +118,6 @@ bindings:
     routes:
       - when:
           - cidr: 0.0.0.0/0
+    telemetry:
+      metrics:
+        - stream.*
