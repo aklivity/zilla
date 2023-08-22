@@ -1835,12 +1835,11 @@ public final class KafkaFunctions
             public KafkaOffsetFetchDataExBuilder topic(
                 String topic,
                 int partitionId,
-                long stableOffset,
-                long latestOffset)
+                long offset)
             {
                 offsetFetchDataExRW.topic(t ->
                     t.topic(topic).offsets(o -> o.item(i ->
-                        i.partitionId(partitionId).stableOffset(stableOffset).latestOffset(latestOffset))));
+                        i.partitionId(partitionId).partitionOffset(offset))));
                 return this;
             }
 

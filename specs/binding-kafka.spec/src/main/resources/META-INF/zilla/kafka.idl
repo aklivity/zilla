@@ -230,6 +230,7 @@ scope kafka
             string16 topic;
             string16 groupId = null;
             string16 consumerId = null;
+            int32 timeout;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
@@ -366,6 +367,7 @@ scope kafka
         {
             string16 groupId;
             string16 topic;
+            int32 timeout;
             TopicPartition[] partitionIds;
         }
 

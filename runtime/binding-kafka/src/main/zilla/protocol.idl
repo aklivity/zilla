@@ -494,6 +494,42 @@ scope protocol
                 TopicPartition[] partitions;
                 octets userdata;
             }
+
+            struct OffsetFetchRequest
+            {
+                string16 groupId;
+                int32 topicCount;
+            }
+
+            struct PartitionIndex
+            {
+                int32 index;
+            }
+
+            struct OffsetFetchTopicRequest
+            {
+                string16 topic;
+                PartitionIndex[] partitionIndexes;
+            }
+
+            struct OffsetFetchResponse
+            {
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetFetchPartition
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                string16 metadata = null;
+                int16 errorCode;
+            }
         }
 
         scope sasl

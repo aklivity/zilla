@@ -108,7 +108,6 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
-
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -127,17 +126,37 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .consumer()
                                   .partition(0)
-                                  .partition(1)
                                   .build()
                               .build()}
 write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetFetch()
+                                  .groupId("client-1")
+                                  .topic('test', 0)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetFetch()
+                                  .topic('test', 0, 1)
+                                  .build()
+                              .build()}
+write flush
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, -2)
+                                  .partition(0, 1)
                                   .build()
                               .build()}
 
@@ -163,5 +182,25 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world #A1"
 write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .groupId("client-1")
+                                  .topic('test')
+                                  .build()
+                              .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .partitionId(0)
+                                  .partitionOffset(1)
+                                  .build()
+                              .build()}
 
 
