@@ -3978,7 +3978,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetFetch()
-                .topic("test", 0, 1L, 2L)
+                .topic("test", 0, 1L)
                 .build()
             .build();
 

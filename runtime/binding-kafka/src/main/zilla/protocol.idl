@@ -501,15 +501,15 @@ scope protocol
                 int32 topicCount;
             }
 
-            struct PartitionIndex
-            {
-                int32 index;
-            }
-
             struct OffsetFetchTopicRequest
             {
                 string16 topic;
-                PartitionIndex[] partitionIndexes;
+                int32 partitionsCount;
+            }
+
+            struct PartitionIndex
+            {
+                int32 index;
             }
 
             struct OffsetFetchResponse

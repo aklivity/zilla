@@ -67,6 +67,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientProduceFactory clientProduceFactory = new KafkaClientProduceFactory(
                 config, context, bindings::get, supplyClientRoute);
 
+        final KafkaClientOffsetFetchFactory clientOffsetFetchFactory = new KafkaClientOffsetFetchFactory(
+            config, context, bindings::get, supplyClientRoute);
+
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
@@ -76,6 +79,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_GROUP, clientGroupFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, clientFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
+        factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, clientOffsetFetchFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);

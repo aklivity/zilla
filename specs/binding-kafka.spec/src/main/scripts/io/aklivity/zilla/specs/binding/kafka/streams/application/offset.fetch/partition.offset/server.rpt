@@ -32,12 +32,10 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetFetch()
-                                 .partition(0)
-                                 .partition(1)
+                                 .topic("test", 0, 1)
                                  .build()
                              .build()}
 write flush
