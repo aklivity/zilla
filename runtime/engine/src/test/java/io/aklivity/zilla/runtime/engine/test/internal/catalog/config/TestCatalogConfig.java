@@ -13,22 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class TestValidator implements Validator
+public class TestCatalogConfig extends OptionsConfig
 {
-    public TestValidator()
-    {
-    }
+    public final String schema;
 
-    @Override
-    public boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
+    public TestCatalogConfig(
+        String schema)
     {
-        return false;
+        this.schema = schema;
     }
 }

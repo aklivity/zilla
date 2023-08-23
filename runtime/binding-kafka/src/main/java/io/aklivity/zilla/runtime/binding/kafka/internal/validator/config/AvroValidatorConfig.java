@@ -13,20 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
+import java.util.List;
 
-public class KafkaTopicValidators
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
+
+public final class AvroValidatorConfig extends ValidatorConfig
 {
-    public final Validator key;
-    public final Validator value;
+    public final List<KafkaCatalogConfig> catalogList;
 
-    public KafkaTopicValidators(
-        Validator key,
-        Validator value)
+    public AvroValidatorConfig(
+        List<KafkaCatalogConfig> catalogList)
     {
-        this.key = key;
-        this.value = value;
+        super("avro");
+        this.catalogList = catalogList;
     }
 }

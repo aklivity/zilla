@@ -35,9 +35,9 @@ public final class ValidatorFactory
     }
 
     public Validator create(
-        String type,
         ValidatorConfig config)
     {
+        String type = config.type;
         requireNonNull(type, "name");
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);

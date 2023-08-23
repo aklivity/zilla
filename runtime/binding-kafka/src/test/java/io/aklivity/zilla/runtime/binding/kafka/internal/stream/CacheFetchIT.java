@@ -317,6 +317,30 @@ public class CacheFetchIT
     }
 
     @Test
+    @Configuration("cache.options.type.avro.yaml")
+    @Specification({
+        "${app}/message.value.avro/client",
+        "${app}/message.value.avro/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAvro() throws Exception
+    {
+        partition.append(10L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.type.avro.yaml")
+    @Specification({
+        "${app}/message.value.avro.invalid/client",
+        "${app}/message.value.avro.invalid/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAvroInvalid() throws Exception
+    {
+        partition.append(10L);
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.empty/client",

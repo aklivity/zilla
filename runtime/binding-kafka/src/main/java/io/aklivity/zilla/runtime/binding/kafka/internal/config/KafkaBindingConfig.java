@@ -18,15 +18,18 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.AvroValidator;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -37,8 +40,10 @@ public final class KafkaBindingConfig
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
+    public final ToLongFunction<String> resolveId;
     private final ValidatorFactory validator = ValidatorFactory.instantiate();
-    public final Map<String, KafkaTopicValidators> validatorsMap;
+    public final Map<String, KafkaTopicType> validatorsMap;
+    private Map<String, CatalogHandler> handlerMap;
 
     public KafkaBindingConfig(
         BindingConfig binding)
@@ -48,13 +53,50 @@ public final class KafkaBindingConfig
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
+        this.resolveId = binding.resolveId;
+        this.handlerMap = new HashMap<>();
         this.validatorsMap = options != null &&
                 options.topics != null
                     ? options.topics.stream()
-                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicValidators(
-                        t.key != null ? validator.create(t.key.type, supplyValidatorConfig(t.key.type, t.key)) : null,
-                        t.value != null ? validator.create(t.value.type, supplyValidatorConfig(t.value.type, t.value)) : null
-                        ))) : null;
+                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
+                    t.key != null ? validator.create(t.key) : null,
+                    t.value != null ? validator.create(t.value) : null
+                    ))) : null;
+    }
+
+    public void init(
+        LongFunction<CatalogHandler> catalog,
+        ToLongFunction<String> resolveId)
+    {
+        if (validatorsMap != null)
+        {
+            for (KafkaTopicType topic : validatorsMap.values())
+            {
+                if (topic.key != null && topic.key instanceof AvroValidator)
+                {
+                    for (KafkaCatalogConfig config : ((AvroValidator) topic.key).catalogList)
+                    {
+                        if (config != null && !handlerMap.containsKey(config.name))
+                        {
+                            handlerMap.put(config.name, catalog.apply(resolveId.applyAsLong(config.name)));
+                        }
+                    }
+                    ((AvroValidator) topic.key).handler.putAll(handlerMap);
+                }
+
+                if (topic.value != null && topic.value instanceof AvroValidator)
+                {
+                    for (KafkaCatalogConfig config : ((AvroValidator) topic.value).catalogList)
+                    {
+                        if (config != null && !handlerMap.containsKey(config.name))
+                        {
+                            handlerMap.put(config.name, catalog.apply(resolveId.applyAsLong(config.name)));
+                        }
+                    }
+                    ((AvroValidator) topic.value).handler.putAll(handlerMap);
+                }
+            }
+        }
     }
 
     public KafkaRouteConfig resolve(
@@ -95,32 +137,14 @@ public final class KafkaBindingConfig
         String topic,
         KafkaDeltaType deltaType)
     {
-        return topic != null &&
-                options != null &&
-                options.topics != null
-                    ? options.topics.stream().filter(t -> topic.equals(t.name)).findFirst().orElse(null).deltaType
-                    : deltaType;
+        KafkaTopicConfig config = topic(topic);
+        return config != null ? config.deltaType : deltaType;
     }
 
     public KafkaOffsetType supplyDefaultOffset(
         String topic)
     {
-        return topic != null &&
-                options != null &&
-                options.topics != null
-                    ? options.topics.stream().filter(t -> topic.equals(t.name)).findFirst().orElse(null).defaultOffset
-                    : HISTORICAL;
-    }
-
-    private ValidatorConfig supplyValidatorConfig(
-        String type,
-        KafkaTopicKeyValueConfig config)
-    {
-        if ("string".equals(type))
-        {
-            return new StringValidatorConfig(config.encoding);
-        }
-
-        return null;
+        KafkaTopicConfig config = topic(topic);
+        return config != null ? config.defaultOffset : HISTORICAL;
     }
 }

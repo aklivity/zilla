@@ -19,9 +19,12 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfigAdapter;
 
 public class TestCatalogContext implements CatalogContext
 {
+    private final TestCatalogConfigAdapter adapter = new TestCatalogConfigAdapter();
+
     public TestCatalogContext(
         EngineContext context)
     {

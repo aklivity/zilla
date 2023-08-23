@@ -19,21 +19,22 @@ import java.util.Objects;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
 public class KafkaTopicConfig
 {
     public final String name;
     public final KafkaOffsetType defaultOffset;
     public final KafkaDeltaType deltaType;
-    public final KafkaTopicKeyValueConfig key;
-    public final KafkaTopicKeyValueConfig value;
+    public final ValidatorConfig key;
+    public final ValidatorConfig value;
 
     public KafkaTopicConfig(
         String name,
         KafkaOffsetType defaultOffset,
         KafkaDeltaType deltaType,
-        KafkaTopicKeyValueConfig key,
-        KafkaTopicKeyValueConfig value)
+        ValidatorConfig key,
+        ValidatorConfig value)
     {
         this.name = name;
         this.defaultOffset = defaultOffset;

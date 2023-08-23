@@ -192,6 +192,24 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.avro/client",
+        "${app}/message.value.avro/server"})
+    public void shouldReceiveMessageValueAvro() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.value.avro.invalid/client",
+        "${app}/message.value.avro.invalid/server"})
+    public void shouldReceiveMessageValueAvroInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     public void shouldReceiveMessageValueEmpty() throws Exception
@@ -262,15 +280,6 @@ public class FetchIT
         "${app}/message.value.distinct/client",
         "${app}/message.value.distinct/server"})
     public void shouldReceiveMessageValueDistinct() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/message.value.distinct/client",
-        "${app}/message.value.distinct/server"})
-    public void shouldReceiveMessageValueAvro() throws Exception
     {
         k3po.finish();
     }

@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
@@ -116,6 +117,7 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
+        namespace.catalogs.forEach(this::attachCatalog);
         namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.telemetry.exporters.forEach(this::attachExporter);
         namespace.bindings.forEach(this::attachBinding);
@@ -125,6 +127,7 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
+        namespace.catalogs.forEach(this::detachCatalog);
         namespace.bindings.forEach(this::detachBinding);
         namespace.telemetry.metrics.forEach(this::detachMetric);
         namespace.telemetry.exporters.forEach(this::detachExporter);
@@ -281,6 +284,29 @@ public class NamespaceRegistry
     {
         int guardId = supplyLabelId.applyAsInt(config.name);
         GuardRegistry context = guardsById.remove(guardId);
+        if (context != null)
+        {
+            context.detach();
+        }
+    }
+
+    private void attachCatalog(
+        CatalogConfig config)
+    {
+        CatalogContext context = catalogsByType.apply(config.type);
+        assert context != null : "Missing catalog type: " + config.type;
+
+        int catalogId = supplyLabelId.applyAsInt(config.name);
+        CatalogRegistry registry = new CatalogRegistry(config, context);
+        catalogsById.put(catalogId, registry);
+        registry.attach();
+    }
+
+    private void detachCatalog(
+        CatalogConfig config)
+    {
+        int catalogId = supplyLabelId.applyAsInt(config.name);
+        CatalogRegistry context = catalogsById.remove(catalogId);
         if (context != null)
         {
             context.detach();

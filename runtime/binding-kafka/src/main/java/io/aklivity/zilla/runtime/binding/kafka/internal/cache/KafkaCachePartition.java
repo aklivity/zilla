@@ -498,14 +498,23 @@ public final class KafkaCachePartition
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
         }
 
-        if (keyValidator != null && !keyValidator.validate(headEntry.key().value()))
+        if (keyValidator != null)
         {
-            System.out.println("Key Validation failed");
+            OctetsFW key = headEntry.key().value();
+            if (key != null && !keyValidator.validate(key.value(), key.offset(), key.sizeof()))
+            {
+
+                System.out.println("Key Validation failed");
+            }
         }
 
-        if (valueValidator != null && !valueValidator.validate(headEntry.value()))
+        if (valueValidator != null)
         {
-            System.out.println("Value Validation failed");
+            OctetsFW value = headEntry.value();
+            if (value != null && !valueValidator.validate(value.value(), value.offset(), value.sizeof()))
+            {
+                System.out.println("Value Validation failed");
+            }
         }
 
         headSegment.lastOffset(progress);

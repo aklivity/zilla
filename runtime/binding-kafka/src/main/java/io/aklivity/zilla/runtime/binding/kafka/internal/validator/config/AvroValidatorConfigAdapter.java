@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,56 +25,44 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class KafkaTopicKeyValueConfigAdapter implements JsonbAdapter<KafkaTopicKeyValueConfig, JsonObject>
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfigAdapter;
+
+public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
-    private static final String CATALOG_TYPE = "type";
     private static final String CATALOG_NAME = "catalog";
-    private static final String ENCODING = "encoding";
 
     private final KafkaCatalogConfigAdapter catalog = new KafkaCatalogConfigAdapter();
 
     @Override
-    public JsonObject adaptToJson(
-        KafkaTopicKeyValueConfig config)
+    public String type()
     {
-        JsonObjectBuilder catalog = Json.createObjectBuilder();
-
-        if (config.type != null &&
-            !config.type.isEmpty())
-        {
-            catalog.add(CATALOG_TYPE, config.type);
-        }
-
-        if (config.encoding != null &&
-            !config.encoding.isEmpty())
-        {
-            catalog.add(ENCODING, config.encoding);
-        }
-
-        if (config.catalog != null &&
-            !config.catalog.isEmpty())
-        {
-            JsonArrayBuilder entries = Json.createArrayBuilder();
-            config.catalog.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
-
-            catalog.add(CATALOG_NAME, entries);
-        }
-
-        return catalog.build();
+        return "avro";
     }
 
     @Override
-    public KafkaTopicKeyValueConfig adaptFromJson(
+    public JsonObject adaptToJson(
+        ValidatorConfig config)
+    {
+        AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
+        JsonObjectBuilder validator = Json.createObjectBuilder();
+
+        if (validatorConfig.catalogList != null &&
+                !validatorConfig.catalogList.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            validatorConfig.catalogList.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
+
+            validator.add(CATALOG_NAME, entries);
+        }
+
+        return validator.build();
+    }
+
+    @Override
+    public ValidatorConfig adaptFromJson(
         JsonObject object)
     {
-        String type = object.containsKey(CATALOG_TYPE)
-                ? object.getString(CATALOG_TYPE)
-                : null;
-
-        String encoding = object.containsKey(ENCODING)
-                ? object.getString(ENCODING)
-                : null;
-
         JsonArray catalogArray = object.containsKey(CATALOG_NAME)
                 ? object.getJsonArray(CATALOG_NAME)
                 : null;
@@ -87,7 +75,6 @@ public class KafkaTopicKeyValueConfigAdapter implements JsonbAdapter<KafkaTopicK
             catalogArray.forEach(v -> catalog0.add(catalog.adaptFromJson(v.asJsonObject())));
             catalogs = catalog0;
         }
-
-        return new KafkaTopicKeyValueConfig(type, encoding, catalogs);
+        return new AvroValidatorConfig(catalogs);
     }
 }

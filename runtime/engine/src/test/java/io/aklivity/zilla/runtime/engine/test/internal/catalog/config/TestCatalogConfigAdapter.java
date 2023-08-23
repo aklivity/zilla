@@ -22,11 +22,9 @@ import jakarta.json.JsonObjectBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public class TestCatalogConfigAdapter implements OptionsConfigAdapterSpi
 {
-    private static final String HOST = "schema.com";
-    private static final String PORT = "8081";
-    private static final String CONTEXT = "default";
+    private static final String SCHEMA = "schema";
 
     @Override
     public Kind kind()
@@ -44,35 +42,26 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        TestCatalogOptionsConfig testOptions = (TestCatalogOptionsConfig) options;
+        TestCatalogConfig config = (TestCatalogConfig) options;
+        JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        JsonObjectBuilder object = Json.createObjectBuilder();
+        if (config.schema != null &&
+                !config.schema.isEmpty())
+        {
+            catalog.add(SCHEMA, config.schema);
+        }
 
-        object.add(HOST, testOptions.host);
-
-        object.add(PORT, testOptions.port);
-
-        object.add(CONTEXT, testOptions.context);
-
-        return object.build();
+        return catalog.build();
     }
 
     @Override
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String newHost = object.containsKey(HOST)
-                ? object.getString(HOST)
+        String schema = object.containsKey(SCHEMA)
+                ? object.getString(SCHEMA)
                 : null;
 
-        int newPort = object.containsKey(PORT)
-                ? object.getInt(PORT)
-                : null;
-
-        String newContext = object.containsKey(CONTEXT)
-                ? object.getString(CONTEXT)
-                : null;
-
-        return new TestCatalogOptionsConfig(newHost, newPort, newContext);
+        return new TestCatalogConfig(schema);
     }
 }

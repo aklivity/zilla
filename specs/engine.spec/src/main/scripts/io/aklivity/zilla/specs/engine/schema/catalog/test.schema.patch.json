@@ -31,15 +31,7 @@
                     {
                         "properties":
                         {
-                            "host":
-                            {
-                                "type": "string"
-                            },
-                            "port":
-                            {
-                                "type": "integer"
-                            },
-                            "context":
+                            "schema":
                             {
                                 "type": "string"
                             }

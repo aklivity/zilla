@@ -17,12 +17,16 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 
 public class TestCatalogHandler implements CatalogHandler
 {
+    private final String schema;
+
     public TestCatalogHandler(
-        CatalogConfig schema)
+        CatalogConfig options)
     {
+        this.schema = TestCatalogConfig.class.cast(options.options).schema;
     }
 
     @Override
@@ -43,10 +47,8 @@ public class TestCatalogHandler implements CatalogHandler
 
     @Override
     public String resolve(
-        String schemaId)
+        int schemaId)
     {
-        return "\"{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-                "{\"name\":\"status\",\"type\":\"string\"}],\"name\":\"Event\"," +
-                "\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}\"";
+        return schema;
     }
 }

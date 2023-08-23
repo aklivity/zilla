@@ -13,23 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 
-public class TestCatalogOptionsConfig extends OptionsConfig
+public final class AvroValidatorFactory implements ValidatorFactorySpi
 {
-    public final String host;
-    public final int port;
-    public final String context;
-
-    public TestCatalogOptionsConfig(
-        String host,
-        int port,
-        String context)
+    @Override
+    public String type()
     {
-        this.host = host;
-        this.port = port;
-        this.context = context;
+        return "avro";
+    }
+
+    @Override
+    public Validator create(
+        ValidatorConfig config)
+    {
+        return new AvroValidator(AvroValidatorConfig.class.cast(config));
     }
 }

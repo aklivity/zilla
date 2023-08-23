@@ -20,9 +20,7 @@ catalogs:
   test0:
     type: test
     options:
-      host: localhost
-      port: 8081
-      context: default
+      schema: "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"status\",\"type\":\"string\"}],\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}"
 bindings:
   app0:
     type: kafka

@@ -19,7 +19,7 @@ public interface CatalogHandler
 {
     int register(String schema, String subject);
 
-    String resolve(String schemaId);
+    String resolve(int schemaId);
 
     String resolve(String subject, String version);
 }

@@ -15,21 +15,18 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 
-public class KafkaTopicKeyValueConfig
+public class KafkaTopicType
 {
-    public final String type;
-    public final String encoding;
-    public final List<KafkaCatalogConfig> catalog;
+    public final Validator key;
+    public final Validator value;
 
-    public KafkaTopicKeyValueConfig(
-        String type,
-        String encoding,
-        List<KafkaCatalogConfig> catalog)
+    public KafkaTopicType(
+        Validator key,
+        Validator value)
     {
-        this.type = type;
-        this.encoding = encoding;
-        this.catalog = catalog;
+        this.key = key;
+        this.value = value;
     }
 }

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.TestValidatorConfig;
 
 public class ValidatorFactoryTest
@@ -28,8 +29,17 @@ public class ValidatorFactoryTest
     public void shouldLoadAndCreate()
     {
         ValidatorFactory factory = ValidatorFactory.instantiate();
-        Validator validator = factory.create("test", new TestValidatorConfig());
+        Validator validator = factory.create(new TestValidatorConfig());
 
         assertThat(validator, instanceOf(TestValidator.class));
+    }
+
+    @Test
+    public void shouldLoadAndCreateAvro()
+    {
+        ValidatorFactory factory = ValidatorFactory.instantiate();
+        Validator validator = factory.create(new AvroValidatorConfig(null));
+
+        assertThat(validator, instanceOf(AvroValidator.class));
     }
 }

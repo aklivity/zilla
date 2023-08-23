@@ -73,4 +73,4 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 10, 10)
                                  .build()
                              .build()}
-read [0x00] 9 ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
+read [0x00 0x00 0x00 0x00 0x09] ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"

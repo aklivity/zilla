@@ -1,0 +1,2 @@
+io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfigAdapter
+io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfigAdapter

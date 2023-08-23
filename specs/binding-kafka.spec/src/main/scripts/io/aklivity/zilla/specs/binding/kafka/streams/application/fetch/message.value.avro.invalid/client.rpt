@@ -14,25 +14,9 @@
 # under the License.
 #
 
-property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .topic("test")
-                                  .build()
-                              .build()}
-
-connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -40,43 +24,53 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .build()
                                .build()}
-write flush
 
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .partition(0, 177)
-                                  .build()
-                              .build()}
-write flush
-
-accepted
+connected
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .fetch()
+                              .meta()
                                   .topic("test")
-                                  .partition(0, 10)
                                   .build()
                               .build()}
 
-connected
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, 177)
+                                 .build()
+                             .build()}
+
+read notify ROUTED_BROKER_CLIENT
+
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 0xb1
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 10, 10)
+                                   .partition(0, 10)
                                    .build()
                                .build()}
-write flush
 
-write zilla:data.ext ${kafka:dataEx()
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
-                                  .timestamp(newTimestamp)
+                                  .topic("test")
                                   .partition(0, 10, 10)
                                   .build()
                               .build()}
-write [0x00 0x00 0x00 0x00 0x09] ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
-write flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .partition(0, 10, 10)
+                                 .build()
+                             .build()}
+read [0x00 0x00 0x00 0x00 0x09] ${kafka:varint(3)} "id0"

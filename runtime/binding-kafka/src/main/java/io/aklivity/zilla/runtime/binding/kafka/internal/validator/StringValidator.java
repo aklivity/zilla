@@ -15,10 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
 
-public class StringValidator implements Validator
+public final class StringValidator implements Validator
 {
     private String encoding;
 
@@ -30,13 +31,15 @@ public class StringValidator implements Validator
 
     @Override
     public boolean validate(
-        OctetsFW data)
+        DirectBuffer data,
+        int index,
+        int length)
     {
         boolean valid = true;
         if (data != null)
         {
-            byte[] payloadBytes = new byte[data.sizeof()];
-            data.value().getBytes(0, payloadBytes);
+            byte[] payloadBytes = new byte[length];
+            data.getBytes(0, payloadBytes);
             switch (encoding)
             {
             case "utf_8":

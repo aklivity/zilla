@@ -13,22 +13,21 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import org.agrona.DirectBuffer;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class TestValidator implements Validator
+public interface ValidatorConfigAdapterSpi extends JsonbAdapter<ValidatorConfig, JsonObject>
 {
-    public TestValidator()
-    {
-    }
+    String type();
 
     @Override
-    public boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        return false;
-    }
+    JsonObject adaptToJson(
+        ValidatorConfig options);
+
+    @Override
+    ValidatorConfig adaptFromJson(
+        JsonObject object);
+
 }
