@@ -26,6 +26,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
+
 public class HttpKafkaConditionConfigAdapterTest
 {
     private Jsonb jsonb;

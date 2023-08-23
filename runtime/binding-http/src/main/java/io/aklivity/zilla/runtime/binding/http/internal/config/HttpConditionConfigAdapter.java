@@ -15,15 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -62,19 +61,14 @@ public final class HttpConditionConfigAdapter implements ConditionConfigAdapterS
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        JsonObject headers = object.containsKey(HEADERS_NAME)
-                ? object.getJsonObject(HEADERS_NAME)
-                : null;
+        HttpConditionConfigBuilder<HttpConditionConfig> httpCondition = HttpConditionConfig.builder();
 
-        Map<String, String> newHeaders = null;
-
-        if (headers != null)
+        if (object.containsKey(HEADERS_NAME))
         {
-            Map<String, String> newHeaders0 = new LinkedHashMap<>();
-            headers.forEach((k, v) -> newHeaders0.put(k, JsonString.class.cast(v).getString()));
-            newHeaders = newHeaders0;
+            object.getJsonObject(HEADERS_NAME)
+                .forEach((k, v) -> httpCondition.header(k, JsonString.class.cast(v).getString()));
         }
 
-        return new HttpConditionConfig(newHeaders);
+        return httpCondition.build();
     }
 }

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -27,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 
 public class HttpConditionConfigAdapterTest
 {
@@ -60,7 +63,10 @@ public class HttpConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        HttpConditionConfig condition = new HttpConditionConfig(singletonMap(":authority", "example.net:443"));
+        HttpConditionConfig condition = HttpConditionConfig.builder()
+            .inject(identity())
+            .header(":authority", "example.net:443")
+            .build();
 
         String text = jsonb.toJson(condition);
 

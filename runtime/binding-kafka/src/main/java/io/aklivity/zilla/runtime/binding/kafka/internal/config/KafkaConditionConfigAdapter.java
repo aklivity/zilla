@@ -20,6 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -27,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 public final class KafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
+    private static final String GROUP_ID_NAME = "groupId";
 
     @Override
     public String type()
@@ -47,6 +49,11 @@ public final class KafkaConditionConfigAdapter implements ConditionConfigAdapter
             object.add(TOPIC_NAME, kafkaCondition.topic);
         }
 
+        if (kafkaCondition.groupId != null)
+        {
+            object.add(GROUP_ID_NAME, kafkaCondition.groupId);
+        }
+
         return object.build();
     }
 
@@ -58,6 +65,10 @@ public final class KafkaConditionConfigAdapter implements ConditionConfigAdapter
                 ? object.getString(TOPIC_NAME)
                 : null;
 
-        return new KafkaConditionConfig(topic);
+        String groupId = object.containsKey(GROUP_ID_NAME)
+                ? object.getString(GROUP_ID_NAME)
+                : null;
+
+        return new KafkaConditionConfig(topic, groupId);
     }
 }

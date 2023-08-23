@@ -166,38 +166,48 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            CONSUMER (252),
+            GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
             META (3),
+            OFFSET_COMMIT (8),
+            OFFSET_FETCH (9),
             DESCRIBE (32),
             FETCH (1),
-            PRODUCE (0),
-            GROUP (10)
+            PRODUCE (0)
         }
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 252: kafka::stream::KafkaConsumerBeginEx consumer;
+            case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
+            case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
+            case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeBeginEx describe;
             case 1: kafka::stream::KafkaFetchBeginEx fetch;
             case 0: kafka::stream::KafkaProduceBeginEx produce;
-            case 10: kafka::stream::KafkaGroupBeginEx group;
         }
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
+            case 252: kafka::stream::KafkaConsumerDataEx consumer;
+            case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
+            case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
+            case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
             case 0: kafka::stream::KafkaProduceDataEx produce;
-            case 10: kafka::stream::KafkaGroupDataEx group;
         }
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
@@ -206,6 +216,7 @@ scope kafka
         struct KafkaResetEx extends core::stream::Extension
         {
             int32 error = 0;
+            string16 consumerId = null;
         }
 
         struct KafkaBootstrapBeginEx
@@ -217,6 +228,8 @@ scope kafka
         {
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             string16 topic;
+            string16 groupId = null;
+            string16 consumerId = null;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
@@ -229,10 +242,11 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
-            int64 filters = -1;          // INIT only
+            int64 filters = -1;         // INIT only
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
             KafkaDelta delta;           // INIT + FIN
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
@@ -244,6 +258,11 @@ scope kafka
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
             KafkaKey key;
+        }
+
+        struct KafkaGroupFlushEx
+        {
+           KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
@@ -335,6 +354,59 @@ scope kafka
         {
             string16 leaderId;
             string16 memberId;
+            int32 members;
+        }
+
+        struct TopicPartition
+        {
+            int32 partitionId;
+        }
+
+        struct KafkaConsumerBeginEx
+        {
+            string16 groupId;
+            string16 topic;
+            TopicPartition[] partitionIds;
+        }
+
+        struct KafkaConsumerDataEx
+        {
+            TopicPartition[] partitions;
+        }
+
+        struct KafkaOffsetFetchTopic
+        {
+            string16 topic;
+            TopicPartition[] partitions;
+        }
+
+        struct KafkaOffsetFetchBeginEx
+        {
+            string16 groupId;
+            KafkaOffsetFetchTopic[] topics;
+        }
+
+        struct KafkaOffsetFetchTopicOffsets
+        {
+            string16 topic;
+            KafkaOffset[] offsets;
+        }
+
+        struct KafkaOffsetFetchDataEx
+        {
+            KafkaOffsetFetchTopicOffsets topic;
+        }
+
+        struct KafkaOffsetCommitBeginEx
+        {
+            string16 groupId;
+            string16 topic;
+        }
+
+        struct KafkaOffsetCommitDataEx
+        {
+            int32 partitionId;
+            int64 partitionOffset;
         }
     }
 }

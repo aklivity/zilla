@@ -11,7 +11,7 @@
         {
             "if":
             {
-               "properties":
+                "properties":
                 {
                     "type":
                     {
@@ -377,6 +377,11 @@
                                             "topic":
                                             {
                                                 "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "groupId":
+                                            {
+                                                "title": "groupId",
                                                 "type": "string"
                                             }
                                         },

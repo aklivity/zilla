@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
@@ -50,9 +51,17 @@ public class PrometheusExporterHandlerTest
         EngineContext context = mock(EngineContext.class);
         PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
         PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
-        ExporterConfig exporter = new ExporterConfig("test0", "prometheus", options);
+        ExporterConfig exporter = ExporterConfig.builder()
+                .name("test0")
+                .type("prometheus")
+                .options(options)
+                .build();
         PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
-        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, context, prometheusExporter);
+        Collector collector = mock(Collector.class);
+        when(collector.counterIds()).thenReturn(new long[][]{});
+        when(collector.gaugeIds()).thenReturn(new long[][]{});
+        when(collector.histogramIds()).thenReturn(new long[][]{});
+        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, context, prometheusExporter, collector);
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest
             .newBuilder(new URI("http://localhost:4242/metrics"))

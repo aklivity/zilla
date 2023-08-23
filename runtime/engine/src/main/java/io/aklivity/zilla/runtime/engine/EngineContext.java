@@ -85,6 +85,14 @@ public interface EngineContext
         long bindingId,
         long metricId);
 
+    LongSupplier supplyGauge(
+        long bindingId,
+        long metricId);
+
+    LongSupplier[] supplyHistogram(
+        long bindingId,
+        long metricId);
+
     MessageConsumer droppedFrameHandler();
 
     int supplyClientIndex(
@@ -101,10 +109,10 @@ public interface EngineContext
         BindingConfig binding);
 
     String supplyNamespace(
-        long bindingId);
+        long namespacedId);
 
     String supplyLocalName(
-        long bindingId);
+        long namespacedId);
 
     BindingHandler streamFactory();
 

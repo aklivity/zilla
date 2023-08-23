@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
@@ -79,6 +79,9 @@ import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
@@ -96,11 +99,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
@@ -5511,8 +5511,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long requestBud;
             private int requestCaps;
 
-            private BudgetDebitor requestDebitor;
-            private long requestDebitorIndex = NO_DEBITOR_INDEX;
+            private BudgetDebitor requestDeb;
+            private long requestDebIndex = NO_DEBITOR_INDEX;
 
             private int localBudget;
             private int remoteBudget;
@@ -5582,10 +5582,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     int length = Math.max(Math.min(initialWindow() - requestPad, remaining.value), 0);
                     int reserved = length + requestPad;
 
-                    if (requestDebitorIndex != NO_DEBITOR_INDEX && requestDebitor != null)
+                    if (requestDebIndex != NO_DEBITOR_INDEX && requestDeb != null)
                     {
                         final int minimum = reserved; // TODO: fragmentation
-                        reserved = requestDebitor.claim(0L, requestDebitorIndex, requestId, minimum, reserved, 0);
+                        reserved = requestDeb.claim(0L, requestDebIndex, requestId, minimum, reserved, 0);
                         length = Math.max(reserved - requestPad, 0);
                     }
 
@@ -5725,10 +5725,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 requestBud = budgetId;
                 requestCaps = capabilities;
 
-                if (requestBud != 0L && requestDebitorIndex == NO_DEBITOR_INDEX)
+                if (requestBud != 0L && requestDebIndex == NO_DEBITOR_INDEX)
                 {
-                    requestDebitor = supplyDebitor.apply(budgetId);
-                    requestDebitorIndex = requestDebitor.acquire(budgetId, initialId, Http2Server.this::decodeNetworkIfNecessary);
+                    requestDeb = supplyDebitor.apply(budgetId);
+                    requestDebIndex = requestDeb.acquire(budgetId, requestId, Http2Server.this::decodeNetworkIfNecessary);
                 }
 
                 decodeNetworkIfNecessary(traceId);
@@ -5791,10 +5791,10 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void cleanupRequestDebitorIfNecessary()
             {
-                if (requestDebitorIndex != NO_DEBITOR_INDEX)
+                if (requestDebIndex != NO_DEBITOR_INDEX)
                 {
-                    requestDebitor.release(requestDebitorIndex, initialId);
-                    requestDebitorIndex = NO_DEBITOR_INDEX;
+                    requestDeb.release(requestDebIndex, requestId);
+                    requestDebIndex = NO_DEBITOR_INDEX;
                 }
             }
 

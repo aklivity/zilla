@@ -17,6 +17,8 @@ module io.aklivity.zilla.runtime.binding.http
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.http.config;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.http.internal.HttpBindingFactorySpi;
 

@@ -15,15 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard.config;
 
-import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_CHALLENGE_NEVER;
-import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_LIFETIME_FOREVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -87,32 +84,34 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String newCredentials = object.containsKey(CREDENTIALS_NAME)
-                ? object.getString(CREDENTIALS_NAME)
-                : null;
+        TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> testOptions = TestGuardOptionsConfig.builder();
 
-        Duration newLifetime = object.containsKey(LIFETIME_NAME)
-                ? Duration.parse(object.getString(LIFETIME_NAME))
-                : DEFAULT_LIFETIME_FOREVER;
-
-        Duration newChallenge = object.containsKey(CHALLENGE_NAME)
-                ? Duration.parse(object.getString(CHALLENGE_NAME))
-                : DEFAULT_CHALLENGE_NEVER;
-
-        JsonArray roles = object.containsKey(ROLES_NAME)
-                ? object.getJsonArray(ROLES_NAME)
-                : null;
-
-        List<String> newRoles = null;
-
-        if (roles != null)
+        if (object != null)
         {
-            List<String> newRoles0 = new ArrayList<>();
-            roles.forEach(v ->
-                newRoles0.add(JsonString.class.cast(v).getString()));
-            newRoles = newRoles0;
+            if (object.containsKey(CREDENTIALS_NAME))
+            {
+                testOptions.credentials(object.getString(CREDENTIALS_NAME));
+            }
+
+            if (object.containsKey(LIFETIME_NAME))
+            {
+                testOptions.lifetime(Duration.parse(object.getString(LIFETIME_NAME)));
+            }
+
+            if (object.containsKey(CHALLENGE_NAME))
+            {
+                testOptions.challenge(Duration.parse(object.getString(CHALLENGE_NAME)));
+            }
+
+            if (object.containsKey(ROLES_NAME))
+            {
+                object.getJsonArray(ROLES_NAME).stream()
+                    .map(JsonString.class::cast)
+                    .map(JsonString::getString)
+                    .forEach(testOptions::role);
+            }
         }
 
-        return new TestGuardOptionsConfig(newCredentials, newLifetime, newChallenge, newRoles);
+        return testOptions.build();
     }
 }

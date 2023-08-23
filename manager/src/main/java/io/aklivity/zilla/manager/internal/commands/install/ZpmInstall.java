@@ -16,6 +16,7 @@
 package io.aklivity.zilla.manager.internal.commands.install;
 
 import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
+import static java.io.OutputStream.nullOutputStream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.getLastModifiedTime;
@@ -34,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
@@ -178,13 +180,13 @@ public final class ZpmInstall extends ZpmCommand
             ZpmModule delegate = new ZpmModule();
             Collection<ZpmModule> modules = discoverModules(artifacts);
             migrateUnnamed(modules, delegate);
-            generateSystemOnlyAutomatic(modules);
+            generateSystemOnlyAutomatic(logger, modules);
             delegateAutomatic(modules, delegate);
             copyNonDelegating(modules);
 
             if (!delegate.paths.isEmpty())
             {
-                generateDelegate(delegate);
+                generateDelegate(logger, delegate);
                 generateDelegating(modules);
             }
 
@@ -396,6 +398,7 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void generateSystemOnlyAutomatic(
+        MessageLogger logger,
         Collection<ZpmModule> modules) throws IOException
     {
         Map<ZpmModule, Path> promotions = new IdentityHashMap<>();
@@ -415,21 +418,24 @@ public final class ZpmInstall extends ZpmCommand
                 Path artifactPath = module.paths.iterator().next();
 
                 ToolProvider jdeps = ToolProvider.findFirst("jdeps").get();
+                PrintStream nullOutput = new PrintStream(nullOutputStream());
                 jdeps.run(
-                    System.out,
-                    System.err,
+                    nullOutput,
+                    nullOutput,
                     "--generate-open-module", generatedModulesDir.toString(),
                     artifactPath.toString());
 
                 Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
                 if (Files.exists(generatedModuleInfo))
                 {
+                    logger.info(String.format("Generated module info for system-only automatic module: %s", module.name));
+
                     expandJar(generatedModuleDir, artifactPath);
 
                     ToolProvider javac = ToolProvider.findFirst("javac").get();
                     javac.run(
-                            System.out,
-                            System.err,
+                            nullOutput,
+                            nullOutput,
                             "-d", generatedModuleDir.toString(),
                             generatedModuleInfo.toString());
 
@@ -478,6 +484,7 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void generateDelegate(
+        MessageLogger logger,
         ZpmModule delegate) throws IOException
     {
         Path generatedModulesDir = generatedDir.resolve("modules");
@@ -562,7 +569,13 @@ public final class ZpmInstall extends ZpmCommand
             jdepsArgs.toArray(String[]::new));
 
         Path generatedModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_JAVA_FILENAME);
-        assert Files.exists(generatedModuleInfo);
+
+        if (!Files.exists(generatedModuleInfo))
+        {
+            throw new IOException("Failed to generate module info for delegate module");
+        }
+
+        logger.info(String.format("Generated module info for delegate module\n"));
 
         String moduleInfoContents = Files.readString(generatedModuleInfo);
         Pattern pattern = Pattern.compile("(?:provides\\s+)([^\\s]+)(?:\\s+with)");
@@ -718,8 +731,12 @@ public final class ZpmInstall extends ZpmCommand
         {
             for (JarEntry entry : list(sourceJar.entries()))
             {
-                Path entryPath = targetDir.resolve(entry.getName());
-                if (entry.isDirectory())
+                Path entryPath = targetDir.resolve(entry.getName()).normalize();
+                if (!entryPath.startsWith(targetDir))
+                {
+                    throw new IOException("Bad zip entry");
+                }
+                else if (entry.isDirectory())
                 {
                     createDirectories(entryPath);
                 }

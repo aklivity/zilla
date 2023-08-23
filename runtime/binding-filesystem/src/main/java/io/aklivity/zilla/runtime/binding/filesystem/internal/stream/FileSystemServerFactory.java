@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemSymbolicLinksConfig.IGNORE;
+import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.time.Instant.now;
@@ -41,11 +41,11 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemBindingConfig;
-import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.OctetsFW;

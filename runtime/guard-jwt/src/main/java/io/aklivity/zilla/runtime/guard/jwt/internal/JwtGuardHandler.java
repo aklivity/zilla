@@ -43,10 +43,10 @@ import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.lang.JoseException;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeySetConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapter;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 public class JwtGuardHandler implements GuardHandler
 {

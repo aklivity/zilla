@@ -36,6 +36,9 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Lexer;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
@@ -47,7 +50,6 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 {
     private static final String SERVICES_NAME = "services";
     private Function<String, String> readURL;
-    private ConfigAdapterContext context;
 
     @Override
     public Kind kind()

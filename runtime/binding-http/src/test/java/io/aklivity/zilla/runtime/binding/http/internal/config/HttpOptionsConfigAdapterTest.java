@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -28,7 +28,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.TreeSet;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -37,10 +36,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpAllowConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpExposeConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
@@ -128,25 +125,39 @@ public class HttpOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        HttpOptionsConfig options = new HttpOptionsConfig(
-                new TreeSet<>(EnumSet.allOf(HttpVersion.class)),
-                singletonMap(new String8FW(":authority"), new String16FW("example.com:443")),
-                new HttpAccessControlConfig(
-                    CROSS_ORIGIN,
-                    new HttpAllowConfig(
-                        singleton("https://example.com:9090"),
-                        singleton("DELETE"),
-                        singleton("x-api-key"),
-                        true),
-                    Duration.ofSeconds(10),
-                    new HttpExposeConfig(
-                        singleton("x-custom-header"))),
-                new HttpAuthorizationConfig(
-                    "test0",
-                    new HttpCredentialsConfig(
-                        singletonList(new HttpPatternConfig(
-                            "authorization",
-                            "Bearer {credentials}")))));
+        HttpOptionsConfig options = HttpOptionsConfig.builder()
+            .inject(identity())
+            .version(HttpVersion.HTTP_1_1)
+            .version(HttpVersion.HTTP_2)
+            .override(new String8FW(":authority"), new String16FW("example.com:443"))
+            .access()
+                .inject(identity())
+                .policy(CROSS_ORIGIN)
+                .allow()
+                    .inject(identity())
+                    .origin("https://example.com:9090")
+                    .method("DELETE")
+                    .header("x-api-key")
+                    .credentials(true)
+                    .build()
+                .maxAge(Duration.ofSeconds(10))
+                .expose()
+                    .inject(identity())
+                    .header("x-custom-header")
+                    .build()
+                .build()
+            .authorization()
+                .name("test0")
+                .credentials()
+                    .inject(identity())
+                    .header()
+                        .inject(identity())
+                        .name("authorization")
+                        .pattern("Bearer {credentials}")
+                        .build()
+                    .build()
+                .build()
+            .build();
 
         String text = jsonb.toJson(options);
 

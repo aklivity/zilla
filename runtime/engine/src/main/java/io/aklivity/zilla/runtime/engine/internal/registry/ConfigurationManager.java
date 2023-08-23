@@ -15,16 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
-import static java.util.Collections.singletonMap;
-
-import java.io.InputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -37,26 +32,11 @@ import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonPatch;
-import jakarta.json.JsonReader;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
-import jakarta.json.spi.JsonProvider;
-import jakarta.json.stream.JsonParser;
-
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
-
-import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigReader;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -70,8 +50,6 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class ConfigurationManager
@@ -135,71 +113,16 @@ public class ConfigurationManager
             configText = expressions.resolve(configText);
         }
 
-        List<String> errors = new LinkedList<>();
-        parse:
         try
         {
-            //TODO: detect configURLs and call handleConfigURL
-            InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
-
-            JsonProvider schemaProvider = JsonProvider.provider();
-            JsonReader schemaReader = schemaProvider.createReader(schemaInput);
-            JsonObject schemaObject = schemaReader.readObject();
-
-            for (URL schemaType : schemaTypes)
-            {
-                InputStream schemaPatchInput = schemaType.openStream();
-                JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
-                JsonArray schemaPatchArray = schemaPatchReader.readArray();
-                JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
-
-                schemaObject = schemaPatch.apply(schemaObject);
-            }
-
-            if (config.verboseSchema())
-            {
-                final StringWriter out = new StringWriter();
-                schemaProvider.createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
-                    .createGenerator(out)
-                    .write(schemaObject)
-                    .close();
-
-                final String schemaText = out.getBuffer().toString();
-                logger.accept(schemaText);
-            }
-
-            JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(schemaObject.toString()));
-
-            JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(errors::add);
-            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            JsonSchema schema = new UniquePropertyKeysSchema(reader.read());
-
-            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
-            provider.createReader(new StringReader(configText)).read();
-
-            if (!errors.isEmpty())
-            {
-                break parse;
-            }
-
             final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
 
-            JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(new NamespaceConfigAdapterContext(namespaceReadURL)));
-            Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(provider)
-                .withConfig(config)
-                .build();
+            ConfigReader reader = new ConfigReader(
+                new NamespaceConfigAdapterContext(namespaceReadURL),
+                schemaTypes,
+                config.verboseSchema() ? logger : null);
 
-            namespace = jsonb.fromJson(configText, NamespaceConfig.class);
-
-            if (!errors.isEmpty())
-            {
-                break parse;
-            }
-
+            namespace = reader.read(new StringReader(configText));
             namespace.id = supplyId.applyAsInt(namespace.name);
             namespace.readURL = namespaceReadURL;
 
@@ -287,12 +210,11 @@ public class ConfigurationManager
         catch (Throwable ex)
         {
             logError(ex.getMessage());
+            Arrays.stream(ex.getSuppressed())
+                .map(Throwable::getMessage)
+                .forEach(logger);
         }
 
-        if (!errors.isEmpty())
-        {
-            errors.forEach(this::logError);
-        }
         return namespace;
     }
 

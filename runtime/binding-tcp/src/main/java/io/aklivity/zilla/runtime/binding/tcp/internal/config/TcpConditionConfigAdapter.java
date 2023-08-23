@@ -15,11 +15,21 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpOptionsConfigAdapter.adaptPortsValueFromJson;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.collections.IntHashSet;
+import org.agrona.collections.MutableInteger;
+
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -28,6 +38,7 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
 {
     private static final String CIDR_NAME = "cidr";
     private static final String AUTHORITY_NAME = "authority";
+    private static final String PORT_NAME = "port";
 
     @Override
     public String type()
@@ -53,6 +64,24 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
             object.add(AUTHORITY_NAME, tcpCondition.authority);
         }
 
+        if (tcpCondition.ports != null)
+        {
+            if (tcpCondition.ports.length == 1)
+            {
+                object.add(PORT_NAME, tcpCondition.ports[0]);
+            }
+            else
+            {
+                JsonArrayBuilder ports = Json.createArrayBuilder();
+                for (int port : tcpCondition.ports)
+                {
+                    ports.add(port);
+                }
+
+                object.add(PORT_NAME, ports);
+            }
+        }
+
         return object.build();
     }
 
@@ -60,9 +89,41 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String cidr = object.containsKey(CIDR_NAME) ? object.getString(CIDR_NAME) : null;
-        String authority = object.containsKey(AUTHORITY_NAME) ? object.getString(AUTHORITY_NAME) : null;
+        TcpConditionConfigBuilder<TcpConditionConfig> tcpCondition = TcpConditionConfig.builder();
 
-        return new TcpConditionConfig(cidr, authority);
+        if (object.containsKey(CIDR_NAME))
+        {
+            tcpCondition.cidr(object.getString(CIDR_NAME));
+        }
+
+        if (object.containsKey(AUTHORITY_NAME))
+        {
+            tcpCondition.authority(object.getString(AUTHORITY_NAME));
+        }
+
+        if (object.containsKey(PORT_NAME))
+        {
+            JsonValue portsValue = object.get(PORT_NAME);
+
+            IntHashSet portsSet = new IntHashSet();
+            switch (portsValue.getValueType())
+            {
+            case ARRAY:
+                JsonArray portsArray = portsValue.asJsonArray();
+                portsArray.forEach(value -> adaptPortsValueFromJson(value, portsSet));
+                break;
+            default:
+                adaptPortsValueFromJson(portsValue, portsSet);
+                break;
+            }
+
+            int[] ports = new int[portsSet.size()];
+            MutableInteger index = new MutableInteger();
+            portsSet.forEach(i -> ports[index.value++] = i);
+
+            tcpCondition.ports(ports);
+        }
+
+        return tcpCondition.build();
     }
 }

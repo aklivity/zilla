@@ -15,11 +15,24 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class TestCatalogConfig extends OptionsConfig
 {
     public final String schema;
+
+    public static TestCatalogConfigBuilder<TestCatalogConfig> builder()
+    {
+        return new TestCatalogConfigBuilder<>(TestCatalogConfig.class::cast);
+    }
+
+    public static <T> TestCatalogConfigBuilder<T> builder(
+            Function<OptionsConfig, T> mapper)
+    {
+        return new TestCatalogConfigBuilder<>(mapper);
+    }
 
     public TestCatalogConfig(
         String schema)

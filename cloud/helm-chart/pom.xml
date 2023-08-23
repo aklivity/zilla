@@ -51,7 +51,7 @@
       <plugin>
         <groupId>io.kokuwa.maven</groupId>
         <artifactId>helm-maven-plugin</artifactId>
-        <version>6.6.0</version>
+        <version>6.10.0</version>
         <extensions>true</extensions>
         <configuration>
           <chartDirectory>src/main/helm</chartDirectory>

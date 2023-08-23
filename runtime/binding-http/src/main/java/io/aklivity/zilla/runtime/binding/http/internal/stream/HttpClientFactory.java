@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_1_1;
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpVersion.HTTP_1_1;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
@@ -63,6 +63,7 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
@@ -82,7 +83,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
@@ -5060,15 +5060,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final class Http2HeadersEncoder
     {
         private HpackContext context;
-
-        void encodePromise(
-            HpackContext encodeContext,
-            Array32FW<HttpHeaderFW> headers,
-            HpackHeaderBlockFW.Builder headerBlock)
-        {
-            reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
-        }
 
         void encodeHeaders(
             HpackContext encodeContext,

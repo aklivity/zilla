@@ -25,6 +25,9 @@ import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.AvroValidator;
@@ -104,7 +107,18 @@ public final class KafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .filter(r -> r.authorized(authorization) && r.matches(topic, null))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public KafkaRouteConfig resolve(
+        long authorization,
+        String topic,
+        String groupId)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(topic, groupId))
             .findFirst()
             .orElse(null);
     }

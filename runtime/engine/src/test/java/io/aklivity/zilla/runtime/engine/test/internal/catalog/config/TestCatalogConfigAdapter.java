@@ -58,10 +58,16 @@ public class TestCatalogConfigAdapter implements OptionsConfigAdapterSpi
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String schema = object.containsKey(SCHEMA)
-                ? object.getString(SCHEMA)
-                : null;
+        TestCatalogConfigBuilder<TestCatalogConfig> testOptions = TestCatalogConfig.builder();
 
-        return new TestCatalogConfig(schema);
+        if (object != null)
+        {
+            if (object.containsKey(SCHEMA))
+            {
+                testOptions.schema(object.getString(SCHEMA));
+            }
+        }
+
+        return testOptions.build();
     }
 }

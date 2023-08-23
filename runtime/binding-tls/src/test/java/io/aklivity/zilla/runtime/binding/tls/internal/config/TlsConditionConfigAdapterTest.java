@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 
 public class TlsConditionConfigAdapterTest
 {
@@ -58,7 +61,11 @@ public class TlsConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        TlsConditionConfig condition = new TlsConditionConfig("example.net", "echo");
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .authority("example.net")
+            .alpn("echo")
+            .build();
 
         String text = jsonb.toJson(condition);
 

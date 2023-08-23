@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.PUBLISH_ONLY;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.SUBSCRIBE_ONLY;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -28,6 +29,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 
 public class MqttConditionConfigAdapterTest
 {
@@ -48,7 +51,7 @@ public class MqttConditionConfigAdapterTest
             "{" +
                 "\"topic\": \"test\"," +
                 "\"capabilities\": \"publish_only\"" +
-                "}";
+            "}";
 
         MqttConditionConfig condition = jsonb.fromJson(text, MqttConditionConfig.class);
 
@@ -60,7 +63,11 @@ public class MqttConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        MqttConditionConfig condition = new MqttConditionConfig("test", SUBSCRIBE_ONLY);
+        MqttConditionConfig condition = MqttConditionConfig.builder()
+            .inject(identity())
+            .topic("test")
+            .capabilities(SUBSCRIBE_ONLY)
+            .build();
 
         String text = jsonb.toJson(condition);
 

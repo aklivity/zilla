@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 import java.util.List;
 import java.util.function.LongFunction;
@@ -28,7 +29,12 @@ public class GuardedConfig
     public final String name;
     public final List<String> roles;
 
-    public GuardedConfig(
+    public static GuardedConfigBuilder<GuardedConfig> builder()
+    {
+        return new GuardedConfigBuilder<>(identity());
+    }
+
+    GuardedConfig(
         String name,
         List<String> roles)
     {

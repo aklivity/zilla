@@ -18,7 +18,7 @@ import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RF
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -36,7 +36,7 @@ import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {
@@ -46,8 +46,13 @@ public class JwtGuardHandlerTest
     public void shouldAuthorize() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -74,8 +79,13 @@ public class JwtGuardHandlerTest
     public void shouldChallengeDuringChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -98,8 +108,13 @@ public class JwtGuardHandlerTest
     public void shouldNotChallengeDuringWindowWithoutSubject() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -121,8 +136,13 @@ public class JwtGuardHandlerTest
     public void shouldNotChallengeBeforeChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -145,8 +165,13 @@ public class JwtGuardHandlerTest
     public void shouldNotChallengeAgainDuringChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -170,7 +195,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         JwtClaims claims = new JwtClaims();
@@ -187,7 +217,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         JwtClaims claims = new JwtClaims();
@@ -206,7 +241,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenIssuerDiffers() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         JwtClaims claims = new JwtClaims();
@@ -223,7 +263,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenAudienceDiffers() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         JwtClaims claims = new JwtClaims();
@@ -240,7 +285,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenExpired() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -260,7 +310,12 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldNotAuthorizeWhenNotYetValid() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -281,8 +336,13 @@ public class JwtGuardHandlerTest
     public void shouldNotVerifyAuthorizedWhenRolesInsufficient() throws Exception
     {
         Duration challenge = ofSeconds(30L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         JwtClaims claims = new JwtClaims();
@@ -302,8 +362,13 @@ public class JwtGuardHandlerTest
     public void shouldReauthorizeWhenExpirationLater() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -332,8 +397,13 @@ public class JwtGuardHandlerTest
     public void shouldReauthorizeWhenScopeBroader() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -363,8 +433,13 @@ public class JwtGuardHandlerTest
     public void shouldNotReauthorizeWhenExpirationEarlier() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -393,8 +468,13 @@ public class JwtGuardHandlerTest
     public void shouldNotReauthorizeWhenScopeNarrower() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -425,8 +505,13 @@ public class JwtGuardHandlerTest
     public void shouldNotReauthorizeWhenSubjectDiffers() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -457,8 +542,13 @@ public class JwtGuardHandlerTest
     public void shouldNotReauthorizeWhenContextDiffers() throws Exception
     {
         Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
@@ -488,8 +578,13 @@ public class JwtGuardHandlerTest
     public void shouldDeauthorize() throws Exception
     {
         Duration challenge = ofSeconds(30L);
-        JwtOptionsConfig options =
-                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
         JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();

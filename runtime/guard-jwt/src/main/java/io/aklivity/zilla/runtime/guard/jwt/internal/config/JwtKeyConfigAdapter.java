@@ -19,6 +19,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfigBuilder;
+
 public final class JwtKeyConfigAdapter implements JsonbAdapter<JwtKeyConfig, JsonObject>
 {
     private static final String ALG_NAME = "alg";
@@ -83,18 +86,45 @@ public final class JwtKeyConfigAdapter implements JsonbAdapter<JwtKeyConfig, Jso
     public JwtKeyConfig adaptFromJson(
         JsonObject object)
     {
-        String kty = object.getString(KTY_NAME);
-        String kid = object.getString(KID_NAME);
-        String use = object.containsKey(USE_NAME) ? object.getString(USE_NAME) : null;
+        JwtKeyConfigBuilder<JwtKeyConfig> jwtKey = JwtKeyConfig.builder()
+            .kty(object.getString(KTY_NAME))
+            .kid(object.getString(KID_NAME));
 
-        String n = object.containsKey(N_NAME) ? object.getString(N_NAME) : null;
-        String e = object.containsKey(E_NAME) ? object.getString(E_NAME) : null;
-        String alg = object.containsKey(ALG_NAME) ? object.getString(ALG_NAME) : null;
+        if (object.containsKey(USE_NAME))
+        {
+            jwtKey.use(object.getString(USE_NAME));
+        }
 
-        String crv = object.containsKey(CRV_NAME) ? object.getString(CRV_NAME) : null;
-        String x = object.containsKey(X_NAME) ? object.getString(X_NAME) : null;
-        String y = object.containsKey(Y_NAME) ? object.getString(Y_NAME) : null;
+        if (object.containsKey(N_NAME))
+        {
+            jwtKey.n(object.getString(N_NAME));
+        }
 
-        return new JwtKeyConfig(kty, kid, use, n, e, alg, crv, x, y);
+        if (object.containsKey(E_NAME))
+        {
+            jwtKey.e(object.getString(E_NAME));
+        }
+
+        if (object.containsKey(ALG_NAME))
+        {
+            jwtKey.alg(object.getString(ALG_NAME));
+        }
+
+        if (object.containsKey(CRV_NAME))
+        {
+            jwtKey.crv(object.getString(CRV_NAME));
+        }
+
+        if (object.containsKey(X_NAME))
+        {
+            jwtKey.x(object.getString(X_NAME));
+        }
+
+        if (object.containsKey(Y_NAME))
+        {
+            jwtKey.y(object.getString(Y_NAME));
+        }
+
+        return jwtKey.build();
     }
 }

@@ -201,14 +201,17 @@
         <configuration>
           <excludes>
             <exclude>src/main/docker/*/zpmw</exclude>
+            <exclude>src/main/docker/*/zilla</exclude>
             <exclude>src/main/docker/*/zilla.properties</exclude>
+            <exclude>src/main/docker/*/zpm.json.template</exclude>
+            <exclude>src/main/docker/*/zpm.json</exclude>
+            <exclude>src/main/docker/*/.zpm/**</exclude>
           </excludes>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
         <configuration>
           <executableDependency>
             <groupId>${project.groupId}</groupId>
@@ -233,7 +236,7 @@
       <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>
-        <version>0.39.1</version>
+        <version>0.43.2</version>
         <configuration>
           <filter>${*}</filter>
           <images>
@@ -270,6 +273,9 @@
                             <include>io/aklivity/zilla/manager/**</include>
                             <include>io/aklivity/zilla/incubator/**</include>
                             <include>org/agrona/**</include>
+                            <include>org/apache/apache/**</include>
+                            <include>org/apache/maven/maven/**</include>
+                            <include>org/apache/maven/maven-parent/**</include>
                             <include>jakarta/json/**</include>
                             <include>jakarta/inject/**</include>
                             <include>org/leadpony/justify/**</include>
@@ -285,6 +291,15 @@
                             <include>org/slf4j/**</include>
                             <include>org/antlr/**</include>
                             <include>org/sonatype/oss/**</include>
+                            <include>com/fasterxml/oss-parent/**</include>
+                            <include>com/fasterxml/jackson/**</include>
+                            <include>org/yaml/snakeyaml/**</include>
+                            <include>org/junit/**</include>
+                            <include>org/apache/avro/**</include>
+                            <include>org/apache/apache/**</include>
+                            <include>com/fasterxml/jackson/**</include>
+                            <include>com/fasterxml/oss-parent/**</include>
+                            <include>org/apache/commons/**</include>
                           </includes>
                         </fileSet>
                       </fileSets>
@@ -345,6 +360,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>command-tune</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>exporter-otlp</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

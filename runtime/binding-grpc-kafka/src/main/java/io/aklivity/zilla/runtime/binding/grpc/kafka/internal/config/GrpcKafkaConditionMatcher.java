@@ -20,6 +20,8 @@ import java.util.Map;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
@@ -31,7 +33,7 @@ public final class GrpcKafkaConditionMatcher
 
     private final String16FW service;
     private final String16FW method;
-    private final Map<String8FW, GrpcKafkaMetadataValue> metadataMatch;
+    private final Map<String8FW, GrpcKafkaMetadataValueConfig> metadataMatch;
 
     public GrpcKafkaConditionMatcher(
         GrpcKafkaConditionConfig condition)
@@ -50,12 +52,12 @@ public final class GrpcKafkaConditionMatcher
 
         if (metadataMatch != null)
         {
-            for (Map.Entry<String8FW, GrpcKafkaMetadataValue> entry : metadataMatch.entrySet())
+            for (Map.Entry<String8FW, GrpcKafkaMetadataValueConfig> entry : metadataMatch.entrySet())
             {
                 final DirectBuffer name = entry.getKey().value();
                 final GrpcMetadataFW metadata = metadataHeaders.matchFirst(h -> name.compareTo(h.name().value()) == 0);
 
-                final GrpcKafkaMetadataValue value = entry.getValue();
+                final GrpcKafkaMetadataValueConfig value = entry.getValue();
                 final DirectBuffer matcher = metadata != null && metadata.type().get() == BASE64 ?
                     value.base64Value.value() : value.textValue.value();
 

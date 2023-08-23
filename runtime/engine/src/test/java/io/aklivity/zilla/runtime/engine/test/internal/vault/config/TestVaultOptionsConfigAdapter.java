@@ -55,10 +55,16 @@ public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String mode = object.containsKey(MODE_NAME)
-                ? object.getString(MODE_NAME)
-                : null;
+        TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> testOptions = TestVaultOptionsConfig.builder();
 
-        return new TestVaultOptionsConfig(mode);
+        if (object != null)
+        {
+            if (object.containsKey(MODE_NAME))
+            {
+                testOptions.mode(object.getString(MODE_NAME));
+            }
+        }
+
+        return testOptions.build();
     }
 }

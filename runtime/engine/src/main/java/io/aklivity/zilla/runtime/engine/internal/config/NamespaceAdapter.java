@@ -15,11 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static java.util.Collections.emptyList;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.BINDINGS_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.CATALOGS_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.GUARDS_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.NAMESPACES_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.TELEMETRY_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.VAULTS_DEFAULT;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -29,12 +32,9 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
@@ -46,14 +46,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
 
-    private static final List<NamespaceRef> NAMESPACES_DEFAULT = emptyList();
-    private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
-    private static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
-    private static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
-    private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
-    private static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
-
-    private final NamspaceRefAdapter reference;
+    private final NamspaceRefAdapter namespaceRef;
     private final TelemetryAdapter telemetry;
     private final BindingConfigsAdapter binding;
     private final VaultAdapter vault;
@@ -63,7 +56,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     public NamespaceAdapter(
         ConfigAdapterContext context)
     {
-        reference = new NamspaceRefAdapter(context);
+        namespaceRef = new NamspaceRefAdapter(context);
         telemetry = new TelemetryAdapter(context);
         binding = new BindingConfigsAdapter(context);
         guard = new GuardAdapter(context);
@@ -98,7 +91,14 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             object.add(VAULTS_NAME, vaults);
         }
 
-        if (config.telemetry != null)
+        if (!CATALOGS_DEFAULT.equals(config.catalogs))
+        {
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
+            config.catalogs.forEach(s -> catalogs.add(s.name, catalog.adaptToJson(s)));
+            object.add(CATALOGS_NAME, catalogs);
+        }
+
+        if (!TELEMETRY_DEFAULT.equals(config.telemetry))
         {
             JsonObject telemetry0 = telemetry.adaptToJson(config.telemetry);
             object.add(TELEMETRY_NAME, telemetry0);
@@ -107,15 +107,8 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         if (!NAMESPACES_DEFAULT.equals(config.references))
         {
             JsonArrayBuilder references = Json.createArrayBuilder();
-            config.references.forEach(r -> references.add(reference.adaptToJson(r)));
+            config.references.forEach(r -> references.add(namespaceRef.adaptToJson(r)));
             object.add(NAMESPACES_NAME, references);
-        }
-
-        if (!CATALOGS_DEFAULT.equals(config.catalogs))
-        {
-            JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            config.catalogs.forEach(s -> catalogs.add(s.name, catalog.adaptToJson(s)));
-            object.add(CATALOGS_NAME, catalogs);
         }
 
         return object.build();
@@ -125,41 +118,50 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     public NamespaceConfig adaptFromJson(
         JsonObject object)
     {
-        String name = object.getString(NAME_NAME);
-        List<NamespaceRef> references = object.containsKey(NAMESPACES_NAME)
-                ? object.getJsonArray(NAMESPACES_NAME)
-                    .stream().map(JsonValue::asJsonObject)
-                    .map(reference::adaptFromJson)
-                    .collect(Collectors.toList())
-                : NAMESPACES_DEFAULT;
-        TelemetryConfig telemetry0 = object.containsKey(TELEMETRY_NAME)
-                ? telemetry.adaptFromJson(object.getJsonObject(TELEMETRY_NAME))
-                : TELEMETRY_DEFAULT;
-        List<BindingConfig> bindings = object.containsKey(BINDINGS_NAME)
-                ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
-                : BINDINGS_DEFAULT;
-        List<GuardConfig> guards = object.containsKey(GUARDS_NAME)
-                ? object.getJsonObject(GUARDS_NAME)
-                    .entrySet()
-                    .stream()
-                    .map(e -> guard.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
-                    .collect(Collectors.toList())
-                : GUARDS_DEFAULT;
-        List<VaultConfig> vaults = object.containsKey(VAULTS_NAME)
-                ? object.getJsonObject(VAULTS_NAME)
-                    .entrySet()
-                    .stream()
-                    .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
-                    .collect(Collectors.toList())
-                : VAULTS_DEFAULT;
-        List<CatalogConfig> catalogs = object.containsKey(CATALOGS_NAME)
-                ? object.getJsonObject(CATALOGS_NAME)
-                .entrySet()
-                .stream()
-                .map(e -> catalog.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
-                .collect(Collectors.toList())
-                : CATALOGS_DEFAULT;
+        NamespaceConfigBuilder<NamespaceConfig> namespace = NamespaceConfig.builder();
 
-        return new NamespaceConfig(name, references, telemetry0, bindings, guards, vaults, catalogs);
+        namespace.name(object.getString(NAME_NAME));
+
+        if (object.containsKey(NAMESPACES_NAME))
+        {
+            object.getJsonArray(NAMESPACES_NAME)
+                .stream()
+                .map(JsonValue::asJsonObject)
+                .map(namespaceRef::adaptFromJson)
+                .forEach(namespace::namespace);
+        }
+
+        if (object.containsKey(TELEMETRY_NAME))
+        {
+            namespace.telemetry(telemetry.adaptFromJson(object.getJsonObject(TELEMETRY_NAME)));
+        }
+
+        if (object.containsKey(BINDINGS_NAME))
+        {
+            namespace.bindings(Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME))));
+        }
+
+        if (object.containsKey(GUARDS_NAME))
+        {
+            object.getJsonObject(GUARDS_NAME).entrySet().stream()
+                .map(e -> guard.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
+                .forEach(namespace::guard);
+        }
+
+        if (object.containsKey(VAULTS_NAME))
+        {
+            object.getJsonObject(VAULTS_NAME).entrySet().stream()
+                .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
+                .forEach(namespace::vault);
+        }
+
+        if (object.containsKey(CATALOGS_NAME))
+        {
+            object.getJsonObject(CATALOGS_NAME).entrySet().stream()
+                .map(e -> catalog.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
+                .forEach(namespace::catalog);
+        }
+
+        return namespace.build();
     }
 }

@@ -15,13 +15,20 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import static java.util.function.Function.identity;
+
 import java.util.List;
 
 public class TelemetryRefConfig
 {
     public final List<MetricRefConfig> metricRefs;
 
-    public TelemetryRefConfig(
+    public static TelemetryRefConfigBuilder<TelemetryRefConfig> builder()
+    {
+        return new TelemetryRefConfigBuilder<>(identity());
+    }
+
+    TelemetryRefConfig(
         List<MetricRefConfig> metricRefs)
     {
         this.metricRefs = metricRefs;

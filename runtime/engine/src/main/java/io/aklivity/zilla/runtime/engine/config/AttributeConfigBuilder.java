@@ -1,0 +1,58 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.engine.config;
+
+import java.util.function.Function;
+
+public final class AttributeConfigBuilder<T> extends ConfigBuilder<T, AttributeConfigBuilder<T>>
+{
+    private final Function<AttributeConfig, T> mapper;
+
+    private String name;
+    private String value;
+
+    AttributeConfigBuilder(
+        Function<AttributeConfig, T> mapper)
+    {
+        this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<AttributeConfigBuilder<T>> thisType()
+    {
+        return (Class<AttributeConfigBuilder<T>>) getClass();
+    }
+
+    public AttributeConfigBuilder<T> name(
+        String name)
+    {
+        this.name = name;
+        return this;
+    }
+
+    public AttributeConfigBuilder<T> value(
+        String value)
+    {
+        this.value = value;
+        return this;
+    }
+
+    public T build()
+    {
+        return mapper.apply(new AttributeConfig(name, value));
+    }
+}

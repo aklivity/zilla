@@ -39,6 +39,25 @@ public class NetworkRoutingIT
 
     @Test
     @Specification({
+        "${net}/server.close.port.not.routed/client",
+        "${net}/server.close.port.not.routed/server"
+    })
+    public void shouldCloseServerWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.connect.with.port.extension/client",
+        "${net}/client.connect.with.port.extension/server" })
+    public void shouldConnectClientWithPortExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.connect.with.host.extension/client",
         "${net}/client.connect.with.host.extension/server" })
     public void shouldConnectClientWithHostExtension() throws Exception
