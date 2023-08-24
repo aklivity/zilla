@@ -26,9 +26,9 @@ public class CatalogConfig
     public final OptionsConfig options;
 
     public CatalogConfig(
-            String name,
-            String type,
-            OptionsConfig options)
+        String name,
+        String type,
+        OptionsConfig options)
     {
         this.name = requireNonNull(name);
         this.type = requireNonNull(type);

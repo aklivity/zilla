@@ -96,9 +96,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
-
-        kafkaBinding.init(supplyCatalog, kafkaBinding.resolveId);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog);
 
         bindings.put(binding.id, kafkaBinding);
 

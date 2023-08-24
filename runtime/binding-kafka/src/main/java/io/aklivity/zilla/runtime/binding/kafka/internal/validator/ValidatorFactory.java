@@ -22,8 +22,11 @@ import static java.util.ServiceLoader.load;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public final class ValidatorFactory
 {
@@ -35,14 +38,16 @@ public final class ValidatorFactory
     }
 
     public Validator create(
-        ValidatorConfig config)
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
         String type = config.type;
         requireNonNull(type, "name");
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
-        return validatorSpi.create(config);
+        return validatorSpi.create(config, resolveId, supplyCatalog);
     }
 
     private static ValidatorFactory instantiate(

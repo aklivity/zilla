@@ -15,8 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
+
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public final class AvroValidatorFactory implements ValidatorFactorySpi
 {
@@ -28,8 +32,10 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
 
     @Override
     public Validator create(
-        ValidatorConfig config)
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroValidator(AvroValidatorConfig.class.cast(config));
+        return new AvroValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
     }
 }

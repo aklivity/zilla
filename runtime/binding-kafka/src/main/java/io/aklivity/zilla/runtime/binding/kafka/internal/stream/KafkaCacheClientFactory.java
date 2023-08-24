@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaCacheClientFactory implements KafkaStreamFactory
@@ -47,6 +48,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
+    private final LongFunction<CatalogHandler> supplyCatalog;
 
     public KafkaCacheClientFactory(
         KafkaConfiguration config,
@@ -86,13 +88,14 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.supplyCatalog = context::supplyCatalog;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog);
         bindings.put(binding.id, kafkaBinding);
     }
 

@@ -19,6 +19,9 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
 import org.apache.avro.Schema;
@@ -34,14 +37,21 @@ public final class AvroValidator implements Validator
 {
     private static final byte MAGIC_BYTE = 0x0;
 
-    public final List<KafkaCatalogConfig> catalogList;
-    public Map<String, CatalogHandler> handler;
+    private final List<KafkaCatalogConfig> catalogs;
+    private Map<String, CatalogHandler> handler;
+    private Map<Integer, Schema> schemas;
+
 
     public AvroValidator(
-        AvroValidatorConfig config)
+        AvroValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
-        this.catalogList = config.catalogList;
-        handler = new HashMap<>();
+        this.catalogs = config.catalogList;
+        this.schemas = new HashMap<>();
+        this.handler = resolveId != null &&
+            supplyCatalog != null ? catalogs.stream()
+            .collect(Collectors.toMap(c -> c.name, c -> supplyCatalog.apply(resolveId.applyAsLong(c.name)))) : null;
     }
 
     @Override
@@ -61,14 +71,19 @@ public final class AvroValidator implements Validator
         }
 
         int schemaId = byteBuf.getInt();
+
+        if (!schemas.containsKey(schemaId))
+        {
+            schemas.put(schemaId, new Schema.Parser().parse(handler.get(catalogs.get(0).name).resolve(schemaId)));
+        }
+
         int valLength = length - 1 - 4;
         byte[] valBytes = new byte[valLength];
         data.getBytes(length - valLength, valBytes);
 
         try
         {
-            Schema parse = new Schema.Parser().parse(handler.get(catalogList.get(0).name).resolve(schemaId));
-            DatumReader reader = new GenericDatumReader(parse);
+            DatumReader reader = new GenericDatumReader(schemas.get(schemaId));
             DecoderFactory decoderFactory = DecoderFactory.get();
             reader.read(null, decoderFactory.binaryDecoder(valBytes, null));
             return true;

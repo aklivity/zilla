@@ -296,9 +296,6 @@
                             <include>org/yaml/snakeyaml/**</include>
                             <include>org/junit/**</include>
                             <include>org/apache/avro/**</include>
-                            <include>org/apache/apache/**</include>
-                            <include>com/fasterxml/jackson/**</include>
-                            <include>com/fasterxml/oss-parent/**</include>
                             <include>org/apache/commons/**</include>
                           </includes>
                         </fileSet>
