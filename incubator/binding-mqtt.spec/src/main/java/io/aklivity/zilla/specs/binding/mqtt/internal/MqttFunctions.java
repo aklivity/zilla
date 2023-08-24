@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
@@ -30,12 +31,12 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttQoS;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
@@ -44,13 +45,14 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
@@ -100,12 +102,6 @@ public final class MqttFunctions
     }
 
     @Function
-    public static MqttEndExBuilder endEx()
-    {
-        return new MqttEndExBuilder();
-    }
-
-    @Function
     public static MqttResetExBuilder resetEx()
     {
         return new MqttResetExBuilder();
@@ -115,6 +111,24 @@ public final class MqttFunctions
     public static MqttSessionStateBuilder session()
     {
         return new MqttSessionStateBuilder();
+    }
+
+    @Function
+    public static MqttWillMessageBuilder will()
+    {
+        return new MqttWillMessageBuilder();
+    }
+
+    @Function
+    public static byte[] randomBytes(
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        for (int i = 0; i < length; i++)
+        {
+            bytes[i] = (byte) ThreadLocalRandom.current().nextInt(0x100);
+        }
+        return bytes;
     }
 
     public static final class MqttBeginExBuilder
@@ -190,29 +204,28 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder serverReference(
-                String serverReference)
+            public MqttSessionBeginExBuilder serverRef(
+                String serverRef)
             {
-                sessionBeginExRW.serverReference(serverReference);
+                sessionBeginExRW.serverRef(serverRef);
                 return this;
             }
 
-            public MqttWillMessageBuilder will()
+            public MqttSessionBeginExBuilder flags(
+                String... flagNames)
             {
-                return new MqttWillMessageBuilder(this);
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(flag -> 1 << MqttSessionFlags.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                sessionBeginExRW.flags(flags);
+                return this;
             }
 
             public MqttBeginExBuilder build()
             {
-                final MqttSessionBeginExFW subscribeBeginEx = sessionBeginExRW.build();
-                beginExRO.wrap(writeBuffer, 0, subscribeBeginEx.limit());
+                final MqttSessionBeginExFW sessionBeginEx = sessionBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, sessionBeginEx.limit());
                 return MqttBeginExBuilder.this;
-            }
-
-            private void willMessage(
-                MqttMessageFW willMessage)
-            {
-                sessionBeginExRW.will(willMessage);
             }
         }
 
@@ -343,6 +356,13 @@ public final class MqttFunctions
             dataExRW.kind(MqttExtensionKind.PUBLISH.value());
 
             return new MqttDataExBuilder.MqttPublishDataExBuilder();
+        }
+
+        public MqttDataExBuilder.MqttSessionDataExBuilder session()
+        {
+            dataExRW.kind(MqttExtensionKind.SESSION.value());
+
+            return new MqttDataExBuilder.MqttSessionDataExBuilder();
         }
 
         public byte[] build()
@@ -530,8 +550,32 @@ public final class MqttFunctions
 
             public MqttDataExBuilder build()
             {
-                final MqttPublishDataExFW publishBeginEx = publishDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, publishBeginEx.limit());
+                final MqttPublishDataExFW publishDataEx = publishDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, publishDataEx.limit());
+                return MqttDataExBuilder.this;
+            }
+        }
+
+        public final class MqttSessionDataExBuilder
+        {
+            private final MqttSessionDataExFW.Builder sessionDataExRW = new MqttSessionDataExFW.Builder();
+
+            private MqttSessionDataExBuilder()
+            {
+                sessionDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_SESSION, writeBuffer.capacity());
+            }
+
+            public MqttSessionDataExBuilder kind(
+                String kind)
+            {
+                sessionDataExRW.kind(k -> k.set(MqttSessionDataKind.valueOf(kind)));
+                return this;
+            }
+
+            public MqttDataExBuilder build()
+            {
+                final MqttSessionDataExFW sessionDataEx = sessionDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, sessionDataEx.limit());
                 return MqttDataExBuilder.this;
             }
         }
@@ -612,39 +656,6 @@ public final class MqttFunctions
         }
     }
 
-    public static final class MqttEndExBuilder
-    {
-        private final MqttEndExFW.Builder endExRW;
-
-        private MqttEndExBuilder()
-        {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.endExRW = new MqttEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public MqttEndExBuilder typeId(
-            int typeId)
-        {
-            endExRW.typeId(typeId);
-            return this;
-        }
-
-        public MqttEndExBuilder reason(
-            String reason)
-        {
-            endExRW.reasonCode(r -> r.set(MqttEndReasonCode.valueOf(reason)));
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final MqttEndExFW endEx = endExRW.build();
-            final byte[] array = new byte[endEx.sizeof()];
-            endEx.buffer().getBytes(endEx.offset(), array);
-            return array;
-        }
-    }
-
     public static final class MqttResetExBuilder
     {
         private final MqttResetExFW.Builder resetExRW;
@@ -662,10 +673,10 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttResetExBuilder serverReference(
-            String serverReference)
+        public MqttResetExBuilder serverRef(
+            String serverRef)
         {
-            resetExRW.serverReference(serverReference);
+            resetExRW.serverRef(serverRef);
             return this;
         }
 
@@ -729,11 +740,9 @@ public final class MqttFunctions
     public static final class MqttWillMessageBuilder
     {
         private final MqttMessageFW.Builder willMessageRW = new MqttMessageFW.Builder();
-        private final MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder;
 
-        private MqttWillMessageBuilder(MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder)
+        private MqttWillMessageBuilder()
         {
-            this.beginExBuilder = beginExBuilder;
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             willMessageRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -833,10 +842,12 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttBeginExBuilder.MqttSessionBeginExBuilder build()
+        public byte[] build()
         {
-            beginExBuilder.willMessage(willMessageRW.build());
-            return beginExBuilder;
+            final MqttMessageFW willMessage = willMessageRW.build();
+            final byte[] array = new byte[willMessage.sizeof()];
+            willMessage.buffer().getBytes(willMessage.offset(), array);
+            return array;
         }
     }
 
@@ -1093,9 +1104,9 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
-            private String16FW serverReference;
+            private String16FW serverRef;
             private Integer expiry;
-            private MqttWillMessageMatcherBuilder willMessageMatcher;
+            private Integer flags;
 
             private MqttSessionBeginExMatcherBuilder()
             {
@@ -1115,17 +1126,20 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExMatcherBuilder serverReference(
-                String serverReference)
+            public MqttSessionBeginExMatcherBuilder serverRef(
+                String serverRef)
             {
-                this.serverReference = new String16FW(serverReference);
+                this.serverRef = new String16FW(serverRef);
                 return this;
             }
 
-            public MqttWillMessageMatcherBuilder will()
+            public MqttSessionBeginExMatcherBuilder flags(
+                String... flagNames)
             {
-                this.willMessageMatcher = new MqttWillMessageMatcherBuilder();
-                return willMessageMatcher;
+                this.flags = Arrays.stream(flagNames)
+                    .mapToInt(flag -> 1 << MqttSessionFlags.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                return this;
             }
 
             public MqttBeginExMatcherBuilder build()
@@ -1137,11 +1151,10 @@ public final class MqttFunctions
                 MqttBeginExFW beginEx)
             {
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
-                final MqttMessageFW willMessage = beginEx.session().will();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
-                    matchServerReference(sessionBeginEx) &&
-                    (willMessageMatcher == null || willMessageMatcher.match(willMessage));
+                    matchFlags(sessionBeginEx) &&
+                    matchserverRef(sessionBeginEx);
             }
 
             private boolean matchClientId(
@@ -1156,241 +1169,16 @@ public final class MqttFunctions
                 return expiry == null || expiry == sessionBeginEx.expiry();
             }
 
-            private boolean matchServerReference(
+            private boolean matchFlags(
                 final MqttSessionBeginExFW sessionBeginEx)
             {
-                return serverReference == null || serverReference.equals(sessionBeginEx.serverReference());
+                return flags == null || flags == sessionBeginEx.flags();
             }
 
-            public final class MqttWillMessageMatcherBuilder
+            private boolean matchserverRef(
+                final MqttSessionBeginExFW sessionBeginEx)
             {
-                private MqttBinaryFW.Builder correlationRW;
-                private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
-                private MqttBinaryFW.Builder payloadRW;
-                private final DirectBuffer payloadRO = new UnsafeBuffer(0, 0);
-                private String16FW topic;
-                private Integer delay;
-                private Integer qos;
-                private Integer flags;
-                private Integer expiryInterval = -1;
-                private String16FW contentType;
-                private MqttPayloadFormatFW format;
-                private String16FW responseTopic;
-                private Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW;
-
-                private MqttWillMessageMatcherBuilder()
-                {
-                }
-
-                public MqttWillMessageMatcherBuilder topic(
-                    String topic)
-                {
-                    this.topic = new String16FW(topic);
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder delay(
-                    int delay)
-                {
-                    this.delay = delay;
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder qos(
-                    String qos)
-                {
-                    this.qos = MqttQoS.valueOf(qos).ordinal();
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder flags(
-                    String... flagNames)
-                {
-                    int flags = Arrays.stream(flagNames)
-                        .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
-                        .reduce(0, (a, b) -> a | b);
-                    this.flags = flags;
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder expiryInterval(
-                    int expiryInterval)
-                {
-                    this.expiryInterval = expiryInterval;
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder contentType(
-                    String contentType)
-                {
-                    this.contentType = new String16FW(contentType);
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder format(
-                    String format)
-                {
-                    MqttPayloadFormatFW.Builder builder =
-                        new MqttPayloadFormatFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                    this.format = builder.set(MqttPayloadFormat.valueOf(format)).build();
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder responseTopic(
-                    String topic)
-                {
-                    this.responseTopic = new String16FW(topic);
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder correlation(
-                    String correlation)
-                {
-                    assert correlationRW == null;
-                    correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                    correlationRO.wrap(correlation.getBytes(UTF_8));
-                    correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
-
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder correlationBytes(
-                    byte[] correlation)
-                {
-                    assert correlationRW == null;
-                    correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                    correlationRO.wrap(correlation);
-                    correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
-
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder userProperty(
-                    String name,
-                    String value)
-                {
-                    if (userPropertiesRW == null)
-                    {
-                        this.userPropertiesRW =
-                            new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                    }
-                    userPropertiesRW.item(p -> p.key(name).value(value));
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder payload(
-                    String payload)
-                {
-                    assert payloadRW == null;
-                    payloadRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                    payloadRO.wrap(payload.getBytes(UTF_8));
-                    payloadRW.bytes(payloadRO, 0, payloadRO.capacity());
-
-                    return this;
-                }
-
-                public MqttWillMessageMatcherBuilder payloadBytes(
-                    byte[] payload)
-                {
-                    assert payloadRW == null;
-                    payloadRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                    payloadRO.wrap(payload);
-                    payloadRW.bytes(payloadRO, 0, payloadRO.capacity());
-
-                    return this;
-                }
-
-                public MqttSessionBeginExMatcherBuilder build()
-                {
-                    return MqttSessionBeginExMatcherBuilder.this;
-                }
-
-                private boolean match(
-                    MqttMessageFW willMessage)
-                {
-                    return matchTopic(willMessage) &&
-                        matchDelay(willMessage) &&
-                        matchQos(willMessage) &&
-                        matchFlags(willMessage) &&
-                        matchExpiryInterval(willMessage) &&
-                        matchContentType(willMessage) &&
-                        matchFormat(willMessage) &&
-                        matchResponseTopic(willMessage) &&
-                        matchCorrelation(willMessage) &&
-                        matchUserProperties(willMessage) &&
-                        matchPayload(willMessage);
-                }
-
-                private boolean matchTopic(
-                    final MqttMessageFW willMessage)
-                {
-                    return topic == null || topic.equals(willMessage.topic());
-                }
-
-                private boolean matchDelay(
-                    final MqttMessageFW willMessage)
-                {
-                    return delay == null || delay == willMessage.delay();
-                }
-
-                private boolean matchQos(
-                    final MqttMessageFW willMessage)
-                {
-                    return qos == null || qos == willMessage.qos();
-                }
-
-                private boolean matchFlags(
-                    final MqttMessageFW willMessage)
-                {
-                    return flags == null || flags == willMessage.flags();
-                }
-
-                private boolean matchExpiryInterval(
-                    final MqttMessageFW willMessage)
-                {
-                    return expiryInterval == null || expiryInterval == willMessage.expiryInterval();
-                }
-
-                private boolean matchContentType(
-                    final MqttMessageFW willMessage)
-                {
-                    return contentType == null || contentType.equals(willMessage.contentType());
-                }
-
-                private boolean matchFormat(
-                    final MqttMessageFW willMessage)
-                {
-                    return format == null || format.equals(willMessage.format());
-                }
-
-                private boolean matchResponseTopic(
-                    final MqttMessageFW willMessage)
-                {
-                    return responseTopic == null || responseTopic.equals(willMessage.responseTopic());
-                }
-
-                private boolean matchCorrelation(
-                    final MqttMessageFW willMessage)
-                {
-                    return correlationRW == null || correlationRW.build().equals(willMessage.correlation());
-                }
-
-                private boolean matchUserProperties(
-                    final MqttMessageFW willMessage)
-                {
-                    return userPropertiesRW == null || userPropertiesRW.build().equals(willMessage.properties());
-                }
-
-                private boolean matchPayload(
-                    final MqttMessageFW willMessage)
-                {
-                    return payloadRW == null || payloadRW.build().equals(willMessage.payload());
-                }
+                return serverRef == null || serverRef.equals(sessionBeginEx.serverRef());
             }
         }
     }

@@ -29,6 +29,13 @@ connected
 
 read zilla:data.empty
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
 write ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
@@ -37,6 +44,13 @@ write flush
 read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
+
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
 
 write ${mqtt:session()
                .subscription("sensor/one", 1)

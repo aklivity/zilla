@@ -29,10 +29,11 @@ write  [0x10 0x13]                   # CONNECT
        [0x00]                        # properties = none
        [0x00 0x06] "client"          # client id
 
-read   [0x20 0x06]                   # CONNACK
+read   [0x20 0x0b]                   # CONNACK
        [0x00]                        # flags = none
        [0x00]                        # reason code
-       [0x03]                        # properties = server keep alive
+       [0x08]                        # properties = server keep alive
+       [0x27] 66560                  # maximum packet size = 66560
        [0x13] 10s                    # server keep alive = 10s
 
 read await WAIT_2_SECONDS

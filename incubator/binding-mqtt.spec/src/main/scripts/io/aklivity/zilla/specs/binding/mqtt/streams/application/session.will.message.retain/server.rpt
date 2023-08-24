@@ -24,16 +24,25 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
                                .clientId("one")
-                               .will()
-                                   .topic("wills/one")
-                                   .flags("RETAIN")
-                                   .format("TEXT")
-                                   .payload("client one session expired")
-                                   .build()
                                .build()
                             .build()}
 
 connected
+
+
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("WILL")
+                                .build()
+                             .build()}
+
+read ${mqtt:will()
+               .topic("wills/one")
+               .flags("RETAIN")
+               .format("TEXT")
+               .payload("client one session expired")
+               .build()}
 
 write zilla:data.empty
 write flush

@@ -22,7 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .clientId("client")
-                                .serverReference("localhost:1883")
+                                .serverRef("localhost:1883")
                                 .build()
                               .build()}
 
@@ -30,7 +30,7 @@ connected
 
 read zilla:reset.ext ${mqtt:resetEx()
                              .typeId(zilla:id("mqtt"))
-                             .serverReference("localhost:1884")
+                             .serverRef("localhost:1884")
                              .build()}
 
 write aborted

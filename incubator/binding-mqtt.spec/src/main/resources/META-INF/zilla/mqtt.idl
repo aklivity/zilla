@@ -15,6 +15,12 @@
  */
 scope mqtt
 {
+    enum MqttSessionFlags (uint8)
+    {
+        CLEAN_START(1),
+        WILL(2)
+    }
+
     enum MqttSubscribeFlags (uint8)
     {
         SEND_RETAINED(0),
@@ -40,13 +46,6 @@ scope mqtt
         PUBLISH_ONLY(1),
         SUBSCRIBE_ONLY(2),
         SESSION(3)
-    }
-
-    enum MqttEndReasonCode (uint8)
-    {
-        DISCONNECT(0),
-        KEEP_ALIVE_EXPIRY(1),
-        DISCONNECT_WITH_WILL(2)
     }
 
     enum MqttPayloadFormat
@@ -114,10 +113,10 @@ scope mqtt
 
         struct MqttSessionBeginEx
         {
-            string16 clientId;
+            uint8 flags = 0;
             int32 expiry = 0;
-            string16 serverReference = null;
-            MqttMessage will;
+            string16 clientId;
+            string16 serverRef = null;
         }
 
         struct MqttSubscribeBeginEx
@@ -137,6 +136,7 @@ scope mqtt
         {
             case 0: mqtt::stream::MqttPublishDataEx publish;
             case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
+            case 2: mqtt::stream::MqttSessionDataEx session;
         }
 
         struct MqttSubscribeDataEx
@@ -167,14 +167,20 @@ scope mqtt
             MqttUserProperty[] properties;
         }
 
-        struct MqttResetEx extends core::stream::Extension
+        enum MqttSessionDataKind
         {
-            string16 serverReference = null;
+            STATE,
+            WILL
         }
 
-        struct MqttEndEx extends core::stream::Extension
+        struct MqttSessionDataEx
         {
-            MqttEndReasonCode reasonCode = DISCONNECT;
+            MqttSessionDataKind kind;
+        }
+
+        struct MqttResetEx extends core::stream::Extension
+        {
+            string16 serverRef = null;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

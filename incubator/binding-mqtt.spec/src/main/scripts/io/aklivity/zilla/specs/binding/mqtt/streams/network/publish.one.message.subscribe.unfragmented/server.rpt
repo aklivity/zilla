@@ -30,10 +30,11 @@ read  [0x10 0x13]                    # CONNECT
       [0x00]                         # properties = none
       [0x00 0x06] "client"           # client id
 
-write [0x20 0x03]                    # CONNACK
+write [0x20 0x08]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
-      [0x00]                         # properties = none
+      [0x05]                         # properties = none
+      [0x27] 66560                   # maximum packet size = 66560
 
 read  [0x30 0x39]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
@@ -44,14 +45,14 @@ read  [0x30 0x39]                    # PUBLISH
       [0x08 0x00 0x0a] "sensor/one"  # response topic
       [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload
-      [0x82 0x12]                   # SUBSCRIBE
-      [0x00 0x01]                   # packet id = 1
-      [0x02]                        # properties
-      [0x0b 0x01]                   # subscription id = 1
-      [0x00 0x0a] "sensor/two"      # topic filter
-      [0x20]                        # options = at-most-once
+      [0x82 0x12]                    # SUBSCRIBE
+      [0x00 0x01]                    # packet id = 1
+      [0x02]                         # properties
+      [0x0b 0x01]                    # subscription id = 1
+      [0x00 0x0a] "sensor/two"       # topic filter
+      [0x20]                         # options = at-most-once
 
-write [0x90 0x04]                   # SUBACK
-      [0x00 0x01]                   # packet id = 1
-      [0x00]                        # properties = none
-      [0x00]                        # reason code
+write [0x90 0x04]                    # SUBACK
+      [0x00 0x01]                    # packet id = 1
+      [0x00]                         # properties = none
+      [0x00]                         # reason code

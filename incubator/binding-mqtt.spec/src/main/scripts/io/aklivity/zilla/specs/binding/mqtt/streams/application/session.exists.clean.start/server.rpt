@@ -32,6 +32,13 @@ connected
 write zilla:data.empty
 write flush
 
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
 read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
@@ -66,6 +73,7 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
+                                .flags("CLEAN_START")
                                 .clientId("client")
                                 .build()
                              .build()}
