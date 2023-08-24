@@ -316,7 +316,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final boolean session;
     private final String serverRef;
     private int maximumPacketSize;
-    private int decodableRemainingBytes;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -831,7 +830,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                decodableRemainingBytes = mqttConnect.remainingLength();
+                server.decodableRemainingBytes = mqttConnect.remainingLength();
                 flags = mqttConnect.flags();
 
                 reasonCode = decodeConnectType(mqttConnect, flags);
@@ -855,7 +854,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect);
 
                 final int decodedLength = progress - offset - 2;
-                decodableRemainingBytes -= decodedLength;
+                server.decodableRemainingBytes -= decodedLength;
             }
 
             if (reasonCode != SUCCESS)
@@ -884,8 +883,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         int progress = offset;
 
         progress = server.onDecodeConnectPayload(traceId, authorization, buffer, progress, limit);
-        decodableRemainingBytes -= progress - offset;
-        if (decodableRemainingBytes == 0)
+        server.decodableRemainingBytes -= progress - offset;
+        if (server.decodableRemainingBytes == 0)
         {
             server.decoder = decodePacketType;
         }
@@ -1266,6 +1265,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int state;
         private long sessionId;
+        private int decodableRemainingBytes;
 
         private MqttServer(
             Function<String, String> credentials,
