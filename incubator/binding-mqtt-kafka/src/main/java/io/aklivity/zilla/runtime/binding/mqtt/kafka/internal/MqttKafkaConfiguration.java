@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
-import java.lang.reflect.Method;
+import static java.time.Instant.now;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -29,7 +33,11 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<String> MESSAGES_TOPIC;
     public static final PropertyDef<String> RETAINED_MESSAGES_TOPIC;
     public static final PropertyDef<String> SESSIONS_TOPIC;
-    public static final PropertyDef<SessionIdSupplier> SESSION_ID;
+    public static final PropertyDef<String> SESSION_ID;
+    public static final PropertyDef<String> WILL_ID;
+    public static final PropertyDef<String> LIFETIME_ID;
+    public static final PropertyDef<String> INSTANCE_ID;
+    public static final PropertyDef<Long> TIME;
 
     static
     {
@@ -37,8 +45,16 @@ public class MqttKafkaConfiguration extends Configuration
         MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
         RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
         SESSIONS_TOPIC = config.property("sessions.topic", "mqtt_sessions");
-        SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
-            MqttKafkaConfiguration::decodeSessionIdSupplier, MqttKafkaConfiguration::defaultSessionIdSupplier);
+        SESSION_ID = config.property(String.class, "session.id",
+            MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultSessionIdSupplier);
+        WILL_ID = config.property(String.class, "will.id",
+            MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultWillIdSupplier);
+        LIFETIME_ID = config.property(String.class, "lifetime.id",
+            MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultLifetimeIdSupplier);
+        INSTANCE_ID = config.property(String.class, "instance.id",
+            MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultInstanceIdSupplier);
+        TIME = config.property(Long.class, "time",
+            MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTimeSupplier);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -50,57 +66,129 @@ public class MqttKafkaConfiguration extends Configuration
 
     public Supplier<String> sessionIdSupplier()
     {
-        return SESSION_ID.get(this);
+        return () -> SESSION_ID.get(this);
     }
 
-    @FunctionalInterface
-    public interface SessionIdSupplier extends Supplier<String>
+    public Supplier<String> willIdSupplier()
     {
+        return () -> WILL_ID.get(this);
     }
 
-    private static SessionIdSupplier decodeSessionIdSupplier(
+    public Supplier<String> lifetimeIdSupplier()
+    {
+        return () -> LIFETIME_ID.get(this);
+    }
+
+    public Supplier<String> instanceIdSupplier()
+    {
+        return () -> INSTANCE_ID.get(this);
+    }
+
+    public Supplier<Long> timeSupplier()
+    {
+        return () -> TIME.get(this);
+    }
+
+
+    private static String decodeStringSupplier(
         Configuration config,
-        String value)
+        String fullyQualifiedMethodName)
     {
+        Supplier<String> supplier = null;
+
         try
         {
-            String className = value.substring(0, value.indexOf("$$Lambda"));
-            Class<?> lambdaClass = Class.forName(className);
-
-            Method targetMethod = null;
-            for (Method method : lambdaClass.getDeclaredMethods())
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
             {
-                if (method.isSynthetic())
-                {
-                    targetMethod = method;
-                    break;
-                }
-            }
-
-            Method finalTargetMethod = targetMethod;
-            return () ->
-            {
+                String value = null;
                 try
                 {
-                    finalTargetMethod.setAccessible(true);
-                    return (String) finalTargetMethod.invoke(null);
+                    value = (String) method.invoke();
                 }
-                catch (Exception e)
+                catch (Throwable ex)
                 {
-                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                    LangUtil.rethrowUnchecked(ex);
                 }
+
+                return value;
             };
         }
         catch (Throwable ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
-        return null;
+
+        return supplier.get();
     }
 
-    private static SessionIdSupplier defaultSessionIdSupplier(
+    private static Long decodeLongSupplier(
+        Configuration config,
+        String fullyQualifiedMethodName)
+    {
+        Supplier<Long> supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(Long.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                Long value = null;
+                try
+                {
+                    value = (Long) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return value;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier.get();
+    }
+
+    private static String defaultInstanceIdSupplier(
         Configuration config)
     {
-        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
+        return String.format("%s-%s", "zilla", UUID.randomUUID());
+    }
+
+    private static String defaultSessionIdSupplier(
+        Configuration config)
+    {
+        return String.format("%s-%s", "zilla", UUID.randomUUID());
+    }
+
+    private static String defaultWillIdSupplier(
+        Configuration config)
+    {
+        return String.format("%s", UUID.randomUUID());
+    }
+
+    private static String defaultLifetimeIdSupplier(
+        Configuration config)
+    {
+        return String.format("%s", UUID.randomUUID());
+    }
+
+    private static Long defaultTimeSupplier(
+        Configuration config)
+    {
+        return now().toEpochMilli();
     }
 }

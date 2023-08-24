@@ -491,6 +491,8 @@ public class MqttIT
         "${mqtt}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 
@@ -500,6 +502,8 @@ public class MqttIT
         "${mqtt}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 
@@ -509,6 +513,8 @@ public class MqttIT
         "${mqtt}/session.will.message.abort.deliver.will.retain/server"})
     public void shouldSaveWillMessageAsRetain() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 
@@ -518,6 +524,19 @@ public class MqttIT
         "${mqtt}/session.will.message.clean.start/server"})
     public void shouldSendWillMessageOnClientReconnectCleanStart() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.client.takeover.deliver.will/client",
+        "${mqtt}/session.will.message.client.takeover.deliver.will/server"})
+    public void shouldSendWillMessageOnAbortClientTakeover() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 
@@ -527,6 +546,8 @@ public class MqttIT
         "${mqtt}/session.will.message/server"})
     public void shouldSaveWillMessage() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 }

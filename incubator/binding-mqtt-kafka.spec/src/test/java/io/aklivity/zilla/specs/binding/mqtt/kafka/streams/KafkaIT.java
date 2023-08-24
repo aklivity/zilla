@@ -566,13 +566,11 @@ public class KafkaIT
         k3po.finish();
     }
 
-
-    //TODO: use this script for close with will and keep alive expiry scenarios as well
     @Test
     @Specification({
-        "${kafka}/session.will.message.close.deliver.will.message/client",
-        "${kafka}/session.will.message.close.deliver.will.message/server"})
-    public void shouldSendWillMessageOnDisconnectWithWill() throws Exception
+        "${kafka}/session.will.message.abort.deliver.will/client",
+        "${kafka}/session.will.message.abort.deliver.will/server"})
+    public void shouldSendWillMessageOnAbort() throws Exception
     {
         k3po.finish();
     }
@@ -604,7 +602,6 @@ public class KafkaIT
         k3po.finish();
     }
 
-    //TODO: use this with mqtt: session.will.message
     @Test
     @Specification({
         "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
@@ -614,11 +611,10 @@ public class KafkaIT
         k3po.finish();
     }
 
-    //TODO: use this with mqtt: session.will.message
     @Test
     @Specification({
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+        "${kafka}/session.will.message.takeover.deliver.will/client",
+        "${kafka}/session.will.message.takeover.deliver.will/server"})
     public void shouldSendWillMessageOnSessionTakeover() throws Exception
     {
         k3po.finish();

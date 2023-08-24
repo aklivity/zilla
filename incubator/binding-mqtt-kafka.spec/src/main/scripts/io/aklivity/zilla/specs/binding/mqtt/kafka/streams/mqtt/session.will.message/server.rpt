@@ -24,7 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .session()
                                 .flags("WILL")
                                 .expiry(1)
-                                .clientId("one")
+                                .clientId("client-1")
                                 .build()
                              .build()}
 
@@ -40,6 +40,7 @@ read zilla:data.ext ${mqtt:dataEx()
 
 read ${mqtt:will()
                .topic("obituaries")
+               .delay(1)
                .format("TEXT")
                .payload("client-1 disconnected abruptly")
                .build()}

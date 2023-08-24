@@ -89,9 +89,10 @@ scope mqtt
     {
         string16 clientId;
         int32 delay = 0;
-        int32 deliverAt = -1;
+        int64 deliverAt = -1;
         string16 lifetimeId;
         string16 willId;
+        string16 instanceId;
     }
 
     struct MqttMessage

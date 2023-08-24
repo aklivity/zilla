@@ -21,7 +21,7 @@ connect await WILL_STREAM_STARTED
 write zilla:begin.ext ${mqtt:beginEx()
                            .typeId(zilla:id("mqtt"))
                            .session()
-                              .flags("WILL", "CLEAN_START")
+                              .flags("WILL")
                               .expiry(1)
                               .clientId("client-1")
                               .build()
@@ -35,13 +35,18 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .kind("WILL")
                                 .build()
                              .build()}
+
 write ${mqtt:will()
                .topic("obituaries")
+               .delay(1)
                .format("TEXT")
                .payload("client-1 disconnected abruptly")
                .build()}
 write flush
 
+
+#We only expect this, after the will-signal and will message was saved to Kafka
 read zilla:data.empty
 
-write zilla:data.empty
+read closed
+write close

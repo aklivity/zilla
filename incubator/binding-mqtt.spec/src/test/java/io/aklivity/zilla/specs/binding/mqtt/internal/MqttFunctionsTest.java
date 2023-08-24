@@ -1281,6 +1281,7 @@ public class MqttFunctionsTest
                 .deliverAt(100000)
                 .lifetimeId("1")
                 .willId("2")
+                .instanceId("zilla-1")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1291,6 +1292,7 @@ public class MqttFunctionsTest
         assertEquals(100000, willSignal.deliverAt());
         assertEquals("1", willSignal.lifetimeId().asString());
         assertEquals("2", willSignal.willId().asString());
+        assertEquals("zilla-1", willSignal.instanceId().asString());
     }
 
     @Test
@@ -1299,9 +1301,9 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.willSignal()
             .clientId("client-1")
             .delay(20)
-            //.deliverAt("UNKNOWN")
             .lifetimeId("1")
             .willId("2")
+            .instanceId("zilla-1")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1312,5 +1314,6 @@ public class MqttFunctionsTest
         assertEquals(-1, willSignal.deliverAt());
         assertEquals("1", willSignal.lifetimeId().asString());
         assertEquals("2", willSignal.willId().asString());
+        assertEquals("zilla-1", willSignal.instanceId().asString());
     }
 }

@@ -13,11 +13,14 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -30,7 +33,75 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
+read notify WILL_STREAM_STARTED
 
+write await RECEIVED_WILL_CANCELLATION_SIGNAL
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+write flush
+
+write await RECEIVED_WILL_DELIVER_LATER_SIGNAL
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+write ${mqtt:willSignal()
+            .clientId("client-1")
+            .delay(1000)
+            .deliverAt(-1)
+            .lifetimeId("bbbbbbbbbbbbbbbb")
+            .willId("abcdabcddcbadcba")
+            .instanceId("zilla-1")
+        .build()}
+write flush
+
+# will signal for client-1, deliver at (now + delay)
+write await RECEIVED_WILL_DELIVER_AT_SIGNAL
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+write ${mqtt:willSignal()
+            .clientId("client-1")
+            .delay(1000)
+            .deliverAt(2000)
+            .lifetimeId("bbbbbbbbbbbbbbbb")
+            .willId("abcdabcddcbadcba")
+            .instanceId("zilla-1")
+        .build()}
+write flush
+
+# cleanup will message
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-bbbbbbbbbbbbbbbb")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# cleanup will signal
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -43,72 +114,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#will-signal")
-                               .header("type", "will-signal")
-                               .build()
-                           .build()}
-read ${mqtt:willSignal()
-           .clientId("client-1")
-           .delay(1000)
-           .deliverAt(-1)
-           .lifetimeId("bbbbbbbbbbbbbbbb")
-           .willId("abcdabcddcbadcba")
-           .instanceId("zilla-1")
-       .build()}
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#will-signal")
-                               .header("type", "will-signal")
-                               .build()
-                           .build()}
-read ${mqtt:willSignal()
-           .clientId("client-1")
-           .delay(1000)
-           .deliverAt(2000)
-           .lifetimeId("bbbbbbbbbbbbbbbb")
-           .willId("abcdabcddcbadcba")
-           .instanceId("zilla-1")
-        .build()}
-read notify RECEIVED_WILL_DELIVER_AT_SIGNAL
+# non-clean start
+accepted
 
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#will-bbbbbbbbbbbbbbbb")
-                               .hashKey("client-1")
-                               .build()
-                           .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#will-signal")
-                               .hashKey("client-1")
-                               .header("type", "will-signal")
-                               .build()
-                           .build()}
-write flush
-
-
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -122,20 +132,16 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read advised zilla:flush
-read notify RECEIVED_WILL_SIGNAL_NOT_PRESENT
+# no will signals
+write advise zilla:flush
 
-write close
 read closed
+write close
 
 
-connect await RECEIVED_WILL_SIGNAL_NOT_PRESENT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -149,8 +155,9 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
+# receive sender-1 migrate signal
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -160,20 +167,15 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("sender-id", "sender-1")
                                .build()
                            .build()}
-write zilla:data.empty
-write flush
-write notify SENT_INITIAL_MIGRATE_SIGNAL
+read zilla:data.empty
 
-write close
 read closed
+write close
 
 
-connect await SENT_INITIAL_MIGRATE_SIGNAL
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("client-1")
@@ -184,7 +186,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+# send group members (leader)
+write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
@@ -192,27 +195,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
-read zilla:data.null
-read notify RECEIVED_GROUP_MEMBERS_LEADER
+write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("member-1")
-                                 .memberId("member-1")
-                                 .members(2)
-                                 .build()
-                             .build()}
-
-write close
+read aborted
 
 
-connect await RECEIVED_GROUP_MEMBERS_LEADER
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -230,7 +220,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+# will delivery cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -240,11 +231,15 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write flush
+read zilla:data.null
+read notify RECEIVED_WILL_CANCELLATION_SIGNAL
 
-read advised zilla:flush
+# no session state
+# no migrate signals
+write advise zilla:flush
 
-write zilla:data.ext ${kafka:dataEx()
+# will message for client-1
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -253,17 +248,17 @@ write zilla:data.ext ${kafka:dataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
-write ${mqtt:will()
-            .topic("obituaries")
-            .delay(1000)
-            .format("TEXT")
-            .lifetimeId("bbbbbbbbbbbbbbbb")
-            .willId("abcdabcddcbadcba")
-            .payload("client-1 disconnected abruptly")
+read ${mqtt:will()
+           .topic("obituaries")
+           .delay(1000)
+           .format("TEXT")
+           .lifetimeId("bbbbbbbbbbbbbbbb")
+           .willId("abcdabcddcbadcba")
+           .payload("client-1 disconnected abruptly")
       .build()}
-write flush
 
-write zilla:data.ext ${kafka:dataEx()
+# will signal for client-1, deliver later
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -273,59 +268,45 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write ${mqtt:willSignal()
-            .clientId("client-1")
-            .delay(1000)
-            .deliverAt(-1)
-            .lifetimeId("bbbbbbbbbbbbbbbb")
-            .willId("abcdabcddcbadcba")
-            .instanceId("zilla-1")
-        .build()}
-write flush
+read ${mqtt:willSignal()
+           .clientId("client-1")
+           .delay(1000)
+           .deliverAt(-1)
+           .lifetimeId("bbbbbbbbbbbbbbbb")
+           .willId("abcdabcddcbadcba")
+           .instanceId("zilla-1")
+       .build()}
 
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-write zilla:data.empty
+write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
 
-write zilla:data.ext ${kafka:dataEx()
+# will signal for client-1, deliver at (now + delay)
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#will-signal")
                                .hashKey("client-1")
-                               .header("type", "will-signal")
                                .build()
                            .build()}
+read ${mqtt:willSignal()
+           .clientId("client-1")
+           .delay(1000)
+           .deliverAt(2000)
+           .lifetimeId("bbbbbbbbbbbbbbbb")
+           .willId("abcdabcddcbadcba")
+           .instanceId("zilla-1")
+       .build()}
 
-write ${mqtt:willSignal()
-            .clientId("client-1")
-            .delay(1000)
-            .deliverAt(2000)
-            .lifetimeId("bbbbbbbbbbbbbbbb")
-            .willId("abcdabcddcbadcba")
-            .instanceId("zilla-1")
-        .build()}
-write flush
+write notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
-write close
-read closed
+read aborted
+write abort
 
 
-connect await RECEIVED_WILL_DELIVER_AT_SIGNAL
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -338,7 +319,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+# send session will message for client-1
+write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -346,28 +328,23 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .key("client-1#will-bbbbbbbbbbbbbbbb")
                                .build()
                            .build()}
+write ${mqtt:will()
+            .topic("obituaries")
+            .delay(1000)
+            .format("TEXT")
+            .lifetimeId("bbbbbbbbbbbbbbbb")
+            .willId("abcdabcddcbadcba")
+            .payload("client-1 disconnected abruptly")
+        .build()}
+write flush
 
-read ${mqtt:will()
-           .topic("obituaries")
-           .delay(1000)
-           .format("TEXT")
-           .lifetimeId("bbbbbbbbbbbbbbbb")
-           .willId("abcdabcddcbadcba")
-           .payload("client-1 disconnected abruptly")
-       .build()}
-read notify RECEIVED_SESSION_WILL_MESSAGE
-
-write close
 read closed
+write close
 
 
+accepted
 
-connect await RECEIVED_SESSION_WILL_MESSAGE
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -377,9 +354,11 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
+
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+# deliver will message for client-1
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -389,9 +368,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:format", "TEXT")
                                .build()
                            .build()}
+read "client-1 disconnected abruptly"
 
-write "client-1 disconnected abruptly"
-write flush
-
-write close
 read closed
+write close

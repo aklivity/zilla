@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public class MqttKafkaBindingConfig
 {
     public final long id;
-    public final String entry;
     public final KindConfig kind;
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
@@ -35,7 +34,6 @@ public class MqttKafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
             .map(MqttKafkaOptionsConfig.class::cast)

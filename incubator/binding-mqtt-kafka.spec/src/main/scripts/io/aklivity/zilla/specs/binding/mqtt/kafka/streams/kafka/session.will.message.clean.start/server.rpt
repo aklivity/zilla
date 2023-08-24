@@ -33,6 +33,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
+read notify WILL_STREAM_STARTED
 
 write await RECEIVED_WILL_DELIVER_LATER_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
@@ -46,14 +47,16 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write ${mqtt:willSignal()
             .clientId("client-1")
-            .delay(1)
+            .delay(0)
             .deliverAt(-1)
-            .lifetimeId("1")
-            .willId("1")
+            .lifetimeId("aaaaaaaaaaaaaaaa")
+            .willId("abcdabcddcbadcba")
+            .instanceId("zilla-1")
         .build()}
 write flush
 
 
+# no will lifetimeId fetch due to clean-start
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
@@ -61,6 +64,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1#migrate")
                                     .headerNot("sender-id", "sender-1")
@@ -111,8 +115,6 @@ write zilla:data.ext ${kafka:dataEx()
                              .build()}
 write flush
 
-read aborted
-
 
 accepted
 
@@ -121,6 +123,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
                                     .build()
@@ -133,6 +136,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+# no will cancellation signal due to clean-start
 # no session state
 # no migrate signals
 write advise zilla:flush
@@ -143,17 +147,17 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-1")
+                               .key("client-1#will-bbbbbbbbbbbbbbbb")
                                .hashKey("client-1")
                                .build()
                            .build()}
 read ${mqtt:will()
            .topic("obituaries")
-           .delay(1)
+           .delay(0)
            .format("TEXT")
+           .lifetimeId("bbbbbbbbbbbbbbbb")
+           .willId("abcdabcddcbadcba")
            .payload("client-1 disconnected abruptly")
-           .lifetimeId("1")
-           .willId("1")
       .build()}
 
 # will signal for client-1, deliver later
@@ -169,10 +173,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:willSignal()
            .clientId("client-1")
-           .delay(1)
+           .delay(0)
            .deliverAt(-1)
-           .lifetimeId("1")
-           .willId("1")
+           .lifetimeId("bbbbbbbbbbbbbbbb")
+           .willId("abcdabcddcbadcba")
+           .instanceId("zilla-1")
        .build()}
 
 write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL

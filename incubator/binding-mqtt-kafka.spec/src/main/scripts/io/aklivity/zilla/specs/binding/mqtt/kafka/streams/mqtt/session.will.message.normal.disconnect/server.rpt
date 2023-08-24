@@ -24,7 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .session()
                                 .flags("WILL")
                                 .expiry(1)
-                                .clientId("one")
+                                .clientId("client-1")
                                 .build()
                              .build()}
 

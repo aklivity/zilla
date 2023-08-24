@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.specs.binding.mqtt.internal;
 
+import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
@@ -124,6 +125,12 @@ public final class MqttFunctions
     public static MqttWillSignalBuilder willSignal()
     {
         return new MqttWillSignalBuilder();
+    }
+
+    @Function
+    public static long timestamp()
+    {
+        return currentTimeMillis();
     }
 
     @Function
@@ -747,6 +754,7 @@ public final class MqttFunctions
     public static final class MqttWillMessageBuilder
     {
         private final MqttMessageFW.Builder willMessageRW = new MqttMessageFW.Builder();
+        private final MqttMessageFW willMessageRO = new MqttMessageFW();
 
         private MqttWillMessageBuilder()
         {
@@ -897,7 +905,7 @@ public final class MqttFunctions
         }
 
         public MqttWillSignalBuilder deliverAt(
-            int deliverAt)
+            long deliverAt)
         {
             willSignalRW.deliverAt(deliverAt);
             return this;
@@ -914,6 +922,13 @@ public final class MqttFunctions
             String willId)
         {
             willSignalRW.willId(willId);
+            return this;
+        }
+
+        public MqttWillSignalBuilder instanceId(
+            String instanceId)
+        {
+            willSignalRW.instanceId(instanceId);
             return this;
         }
 

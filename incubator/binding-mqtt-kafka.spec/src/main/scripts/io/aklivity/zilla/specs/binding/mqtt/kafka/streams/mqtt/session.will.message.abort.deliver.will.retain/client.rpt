@@ -13,7 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/mqtt0"
+connect await WILL_STREAM_STARTED
+        "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -22,7 +23,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                                    .session()
                                       .flags("WILL")
                                       .expiry(1)
-                                      .clientId("one")
+                                      .clientId("client-1")
                                       .build()
                                    .build()}
 
@@ -37,6 +38,7 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write ${mqtt:will()
                .topic("obituaries")
+               .delay(1)
                .flags("RETAIN")
                .format("TEXT")
                .payload("client-1 disconnected abruptly")
