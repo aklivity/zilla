@@ -65,7 +65,8 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, supplyCacheRoute);
 
         final KafkaCacheGroupFactory cacheGroupFactory = new KafkaCacheGroupFactory(config, context, bindings::get);
-        final KafkaCacheOffsetFetchFactory cacheOffsetFetchFactory = new KafkaCacheOffsetFetchFactory(config, context, bindings::get);
+        final KafkaCacheOffsetFetchFactory cacheOffsetFetchFactory =
+            new KafkaCacheOffsetFetchFactory(config, context, bindings::get);
 
         final KafkaCacheClientFetchFactory cacheFetchFactory = new KafkaCacheClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyCache, supplyCacheRoute);

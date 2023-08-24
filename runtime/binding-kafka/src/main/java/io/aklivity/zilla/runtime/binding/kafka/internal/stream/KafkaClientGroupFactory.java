@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -2886,16 +2887,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.onNotCoordinatorError(traceId, authorization);
         }
 
-        private void onJoinGroupUnknownMemberError(
-            long traceId,
-            long authorization)
-        {
-            nextResponseId++;
-
-            delegate.groupMembership.memberIds.put(delegate.groupId, UNKNOWN_MEMBER_ID);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
-        }
-
         private void onJoinGroupMemberIdError(
             long traceId,
             long authorization,
@@ -2946,7 +2937,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doApplicationData(traceId, authorization, assignment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader).memberId(memberId).members(members.size()))
+                    .group(g -> g.leaderId(leader)
+                        .memberId(memberId)
+                        .members(m -> members.forEach(gp -> m.item(gm -> gm.set(gp, StandardCharsets.UTF_8)))))
                     .build()
                     .sizeof()));
 

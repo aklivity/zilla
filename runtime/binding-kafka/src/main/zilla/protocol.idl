@@ -492,7 +492,7 @@ scope protocol
             {
                 string16 topic;
                 TopicPartition[] partitions;
-                octets userdata;
+                ConsumerAssignment[] userdata;
             }
 
             struct OffsetFetchRequest

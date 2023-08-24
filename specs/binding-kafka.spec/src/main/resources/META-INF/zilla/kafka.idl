@@ -344,23 +344,36 @@ scope kafka
             KafkaHeader[] headers;
         }
 
+        struct TopicPartition
+        {
+            int32 partitionId;
+        }
+
+        struct KafkaGroupTopicMetadata
+        {
+            string16 topic;
+            TopicPartition[] partitions;
+        }
+
         struct KafkaGroupBeginEx
         {
             string16 groupId;
             string16 protocol;
             int32 timeout;
+            KafkaGroupTopicMetadata[] metadata;
         }
 
-        struct KafkaGroupDataEx
+        struct KafkaGroupMember
+        {
+            string16 id;
+            octets metadata;
+        }
+
+        struct KafkaGroupFlushEx
         {
             string16 leaderId;
             string16 memberId;
-            int32 members;
-        }
-
-        struct TopicPartition
-        {
-            int32 partitionId;
+            KafkaGroupMember[] members;
         }
 
         struct KafkaConsumerBeginEx
