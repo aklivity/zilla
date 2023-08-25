@@ -304,8 +304,6 @@ read advised zilla:flush ${kafka:matchFlushEx()
 # no migrate signals
 write advise zilla:flush
 
-
-
 # migrate signal
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))

@@ -90,8 +90,8 @@ scope mqtt
         string16 clientId;
         int32 delay = 0;
         int64 deliverAt = -1;
-        string16 lifetimeId;
-        string16 willId;
+        string16 lifetimeId = null;
+        string16 willId = null;
         string16 instanceId;
     }
 

@@ -103,6 +103,8 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = TIME_SUPPLIER_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
     @Specification({
         "${mqtt}/session.client.takeover/client",
         "${kafka}/session.client.takeover/server"})
@@ -114,6 +116,8 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = TIME_SUPPLIER_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
     @Specification({
         "${mqtt}/session.exists.clean.start/client",
         "${kafka}/session.exists.clean.start/server"})
@@ -190,6 +194,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.group.server.sent.reset/server"})

@@ -22,6 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1#migrate")
                                     .headerNot("sender-id", "sender-1")
@@ -83,6 +84,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
                                     .build()
@@ -94,6 +96,18 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+write flush
 
 read advised zilla:flush
 

@@ -24,6 +24,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1#migrate")
                                     .headerNot("sender-id", "sender-1")
@@ -80,6 +81,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
+                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
                                     .build()
@@ -91,6 +93,19 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
+
+# will delivery cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
 
 write advise zilla:flush
 

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -29,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class MqttKafkaSubscribeProxyIT
 {
@@ -54,6 +56,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.client.sent.abort/client",
         "${kafka}/subscribe.client.sent.abort/server"})
@@ -64,6 +67,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.client.sent.data/client",
         "${kafka}/subscribe.client.sent.data/server"})
@@ -74,6 +78,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.client.sent.reset/client",
         "${kafka}/subscribe.client.sent.reset/server"})
@@ -84,6 +89,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.server.sent.abort/client",
         "${kafka}/subscribe.server.sent.abort/server"})
@@ -94,6 +100,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.server.sent.flush/client",
         "${kafka}/subscribe.server.sent.flush/server"})
@@ -104,6 +111,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.server.sent.reset/client",
         "${kafka}/subscribe.server.sent.reset/server"})
@@ -114,6 +122,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.retained.server.sent.abort/client",
         "${kafka}/subscribe.retained.server.sent.abort/server"})
@@ -124,6 +133,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.retained.server.sent.reset/client",
         "${kafka}/subscribe.retained.server.sent.reset/server"})
@@ -134,6 +144,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
@@ -144,6 +155,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.options.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message.changed.topic.name/server"})
@@ -154,6 +166,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.multiple.message/client",
         "${kafka}/subscribe.multiple.message/server"})
@@ -164,6 +177,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.retain.as.published/client",
         "${kafka}/subscribe.retain/server"})
@@ -174,6 +188,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.retain/client",
         "${kafka}/subscribe.retain/server"})
@@ -184,6 +199,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.filter.change.retain/client",
         "${kafka}/subscribe.filter.change.retain/server"})
@@ -194,6 +210,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.filter.change.retain/client",
         "${kafka}/subscribe.filter.change.retain.buffer/server"})
@@ -204,6 +221,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
@@ -214,6 +232,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.filter.change.retain.resubscribe/client",
         "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
@@ -224,6 +243,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${kafka}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
@@ -234,6 +254,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.one.message.user.properties.unaltered/client",
         "${kafka}/subscribe.one.message.user.properties.unaltered/server"})
@@ -244,6 +265,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.publish.no.local/client",
         "${kafka}/subscribe.publish.no.local/server"})
@@ -254,6 +276,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.receive.message.overlapping.wildcard/client",
         "${kafka}/subscribe.receive.message.overlapping.wildcard/server"})
@@ -264,6 +287,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.receive.message.wildcard/client",
         "${kafka}/subscribe.receive.message.wildcard/server"})
@@ -274,6 +298,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filter.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.multi.level.wildcard/server"})
@@ -284,6 +309,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
@@ -294,6 +320,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filter.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.level.wildcard/server"})
@@ -304,6 +331,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.two.single.level.wildcard/server"})
@@ -314,6 +342,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filters.aggregated.both.exact/client",
         "${kafka}/subscribe.topic.filters.aggregated.both.exact/server"})
@@ -324,6 +353,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
@@ -334,6 +364,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filters.isolated.both.exact/client",
         "${kafka}/subscribe.topic.filters.isolated.both.exact/server"})
@@ -344,6 +375,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
@@ -354,6 +386,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.filters.overlapping.wildcards/client",
         "${kafka}/subscribe.topic.filters.overlapping.wildcards/server"})
@@ -364,6 +397,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/unsubscribe.after.subscribe/client",
         "${kafka}/unsubscribe.after.subscribe/server"})
@@ -374,6 +408,7 @@ public class MqttKafkaSubscribeProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/unsubscribe.topic.filter.single/client",
         "${kafka}/unsubscribe.topic.filter.single/server"})
