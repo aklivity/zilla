@@ -21,6 +21,8 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -40,7 +42,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -61,7 +63,9 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
-    private final KafkaGroupDataExFW kafkaGroupDataExRO = new KafkaGroupDataExFW();
+    private final KafkaGroupFlushExFW kafkaGroupFlushExRO = new KafkaGroupFlushExFW();
+    private final Array32FW<KafkaGroupTopicMetadataFW> groupTopicsMetadataRO =
+        new Array32FW<>(new KafkaGroupTopicMetadataFW());
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -468,7 +472,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         private final long authorization;
         private final int timeout;
         private final List<KafkaClientConsumerStream> members;
-        private final List<String> groupMembers;
+        private final Object2ObjectHashMap<String, MemberTopicPartition> groupMembers;
 
         private long initialId;
         private long replyId;
@@ -501,7 +505,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             this.groupId = groupId;
             this.timeout = timeout;
             this.members = new ArrayList<>();
-            this.groupMembers = new ArrayList<>();
+            this.groupMembers = new Object2ObjectHashMap<>();
         }
 
         private void doConsumerInitialBegin(
@@ -516,9 +520,14 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.groupId(groupId)
-                        .protocol("highlander")
-                        .timeout(30000))
+                    .group(g ->
+                        g.groupId(groupId)
+                            .protocol("highlander")
+                            .timeout(timeout)
+                            .metadata(md -> members.forEach(m ->
+                                md.item(i -> i.topic(m.topic)
+                                    .partitions(tp -> m.partitions.
+                                        forEach(mp -> tp.item(ti -> ti.partitionId(mp))))))))
                     .build()
                     .sizeof()));
             state = KafkaState.openingInitial(state);
@@ -635,6 +644,10 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onConsumerReplyData(data);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onConsumerReplyFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onConsumerReplyEnd(end);
@@ -666,6 +679,49 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             members.forEach(m -> m.doConsumerReplyBegin(traceId, begin.extension()));
         }
 
+        private void onConsumerReplyFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
+            final OctetsFW extension = flush.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+            assert replySeq <= replyAck + replyMax;
+
+            final KafkaGroupFlushExFW kafkaGroupFlushEx = extension.get(kafkaGroupFlushExRO::tryWrap);
+
+            if (kafkaGroupFlushEx != null)
+            {
+                leaderId = kafkaGroupFlushEx.leaderId().asString();
+                memberId = kafkaGroupFlushEx.memberId().asString();
+            }
+
+            groupMembers.clear();
+            kafkaGroupFlushEx.members().forEach(m ->
+            {
+                final OctetsFW metadata = m.metadata();
+                Array32FW<KafkaGroupTopicMetadataFW> memberMetadata =
+                    groupTopicsMetadataRO.wrap(metadata.buffer(), metadata.offset(), metadata.limit());
+
+                MemberTopicPartition memberTopicPartition = null;
+                memberMetadata.forEach(mt ->
+                {
+                    List<Integer> partitions = new ArrayList<>();
+                    mt.partitions().forEach(p -> partitions.add(p.partitionId()));
+                    memberTopicPartition = new MemberTopicPartition(mt.topic().asString(), partitions);
+                    groupMembers.put(m.id().asString(), memberTopicPartition);
+                });
+            });
+        }
+
         private void onConsumerReplyData(
             DataFW data)
         {
@@ -684,17 +740,6 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
-
-            final KafkaGroupDataExFW kafkaGroupDataEx = extension.get(kafkaGroupDataExRO::tryWrap);
-
-            if (kafkaGroupDataEx != null)
-            {
-                leaderId = kafkaGroupDataEx.leaderId().asString();
-                memberId = kafkaGroupDataEx.memberId().asString();
-            }
-
-            groupMembers.clear();
-            kafkaGroupDataEx.members().forEach(m -> groupMembers.add(m.asString()));
         }
 
         private void onConsumerReplyEnd(
@@ -838,13 +883,13 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onConsumerInitialData(data);
                 break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onConsumerInitialEnd(end);
-                break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                 onConsumerInitialFlush(flush);
+                break;
+            case EndFW.TYPE_ID:
+            final EndFW end = endRO.wrap(buffer, index, index + length);
+                onConsumerInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
@@ -1097,4 +1142,22 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             group.doConsumerReplyReset(traceId);
         }
     }
+
+    final class MemberTopicPartition
+    {
+        private final String topic;
+        private final List<Integer> partitionIds;
+
+        MemberTopicPartition(
+            String topic,
+            List<Integer> partitionIds)
+        {
+            this.topic = topic;
+            this.partitionIds = partitionIds;
+        }
+    }
+
+    memberId = Topic, Partitions
+
+
 }

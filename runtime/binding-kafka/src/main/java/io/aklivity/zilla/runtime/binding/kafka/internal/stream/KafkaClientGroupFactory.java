@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,13 +40,12 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
@@ -70,7 +68,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -124,12 +124,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
@@ -142,7 +144,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
     private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
-    private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
@@ -152,7 +153,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final LeaveGroupResponseFW leaveGroupResponseRO = new LeaveGroupResponseFW();
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
-    private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
 
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshake = this::decodeSaslHandshake;
@@ -189,7 +189,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer topicMetadataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
@@ -200,6 +200,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
     private final Duration rebalanceTimeout;
+    private int topicMetadataOffset;
 
 
     public KafkaClientGroupFactory(
@@ -214,7 +215,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.topicMetadataBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -466,6 +467,37 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Flyweight extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doEnd(
@@ -788,7 +820,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         final MemberMetadataFW memberMetadata = memberMetadataRO.tryWrap(buffer, progress, limit);
                         if (memberMetadata != null)
                         {
-                            client.members.add(memberMetadata.memberId().asString());
+                            client.members.add(new MemberProtocol(
+                                memberMetadata.memberId().asString(), memberMetadata.metadata()));
                             progress = memberMetadata.limit();
                         }
                         else
@@ -798,7 +831,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     }
 
                     client.onJoinGroupResponse(traceId, authorization, joinGroupResponse.leader().asString(),
-                        joinGroupResponse.memberId().asString(), errorCode);
+                        joinGroupResponse.memberId().asString());
                 }
                 else
                 {
@@ -1042,6 +1075,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int replyPad;
 
         private long replyBudgetId;
+        private int memberTopicMetadataOffset;
+        private int memberTopicMetadataLimit;
 
         KafkaGroupStream(
             MessageConsumer application,
@@ -1118,6 +1153,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
+            final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaBeginExFW kafkaBeginEx = beginEx != null && beginEx.typeId() == kafkaTypeId ?
+                kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+
+            assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_GROUP;
+            final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx.group();
+
+            final Array32FW<KafkaGroupTopicMetadataFW> metadata = kafkaGroupBeginEx.metadata();
+            final int metadataSize = metadata.sizeof();
+            memberTopicMetadataOffset = topicMetadataOffset;
+            memberTopicMetadataLimit = topicMetadataOffset + metadataSize;
+
+            topicMetadataBuffer.putBytes(topicMetadataOffset, metadata.buffer(), metadata.offset(), metadataSize);
+            topicMetadataOffset += metadataSize;
 
             state = KafkaState.openingInitial(state);
 
@@ -1232,8 +1282,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationData(
             long traceId,
             long authorization,
-            OctetsFW payload,
-            Consumer<OctetsFW.Builder> extension)
+            OctetsFW payload)
         {
             final int reserved = replyPad;
 
@@ -1241,17 +1290,31 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved,
-                    payload.value(), payload.offset(), payload.sizeof(), extension);
+                    payload.value(), payload.offset(), payload.sizeof(), EMPTY_EXTENSION);
             }
             else
             {
                 doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, extension);
+                    traceId, authorization, replyBudgetId, reserved, EMPTY_EXTENSION);
             }
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+        }
+
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                final int reserved = replyPad;
+
+                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, replyBudgetId, reserved, extension);
+            }
         }
 
         private void doApplicationEnd(
@@ -1339,7 +1402,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             int error)
         {
-            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(writeBuffer,
+                    ResetFW.FIELD_OFFSET_EXTENSION, topicMetadataBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .error(error)
                 .build();
@@ -2042,7 +2106,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final LongLongConsumer encodeSyncGroupRequest = this::doEncodeSyncGroupRequest;
         private final LongLongConsumer encodeHeartbeatRequest = this::doEncodeHeartbeatRequest;
         private final LongLongConsumer encodeLeaveGroupRequest = this::doEncodeLeaveGroupRequest;
-        private final List<String> members;
+        private final List<MemberProtocol> members;
         private final KafkaGroupStream delegate;
 
         private MessageConsumer network;
@@ -2463,7 +2527,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(delegate.protocol)
-                    .metadata(EMPTY_OCTETS)
+                    .metadata(topicMetadataBuffer, delegate.memberTopicMetadataOffset, delegate.memberTopicMetadataLimit)
                     .build();
 
             encodeProgress = protocolMetadata.limit();
@@ -2527,7 +2591,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     final AssignmentFW groupAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                            .memberId(members.get(i))
+                            .memberId(members.get(i).memberId)
                             .value(assignment)
                             .build();
 
@@ -2902,14 +2966,23 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization,
             String leader,
-            String memberId,
-            int error)
+            String memberId)
         {
             nextResponseId++;
 
             this.leader = leader;
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+
+            final KafkaFlushExFW kafkaFlushEx =
+                kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .group(g -> g.leaderId(leader)
+                            .memberId(memberId)
+                            .members(gm -> members.forEach(m -> gm.item(i -> i.id(m.memberId).metadata(m.metadata)))))
+                            .build();
+
+            delegate.doApplicationFlush(traceId, authorization, kafkaFlushEx);
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
@@ -2932,16 +3005,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
-
-            delegate.doApplicationData(traceId, authorization, assignment,
-                ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
-                    .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader)
-                        .memberId(memberId)
-                        .members(m -> members.forEach(gp -> m.item(gm -> gm.set(gp, StandardCharsets.UTF_8)))))
-                    .build()
-                    .sizeof()));
+            delegate.doApplicationData(traceId, authorization, assignment);
 
             if (heartbeatRequestId != NO_CANCEL_ID)
             {
@@ -3043,6 +3107,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.instanceId = instanceId;
             this.memberIds = new Object2ObjectHashMap<>();
+        }
+    }
+
+    private final class MemberProtocol
+    {
+        private final String memberId;
+        private final OctetsFW metadata;
+
+        MemberProtocol(
+            String memberId,
+            OctetsFW metadata)
+        {
+
+            this.memberId = memberId;
+            this.metadata = metadata;
         }
     }
 }
