@@ -13,30 +13,28 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.catalog;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
+
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
-public class TestCatalogContext implements CatalogContext
+public class LongValidatorFactory implements ValidatorFactorySpi
 {
-    public TestCatalogContext(
-        EngineContext context)
+    @Override
+    public String type()
     {
+        return "long";
     }
 
     @Override
-    public CatalogHandler attach(
-        CatalogConfig catalog)
+    public Validator create(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestCatalogHandler(catalog);
-    }
-
-    @Override
-    public void detach(
-        CatalogConfig catalog)
-    {
+        return new LongValidator();
     }
 }

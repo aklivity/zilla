@@ -13,26 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-public class KafkaCatalogConfig
+import org.agrona.DirectBuffer;
+
+public class LongValidator implements Validator
 {
-    public transient long catalogId;
-
-    public final String name;
-    public final String strategy;
-    public final String version;
-    public final int id;
-
-    public KafkaCatalogConfig(
-        String name,
-        String strategy,
-        String version,
-        int id)
+    @Override
+    public boolean validate(
+        DirectBuffer data,
+        int index,
+        int length)
     {
-        this.name = name;
-        this.strategy = strategy;
-        this.version = version;
-        this.id = id;
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
+        return payloadBytes.length == 8 ? true : false;
     }
 }

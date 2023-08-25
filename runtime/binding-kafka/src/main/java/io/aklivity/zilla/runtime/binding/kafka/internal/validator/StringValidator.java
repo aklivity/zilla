@@ -35,18 +35,14 @@ public final class StringValidator implements Validator
         int index,
         int length)
     {
-        boolean valid = true;
-        if (data != null)
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
+        switch (encoding)
         {
-            byte[] payloadBytes = new byte[length];
-            data.getBytes(0, payloadBytes);
-            switch (encoding)
-            {
-            case "utf_8":
-                valid = isValidUTF8(payloadBytes);
-            }
+        case "utf_8":
+            return isValidUTF8(payloadBytes);
         }
-        return valid;
+        return false;
     }
 
     private boolean isValidUTF8(
