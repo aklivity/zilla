@@ -46,6 +46,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
@@ -4303,6 +4304,7 @@ public class KafkaFunctionsTest
                 .merged()
                     .partition(1, 2)
                     .progress(0, 1L)
+                    .capabilities("FETCH_ONLY")
                     .key("key")
                     .build()
                 .build();
@@ -4315,6 +4317,7 @@ public class KafkaFunctionsTest
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))
+                    .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                     .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8)))))
                 .build();
 

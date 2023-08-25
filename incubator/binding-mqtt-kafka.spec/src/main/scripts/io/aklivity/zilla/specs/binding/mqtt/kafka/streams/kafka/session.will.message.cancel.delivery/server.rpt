@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property delayMillis 1000L
+property delayMillis 2000L
 property deliverAt ${mqtt:timestamp() + delayMillis}
 
 accept "zilla://streams/kafka0"

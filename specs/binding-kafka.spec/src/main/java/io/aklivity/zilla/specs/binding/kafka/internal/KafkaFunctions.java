@@ -35,6 +35,7 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilitiesFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
@@ -3356,11 +3357,19 @@ public final class KafkaFunctions
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
             private KafkaKeyFW.Builder keyRW;
             private KafkaOffsetFW.Builder partitionRW;
+            private KafkaCapabilities capabilities;
 
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
+            }
+
+            public KafkaMergedFlushExMatcherBuilder capabilities(
+                String capabilities)
+            {
+                this.capabilities = KafkaCapabilities.valueOf(capabilities);
+                return this;
             }
 
             public KafkaMergedFlushExMatcherBuilder progress(
@@ -3476,10 +3485,17 @@ public final class KafkaFunctions
                 KafkaFlushExFW flushEx)
             {
                 final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
-                return matchProgress(mergedFlushEx) &&
+                return matchCapabilities(mergedFlushEx) &&
+                    matchProgress(mergedFlushEx) &&
                     matchKey(mergedFlushEx) &&
                     matchPartition(mergedFlushEx) &&
                     matchFilters(mergedFlushEx);
+            }
+
+            private boolean matchCapabilities(
+                final KafkaMergedFlushExFW mergedFlushEx)
+            {
+                return capabilities == null || capabilities.equals(mergedFlushEx.capabilities().get());
             }
 
             private boolean matchProgress(

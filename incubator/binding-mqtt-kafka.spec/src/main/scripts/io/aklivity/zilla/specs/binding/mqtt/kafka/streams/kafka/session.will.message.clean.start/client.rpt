@@ -126,7 +126,7 @@ connect await RECEIVED_GROUP_MEMBERS_LEADER
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
+                                .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt_sessions")
                                 .groupId("mqtt-clients")
                                 .filter()
@@ -140,8 +140,6 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
-
-read advised zilla:flush
 
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
@@ -182,3 +180,18 @@ write ${mqtt:willSignal()
        .build()}
 write flush
 
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .capabilities("PRODUCE_AND_FETCH")
+                                    .filter()
+                                        .key("client-1")
+                                        .build()
+                                    .filter()
+                                        .key("client-1#migrate")
+                                        .headerNot("sender-id", "sender-1")
+                                        .build()
+                                    .build()
+                                .build()}
+
+read advised zilla:flush

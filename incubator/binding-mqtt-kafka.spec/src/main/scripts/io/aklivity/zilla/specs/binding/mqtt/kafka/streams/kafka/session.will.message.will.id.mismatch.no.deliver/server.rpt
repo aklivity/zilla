@@ -178,7 +178,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
+                                .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt_sessions")
                                 .groupId("mqtt-clients")
                                 .filter()
@@ -206,10 +206,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 read notify RECEIVED_WILL_CANCELLATION_SIGNAL
-
-# no session state
-# no migrate signals
-write advise zilla:flush
 
 # will message for client-1
 read zilla:data.ext ${kafka:matchDataEx()
@@ -251,6 +247,24 @@ read ${mqtt:willSignal()
        .build()}
 
 write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .capabilities("PRODUCE_AND_FETCH")
+                                    .filter()
+                                        .key("client-1")
+                                        .build()
+                                    .filter()
+                                        .key("client-1#migrate")
+                                        .headerNot("sender-id", "sender-1")
+                                        .build()
+                                    .build()
+                                .build()}
+
+# no session state
+# no migrate signals
+write advise zilla:flush
 
 # will signal for client-1, deliver at (now + delay)
 read zilla:data.ext ${kafka:matchDataEx()

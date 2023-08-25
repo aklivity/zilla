@@ -94,6 +94,19 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+# will delivery cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will-signal")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 write advise zilla:flush
 
 read zilla:data.ext ${kafka:matchDataEx()

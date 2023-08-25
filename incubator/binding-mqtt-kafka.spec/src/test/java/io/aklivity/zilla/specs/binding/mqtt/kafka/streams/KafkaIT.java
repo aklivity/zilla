@@ -619,4 +619,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.cancel.delivery/client",
+        "${kafka}/session.will.message.cancel.delivery/server"})
+    public void shouldCancelWillDelivery() throws Exception
+    {
+        k3po.finish();
+    }
 }

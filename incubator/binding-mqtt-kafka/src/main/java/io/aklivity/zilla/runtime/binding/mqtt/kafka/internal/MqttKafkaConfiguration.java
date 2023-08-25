@@ -38,6 +38,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<String> LIFETIME_ID;
     public static final PropertyDef<String> INSTANCE_ID;
     public static final PropertyDef<Long> TIME;
+    public static final BooleanPropertyDef WILL_AVAILABLE;
 
     static
     {
@@ -55,6 +56,7 @@ public class MqttKafkaConfiguration extends Configuration
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultInstanceIdSupplier);
         TIME = config.property(Long.class, "time",
             MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTimeSupplier);
+        WILL_AVAILABLE = config.property("will.available", true);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -87,6 +89,11 @@ public class MqttKafkaConfiguration extends Configuration
     public Supplier<Long> timeSupplier()
     {
         return () -> TIME.get(this);
+    }
+
+    public boolean willAvailable()
+    {
+        return WILL_AVAILABLE.get(this);
     }
 
 
