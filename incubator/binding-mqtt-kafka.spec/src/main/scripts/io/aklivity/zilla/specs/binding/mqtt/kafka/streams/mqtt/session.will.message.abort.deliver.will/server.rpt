@@ -41,7 +41,10 @@ read zilla:data.ext ${mqtt:dataEx()
 read ${mqtt:will()
                .topic("obituaries")
                .delay(1)
+               .expiryInterval(15)
                .format("TEXT")
+               .responseTopic("responses/client1")
+               .correlation("info")
                .payload("client-1 disconnected abruptly")
                .build()}
 
