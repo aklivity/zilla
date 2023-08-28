@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.zip.CRC32C;
 
+
 import jakarta.json.JsonArray;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -52,6 +53,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -63,7 +65,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 
 public final class KafkaCachePartition
 {
@@ -322,14 +323,13 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        Validator keyValidator,
-        Validator valueValidator)
+        KafkaTopicType type)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
         writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType, keyValidator, valueValidator);
+        writeEntryFinish(headers, deltaType, type);
     }
 
     public void writeEntryStart(
@@ -421,8 +421,7 @@ public final class KafkaCachePartition
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
         KafkaDeltaType deltaType,
-        Validator keyValidator,
-        Validator valueValidator)
+        KafkaTopicType type)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -498,25 +497,24 @@ public final class KafkaCachePartition
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
         }
 
-        if (keyValidator != null)
+        if (type != null)
         {
-            OctetsFW key = headEntry.key().value();
-            if (key != null && !keyValidator.validate(key.value(), key.offset(), key.sizeof()))
+            OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
+            if (key != null &&
+                type.key != null &&
+                !type.key.validate(key.value(), key.offset(), key.sizeof()))
             {
-
                 System.out.println("Key Validation failed");
             }
-        }
 
-        if (valueValidator != null)
-        {
             OctetsFW value = headEntry.value();
-            if (value != null && !valueValidator.validate(value.value(), value.offset(), value.sizeof()))
+            if (value != null &&
+                type.value != null &&
+                !type.value.validate(value.value(), value.offset(), value.sizeof()))
             {
                 System.out.println("Value Validation failed");
             }
         }
-
         headSegment.lastOffset(progress);
     }
 
