@@ -39,6 +39,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<String> INSTANCE_ID;
     public static final PropertyDef<Long> TIME;
     public static final BooleanPropertyDef WILL_AVAILABLE;
+    public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
 
     static
     {
@@ -57,6 +58,7 @@ public class MqttKafkaConfiguration extends Configuration
         TIME = config.property(Long.class, "time",
             MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTimeSupplier);
         WILL_AVAILABLE = config.property("will.available", true);
+        WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -94,6 +96,11 @@ public class MqttKafkaConfiguration extends Configuration
     public boolean willAvailable()
     {
         return WILL_AVAILABLE.get(this);
+    }
+
+    public int willStreamReconnect()
+    {
+        return WILL_STREAM_RECONNECT_DELAY.getAsInt(this);
     }
 
 

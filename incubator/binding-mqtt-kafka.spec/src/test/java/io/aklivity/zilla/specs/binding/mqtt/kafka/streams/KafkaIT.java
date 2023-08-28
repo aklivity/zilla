@@ -628,4 +628,31 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.end.reconnect/client",
+        "${kafka}/session.will.stream.end.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.abort.reconnect/client",
+        "${kafka}/session.will.stream.abort.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.reset.reconnect/client",
+        "${kafka}/session.will.stream.reset.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_SUPPLIER_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_STREAM_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -280,6 +281,36 @@ public class MqttKafkaSessionProxyIT
         k3po.start();
         Thread.sleep(1000);
         k3po.notifyBarrier("WAIT_1_SECOND");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.will.stream.end.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.will.stream.abort.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.will.stream.reset.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaReset() throws Exception
+    {
         k3po.finish();
     }
 }
