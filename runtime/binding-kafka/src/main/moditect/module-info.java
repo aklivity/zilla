@@ -27,7 +27,4 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.binding.kafka.internal.validator.StringValidatorFactory;
 }

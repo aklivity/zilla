@@ -12,12 +12,6 @@ specific language governing permissions and limitations
 under the License.
 
 This project includes:
-  Apache Avro under Apache-2.0
-  Apache Commons Compress under Apache License, Version 2.0
-  Jackson-annotations under The Apache Software License, Version 2.0
-  Jackson-core under The Apache Software License, Version 2.0
-  jackson-databind under The Apache Software License, Version 2.0
-  SLF4J API Module under MIT License
 
 
 This project also includes code under copyright of the following entities:
