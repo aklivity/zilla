@@ -151,9 +151,10 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 binding.options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)));
             }
 
-            MutableInteger order = new MutableInteger();
             if (item.containsKey(ROUTES_NAME))
             {
+                MutableInteger order = new MutableInteger();
+
                 item.getJsonArray(ROUTES_NAME)
                     .stream()
                     .map(JsonValue::asJsonObject)
@@ -164,10 +165,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (item.containsKey(EXIT_NAME))
             {
-                binding.route()
-                    .order(order.value++)
-                    .exit(item.getString(EXIT_NAME))
-                    .build();
+                binding.exit(item.getString(EXIT_NAME));
             }
 
             if (item.containsKey(TELEMETRY_NAME))

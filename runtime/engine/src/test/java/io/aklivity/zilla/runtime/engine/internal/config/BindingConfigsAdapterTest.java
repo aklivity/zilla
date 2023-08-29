@@ -227,13 +227,11 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .inject(identity())
                 .name("test")
                 .type("test")
                 .kind(SERVER)
-                .route()
-                    .inject(identity())
-                    .exit("test")
-                    .build()
+                .exit("test")
                 .build()
         };
 
