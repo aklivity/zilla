@@ -42,6 +42,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<LongSupplier> TIME;
     public static final BooleanPropertyDef WILL_AVAILABLE;
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
+    public static final IntPropertyDef SESSION_EXPIRY_INTERVAL;
 
     static
     {
@@ -61,6 +62,7 @@ public class MqttKafkaConfiguration extends Configuration
             MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTime);
         WILL_AVAILABLE = config.property("will.available", true);
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
+        SESSION_EXPIRY_INTERVAL = config.property("session.expiry.interval", 30000);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -108,6 +110,11 @@ public class MqttKafkaConfiguration extends Configuration
     public int willStreamReconnectDelay()
     {
         return WILL_STREAM_RECONNECT_DELAY.getAsInt(this);
+    }
+
+    public int sessionExpiryInterval()
+    {
+        return SESSION_EXPIRY_INTERVAL.get(this);
     }
 
     private static StringSupplier decodeStringSupplier(

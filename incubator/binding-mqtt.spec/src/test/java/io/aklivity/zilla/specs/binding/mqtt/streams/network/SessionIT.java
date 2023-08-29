@@ -46,6 +46,15 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.connect.override.session.expiry/client",
+        "${net}/session.connect.override.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-5], [MQTT-3.1.2-23]
     @Test
     @Specification({

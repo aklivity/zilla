@@ -31,7 +31,7 @@ public class MqttKafkaBindingConfig
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
 
-    public MqttKafkaSessionFactory.KafkaWillProxy willProxy;
+    public MqttKafkaSessionFactory.KafkaSignalProxy willProxy;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)

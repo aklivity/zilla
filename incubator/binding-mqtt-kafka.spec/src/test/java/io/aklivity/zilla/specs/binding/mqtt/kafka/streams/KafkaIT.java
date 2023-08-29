@@ -577,6 +577,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.end.expire.session.state/client",
+        "${kafka}/session.end.expire.session.state/server"})
+    public void shouldExpireSessionOnEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.abort.expire.session.state/client",
+        "${kafka}/session.abort.expire.session.state/server"})
+    public void shouldExpireSessionOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.cancel.session.expiry/client",
+        "${kafka}/session.cancel.session.expiry/server"})
+    public void shouldCancelSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception

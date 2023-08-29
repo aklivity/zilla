@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
@@ -60,11 +61,31 @@ public class MqttKafkaSessionProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+
+
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "30000")
+    @Specification({
+        "${mqtt}/session.connect.override.session.expiry/client",
+        "${kafka}/session.connect.override.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
+    @Configure(name = TIME_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
     @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
@@ -112,6 +133,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
@@ -125,6 +148,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
@@ -138,6 +163,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.unsubscribe.after.subscribe/client",
         "${kafka}/session.unsubscribe.after.subscribe/server"})
@@ -151,6 +178,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.unsubscribe.via.session.state/client",
         "${kafka}/session.unsubscribe.via.session.state/server"})
@@ -164,6 +193,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.client.sent.reset/client",
         "${kafka}/session.client.sent.reset/server"})
@@ -177,6 +208,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
     @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
@@ -195,6 +228,56 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.group.server.sent.reset/server"})
     public void shouldGroupStreamReceiveServerSentReset() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
+    @Configure(name = TIME_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
+    @Specification({
+        "${mqtt}/session.end.expire.session.state/client",
+        "${kafka}/session.end.expire.session.state/server"})
+    public void shouldExpireSessionOnEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
+    @Configure(name = TIME_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
+    @Specification({
+        "${mqtt}/session.abort.expire.session.state/client",
+        "${kafka}/session.abort.expire.session.state/server"})
+    public void shouldExpireSessionOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Configure(name = INSTANCE_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
+    @Configure(name = TIME_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
+    @Specification({
+        "${kafka}/session.cancel.session.expiry/server"})
+    public void shouldCancelSessionExpiry() throws Exception
+    {
+        k3po.start();
+        Thread.sleep(1000);
+        k3po.notifyBarrier("WAIT_1_SECOND");
         k3po.finish();
     }
 
@@ -311,7 +394,7 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = TIME_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
     @Specification({
-        "${mqtt}/session.will.message.client.takeover.deliver.will/client",
+        "${mqtt}/session.will.message.takeover.deliver.will/client",
         "${kafka}/session.will.message.takeover.deliver.will/server"})
     public void shouldSendWillMessageOnAbortClientTakeover() throws Exception
     {

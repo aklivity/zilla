@@ -28,6 +28,9 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
+                                .filter()
+                                    .header("type", "expiry-signal")
+                                    .build()
                                 .build()
                             .build()}
 
@@ -57,13 +60,15 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write ${mqtt:willSignal()
+write ${mqtt:sessionSignal()
+            .will()
             .clientId("client-1")
             .delay(0)
             .deliverAt(-1)
             .lifetimeId("7ce005a0-ce9d-444d-b14b-2f302d13799d")
             .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
             .instanceId("zilla-1")
+            .build()
         .build()}
 write flush
 
@@ -107,13 +112,15 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write ${mqtt:willSignal()
+write ${mqtt:sessionSignal()
+           .will()
            .clientId("client-1")
            .delay(0)
            .deliverAt(-1)
            .lifetimeId("7ce005a0-ce9d-444d-b14b-2f302d13799d")
            .willId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
            .instanceId("zilla-1")
+           .build()
        .build()}
 write flush
 
@@ -218,6 +225,39 @@ read zilla:data.ext ${kafka:matchDataEx()
 read zilla:data.null
 read notify RECEIVED_WILL_CANCELLATION_SIGNAL
 
+# session expiry cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expire later signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+           .clientId("client-1")
+           .delay(1000)
+           .expireAt(-1)
+           .instanceId("zilla-1")
+           .build()
+       .build()}
+
 # will message for client-1
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -248,13 +288,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-read ${mqtt:willSignal()
+read ${mqtt:sessionSignal()
+           .will()
            .clientId("client-1")
            .delay(0)
            .deliverAt(-1)
            .lifetimeId("7ce005a0-ce9d-444d-b14b-2f302d13799d")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
            .instanceId("zilla-1")
+           .build()
        .build()}
 read notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
 
@@ -302,6 +344,26 @@ read zilla:data.ext ${kafka:matchDataEx()
 read zilla:data.null
 
 write notify RECEIVED_WILL_SIGNAL_CLEANUP
+
+# session expireAt signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+           .clientId("client-1")
+           .delay(1000)
+           .expireAt(2000)
+           .instanceId("zilla-1")
+           .build()
+       .build()}
 
 read closed
 write close

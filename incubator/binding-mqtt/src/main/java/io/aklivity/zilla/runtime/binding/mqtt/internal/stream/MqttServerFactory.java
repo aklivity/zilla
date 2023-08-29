@@ -150,6 +150,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
@@ -238,6 +239,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttPublishDataExFW mqttPublishDataExRO = new MqttPublishDataExFW();
     private final MqttDataExFW mqttSubscribeDataExRO = new MqttDataExFW();
     private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
+    private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
 
     private final MqttBeginExFW.Builder mqttPublishBeginExRW = new MqttBeginExFW.Builder();
     private final MqttBeginExFW.Builder mqttSubscribeBeginExRW = new MqttBeginExFW.Builder();
@@ -363,7 +365,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final long connectTimeoutMillis;
     private final int encodeBudgetMax;
 
-    private final int sessionExpiryIntervalLimit;
     private final short keepAliveMinimum;
     private final short keepAliveMaximum;
     private final byte maximumQos;
@@ -412,7 +413,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
-        this.sessionExpiryIntervalLimit = config.sessionExpiryInterval();
         this.keepAliveMinimum = config.keepAliveMinimum();
         this.keepAliveMaximum = config.keepAliveMaximum();
         this.maximumQos = config.maximumQos();
@@ -1259,7 +1259,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean connected;
 
         private short topicAliasMaximum = 0;
-        private int sessionExpiryInterval = 0;
+        private int connectSessionExpiryInterval = 0;
+        private int sessionExpiryIntervalLimit = Integer.MAX_VALUE;
         private boolean assignedClientId = false;
         private int propertyMask = 0;
 
@@ -1584,13 +1585,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 case KIND_SESSION_EXPIRY:
                     if (isSetSessionExpiryInterval(propertyMask))
                     {
-                        sessionExpiryInterval = 0;
+                        connectSessionExpiryInterval = 0;
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
                     this.propertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
-                    final int sessionExpiryInterval = (int) mqttProperty.sessionExpiry();
-                    this.sessionExpiryInterval = Math.min(sessionExpiryInterval, sessionExpiryIntervalLimit);
+                    this.connectSessionExpiryInterval = (int) mqttProperty.sessionExpiry();
                     break;
                 case KIND_RECEIVE_MAXIMUM:
                 case KIND_MAXIMUM_PACKET_SIZE:
@@ -1835,7 +1835,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .typeId(mqttTypeId)
                 .session(sessionBuilder -> sessionBuilder
                     .flags(flags)
-                    .expiry(sessionExpiryInterval)
+                    .expiry(connectSessionExpiryInterval)
                     .clientId(clientId)
                     .serverRef(serverRef)
                 );
@@ -2244,20 +2244,72 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             MqttDisconnectFW disconnect)
         {
-            state = MqttState.closingInitial(state);
-            if (session)
+            byte reasonCode = decodeDisconnectProperties(disconnect.properties());
+
+            if (reasonCode != SUCCESS)
             {
-                if (disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
+                onDecodeError(traceId, authorization, reasonCode);
+                decoder = decodeIgnoreAll;
+            }
+            else
+            {
+                if (session)
                 {
-                    sessionStream.doSessionAbort(traceId);
-                }
-                else
-                {
-                    sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    if (disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
+                    {
+                        sessionStream.doSessionAbort(traceId);
+                    }
+                    else
+                    {
+                        sessionStream.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    }
                 }
             }
+
+            state = MqttState.closingInitial(state);
             closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);
+        }
+
+        private byte decodeDisconnectProperties(
+            MqttPropertiesFW properties)
+        {
+            byte reasonCode = SUCCESS;
+
+            final OctetsFW propertiesValue = properties.value();
+            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final int decodeOffset = propertiesValue.offset();
+            final int decodeLimit = propertiesValue.limit();
+
+            decode:
+            for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
+            {
+                final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap(decodeBuffer, decodeProgress, decodeLimit);
+                switch (mqttProperty.kind())
+                {
+                case KIND_SESSION_EXPIRY:
+                    if (isSetSessionExpiryInterval(propertyMask))
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    this.propertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
+                    final int sessionExpiryInterval = (int) mqttProperty.sessionExpiry();
+                    if (sessionExpiryInterval > sessionExpiryIntervalLimit)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    break;
+                default:
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
+
+                decodeProgress = mqttProperty.limit();
+            }
+
+            return reasonCode;
         }
 
         private void onDecodeError(
@@ -2556,7 +2608,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .build();
                 propertiesSize = mqttProperty.limit();
 
-                if (sessionExpiryInterval > sessionExpiryIntervalLimit)
+                if (connectSessionExpiryInterval > sessionExpiryIntervalLimit)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .sessionExpiry(sessionExpiryIntervalLimit)
@@ -3203,7 +3255,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                 state = MqttState.openReply(state);
 
                 final long traceId = begin.traceId();
-                final long authorization = begin.authorization();
+
+                final OctetsFW extension = begin.extension();
+                if (extension.sizeof() > 0)
+                {
+                    final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+                    assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SESSION;
+                    final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
+
+                    sessionExpiryIntervalLimit = mqttSessionBeginEx.expiry();
+                }
 
                 doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);
             }

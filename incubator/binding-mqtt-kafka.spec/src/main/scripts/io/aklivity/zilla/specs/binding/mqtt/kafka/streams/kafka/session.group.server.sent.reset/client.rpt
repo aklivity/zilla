@@ -115,5 +115,17 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write flush
+
 read advised zilla:flush
 

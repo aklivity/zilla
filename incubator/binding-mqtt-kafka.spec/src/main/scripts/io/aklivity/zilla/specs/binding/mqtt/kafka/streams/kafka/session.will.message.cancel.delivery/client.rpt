@@ -26,6 +26,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
+                                .filter()
+                                    .header("type", "expiry-signal")
+                                    .build()
                                 .build()
                             .build()}
 
@@ -40,13 +43,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-read ${mqtt:willSignal()
+read ${mqtt:sessionSignal()
+           .will()
            .clientId("client-1")
            .delay(1000)
            .deliverAt(deliverAt)
            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
            .instanceId("zilla-1")
+           .build()
         .build()}
 read notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 read notify WAIT_1_SECOND
