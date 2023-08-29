@@ -580,6 +580,7 @@
 
       <properties>
         <docker.context>incubator</docker.context>
+        <docker.platforms>linux/x86_64</docker.platforms>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
       </properties>
@@ -637,6 +638,7 @@
 
       <properties>
         <docker.context>release</docker.context>
+        <docker.platforms>linux/x86_64</docker.platforms>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
       </properties>

@@ -262,9 +262,11 @@
                 <tags>
                   <tag>latest</tag>
                 </tags>
-                <createImageOptions>
-                  <platform>linux/x86_64</platform>
-                </createImageOptions>
+                <buildx>
+                  <platforms>
+                    <platform>${docker.platforms}</platform>
+                  </platforms>
+                </buildx>
                 <assemblies>
                   <assembly>
                     <inline>
