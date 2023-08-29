@@ -29,7 +29,7 @@ public class MqttKafkaBinding implements Binding
     MqttKafkaBinding(
         MqttKafkaConfiguration config)
     {
-        this.instanceId = new InstanceId(config.instanceIdSupplier());
+        this.instanceId = new InstanceId(config.instanceId());
         this.config = config;
     }
 

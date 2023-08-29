@@ -29,9 +29,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
@@ -1226,7 +1226,7 @@ public class MqttFunctionsTest
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
-        MqttMessageFW willMessage = new MqttMessageFW().wrap(buffer, 0, buffer.capacity());
+        MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("will.client", willMessage.topic().asString());
         assertEquals(20, willMessage.delay());
@@ -1259,7 +1259,7 @@ public class MqttFunctionsTest
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
-        MqttMessageFW willMessage = new MqttMessageFW().wrap(buffer, 0, buffer.capacity());
+        MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("will.client", willMessage.topic().asString());
         assertEquals(1, willMessage.flags());

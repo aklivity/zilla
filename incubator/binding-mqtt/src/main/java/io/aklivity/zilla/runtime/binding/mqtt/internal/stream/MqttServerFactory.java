@@ -112,11 +112,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
@@ -246,7 +246,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttDataExFW.Builder mqttSubscribeDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSessionDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
-    private final MqttMessageFW.Builder mqttMessageFW = new MqttMessageFW.Builder();
+    private final MqttWillMessageFW.Builder mqttWillMessageRW = new MqttWillMessageFW.Builder();
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnectFW mqttConnectRO = new MqttConnectFW();
@@ -1773,8 +1773,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .typeId(mqttTypeId)
                             .session(s -> s.kind(k -> k.set(MqttSessionDataKind.WILL)));
 
-                    final MqttMessageFW.Builder willMessageBuilder =
-                        mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                    final MqttWillMessageFW.Builder willMessageBuilder =
+                        mqttWillMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                             .topic(payload.willTopic)
                             .delay(payload.willDelay)
                             .qos(willQos)
@@ -1790,7 +1790,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
                     willMessageBuilder.payload(p -> p.bytes(payload.willPayload.bytes()));
 
-                    final MqttMessageFW will = willMessageBuilder.build();
+                    final MqttWillMessageFW will = willMessageBuilder.build();
                     final int willPayloadSize = willMessageBuilder.sizeof();
 
                     if (!sessionStream.hasSessionWindow(willPayloadSize))

@@ -21,22 +21,22 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class InstanceId
 {
-    private final Supplier<String> instanceIdSupplier;
+    private final Supplier<String> supplyInstanceId;
     private volatile String16FW instanceId;
 
     InstanceId(
-        Supplier<String> instanceIdSupplier)
+        Supplier<String> supplyInstanceId)
     {
-        this.instanceIdSupplier = instanceIdSupplier;
+        this.supplyInstanceId = supplyInstanceId;
         regenerate();
     }
 
     public void regenerate()
     {
-        instanceId = new String16FW(instanceIdSupplier.get());
+        instanceId = new String16FW(supplyInstanceId.get());
     }
 
-    public String16FW getInstanceId()
+    public String16FW instanceId()
     {
         return instanceId;
     }

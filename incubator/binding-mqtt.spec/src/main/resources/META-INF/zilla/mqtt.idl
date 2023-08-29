@@ -54,9 +54,9 @@ scope mqtt
         TEXT
     }
 
-    enum MqttWillDeliverAt (int8)
+    enum MqttWillDeliverAt (int64)
     {
-        UNKNOWN(-1)
+        UNKNOWN(-1L)
     }
 
     struct MqttBinary
@@ -95,7 +95,7 @@ scope mqtt
         string16 instanceId;
     }
 
-    struct MqttMessage
+    struct MqttWillMessage
     {
         string16 topic = null;
         int32 delay = 0;

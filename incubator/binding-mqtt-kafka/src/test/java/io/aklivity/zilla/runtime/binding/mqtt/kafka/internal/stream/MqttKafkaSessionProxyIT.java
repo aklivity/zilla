@@ -68,28 +68,6 @@ public class MqttKafkaSessionProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    public static String supplySessionId()
-    {
-        return "sender-1";
-    }
-
-    public static String supplyWillId()
-    {
-        return "abcdabcddcbadcba";
-    }
-    public static String supplyLifetimeId()
-    {
-        return "bbbbbbbbbbbbbbbb";
-    }
-    public static String supplyInstanceId()
-    {
-        return "zilla-1";
-    }
-    public static Long supplyTime()
-    {
-        return 1000L;
-    }
-
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
@@ -312,5 +290,30 @@ public class MqttKafkaSessionProxyIT
     public void shouldReconnectWillStreamOnKafkaReset() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String supplySessionId()
+    {
+        return "sender-1";
+    }
+
+    public static String supplyWillId()
+    {
+        return "abcdabcddcbadcba";
+    }
+
+    public static String supplyLifetimeId()
+    {
+        return "bbbbbbbbbbbbbbbb";
+    }
+
+    public static String supplyInstanceId()
+    {
+        return "zilla-1";
+    }
+
+    public static long supplyTime()
+    {
+        return 1000L;
     }
 }

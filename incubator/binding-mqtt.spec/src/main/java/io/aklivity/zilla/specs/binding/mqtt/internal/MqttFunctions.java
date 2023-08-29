@@ -32,7 +32,6 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
@@ -42,6 +41,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
@@ -753,8 +753,8 @@ public final class MqttFunctions
 
     public static final class MqttWillMessageBuilder
     {
-        private final MqttMessageFW.Builder willMessageRW = new MqttMessageFW.Builder();
-        private final MqttMessageFW willMessageRO = new MqttMessageFW();
+        private final MqttWillMessageFW.Builder willMessageRW = new MqttWillMessageFW.Builder();
+        private final MqttWillMessageFW willMessageRO = new MqttWillMessageFW();
 
         private MqttWillMessageBuilder()
         {
@@ -873,7 +873,7 @@ public final class MqttFunctions
 
         public byte[] build()
         {
-            final MqttMessageFW willMessage = willMessageRW.build();
+            final MqttWillMessageFW willMessage = willMessageRW.build();
             final byte[] array = new byte[willMessage.sizeof()];
             willMessage.buffer().getBytes(willMessage.offset(), array);
             return array;
