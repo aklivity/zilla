@@ -31,7 +31,6 @@ services:
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic echo-service-messages
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic route-guide-requests
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic route-guide-responses
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic mqtt-messages
     depends_on:
       - kafka
     init: true
@@ -73,66 +72,6 @@ services:
     container_name: route_guide_client
     depends_on:
       - route_guide_server
-    command: "-addr=route_guide_server:50051"
-
-  mqtt_load_sim: 
-    image: simplematter/simplematter-mqtt-load-simulator:0.0.8
-    container_name: mqtt_load_sim
-    depends_on:
-      - zilla
-    environment:
-      # Specity your broker URL
-      MQTT_LOAD_SERVER: host.docker.internal:1883
-      #MQTT_LOAD_SERVER: localhost:11883
-
-      #General load settings
-      MQTT_LOAD_CLIENT_PREFIX: simplematter-mqtt-load-simulator
-      MQTT_LOAD_TOPIC_PREFIX: "mqtt-load-sim"
-
-      MQTT_LOAD_TOPIC_GROUPS_NUMBER: 5
-      MQTT_LOAD_TOPICS_NUMBER: 50
-
-      MQTT_LOAD_MESSAGE_MIN_SIZE: 800
-      MQTT_LOAD_MESSAGE_MAX_SIZE: 1200
-
-      #Publishing clients
-      MQTT_LOAD_PUBLISHING_CLIENTS_NUMBER: 2
-      #MQTT_LOAD_PUBLISHING_CLIENTS_NUMBER: 0
-      MQTT_LOAD_PUBLISHING_CLIENTS_MESSAGES_PER_SECOND: 0.1
-
-      #Subscribing clients
-      MQTT_LOAD_SUBSCRIBING_CLIENTS_NUMBER: 4
-      #MQTT_LOAD_SUBSCRIBING_CLIENTS_NUMBER: 0
-      MQTT_LOAD_SUBSCRIBING_CLIENTS_WILDCARD_SUBSCRIPTIONS: 2
-      MQTT_LOAD_SUBSCRIBING_CLIENTS_REGULAR_SUBSCRIPTIONS: 10
-
-      #Randomized clients
-      #MQTT_LOAD_RANDOMIZED_CLIENTS_MIN_NUMBER: 1
-      MQTT_LOAD_RANDOMIZED_CLIENTS_MIN_NUMBER: 0
-      #MQTT_LOAD_RANDOMIZED_CLIENTS_MAX_NUMBER: 5
-      MQTT_LOAD_RANDOMIZED_CLIENTS_MAX_NUMBER: 0
-
-      MQTT_LOAD_RANDOMIZED_CLIENT_PUBLISH_PROBABILITY: 100
-      MQTT_LOAD_RANDOMIZED_CLIENT_SUBSCRIBE_PROBABILITY: 0
-      MQTT_LOAD_RANDOMIZED_CLIENT_UNSUBSCRIBE_PROBABILITY: 0
-      MQTT_LOAD_RANDOMIZED_CLIENT_IDLE_PROBABILITY: 0
-
-      MQTT_LOAD_RANDOMIZED_CLIENT_STEP_INTERVAL: 10000
-
-      MQTT_LOAD_SIMULATION_STEP_INTERVAL: 2000
-      MQTT_LOAD_STATS_INTERVAL: 5000
-
-      MQTT_LOAD_RAMP_UP_SECONDS: 10
-      #MQTT_LOAD_RAMP_UP_SECONDS: 30
-
-      MQTT_LOAD_ACTIONS_DURING_RAMP_UP: false
-
-      MQTT_LOAD_CONNECTION_TIMEOUT_SECONDS: 30
-      MQTT_LOAD_KEEP_ALIVE_SECONDS: 30
-      #MQTT_LOAD_KEEP_ALIVE_SECONDS: 180
-      #MQTT_LOAD_MONITORING_PORT: 1884
-      MQTT_LOAD_MONITORING_PORT: 1885
-
     command: "-addr=route_guide_server:50051"
 
 networks:
