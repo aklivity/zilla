@@ -1,6 +1,4 @@
-# !!! DEPRECATED !!! zilla.quickstart
-
-> This project has been moved to [another folder](../quickstart/README.md)
+# quickstart
 
 Creates a full featured instance of Zilla on port `8080`. Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/quickstart) to discover some of what Zilla can do!
 

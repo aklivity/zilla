@@ -1,0 +1,141 @@
+version: '3'
+services:
+  kafka:
+    image: docker.io/bitnami/kafka:latest
+    container_name: kafka
+    ports:
+      - 9092:9092
+      - 29092:9092
+    environment:
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_NODE_ID: "1"
+      KAFKA_CFG_BROKER_ID: "1"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_LOG_DIRS: "/tmp/logs"
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_LISTENERS: "CLIENT://:9092,INTERNAL://:29092,CONTROLLER://:9093"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka:29092"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka-init:
+    image: docker.io/bitnami/kafka:latest
+    command: 
+      - "/bin/bash"
+      - "-c"
+      -  | 
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic items-crud --config cleanup.policy=compact
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic events-sse
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic echo-service-messages
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic route-guide-requests
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic route-guide-responses
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic mqtt-messages
+    depends_on:
+      - kafka
+    init: true
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 80:8080
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  zilla:
+    image: ghcr.io/aklivity/zilla:latest
+    container_name: zilla
+    depends_on:
+      - kafka
+    ports:
+      - 8080:8080
+      - 9090:9090
+    volumes:
+      - ./zilla.yaml:/etc/zilla/zilla.yaml
+      - ./grpc/echo.proto:/etc/zilla/proto/echo.proto
+      - ./grpc/route_guide.proto:/etc/zilla/proto/route_guide.proto
+    command: start -v -e
+
+  route_guide_server:
+    build: ./grpc/route_guide/server
+    container_name: route_guide_server
+    ports:
+      - 50051:50051
+
+  route_guide_client:
+    build: ./grpc/route_guide/client
+    container_name: route_guide_client
+    depends_on:
+      - route_guide_server
+    command: "-addr=route_guide_server:50051"
+
+  mqtt_load_sim: 
+    image: simplematter/simplematter-mqtt-load-simulator:0.0.8
+    container_name: mqtt_load_sim
+    depends_on:
+      - zilla
+    environment:
+      # Specity your broker URL
+      MQTT_LOAD_SERVER: host.docker.internal:1883
+      #MQTT_LOAD_SERVER: localhost:11883
+
+      #General load settings
+      MQTT_LOAD_CLIENT_PREFIX: simplematter-mqtt-load-simulator
+      MQTT_LOAD_TOPIC_PREFIX: "mqtt-load-sim"
+
+      MQTT_LOAD_TOPIC_GROUPS_NUMBER: 5
+      MQTT_LOAD_TOPICS_NUMBER: 50
+
+      MQTT_LOAD_MESSAGE_MIN_SIZE: 800
+      MQTT_LOAD_MESSAGE_MAX_SIZE: 1200
+
+      #Publishing clients
+      MQTT_LOAD_PUBLISHING_CLIENTS_NUMBER: 2
+      #MQTT_LOAD_PUBLISHING_CLIENTS_NUMBER: 0
+      MQTT_LOAD_PUBLISHING_CLIENTS_MESSAGES_PER_SECOND: 0.1
+
+      #Subscribing clients
+      MQTT_LOAD_SUBSCRIBING_CLIENTS_NUMBER: 4
+      #MQTT_LOAD_SUBSCRIBING_CLIENTS_NUMBER: 0
+      MQTT_LOAD_SUBSCRIBING_CLIENTS_WILDCARD_SUBSCRIPTIONS: 2
+      MQTT_LOAD_SUBSCRIBING_CLIENTS_REGULAR_SUBSCRIPTIONS: 10
+
+      #Randomized clients
+      #MQTT_LOAD_RANDOMIZED_CLIENTS_MIN_NUMBER: 1
+      MQTT_LOAD_RANDOMIZED_CLIENTS_MIN_NUMBER: 0
+      #MQTT_LOAD_RANDOMIZED_CLIENTS_MAX_NUMBER: 5
+      MQTT_LOAD_RANDOMIZED_CLIENTS_MAX_NUMBER: 0
+
+      MQTT_LOAD_RANDOMIZED_CLIENT_PUBLISH_PROBABILITY: 100
+      MQTT_LOAD_RANDOMIZED_CLIENT_SUBSCRIBE_PROBABILITY: 0
+      MQTT_LOAD_RANDOMIZED_CLIENT_UNSUBSCRIBE_PROBABILITY: 0
+      MQTT_LOAD_RANDOMIZED_CLIENT_IDLE_PROBABILITY: 0
+
+      MQTT_LOAD_RANDOMIZED_CLIENT_STEP_INTERVAL: 10000
+
+      MQTT_LOAD_SIMULATION_STEP_INTERVAL: 2000
+      MQTT_LOAD_STATS_INTERVAL: 5000
+
+      MQTT_LOAD_RAMP_UP_SECONDS: 10
+      #MQTT_LOAD_RAMP_UP_SECONDS: 30
+
+      MQTT_LOAD_ACTIONS_DURING_RAMP_UP: false
+
+      MQTT_LOAD_CONNECTION_TIMEOUT_SECONDS: 30
+      MQTT_LOAD_KEEP_ALIVE_SECONDS: 30
+      #MQTT_LOAD_KEEP_ALIVE_SECONDS: 180
+      #MQTT_LOAD_MONITORING_PORT: 1884
+      MQTT_LOAD_MONITORING_PORT: 1885
+
+    command: "-addr=route_guide_server:50051"
+
+networks:
+  default:
+    name: zilla-network
+    driver: bridge
