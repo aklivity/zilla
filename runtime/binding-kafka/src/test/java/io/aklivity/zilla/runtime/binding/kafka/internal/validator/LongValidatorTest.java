@@ -22,9 +22,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.LongValidatorConfig;
+
 public class LongValidatorTest
 {
-    private final LongValidator validator = new LongValidator();
+    private final LongValidatorConfig config = new LongValidatorConfig();
+    private final LongValidator validator = new LongValidator(config);
 
     @Test
     public void shouldVerifyValidLong()

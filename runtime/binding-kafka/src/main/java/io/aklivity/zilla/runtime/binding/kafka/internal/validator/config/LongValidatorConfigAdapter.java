@@ -13,27 +13,29 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import org.agrona.DirectBuffer;
+import jakarta.json.JsonObject;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.LongValidatorConfig;
-
-public class LongValidator implements Validator
+public class LongValidatorConfigAdapter implements ValidatorConfigAdapterSpi
 {
-    public LongValidator(
-        LongValidatorConfig config)
+    @Override
+    public String type()
     {
+        return "long";
     }
 
     @Override
-    public boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
+    public JsonObject adaptToJson(
+        ValidatorConfig options)
     {
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        return payloadBytes.length == 8 ? true : false;
+        return null;
+    }
+
+    @Override
+    public ValidatorConfig adaptFromJson(
+        JsonObject object)
+    {
+        return new LongValidatorConfig();
     }
 }

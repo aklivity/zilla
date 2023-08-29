@@ -13,27 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.LongValidatorConfig;
-
-public class LongValidator implements Validator
+public class IntegerValidatorConfig extends ValidatorConfig
 {
-    public LongValidator(
-        LongValidatorConfig config)
+    public IntegerValidatorConfig()
     {
-    }
-
-    @Override
-    public boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        return payloadBytes.length == 8 ? true : false;
+        super("integer");
     }
 }

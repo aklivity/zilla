@@ -36,7 +36,6 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.zip.CRC32C;
 
-
 import jakarta.json.JsonArray;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;

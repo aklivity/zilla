@@ -22,9 +22,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.IntegerValidatorConfig;
+
 public class IntegerValidatorTest
 {
-    private final IntegerValidator validator = new IntegerValidator();
+    private final IntegerValidatorConfig config = new IntegerValidatorConfig();
+    private final IntegerValidator validator = new IntegerValidator(config);
 
     @Test
     public void shouldVerifyValidInteger()

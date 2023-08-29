@@ -17,8 +17,14 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.IntegerValidatorConfig;
+
 public class IntegerValidator implements Validator
 {
+    public IntegerValidator(IntegerValidatorConfig config)
+    {
+    }
+
     @Override
     public boolean validate(
         DirectBuffer data,
