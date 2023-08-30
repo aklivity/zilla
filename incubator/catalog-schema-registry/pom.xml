@@ -1,19 +1,17 @@
-<?xml version="1.0" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>specs</artifactId>
+    <artifactId>incubator</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>catalog-schema-registry.spec</artifactId>
-  <name>zilla::specs::catalog-schema-registry.spec</name>
+  <artifactId>catalog-schema-registry</artifactId>
+  <name>zilla::incubator::catalog-schema-registry</name>
 
   <licenses>
     <license>
@@ -33,31 +31,26 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>engine.spec</artifactId>
+      <artifactId>catalog-schema-registry.spec</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
-      <scope>test</scope>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>engine</artifactId>
+        <type>test-jar</type>
+        <version>${project.version}</version>
+        <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <resource>
-        <directory>src/main/scripts</directory>
-      </resource>
-    </resources>
-
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
@@ -81,6 +74,10 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
