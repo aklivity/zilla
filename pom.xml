@@ -61,6 +61,7 @@
     <module>runtime</module>
     <module>manager</module>
     <module>cloud</module>
+      <module>specs/catalog-schema-registry.spec</module>
   </modules>
 
   <dependencyManagement>

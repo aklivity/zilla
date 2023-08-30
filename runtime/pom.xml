@@ -34,6 +34,7 @@
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-ws</module>
+    <module>catalog-schema-registry</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
@@ -131,6 +132,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-ws</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
