@@ -75,22 +75,22 @@ public class MqttKafkaConfiguration extends Configuration
     {
     }
 
-    public StringSupplier sessionId()
+    public Supplier<String> sessionId()
     {
         return SESSION_ID.get(this);
     }
 
-    public StringSupplier willId()
+    public Supplier<String> willId()
     {
         return WILL_ID.get(this);
     }
 
-    public StringSupplier lifetimeId()
+    public Supplier<String> lifetimeId()
     {
         return LIFETIME_ID.get(this);
     }
 
-    public StringSupplier instanceId()
+    public Supplier<String> instanceId()
     {
         return INSTANCE_ID.get(this);
     }
