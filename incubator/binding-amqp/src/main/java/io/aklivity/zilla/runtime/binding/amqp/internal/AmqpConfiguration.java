@@ -46,7 +46,7 @@ public class AmqpConfiguration extends Configuration
         AMQP_INITIAL_DEVIVERY_COUNT = config.property("initial.delivery.count", 0L);
         AMQP_CLOSE_EXCHANGE_TIMEOUT = config.property("close.exchange.timeout", 10000);
         AMQP_INCOMING_LOCALES = config.property(String[].class, "incoming.locales",
-            s -> s.split("\\s+"), c -> AMQP_INCOMING_LOCALES_DEFAULT);
+            s -> s.split("\\s+"), AMQP_INCOMING_LOCALES_DEFAULT);
         AMQP_CONFIG = config;
     }
 
