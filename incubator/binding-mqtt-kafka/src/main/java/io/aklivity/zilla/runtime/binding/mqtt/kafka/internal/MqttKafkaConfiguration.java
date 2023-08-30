@@ -118,24 +118,24 @@ public class MqttKafkaConfiguration extends Configuration
 
         try
         {
-            MethodType signature = MethodType.methodType(StringSupplier.class);
+            MethodType signature = MethodType.methodType(String.class);
             String[] parts = fullyQualifiedMethodName.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
             supplier = () ->
             {
-                StringSupplier value = null;
+                String value = null;
                 try
                 {
-                    value = (StringSupplier) method.invoke();
+                    value = (String) method.invoke();
                 }
                 catch (Throwable ex)
                 {
                     LangUtil.rethrowUnchecked(ex);
                 }
 
-                return value.get();
+                return value;
             };
         }
         catch (Throwable ex)
@@ -154,24 +154,24 @@ public class MqttKafkaConfiguration extends Configuration
 
         try
         {
-            MethodType signature = MethodType.methodType(LongSupplier.class);
+            MethodType signature = MethodType.methodType(long.class);
             String[] parts = fullyQualifiedMethodName.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
             supplier = () ->
             {
-                LongSupplier value = null;
+                long value = 0;
                 try
                 {
-                    value = (LongSupplier) method.invoke();
+                    value = (long) method.invoke();
                 }
                 catch (Throwable ex)
                 {
                     LangUtil.rethrowUnchecked(ex);
                 }
 
-                return value.getAsLong();
+                return value;
             };
         }
         catch (Throwable ex)

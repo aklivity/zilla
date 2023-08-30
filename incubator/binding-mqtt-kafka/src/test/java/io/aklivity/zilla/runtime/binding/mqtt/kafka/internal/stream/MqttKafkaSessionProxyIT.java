@@ -373,28 +373,28 @@ public class MqttKafkaSessionProxyIT
         k3po.finish();
     }
 
-    public static MqttKafkaConfiguration.StringSupplier supplySessionId()
+    public static String supplySessionId()
     {
-        return () -> "sender-1";
+        return "sender-1";
     }
 
-    public static MqttKafkaConfiguration.StringSupplier supplyWillId()
+    public static String supplyWillId()
     {
-        return () -> "d252a6bd-abb5-446a-b0f7-d0a3d8c012e2";
+        return "d252a6bd-abb5-446a-b0f7-d0a3d8c012e2";
     }
 
-    public static MqttKafkaConfiguration.StringSupplier supplyLifetimeId()
+    public static String supplyLifetimeId()
     {
-        return () -> "1e6a1eb5-810a-459d-a12c-a6fa08f228d1";
+        return "1e6a1eb5-810a-459d-a12c-a6fa08f228d1";
     }
 
-    public static MqttKafkaConfiguration.StringSupplier supplyInstanceId()
+    public static String supplyInstanceId()
     {
-        return () -> "zilla-1";
+        return "zilla-1";
     }
 
-    public static LongSupplier supplyTime()
+    public static long supplyTime()
     {
-        return () -> 1000L;
+        return 1000L;
     }
 }

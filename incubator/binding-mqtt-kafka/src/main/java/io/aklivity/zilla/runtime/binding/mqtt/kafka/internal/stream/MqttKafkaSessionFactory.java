@@ -106,8 +106,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int SIGNAL_DELIVER_WILL_MESSAGE = 1;
-    public static final int SIGNAL_CONNECT_WILL_STREAM = 2;
-    public static final int SIZE_OF_UUID = 38;
+    private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
+    private static final int SIZE_OF_UUID = 38;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -254,6 +254,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             binding.willProxy = new KafkaWillProxy(binding.id, routeId,
                 binding.sessionsTopic(), binding.messagesTopic(), binding.retainedTopic());
+            binding.willProxy.doKafkaBegin(currentTimeMillis());
         }
         sessionIds.put(bindingId, supplySessionId.get());
     }
@@ -874,13 +875,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.willFetchers = new Object2ObjectHashMap<>();
             this.partitions = new IntHashSet();
+
+        }
+
+        private void doKafkaBegin(
+            long timeMillis)
+        {
             this.reconnectAt = signaler.signalAt(
-                currentTimeMillis(),
+                timeMillis,
                 SIGNAL_CONNECT_WILL_STREAM,
                 this::onSignalConnectWillStream);
         }
 
-        public void doKafkaBegin(
+        private void doKafkaBegin(
             long traceId,
             long authorization,
             long affinity)
