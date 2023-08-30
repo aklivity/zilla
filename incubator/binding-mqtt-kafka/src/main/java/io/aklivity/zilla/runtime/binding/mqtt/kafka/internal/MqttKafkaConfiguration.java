@@ -35,11 +35,11 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<String> MESSAGES_TOPIC;
     public static final PropertyDef<String> RETAINED_MESSAGES_TOPIC;
     public static final PropertyDef<String> SESSIONS_TOPIC;
-    public static final PropertyDef<String> SESSION_ID;
-    public static final PropertyDef<String> WILL_ID;
-    public static final PropertyDef<String> LIFETIME_ID;
-    public static final PropertyDef<String> INSTANCE_ID;
-    public static final PropertyDef<Long> TIME;
+    public static final PropertyDef<StringSupplier> SESSION_ID;
+    public static final PropertyDef<StringSupplier> WILL_ID;
+    public static final PropertyDef<StringSupplier> LIFETIME_ID;
+    public static final PropertyDef<StringSupplier> INSTANCE_ID;
+    public static final PropertyDef<LongSupplier> TIME;
     public static final BooleanPropertyDef WILL_AVAILABLE;
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
 
@@ -49,15 +49,15 @@ public class MqttKafkaConfiguration extends Configuration
         MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
         RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
         SESSIONS_TOPIC = config.property("sessions.topic", "mqtt_sessions");
-        SESSION_ID = config.property(String.class, "session.id",
+        SESSION_ID = config.property(StringSupplier.class, "session.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultSessionId);
-        WILL_ID = config.property(String.class, "will.id",
+        WILL_ID = config.property(StringSupplier.class, "will.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultWillId);
-        LIFETIME_ID = config.property(String.class, "lifetime.id",
+        LIFETIME_ID = config.property(StringSupplier.class, "lifetime.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultLifetimeId);
-        INSTANCE_ID = config.property(String.class, "instance.id",
+        INSTANCE_ID = config.property(StringSupplier.class, "instance.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultInstanceId);
-        TIME = config.property(Long.class, "time",
+        TIME = config.property(LongSupplier.class, "time",
             MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTime);
         WILL_AVAILABLE = config.property("will.available", true);
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
@@ -70,29 +70,34 @@ public class MqttKafkaConfiguration extends Configuration
         super(MQTT_KAFKA_CONFIG, config);
     }
 
-    public Supplier<String> sessionId()
+    @FunctionalInterface
+    public interface StringSupplier extends Supplier<String>
     {
-        return () -> SESSION_ID.get(this);
     }
 
-    public Supplier<String> willId()
+    public StringSupplier sessionId()
     {
-        return () -> WILL_ID.get(this);
+        return SESSION_ID.get(this);
     }
 
-    public Supplier<String> lifetimeId()
+    public StringSupplier willId()
     {
-        return () -> LIFETIME_ID.get(this);
+        return WILL_ID.get(this);
     }
 
-    public Supplier<String> instanceId()
+    public StringSupplier lifetimeId()
     {
-        return () -> INSTANCE_ID.get(this);
+        return LIFETIME_ID.get(this);
+    }
+
+    public StringSupplier instanceId()
+    {
+        return INSTANCE_ID.get(this);
     }
 
     public LongSupplier time()
     {
-        return () -> TIME.get(this);
+        return TIME.get(this);
     }
 
     public boolean willAvailable()
@@ -105,33 +110,32 @@ public class MqttKafkaConfiguration extends Configuration
         return WILL_STREAM_RECONNECT_DELAY.getAsInt(this);
     }
 
-
-    private static String decodeStringSupplier(
+    private static StringSupplier decodeStringSupplier(
         Configuration config,
         String fullyQualifiedMethodName)
     {
-        Supplier<String> supplier = null;
+        StringSupplier supplier = null;
 
         try
         {
-            MethodType signature = MethodType.methodType(String.class);
+            MethodType signature = MethodType.methodType(StringSupplier.class);
             String[] parts = fullyQualifiedMethodName.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
             supplier = () ->
             {
-                String value = null;
+                StringSupplier value = null;
                 try
                 {
-                    value = (String) method.invoke();
+                    value = (StringSupplier) method.invoke();
                 }
                 catch (Throwable ex)
                 {
                     LangUtil.rethrowUnchecked(ex);
                 }
 
-                return value;
+                return value.get();
             };
         }
         catch (Throwable ex)
@@ -139,10 +143,10 @@ public class MqttKafkaConfiguration extends Configuration
             LangUtil.rethrowUnchecked(ex);
         }
 
-        return supplier.get();
+        return supplier;
     }
 
-    private static long decodeLongSupplier(
+    private static LongSupplier decodeLongSupplier(
         Configuration config,
         String fullyQualifiedMethodName)
     {
@@ -150,24 +154,24 @@ public class MqttKafkaConfiguration extends Configuration
 
         try
         {
-            MethodType signature = MethodType.methodType(long.class);
+            MethodType signature = MethodType.methodType(LongSupplier.class);
             String[] parts = fullyQualifiedMethodName.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
             supplier = () ->
             {
-                long value = 0;
+                LongSupplier value = null;
                 try
                 {
-                    value = (long) method.invoke();
+                    value = (LongSupplier) method.invoke();
                 }
                 catch (Throwable ex)
                 {
                     LangUtil.rethrowUnchecked(ex);
                 }
 
-                return value;
+                return value.getAsLong();
             };
         }
         catch (Throwable ex)
@@ -175,36 +179,36 @@ public class MqttKafkaConfiguration extends Configuration
             LangUtil.rethrowUnchecked(ex);
         }
 
-        return supplier.getAsLong();
+        return supplier;
     }
 
-    private static String defaultInstanceId(
+    private static StringSupplier defaultInstanceId(
         Configuration config)
     {
-        return String.format("%s-%s", "zilla", UUID.randomUUID());
+        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 
-    private static String defaultSessionId(
+    private static StringSupplier defaultSessionId(
         Configuration config)
     {
-        return String.format("%s-%s", "zilla", UUID.randomUUID());
+        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 
-    private static String defaultWillId(
+    private static StringSupplier defaultWillId(
         Configuration config)
     {
-        return String.format("%s", UUID.randomUUID());
+        return () -> String.format("%s", UUID.randomUUID());
     }
 
-    private static String defaultLifetimeId(
+    private static StringSupplier defaultLifetimeId(
         Configuration config)
     {
-        return String.format("%s", UUID.randomUUID());
+        return () -> String.format("%s", UUID.randomUUID());
     }
 
-    private static long defaultTime(
+    private static LongSupplier defaultTime(
         Configuration config)
     {
-        return now().toEpochMilli();
+        return () -> now().toEpochMilli();
     }
 }

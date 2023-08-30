@@ -83,9 +83,8 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
-
         factories.values().forEach(streamFactory -> streamFactory.onDetached(bindingId));
+        bindings.remove(bindingId);
     }
 
     @Override

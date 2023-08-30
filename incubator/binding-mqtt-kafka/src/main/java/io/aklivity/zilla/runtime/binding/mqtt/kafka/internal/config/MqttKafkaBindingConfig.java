@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -29,6 +30,7 @@ public class MqttKafkaBindingConfig
     public final KindConfig kind;
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
+    public MqttKafkaSessionFactory.KafkaWillProxy willProxy;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)
