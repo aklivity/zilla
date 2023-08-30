@@ -1,0 +1,54 @@
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 8080
+    routes:
+    - exit: http_server0
+      when:
+      - port: 8080
+  http_server0:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    routes:
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items
+          :method: GET
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items
+          :method: POST
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items/*
+          :method: GET
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items/*
+          :method: PUT
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items/*
+          :method: DELETE
+  http_client0:
+    type: http
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: "${{env.TCP_CLIENT_HOST}}"
+      port: ${{env.TCP_CLIENT_PORT}}

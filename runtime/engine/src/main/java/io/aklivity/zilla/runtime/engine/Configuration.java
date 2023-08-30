@@ -214,14 +214,14 @@ public class Configuration
         public PropertyDef<String> property(
             String name)
         {
-            return property(String.class, name, identity(), c -> null);
+            return property(String.class, name, identity(), (String) null);
         }
 
         public PropertyDef<String> property(
             String name,
             String defaultValue)
         {
-            return property(String.class, name, identity(), c -> defaultValue);
+            return property(String.class, name, identity(), defaultValue);
         }
 
         public PropertyDef<String> property(
@@ -229,6 +229,18 @@ public class Configuration
             Function<Configuration, String> defaultValue)
         {
             return property(String.class, name, identity(), defaultValue);
+        }
+
+        public <T> PropertyDef<T> property(
+            Class<T> kind,
+            String name,
+            Function<String, T> decodeValue,
+            T defaultValue)
+        {
+            String qualifiedName = qualifiedName(name);
+            PropertyDef<T> property = new ObjectPropertyDef<T>(kind, qualifiedName, decodeValue, defaultValue);
+            properties.put(qualifiedName, property);
+            return property;
         }
 
         public <T> PropertyDef<T> property(
