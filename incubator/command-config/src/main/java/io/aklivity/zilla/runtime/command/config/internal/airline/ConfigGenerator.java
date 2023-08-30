@@ -14,7 +14,24 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.airline;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 public interface ConfigGenerator
 {
     String generate();
+
+    default String unquoteEnvVars(
+        String yaml,
+        List<String> unquotedEnvVars)
+    {
+        for (String envVar : unquotedEnvVars)
+        {
+            yaml = yaml.replaceAll(
+                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
+                String.format("\\${{env.%s}}", envVar)
+            );
+        }
+        return yaml;
+    }
 }

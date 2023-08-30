@@ -25,7 +25,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonPatch;
@@ -84,7 +83,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.isJwtEnabled = !securitySchemes.isEmpty();
         ConfigWriter configWriter = new ConfigWriter(null);
         String yaml = configWriter.write(createNamespace(), createEnvVarsPatch());
-        return unquoteEnvVars(yaml);
+        return unquoteEnvVars(yaml, unquotedEnvVars());
     }
 
     private OpenApi parseOpenApi(
@@ -464,17 +463,8 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         return patch.build();
     }
 
-    private String unquoteEnvVars(
-        String yaml)
+    private List<String> unquotedEnvVars()
     {
-        List<String> unquotedEnvVars = List.of("TCP_CLIENT_PORT");
-        for (String envVar : unquotedEnvVars)
-        {
-            yaml = yaml.replaceAll(
-                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
-                String.format("\\${{env.%s}}", envVar)
-            );
-        }
-        return yaml;
+        return List.of("TCP_CLIENT_PORT");
     }
 }
