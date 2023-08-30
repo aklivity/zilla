@@ -200,8 +200,7 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string",
-                    "enum": ["test"]
+                    "type": "string"
                 },
                 "options":
                 {
