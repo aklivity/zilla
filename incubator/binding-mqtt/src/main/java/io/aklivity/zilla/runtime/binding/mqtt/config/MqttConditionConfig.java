@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
@@ -23,7 +25,18 @@ public final class MqttConditionConfig extends ConditionConfig
     public final String topic;
     public final MqttCapabilities capabilities;
 
-    public MqttConditionConfig(
+    public static MqttConditionConfigBuilder<MqttConditionConfig> builder()
+    {
+        return new MqttConditionConfigBuilder<>(MqttConditionConfig.class::cast);
+    }
+
+    public static <T> MqttConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new MqttConditionConfigBuilder<>(mapper);
+    }
+
+    MqttConditionConfig(
         String topic,
         MqttCapabilities capabilities)
     {

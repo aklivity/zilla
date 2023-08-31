@@ -21,6 +21,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
@@ -62,14 +63,18 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String topic = object.containsKey(TOPIC_NAME)
-            ? object.getString(TOPIC_NAME)
-            : null;
+        MqttConditionConfigBuilder<MqttConditionConfig> mqttConfig = MqttConditionConfig.builder();
 
-        MqttCapabilities capabilities = object.containsKey(CAPABILITIES_NAME)
-            ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
-            : null;
+        if (object.containsKey(TOPIC_NAME))
+        {
+            mqttConfig.topic(object.getString(TOPIC_NAME));
+        }
 
-        return new MqttConditionConfig(topic, capabilities);
+        if (object.containsKey(CAPABILITIES_NAME))
+        {
+            mqttConfig.capabilities(MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase()));
+        }
+
+        return mqttConfig.build();
     }
 }

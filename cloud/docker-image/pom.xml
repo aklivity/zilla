@@ -212,7 +212,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
         <configuration>
           <executableDependency>
             <groupId>${project.groupId}</groupId>
@@ -362,6 +361,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>exporter-otlp</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>command-config</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
