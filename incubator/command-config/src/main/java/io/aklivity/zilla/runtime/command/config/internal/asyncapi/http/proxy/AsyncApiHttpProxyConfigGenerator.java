@@ -57,7 +57,7 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 {
-    private final InputStream inputStream;
+    private final InputStream input;
 
     private AsyncApi asyncApi;
     private int[] allPorts;
@@ -70,15 +70,15 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     private boolean isJwtEnabled;
 
     public AsyncApiHttpProxyConfigGenerator(
-        InputStream inputStream)
+        InputStream input)
     {
-        this.inputStream = inputStream;
+        this.input = input;
     }
 
     @Override
     public String generate()
     {
-        this.asyncApi = parseAsyncApi(inputStream);
+        this.asyncApi = parseAsyncApi(input);
         this.allPorts = resolveAllPorts();
         this.httpPorts = resolvePortsForScheme("http");
         this.httpsPorts = resolvePortsForScheme("https");
