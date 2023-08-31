@@ -230,6 +230,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.with.user.property/client",
         "${kafka}/publish.with.user.property/server"})
