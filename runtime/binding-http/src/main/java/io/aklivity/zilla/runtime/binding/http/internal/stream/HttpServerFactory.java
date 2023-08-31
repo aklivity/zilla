@@ -2732,7 +2732,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 Flyweight extension)
             {
                 int requestNoAck = (int)(requestSeq - requestAck);
-                int length = Math.min(requestMax - requestNoAck - requestPad, limit - offset);
+                int length = Math.min(Math.max(requestMax - requestNoAck - requestPad, 0), limit - offset);
 
                 if (length > 0)
                 {
