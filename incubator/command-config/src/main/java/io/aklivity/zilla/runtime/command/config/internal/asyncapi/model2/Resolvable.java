@@ -20,8 +20,16 @@ import java.util.regex.Pattern;
 
 public abstract class Resolvable<T>
 {
-    protected Map<String, T> map;
-    protected String regex;
+    private final Map<String, T> map;
+    private final String regex;
+
+    public Resolvable(
+        Map<String, T> map,
+        String regex)
+    {
+        this.map = map;
+        this.regex = regex;
+    }
 
     protected T resolveRef(
         String ref)

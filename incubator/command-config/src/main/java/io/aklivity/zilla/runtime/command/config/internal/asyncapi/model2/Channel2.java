@@ -26,8 +26,7 @@ public final class Channel2 extends Resolvable<Channel>
         Map<String, Channel> channels,
         Channel channel)
     {
-        super.map = channels;
-        super.regex = "#/channels/(\\w+)";
+        super(channels, "#/channels/(\\w+)");
         this.channel = channel.ref == null ? channel : resolveRef(channel.ref);
     }
 
