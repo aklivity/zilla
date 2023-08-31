@@ -54,6 +54,11 @@ scope mqtt
         TEXT
     }
 
+    enum MqttWillDeliverAt (int64)
+    {
+        UNKNOWN(-1L)
+    }
+
     struct MqttBinary
     {
         int32 length;
@@ -80,7 +85,17 @@ scope mqtt
         MqttTopicFilter[] subscriptions;
     }
 
-    struct MqttMessage
+    struct MqttWillSignal
+    {
+        string16 clientId;
+        int32 delay = 0;
+        int64 deliverAt = -1;
+        string16 lifetimeId = null;
+        string16 willId = null;
+        string16 instanceId;
+    }
+
+    struct MqttWillMessage
     {
         string16 topic = null;
         int32 delay = 0;
@@ -90,6 +105,8 @@ scope mqtt
         string16 contentType = null;
         MqttPayloadFormat format = BINARY;
         string16 responseTopic = null;
+        string16 lifetimeId = null;
+        string16 willId = null;
         MqttBinary correlation;
         MqttUserProperty[] properties;
         MqttBinary payload;

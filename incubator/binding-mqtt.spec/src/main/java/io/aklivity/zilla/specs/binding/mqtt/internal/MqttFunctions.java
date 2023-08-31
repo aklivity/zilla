@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.specs.binding.mqtt.internal;
 
+import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
@@ -31,7 +32,6 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
@@ -41,6 +41,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
@@ -117,6 +119,18 @@ public final class MqttFunctions
     public static MqttWillMessageBuilder will()
     {
         return new MqttWillMessageBuilder();
+    }
+
+    @Function
+    public static MqttWillSignalBuilder willSignal()
+    {
+        return new MqttWillSignalBuilder();
+    }
+
+    @Function
+    public static long timestamp()
+    {
+        return currentTimeMillis();
     }
 
     @Function
@@ -739,7 +753,8 @@ public final class MqttFunctions
 
     public static final class MqttWillMessageBuilder
     {
-        private final MqttMessageFW.Builder willMessageRW = new MqttMessageFW.Builder();
+        private final MqttWillMessageFW.Builder willMessageRW = new MqttWillMessageFW.Builder();
+        private final MqttWillMessageFW willMessageRO = new MqttWillMessageFW();
 
         private MqttWillMessageBuilder()
         {
@@ -806,6 +821,20 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttWillMessageBuilder lifetimeId(
+            String lifetimeId)
+        {
+            willMessageRW.lifetimeId(lifetimeId);
+            return this;
+        }
+
+        public MqttWillMessageBuilder willId(
+            String willId)
+        {
+            willMessageRW.willId(willId);
+            return this;
+        }
+
         public MqttWillMessageBuilder correlation(
             String correlation)
         {
@@ -844,9 +873,70 @@ public final class MqttFunctions
 
         public byte[] build()
         {
-            final MqttMessageFW willMessage = willMessageRW.build();
+            final MqttWillMessageFW willMessage = willMessageRW.build();
             final byte[] array = new byte[willMessage.sizeof()];
             willMessage.buffer().getBytes(willMessage.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class MqttWillSignalBuilder
+    {
+        private final MqttWillSignalFW.Builder willSignalRW = new MqttWillSignalFW.Builder();
+
+        private MqttWillSignalBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            willSignalRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttWillSignalBuilder clientId(
+            String clientId)
+        {
+            willSignalRW.clientId(clientId);
+            return this;
+        }
+
+        public MqttWillSignalBuilder delay(
+            int delay)
+        {
+            willSignalRW.delay(delay);
+            return this;
+        }
+
+        public MqttWillSignalBuilder deliverAt(
+            long deliverAt)
+        {
+            willSignalRW.deliverAt(deliverAt);
+            return this;
+        }
+
+        public MqttWillSignalBuilder lifetimeId(
+            String lifetimeId)
+        {
+            willSignalRW.lifetimeId(lifetimeId);
+            return this;
+        }
+
+        public MqttWillSignalBuilder willId(
+            String willId)
+        {
+            willSignalRW.willId(willId);
+            return this;
+        }
+
+        public MqttWillSignalBuilder instanceId(
+            String instanceId)
+        {
+            willSignalRW.instanceId(instanceId);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttWillSignalFW willSignal = willSignalRW.build();
+            final byte[] array = new byte[willSignal.sizeof()];
+            willSignal.buffer().getBytes(willSignal.offset(), array);
             return array;
         }
     }

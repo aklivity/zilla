@@ -14,10 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_STREAM_RECONNECT_DELAY;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -42,7 +45,8 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
 
     public MqttKafkaProxyFactory(
         MqttKafkaConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        InstanceId instanceId)
     {
         final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<MqttKafkaStreamFactory> factories = new Int2ObjectHashMap<>();
@@ -54,7 +58,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
             config, context, bindings::get);
 
         final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-            config, context, bindings::get);
+            config, context, instanceId, bindings::get, WILL_STREAM_RECONNECT_DELAY);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
@@ -79,9 +83,8 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
-
         factories.values().forEach(streamFactory -> streamFactory.onDetached(bindingId));
+        bindings.remove(bindingId);
     }
 
     @Override

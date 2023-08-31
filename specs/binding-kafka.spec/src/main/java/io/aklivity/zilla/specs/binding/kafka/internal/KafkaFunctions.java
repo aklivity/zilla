@@ -3356,11 +3356,19 @@ public final class KafkaFunctions
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
             private KafkaKeyFW.Builder keyRW;
             private KafkaOffsetFW.Builder partitionRW;
+            private KafkaCapabilities capabilities;
 
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
+            }
+
+            public KafkaMergedFlushExMatcherBuilder capabilities(
+                String capabilities)
+            {
+                this.capabilities = KafkaCapabilities.valueOf(capabilities);
+                return this;
             }
 
             public KafkaMergedFlushExMatcherBuilder progress(
@@ -3476,10 +3484,17 @@ public final class KafkaFunctions
                 KafkaFlushExFW flushEx)
             {
                 final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
-                return matchProgress(mergedFlushEx) &&
+                return matchCapabilities(mergedFlushEx) &&
+                    matchProgress(mergedFlushEx) &&
                     matchKey(mergedFlushEx) &&
                     matchPartition(mergedFlushEx) &&
                     matchFilters(mergedFlushEx);
+            }
+
+            private boolean matchCapabilities(
+                final KafkaMergedFlushExFW mergedFlushEx)
+            {
+                return capabilities == null || capabilities.equals(mergedFlushEx.capabilities().get());
             }
 
             private boolean matchProgress(
@@ -4019,6 +4034,7 @@ public final class KafkaFunctions
         {
             private KafkaCapabilities capabilities;
             private String16FW topic;
+            private String16FW groupId;
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
@@ -4042,6 +4058,13 @@ public final class KafkaFunctions
                 String topic)
             {
                 this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
                 return this;
             }
 
@@ -4145,6 +4168,7 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
                 return matchCapabilities(mergedBeginEx) &&
                     matchTopic(mergedBeginEx) &&
+                    matchGroupId(mergedBeginEx) &&
                     matchPartitions(mergedBeginEx) &&
                     matchFilters(mergedBeginEx) &&
                     matchIsolation(mergedBeginEx) &&
@@ -4163,6 +4187,12 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return topic == null || topic.equals(mergedBeginEx.topic());
+            }
+
+            private boolean matchGroupId(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return groupId == null || groupId.equals(mergedBeginEx.groupId());
             }
 
             private boolean matchPartitions(

@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+
 connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -30,6 +31,13 @@ connected
 read zilla:data.empty
 
 write notify READ_SESSION_EMPTY
+
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
 
 write ${mqtt:session()
                .subscription("sensor/one", 1)
@@ -73,6 +81,7 @@ connect await SESSION_READY
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
+                                .flags("CLEAN_START")
                                 .expiry(1)
                                 .clientId("client-1")
                                 .build()
@@ -84,4 +93,10 @@ read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
 write zilla:data.empty

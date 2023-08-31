@@ -31,6 +31,12 @@ read zilla:data.empty
 
 write notify READ_EMPTY_STATE
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
 write ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}

@@ -24,10 +24,12 @@ public class MqttKafkaBinding implements Binding
     public static final String NAME = "mqtt-kafka";
 
     private final MqttKafkaConfiguration config;
+    private final InstanceId instanceId;
 
     MqttKafkaBinding(
         MqttKafkaConfiguration config)
     {
+        this.instanceId = new InstanceId(config.instanceId());
         this.config = config;
     }
 
@@ -47,6 +49,7 @@ public class MqttKafkaBinding implements Binding
     public MqttKafkaBindingContext supply(
         EngineContext context)
     {
-        return new MqttKafkaBindingContext(config, context);
+        return new MqttKafkaBindingContext(config, context, instanceId);
     }
+
 }

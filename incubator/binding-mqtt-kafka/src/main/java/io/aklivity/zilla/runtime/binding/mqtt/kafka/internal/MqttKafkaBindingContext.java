@@ -33,9 +33,10 @@ public class MqttKafkaBindingContext implements BindingContext
 
     MqttKafkaBindingContext(
         MqttKafkaConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        InstanceId instanceId)
     {
-        this.factories = singletonMap(PROXY, new MqttKafkaProxyFactory(config, context));
+        this.factories = singletonMap(PROXY, new MqttKafkaProxyFactory(config, context, instanceId));
     }
 
     @Override

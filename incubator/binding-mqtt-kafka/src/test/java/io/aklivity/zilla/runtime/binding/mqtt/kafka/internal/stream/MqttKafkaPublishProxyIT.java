@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -28,6 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class MqttKafkaPublishProxyIT
 {
@@ -52,6 +54,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.client.sent.abort/client",
         "${kafka}/publish.client.sent.abort/server"})
@@ -62,6 +65,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.client.sent.reset/client",
         "${kafka}/publish.client.sent.reset/server"})
@@ -72,6 +76,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.server.sent.abort/client",
         "${kafka}/publish.server.sent.abort/server"})
@@ -82,6 +87,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.server.sent.flush/client",
         "${kafka}/publish.server.sent.flush/server"})
@@ -92,6 +98,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.server.sent.reset/client",
         "${kafka}/publish.server.sent.reset/server"})
@@ -102,6 +109,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.server.sent.data/client",
         "${kafka}/publish.server.sent.data/server"})
@@ -112,6 +120,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.retained.server.sent.abort/client",
         "${kafka}/publish.retained.server.sent.abort/server"})
@@ -122,6 +131,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.retained.server.sent.flush/client",
         "${kafka}/publish.retained.server.sent.flush/server"})
@@ -132,6 +142,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.retained.server.sent.reset/client",
         "${kafka}/publish.retained.server.sent.reset/server"})
@@ -142,6 +153,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.retained.server.sent.data/client",
         "${kafka}/publish.retained.server.sent.data/server"})
@@ -152,6 +164,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.one.message/client",
         "${kafka}/publish.one.message/server"})
@@ -162,6 +175,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.options.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.one.message/client",
         "${kafka}/publish.one.message.changed.topic.name/server"})
@@ -172,6 +186,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.retained/client",
         "${kafka}/publish.retained/server"})
@@ -182,6 +197,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.empty.message/client",
         "${kafka}/publish.empty.message/server"})
@@ -192,6 +208,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.multiple.messages/client",
         "${kafka}/publish.multiple.messages/server"})
@@ -202,6 +219,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.multiple.clients/client",
         "${kafka}/publish.multiple.clients/server"})
@@ -222,6 +240,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.with.user.properties.distinct/client",
         "${kafka}/publish.with.user.properties.distinct/server"})
@@ -232,6 +251,7 @@ public class MqttKafkaPublishProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.with.user.properties.repeated/client",
         "${kafka}/publish.with.user.properties.repeated/server"})

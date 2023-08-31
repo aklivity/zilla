@@ -574,4 +574,94 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.abort.deliver.will/client",
+        "${kafka}/session.will.message.abort.deliver.will/server"})
+    public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.normal.disconnect/client",
+        "${kafka}/session.will.message.normal.disconnect/server"})
+    public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.abort.deliver.will.retain/client",
+        "${kafka}/session.will.message.abort.deliver.will.retain/server"})
+    public void shouldSaveWillMessageAsRetain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.clean.start/client",
+        "${kafka}/session.will.message.clean.start/server"})
+    public void shouldGenerateLifeTimeIdOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
+        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+    public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.takeover.deliver.will/client",
+        "${kafka}/session.will.message.takeover.deliver.will/server"})
+    public void shouldSendWillMessageOnSessionTakeover() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.cancel.delivery/client",
+        "${kafka}/session.will.message.cancel.delivery/server"})
+    public void shouldCancelWillDelivery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.end.reconnect/client",
+        "${kafka}/session.will.stream.end.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.abort.reconnect/client",
+        "${kafka}/session.will.stream.abort.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.stream.reset.reconnect/client",
+        "${kafka}/session.will.stream.reset.reconnect/server"})
+    public void shouldReconnectWillStreamOnKafkaReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

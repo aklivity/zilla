@@ -352,7 +352,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 });
             }
 
-            if (mqttPublishDataEx.contentType().asString() != null)
+            if (mqttPublishDataEx.contentType().length() != -1)
             {
                 addHeader(helper.kafkaContentTypeHeaderName, mqttPublishDataEx.contentType());
             }
@@ -362,7 +362,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 addHeader(helper.kafkaFormatHeaderName, mqttPublishDataEx.format());
             }
 
-            if (mqttPublishDataEx.responseTopic().asString() != null)
+            if (mqttPublishDataEx.responseTopic().length() != -1)
             {
                 final String16FW responseTopic = mqttPublishDataEx.responseTopic();
                 addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
