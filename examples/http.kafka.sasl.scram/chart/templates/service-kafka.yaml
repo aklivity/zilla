@@ -20,7 +20,7 @@ spec:
           command: ['/bin/sh', '-c', 'until echo srvr | nc -w 2 zookeeper 2181 2>/dev/null; do echo . && sleep 5; done']
       containers:
         - name: kafka
-          image: "bitnami/kafka:3.1.0"
+          image: "bitnami/kafka:3.2"
           env:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"

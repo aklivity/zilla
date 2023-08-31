@@ -20,7 +20,7 @@ spec:
             - /bin/sh
             - -c
             - /opt/bitnami/scripts/kafka/setup.sh && kafka-storage.sh format --config "${KAFKA_CONF_FILE}" --cluster-id "lkorDA4qT6W1K_dk0LHvtg" --ignore-formatted && /opt/bitnami/scripts/kafka/run.sh
-          image: "bitnami/kafka:3.1.0"
+          image: "bitnami/kafka:3.2"
           env:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
