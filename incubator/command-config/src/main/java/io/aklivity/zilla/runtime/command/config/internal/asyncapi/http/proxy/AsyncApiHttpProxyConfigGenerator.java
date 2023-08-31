@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.openapi.http.proxy;
+package io.aklivity.zilla.runtime.command.config.internal.asyncapi.http.proxy;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
@@ -39,10 +39,13 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.view.PathView;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.view.ServerView;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Item;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Message;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Operation;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Server;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ChannelView;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -52,62 +55,65 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
+public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 {
-    private final InputStream inputStream;
+    private final InputStream input;
 
-    private OpenApi openApi;
+    private AsyncApi asyncApi;
     private int[] allPorts;
     private int[] httpPorts;
     private int[] httpsPorts;
     private boolean isPlainEnabled;
     private boolean isTlsEnabled;
     private Map<String, String> securitySchemes;
+    private String authorizationHeader;
     private boolean isJwtEnabled;
 
-    public OpenApiHttpProxyConfigGenerator(
-        InputStream inputStream)
+    public AsyncApiHttpProxyConfigGenerator(
+        InputStream input)
     {
-        this.inputStream = inputStream;
+        this.input = input;
     }
 
     @Override
     public String generate()
     {
-        this.openApi = parseOpenApi(inputStream);
+        this.asyncApi = parseAsyncApi(input);
         this.allPorts = resolveAllPorts();
         this.httpPorts = resolvePortsForScheme("http");
         this.httpsPorts = resolvePortsForScheme("https");
         this.isPlainEnabled = httpPorts != null;
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
+        this.authorizationHeader = resolveAuthorizationHeader();
         this.isJwtEnabled = !securitySchemes.isEmpty();
         ConfigWriter configWriter = new ConfigWriter(null);
         String yaml = configWriter.write(createNamespace(), createEnvVarsPatch());
         return unquoteEnvVars(yaml, unquotedEnvVars());
     }
 
-    private OpenApi parseOpenApi(
+    private AsyncApi parseAsyncApi(
         InputStream inputStream)
     {
-        OpenApi openApi = null;
+        AsyncApi asyncApi = null;
         try (Jsonb jsonb = JsonbBuilder.create())
         {
-            openApi = jsonb.fromJson(inputStream, OpenApi.class);
+            asyncApi = jsonb.fromJson(inputStream, AsyncApi.class);
         }
         catch (Exception ex)
         {
             rethrowUnchecked(ex);
         }
-        return openApi;
+        return asyncApi;
     }
 
     private int[] resolveAllPorts()
     {
-        int[] ports = new int[openApi.servers.size()];
-        for (int i = 0; i < openApi.servers.size(); i++)
+        int[] ports = new int[asyncApi.servers.size()];
+        String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
+        for (int i = 0; i < asyncApi.servers.size(); i++)
         {
-            ServerView server = ServerView.of(openApi.servers.get(i));
+            ServerView server = ServerView.of(asyncApi.servers.get(keys[i]));
             URI url = server.url();
             ports[i] = url.getPort();
         }
@@ -132,9 +138,9 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         requireNonNull(scheme);
         URI result = null;
-        for (Server item : openApi.servers)
+        for (String key : asyncApi.servers.keySet())
         {
-            ServerView server = ServerView.of(item);
+            ServerView server = ServerView.of(asyncApi.servers.get(key));
             if (scheme.equals(server.url().getScheme()))
             {
                 result = server.url();
@@ -146,16 +152,38 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
 
     private Map<String, String> resolveSecuritySchemes()
     {
-        requireNonNull(openApi);
+        requireNonNull(asyncApi);
         Map<String, String> result = new HashMap<>();
-        if (openApi.components != null && openApi.components.securitySchemes != null)
+        if (asyncApi.components != null && asyncApi.components.securitySchemes != null)
         {
-            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+            for (String securitySchemeName : asyncApi.components.securitySchemes.keySet())
             {
-                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                String guardType = asyncApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
                 if ("jwt".equals(guardType))
                 {
                     result.put(securitySchemeName, guardType);
+                }
+            }
+        }
+        return result;
+    }
+
+    private String resolveAuthorizationHeader()
+    {
+        requireNonNull(asyncApi);
+        requireNonNull(asyncApi.components);
+        requireNonNull(asyncApi.components.messages);
+        String result = null;
+        for (Map.Entry<String, Message> entry: asyncApi.components.messages.entrySet())
+        {
+            Message message = entry.getValue();
+            if (message.headers != null && message.headers.properties != null)
+            {
+                Item authorization = message.headers.properties.get("authorization");
+                if (authorization != null)
+                {
+                    result = authorization.description;
+                    break;
                 }
             }
         }
@@ -166,7 +194,7 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         return NamespaceConfig.builder()
             .name("example")
-            .binding()
+                .binding()
                 .name("tcp_server0")
                 .type("tcp")
                 .kind(SERVER)
@@ -276,10 +304,10 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
                     .credentials()
                         .header()
                             .name("authorization")
-                            .pattern("Bearer {credentials}")
+                            .pattern(authorizationHeader)
                             .build()
-                    .build()
-                .build();
+                        .build()
+                    .build();
         }
         return options;
     }
@@ -287,34 +315,38 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        for (String item : openApi.paths.keySet())
+        for (Map.Entry<String, Server> entry : asyncApi.servers.entrySet())
         {
-            PathView path = PathView.of(openApi.paths.get(item));
-            for (String method : path.methods().keySet())
+            ServerView server = ServerView.of(entry.getValue());
+            for (String name : asyncApi.operations.keySet())
             {
+                Operation operation = asyncApi.operations.get(name);
+                ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
+                String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
+                String method = operation.bindings.get("http").method;
                 binding
                     .route()
                         .exit("http_client0")
                         .when(HttpConditionConfig::builder)
-                            .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
+                            .header(":scheme", server.scheme())
+                            .header(":authority", server.authority())
+                            .header(":path", path)
                             .header(":method", method)
                             .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, path, method))
-                        .build();
+                        .inject(route -> injectHttpServerRouteGuarded(route, server))
+                    .build();
             }
         }
         return binding;
     }
 
-    private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
-        RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
-        PathView path,
-        String method)
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
+        ServerView server)
     {
-        List<Map<String, List<String>>> security = path.methods().get(method).security;
-        if (security != null)
+        if (server.security() != null)
         {
-            for (Map<String, List<String>> securityItem : security)
+            for (Map<String, List<String>> securityItem : server.security())
             {
                 for (String securityItemLabel : securityItem.keySet())
                 {
@@ -325,6 +357,7 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
                                 .name("jwt0")
                                 .inject(guarded -> injectGuardedRoles(guarded, securityItem.get(securityItemLabel)))
                                 .build();
+                        break;
                     }
                 }
             }

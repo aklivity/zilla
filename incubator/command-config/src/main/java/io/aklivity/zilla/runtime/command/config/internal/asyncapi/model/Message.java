@@ -12,26 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.airline;
+package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
-import java.util.List;
-import java.util.regex.Pattern;
-
-public abstract class ConfigGenerator
+public class Message
 {
-    public abstract String generate();
-
-    protected final String unquoteEnvVars(
-        String yaml,
-        List<String> unquotedEnvVars)
-    {
-        for (String envVar : unquotedEnvVars)
-        {
-            yaml = yaml.replaceAll(
-                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
-                String.format("\\${{env.%s}}", envVar)
-            );
-        }
-        return yaml;
-    }
+    public Schema headers;
 }
