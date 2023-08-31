@@ -203,6 +203,16 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mqtt}/publish.multiple.clients/client",
+        "${kafka}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mqtt}/publish.with.user.property/client",
         "${kafka}/publish.with.user.property/server"})
     public void shouldSendWithUserProperty() throws Exception

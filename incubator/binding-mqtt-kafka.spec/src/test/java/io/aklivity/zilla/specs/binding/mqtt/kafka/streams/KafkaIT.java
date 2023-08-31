@@ -172,6 +172,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.multiple.clients/client",
+        "${kafka}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.with.user.properties.distinct/client",
         "${kafka}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
