@@ -16,7 +16,7 @@ bindings:
     kind: server
     options:
       keys:
-      - "${{env.TLS_SERVER_KEYS}}"
+      - "${{env.TLS_SERVER_KEY}}"
       sni:
       - "${{env.TLS_SERVER_SNI}}"
       alpn:
