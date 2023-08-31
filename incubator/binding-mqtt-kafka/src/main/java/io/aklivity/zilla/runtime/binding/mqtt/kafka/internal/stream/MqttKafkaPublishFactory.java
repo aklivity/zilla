@@ -20,6 +20,7 @@ import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -43,7 +44,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortF
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaDataExFW;
@@ -62,7 +62,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
-    private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final byte SLASH_BYTE = (byte) '/';
 
@@ -85,18 +84,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
 
-    private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
-    private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
-
-    private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
+
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer kafkaHeadersBuffer;
@@ -104,7 +100,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final MqttKafkaHeaderHelper helper;
-    private final int mqttTypeId;
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
@@ -115,7 +110,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         EngineContext context,
         LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
-        this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -183,7 +177,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private KafkaKeyFW key;
 
-        private OctetsFW[] topicNameHeaders;
+        private Array32FW<String16FW> topicNameHeaders;
         private OctetsFW clientIdOctets;
         private boolean retainAvailable;
 
@@ -269,17 +263,32 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             String topicName = mqttPublishBeginEx.topic().asString();
             assert topicName != null;
 
+
+            final String16FW clientId = mqttPublishBeginEx.clientId();
+            final MutableDirectBuffer clientIdBuffer = new UnsafeBuffer(new byte[clientId.sizeof() + 2]);
+            this.clientIdOctets = new OctetsFW.Builder().wrap(clientIdBuffer, 0, clientIdBuffer.capacity())
+                .set(clientId.value(), 0, mqttPublishBeginEx.clientId().length()).build();
+
             String[] topicHeaders = topicName.split("/");
-            topicNameHeaders = new OctetsFW[topicHeaders.length];
+            final OctetsFW[] topicNameHeaders = new OctetsFW[topicHeaders.length];
+
+            final int topicNameHeadersBufferSize = topicName.length() - (topicNameHeaders.length - 1) +
+                topicNameHeaders.length * 2 + BitUtil.SIZE_OF_INT + BitUtil.SIZE_OF_INT; //Array32FW count, length
+            final MutableDirectBuffer topicNameHeadersBuffer = new UnsafeBuffer(new byte[topicNameHeadersBufferSize]);
+
+            final Array32FW.Builder<String16FW.Builder, String16FW> topicNameHeadersRW =
+                new Array32FW.Builder<>(new String16FW.Builder(), new String16FW());
+            topicNameHeadersRW.wrap(topicNameHeadersBuffer, 0, topicNameHeadersBuffer.capacity());
+
             for (int i = 0; i < topicHeaders.length; i++)
             {
                 String16FW topicHeader = new String16FW(topicHeaders[i]);
-                topicNameHeaders[i] = new OctetsFW().wrap(topicHeader.value(), 0, topicHeader.length());
+                topicNameHeadersRW.item(h -> h.set(topicHeader));
             }
-            clientIdOctets = new OctetsFW()
-                .wrap(mqttPublishBeginEx.clientId().value(), 0, mqttPublishBeginEx.clientId().length());
-            final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
+            this.topicNameHeaders = topicNameHeadersRW.build();
 
+
+            final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
             final MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[topicNameBuffer.capacity() + 4]);
             key = new KafkaKeyFW.Builder()
                 .wrap(keyBuffer, 0, keyBuffer.capacity())
@@ -326,10 +335,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final MqttPublishDataExFW mqttPublishDataEx = mqttDataEx.publish();
             kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
 
-            for (OctetsFW topicHeader : topicNameHeaders)
-            {
-                addHeader(helper.kafkaFilterHeaderName, topicHeader);
-            }
+            topicNameHeaders.forEach(th -> addHeader(helper.kafkaFilterHeaderName, th));
 
             addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
 

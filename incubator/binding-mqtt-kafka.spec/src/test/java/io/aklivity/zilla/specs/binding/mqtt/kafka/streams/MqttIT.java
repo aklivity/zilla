@@ -118,6 +118,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.multiple.clients/client",
+        "${mqtt}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.retained/client",
         "${mqtt}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception
