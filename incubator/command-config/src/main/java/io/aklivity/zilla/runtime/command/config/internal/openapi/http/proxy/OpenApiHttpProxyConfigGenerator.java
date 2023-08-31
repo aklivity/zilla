@@ -41,8 +41,8 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.PathItem2;
-import io.aklivity.zilla.runtime.command.config.internal.openapi.model2.Server2;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.view.PathView;
+import io.aklivity.zilla.runtime.command.config.internal.openapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -107,8 +107,8 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
         int[] ports = new int[openApi.servers.size()];
         for (int i = 0; i < openApi.servers.size(); i++)
         {
-            Server2 server2 = Server2.of(openApi.servers.get(i));
-            URI url = server2.url();
+            ServerView server = ServerView.of(openApi.servers.get(i));
+            URI url = server.url();
             ports[i] = url.getPort();
         }
         return ports;
@@ -132,12 +132,12 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         requireNonNull(scheme);
         URI result = null;
-        for (Server server : openApi.servers)
+        for (Server item : openApi.servers)
         {
-            Server2 server2 = Server2.of(server);
-            if (scheme.equals(server2.url().getScheme()))
+            ServerView server = ServerView.of(item);
+            if (scheme.equals(server.url().getScheme()))
             {
-                result = server2.url();
+                result = server.url();
                 break;
             }
         }
@@ -287,19 +287,19 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        for (String path : openApi.paths.keySet())
+        for (String item : openApi.paths.keySet())
         {
-            PathItem2 item = PathItem2.of(openApi.paths.get(path));
-            for (String method : item.methods().keySet())
+            PathView path = PathView.of(openApi.paths.get(item));
+            for (String method : path.methods().keySet())
             {
                 binding
                     .route()
                         .exit("http_client0")
                         .when(HttpConditionConfig::builder)
-                            .header(":path", path.replaceAll("\\{[^}]+\\}", "*"))
+                            .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
                             .header(":method", method)
                             .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, item, method))
+                        .inject(route -> injectHttpServerRouteGuarded(route, path, method))
                         .build();
             }
         }
@@ -308,10 +308,10 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
 
     private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
         RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
-        PathItem2 item,
+        PathView path,
         String method)
     {
-        List<Map<String, List<String>>> security = item.methods().get(method).security;
+        List<Map<String, List<String>>> security = path.methods().get(method).security;
         if (security != null)
         {
             for (Map<String, List<String>> securityItem : security)

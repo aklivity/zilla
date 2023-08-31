@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.openapi.model2;
+package io.aklivity.zilla.runtime.command.config.internal.openapi.view;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,11 +20,11 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.model.PathItem;
 
-public class PathItem2
+public class PathView
 {
     private final LinkedHashMap<String, Operation> methods;
 
-    public PathItem2(
+    public PathView(
         PathItem pathItem)
     {
         this.methods = new LinkedHashMap<>();
@@ -43,10 +43,10 @@ public class PathItem2
         return methods;
     }
 
-    public static PathItem2 of(
+    public static PathView of(
         PathItem pathItem)
     {
-        return new PathItem2(pathItem);
+        return new PathView(pathItem);
     }
 
     private static void putIfNotNull(
