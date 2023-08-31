@@ -57,7 +57,7 @@ operations:
 components:
   correlationIds:
     itemsCorrelationId:
-      location: '$message.header#/Idempotency-Key'
+      location: '$message.header#/idempotency-key'
   messages:
     item:
       name: event
@@ -67,7 +67,7 @@ components:
       headers:
         type: object
         properties:
-          Idempotency-Key:
+          idempotency-key:
             description: Unique identifier for a given event
             type: string
           authorization:
