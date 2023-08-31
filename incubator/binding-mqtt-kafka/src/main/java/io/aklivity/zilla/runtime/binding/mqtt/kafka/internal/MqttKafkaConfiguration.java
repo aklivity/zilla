@@ -111,7 +111,6 @@ public class MqttKafkaConfiguration extends Configuration
     }
 
     private static StringSupplier decodeStringSupplier(
-        Configuration config,
         String fullyQualifiedMethodName)
     {
         StringSupplier supplier = null;
@@ -147,7 +146,6 @@ public class MqttKafkaConfiguration extends Configuration
     }
 
     private static LongSupplier decodeLongSupplier(
-        Configuration config,
         String fullyQualifiedMethodName)
     {
         LongSupplier supplier = null;
@@ -182,33 +180,28 @@ public class MqttKafkaConfiguration extends Configuration
         return supplier;
     }
 
-    private static StringSupplier defaultInstanceId(
-        Configuration config)
+    private static String defaultInstanceId()
     {
-        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
+        return String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 
-    private static StringSupplier defaultSessionId(
-        Configuration config)
+    private static String defaultSessionId()
     {
-        return () -> String.format("%s-%s", "zilla", UUID.randomUUID());
+        return String.format("%s-%s", "zilla", UUID.randomUUID());
     }
 
-    private static StringSupplier defaultWillId(
-        Configuration config)
+    private static String defaultWillId()
     {
-        return () -> String.format("%s", UUID.randomUUID());
+        return String.format("%s", UUID.randomUUID());
     }
 
-    private static StringSupplier defaultLifetimeId(
-        Configuration config)
+    private static String defaultLifetimeId()
     {
-        return () -> String.format("%s", UUID.randomUUID());
+        return String.format("%s", UUID.randomUUID());
     }
 
-    private static LongSupplier defaultTime(
-        Configuration config)
+    private static long defaultTime()
     {
-        return () -> now().toEpochMilli();
+        return now().toEpochMilli();
     }
 }
