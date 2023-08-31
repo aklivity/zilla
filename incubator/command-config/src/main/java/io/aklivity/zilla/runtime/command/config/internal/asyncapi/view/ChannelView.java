@@ -12,17 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2;
+package io.aklivity.zilla.runtime.command.config.internal.asyncapi.view;
 
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
 
-public final class Channel2 extends Resolvable<Channel>
+public final class ChannelView extends Resolvable<Channel>
 {
     private final Channel channel;
 
-    private Channel2(
+    private ChannelView(
         Map<String, Channel> channels,
         Channel channel)
     {
@@ -35,10 +35,10 @@ public final class Channel2 extends Resolvable<Channel>
         return channel.address;
     }
 
-    public static Channel2 of(
+    public static ChannelView of(
         Map<String, Channel> channels,
         Channel channel)
     {
-        return new Channel2(channels, channel);
+        return new ChannelView(channels, channel);
     }
 }

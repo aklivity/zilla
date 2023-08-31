@@ -44,8 +44,8 @@ import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Item;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Message;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Operation;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Server;
-import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Channel2;
-import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Server2;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ChannelView;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -113,8 +113,8 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
         for (int i = 0; i < asyncApi.servers.size(); i++)
         {
-            Server2 server2 = Server2.of(asyncApi.servers.get(keys[i]));
-            URI url = server2.url();
+            ServerView server = ServerView.of(asyncApi.servers.get(keys[i]));
+            URI url = server.url();
             ports[i] = url.getPort();
         }
         return ports;
@@ -140,10 +140,10 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         URI result = null;
         for (String key : asyncApi.servers.keySet())
         {
-            Server2 server2 = Server2.of(asyncApi.servers.get(key));
-            if (scheme.equals(server2.url().getScheme()))
+            ServerView server = ServerView.of(asyncApi.servers.get(key));
+            if (scheme.equals(server.url().getScheme()))
             {
-                result = server2.url();
+                result = server.url();
                 break;
             }
         }
@@ -315,25 +315,25 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
     {
-        for (Map.Entry<String, Server> server : asyncApi.servers.entrySet())
+        for (Map.Entry<String, Server> entry : asyncApi.servers.entrySet())
         {
-            Server2 server2 = Server2.of(server.getValue());
+            ServerView server = ServerView.of(entry.getValue());
             for (String name : asyncApi.operations.keySet())
             {
                 Operation operation = asyncApi.operations.get(name);
-                Channel2 channel = Channel2.of(asyncApi.channels, operation.channel);
+                ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
                 String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
                 String method = operation.bindings.get("http").method;
                 binding
                     .route()
                         .exit("http_client0")
                         .when(HttpConditionConfig::builder)
-                            .header(":scheme", server2.scheme())
-                            .header(":authority", server2.authority())
+                            .header(":scheme", server.scheme())
+                            .header(":authority", server.authority())
                             .header(":path", path)
                             .header(":method", method)
                             .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, server2))
+                        .inject(route -> injectHttpServerRouteGuarded(route, server))
                     .build();
             }
         }
@@ -342,11 +342,11 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
-        Server2 server2)
+        ServerView server)
     {
-        if (server2.security() != null)
+        if (server.security() != null)
         {
-            for (Map<String, List<String>> securityItem : server2.security())
+            for (Map<String, List<String>> securityItem : server.security())
             {
                 for (String securityItemLabel : securityItem.keySet())
                 {

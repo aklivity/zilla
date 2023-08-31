@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2;
+package io.aklivity.zilla.runtime.command.config.internal.asyncapi.view;
 
 import java.net.URI;
 import java.util.List;
@@ -20,11 +20,11 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Server;
 
-public final class Server2
+public final class ServerView
 {
     private final Server server;
 
-    private Server2(
+    private ServerView(
         Server server)
     {
         this.server = server;
@@ -50,9 +50,9 @@ public final class Server2
         return String.format("%s:%d", url().getHost(), url().getPort());
     }
 
-    public static Server2 of(
+    public static ServerView of(
         Server server)
     {
-        return new Server2(server);
+        return new ServerView(server);
     }
 }
