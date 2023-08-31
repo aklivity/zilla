@@ -52,7 +52,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
+public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
 {
     private final InputStream inputStream;
 
@@ -71,6 +71,7 @@ public class OpenApiHttpProxyConfigGenerator implements ConfigGenerator
         this.inputStream = inputStream;
     }
 
+    @Override
     public String generate()
     {
         this.openApi = parseOpenApi(inputStream);

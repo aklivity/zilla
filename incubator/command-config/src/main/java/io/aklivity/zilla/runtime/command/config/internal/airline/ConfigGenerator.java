@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.command.config.internal.airline;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public interface ConfigGenerator
+public abstract class ConfigGenerator
 {
-    String generate();
+    public abstract String generate();
 
-    default String unquoteEnvVars(
+    protected final String unquoteEnvVars(
         String yaml,
         List<String> unquotedEnvVars)
     {

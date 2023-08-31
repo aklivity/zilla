@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class AsyncApiHttpProxyConfigGenerator implements ConfigGenerator
+public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 {
     private final InputStream inputStream;
 
