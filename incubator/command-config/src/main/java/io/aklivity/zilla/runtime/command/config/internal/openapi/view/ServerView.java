@@ -12,26 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.config.internal.airline;
+package io.aklivity.zilla.runtime.command.config.internal.openapi.view;
 
-import java.util.List;
-import java.util.regex.Pattern;
+import java.net.URI;
 
-public abstract class ConfigGenerator
+import io.aklivity.zilla.runtime.command.config.internal.openapi.model.Server;
+
+public final class ServerView
 {
-    public abstract String generate();
+    private URI url;
 
-    protected final String unquoteEnvVars(
-        String yaml,
-        List<String> unquotedEnvVars)
+    private ServerView(
+        Server server)
     {
-        for (String envVar : unquotedEnvVars)
-        {
-            yaml = yaml.replaceAll(
-                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
-                String.format("\\${{env.%s}}", envVar)
-            );
-        }
-        return yaml;
+        this.url = URI.create(server.url);
+    }
+
+    public URI url()
+    {
+        return url;
+    }
+
+    public static ServerView of(
+        Server server)
+    {
+        return new ServerView(server);
     }
 }

@@ -5,6 +5,8 @@ updates:
   ignore:
     - dependency-name: "org.kaazing:k3po.*"
       versions: [ "4.x", "5.x" ]
+    - dependency-name: "com.guicedee.services:commons-*"
+      versions: [ "62" ]
   schedule:
     interval: daily
 - package-ecosystem: docker

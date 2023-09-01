@@ -27,6 +27,8 @@ module io.aklivity.zilla.runtime.command.config
 
     opens io.aklivity.zilla.runtime.command.config.internal.openapi.model;
 
+    opens io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
+
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
         with io.aklivity.zilla.runtime.command.config.internal.ZillaConfigCommandSpi;
 }
