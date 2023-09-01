@@ -420,13 +420,6 @@ scope protocol
                octets[length] value;
             }
 
-            struct TopicPartition
-            {
-                int32 version;
-                string16 topic;
-                int32 partitionCount;
-            }
-
             struct Partition
             {
                 int32 partitionId;
@@ -488,11 +481,17 @@ scope protocol
                 TopicPartition[] partitions;
             }
 
-            struct MemberAssignment
+            struct TopicAssignment
             {
                 string16 topic;
                 TopicPartition[] partitions;
                 ConsumerAssignment[] userdata;
+            }
+
+            struct MemberAssignment
+            {
+                string16 memberId;
+                TopicAssignment[] assignments;
             }
 
             struct OffsetFetchRequest

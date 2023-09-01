@@ -189,7 +189,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer topicMetadataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
@@ -200,7 +199,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
     private final Duration rebalanceTimeout;
-    private int topicMetadataOffset;
 
 
     public KafkaClientGroupFactory(
@@ -215,7 +213,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.topicMetadataBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -1062,6 +1059,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final long affinity;
         private final long resolvedId;
         private final KafkaSaslConfig sasl;
+        private MutableDirectBuffer metadataBuffer;
 
         private int state;
 
@@ -1075,8 +1073,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int replyPad;
 
         private long replyBudgetId;
-        private int memberTopicMetadataOffset;
-        private int memberTopicMetadataLimit;
+        private int topicMetadataLimit;
 
         KafkaGroupStream(
             MessageConsumer application,
@@ -1105,6 +1102,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.sasl = sasl;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
+            this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
         }
 
         private void onApplication(
@@ -1163,11 +1161,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final Array32FW<KafkaGroupTopicMetadataFW> metadata = kafkaGroupBeginEx.metadata();
             final int metadataSize = metadata.sizeof();
-            memberTopicMetadataOffset = topicMetadataOffset;
-            memberTopicMetadataLimit = topicMetadataOffset + metadataSize;
 
-            topicMetadataBuffer.putBytes(topicMetadataOffset, metadata.buffer(), metadata.offset(), metadataSize);
-            topicMetadataOffset += metadataSize;
+            metadataBuffer.putBytes(topicMetadataLimit, metadata.buffer(), metadata.offset(), metadataSize);
+            topicMetadataLimit += metadataSize;
 
             state = KafkaState.openingInitial(state);
 
@@ -1403,7 +1399,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int error)
         {
             final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(writeBuffer,
-                    ResetFW.FIELD_OFFSET_EXTENSION, topicMetadataBuffer.capacity())
+                    ResetFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .error(error)
                 .build();
@@ -2527,7 +2523,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(delegate.protocol)
-                    .metadata(topicMetadataBuffer, delegate.memberTopicMetadataOffset, delegate.memberTopicMetadataLimit)
+                    .metadata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                     .build();
 
             encodeProgress = protocolMetadata.limit();
@@ -2986,6 +2982,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encoder = encodeSyncGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+
+            delegate.metadataBuffer = null;
         }
 
         private void onSynGroupRebalance(
