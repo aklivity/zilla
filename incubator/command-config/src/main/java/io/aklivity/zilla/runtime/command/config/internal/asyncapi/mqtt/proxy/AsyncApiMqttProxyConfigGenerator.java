@@ -37,14 +37,14 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
-import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model2.Server2;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
+public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
     private final InputStream inputStream;
 
@@ -96,8 +96,8 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
         String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
         for (int i = 0; i < asyncApi.servers.size(); i++)
         {
-            Server2 server2 = Server2.of(asyncApi.servers.get(keys[i]));
-            URI url = server2.url();
+            ServerView server = ServerView.of(asyncApi.servers.get(keys[i]));
+            URI url = server.url();
             ports[i] = url.getPort();
         }
         return ports;
@@ -123,10 +123,10 @@ public class AsyncApiMqttProxyConfigGenerator implements ConfigGenerator
         URI result = null;
         for (String key : asyncApi.servers.keySet())
         {
-            Server2 server2 = Server2.of(asyncApi.servers.get(key));
-            if (scheme.equals(server2.url().getScheme()))
+            ServerView server = ServerView.of(asyncApi.servers.get(key));
+            if (scheme.equals(server.url().getScheme()))
             {
-                result = server2.url();
+                result = server.url();
                 break;
             }
         }
