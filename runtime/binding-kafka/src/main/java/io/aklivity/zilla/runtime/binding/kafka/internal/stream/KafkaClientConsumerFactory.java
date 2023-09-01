@@ -16,15 +16,14 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -35,7 +34,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.MemberAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -44,7 +44,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -69,8 +72,11 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaGroupFlushExFW kafkaGroupFlushExRO = new KafkaGroupFlushExFW();
+    private final KafkaGroupMemberMetadataFW kafkaGroupMemberMetadataRO = new KafkaGroupMemberMetadataFW();
     private final Array32FW<KafkaGroupTopicMetadataFW> groupTopicsMetadataRO =
         new Array32FW<>(new KafkaGroupTopicMetadataFW());
+    private final Array32FW<TopicAssignmentFW> topicAssignmentsRO =
+        new Array32FW<>(new TopicAssignmentFW());
 
     private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentRW =
         new Array32FW.Builder<>(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
@@ -82,6 +88,8 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
+    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -119,6 +127,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
+        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
 
@@ -132,6 +141,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         final KafkaConsumerBeginExFW kafkaConsumerBeginEx = kafkaBeginEx.consumer();
         final String groupId = kafkaConsumerBeginEx.groupId().asString();
         final String topic = kafkaConsumerBeginEx.topic().asString();
+        final String consumerId = kafkaConsumerBeginEx.consumerId().asString();
         final int timeout = kafkaConsumerBeginEx.timeout();
         final List<Integer> partitions = new ArrayList<>();
         kafkaConsumerBeginEx.partitionIds().forEach(p -> partitions.add(p.partitionId()));
@@ -165,6 +175,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 authorization,
                 groupId,
                 topic,
+                consumerId,
                 partitions)::onConsumerMessage;
         }
 
@@ -294,6 +305,42 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             .budgetId(budgetId)
             .reserved(reserved)
             .payload(buffer, offset, limit)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
+    }
+
+
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        OctetsFW payload,
+        Flyweight extension)
+    {
+        final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .flags(flags)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .payload(payload)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
@@ -485,8 +532,8 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         private final long authorization;
         private final int timeout;
         private final List<KafkaClientConsumerStream> streams;
-        private final Set<String> members;
-        private final Object2ObjectHashMap<String, Set<Integer>> partitionsPerTopic;
+        private final Object2ObjectHashMap<String, String> members;
+        private final Object2ObjectHashMap<String, IntHashSet> partitionsByTopic;
         private final Object2ObjectHashMap<String, List<TopicPartition>> assignment;
 
         private long initialId;
@@ -521,34 +568,41 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             this.groupId = groupId;
             this.timeout = timeout;
             this.streams = new ArrayList<>();
-            this.members = new HashSet<>();
-            this.partitionsPerTopic = new Object2ObjectHashMap<>();
+            this.members = new Object2ObjectHashMap<>();
+            this.partitionsByTopic = new Object2ObjectHashMap<>();
             this.assignment = new Object2ObjectHashMap<>();
         }
 
         private void doConsumerInitialBegin(
             long traceId)
         {
-            assert state == 0;
+            if (KafkaState.closed(state))
+            {
+                state = 0;
+            }
 
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.receiver = newStream(this::onConsumerMessage,
-                originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0L,
-                ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
-                    .typeId(kafkaTypeId)
-                    .group(g ->
-                        g.groupId(groupId)
-                            .protocol("highlander")
-                            .timeout(timeout)
-                            .metadata(md -> streams.forEach(m ->
-                                md.item(i -> i.topic(m.topic)
-                                    .partitions(tp -> m.partitions.
-                                        forEach(mp -> tp.item(ti -> ti.partitionId(mp))))))))
-                    .build()
-                    .sizeof()));
-            state = KafkaState.openingInitial(state);
+            if (!KafkaState.initialOpening(state))
+            {
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+                this.receiver = newStream(this::onConsumerMessage,
+                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, 0L,
+                    ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .group(g ->
+                            g.groupId(groupId)
+                                .protocol("highlander")
+                                .timeout(timeout)
+                                .metadata(md -> streams.forEach(s ->
+                                    md.consumerId(s.consumerId)
+                                        .topics(t -> t.item(tp -> tp
+                                            .topic(s.topic)
+                                            .partitions(p -> s.partitions.forEach(sp ->
+                                                    p.item(gtp -> gtp.partitionId(sp))))))
+                                    ))).build().sizeof()));
+                state = KafkaState.openingInitial(state);
+            }
         }
 
         private void doConsumerInitialData(
@@ -571,10 +625,11 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         }
 
         private void doConsumerInitialFlush(
-            long traceId)
+            long traceId,
+            Consumer<OctetsFW.Builder> extension)
         {
             doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
+                traceId, authorization, initialBud, 0, extension);
         }
 
         private void doConsumerInitialEnd(
@@ -724,20 +779,26 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 memberId = kafkaGroupFlushEx.memberId().asString();
             }
 
+            partitionsByTopic.clear();
+            members.clear();
+
             kafkaGroupFlushEx.members().forEach(m ->
             {
                 final OctetsFW metadata = m.metadata();
-                Array32FW<KafkaGroupTopicMetadataFW> memberMetadata =
-                    groupTopicsMetadataRO.wrap(metadata.buffer(), metadata.offset(), metadata.limit());
+                final KafkaGroupMemberMetadataFW groupMetadata = kafkaGroupMemberMetadataRO
+                    .wrap(metadata.buffer(), metadata.offset(), metadata.limit());
+                final String consumerId = kafkaGroupMemberMetadataRO.consumerId().asString();
 
-                memberMetadata.forEach(mt ->
+                groupMetadata.topics().forEach(mt ->
                 {
-                    String topic = mt.topic().asString();
-                    Set<Integer> partitions = partitionsPerTopic.computeIfAbsent(topic, s -> new HashSet<>());
+                    final String mId = m.id().asString();
+                    members.put(mId, consumerId);
+
+                    final String topic = mt.topic().asString();
+                    IntHashSet partitions = partitionsByTopic.computeIfAbsent(topic, s -> new IntHashSet());
                     mt.partitions().forEach(p -> partitions.add(p.partitionId()));
                 });
 
-                members.add(m.id().asString());
             });
 
             doPartitionAssignment(traceId, authorization);
@@ -752,7 +813,6 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             final int flags = data.flags();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -761,6 +821,28 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
+
+            Array32FW<TopicAssignmentFW> topicAssignments = topicAssignmentsRO
+                .wrap(payload.buffer(), payload.offset(), payload.limit());
+
+            topicAssignments.forEach(ta ->
+            {
+                KafkaClientConsumerStream stream =
+                    streams.stream().filter(s -> s.topic.equals(ta.topic().asString())).findFirst().get();
+
+                final KafkaDataExFW kafkaDataExFW = kafkaDataExRW
+                    .wrap(writeBuffer, DataFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .consumer(c -> c.partitions(p -> ta
+                            .partitions()
+                                .forEach(np -> p.item(tp -> tp.partitionId(np.partitionId()))))
+                            .assignments(a -> ta.userdata().forEach(u ->
+                                a.item(ua -> ua.consumerId(u.consumerId()).partitions(p -> u.partitions()
+                                    .forEach(np -> p.item(tp -> tp.partitionId(np.partitionId()))))))))
+                    .build();
+
+                stream.doConsumerReplyData(traceId, flags, 0, EMPTY_OCTETS, kafkaDataExFW);
+            });
         }
 
         private void onConsumerReplyEnd(
@@ -779,6 +861,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             streams.forEach(s -> s.doConsumerReplyEnd(traceId));
+            doConsumerInitialEnd(traceId);
         }
 
         private void onConsumerReplyAbort(
@@ -796,10 +879,9 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            streams.forEach(s ->
-            {
-                s.cleanup(traceId);
-            });
+            streams.forEach(s -> s.cleanup(traceId));
+
+            doConsumerInitialAbort(traceId);
         }
 
         private void doConsumerReplyReset(
@@ -833,7 +915,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             if (memberId.equals(leaderId))
             {
                 int memberSize = members.size();
-                partitionsPerTopic.forEach((t, p) ->
+                partitionsByTopic.forEach((t, p) ->
                 {
                     final int partitionSize = p.size();
                     final int numberOfPartitionsPerMember = partitionSize / memberSize;
@@ -841,17 +923,19 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
                     int partitionIndex = 0;
                     int newPartitionPerTopic = numberOfPartitionsPerMember + extraPartition;
-                    for (String member: members)
+
+                    for (String member : members.keySet())
                     {
-                        List<TopicPartition> topicPartitions = assignment.computeIfAbsent(member,
-                            tp -> new ArrayList<>());
+                        String consumerId = members.get(member);
+                        List<TopicPartition> topicPartitions = assignment.computeIfAbsent(
+                            member, tp -> new ArrayList<>());
                         List<Integer> partitions = new ArrayList<>();
 
                         for (; partitionIndex < newPartitionPerTopic; partitionIndex++)
                         {
                             partitions.add(p.iterator().next());
                         }
-                        topicPartitions.add(new TopicPartition(t, partitions));
+                        topicPartitions.add(new TopicPartition(consumerId, t, partitions));
 
                         newPartitionPerTopic += numberOfPartitionsPerMember;
                     }
@@ -873,7 +957,21 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                         ma.memberId(k)
                             .assignments(ta -> v.forEach(tp -> ta.item(i ->
                                 i.topic(tp.topic)
-                                    .partitions(p -> tp.partitions.forEach(t -> p.item(tpa -> tpa.partitionId(t))))
+                                .partitions(p -> tp.partitions.forEach(t -> p.item(tpa -> tpa.partitionId(t))))
+                                .userdata(u ->
+                                {
+                                    this.assignment.forEach((ak, av) ->
+                                    {
+                                        if (!ak.equals(k))
+                                        {
+                                            av.stream().filter(atp -> atp.topic.equals(tp.topic)).forEach(at ->
+                                                u.item(ud -> ud
+                                                    .consumerId(at.consumerId)
+                                                    .partitions(pt -> at.partitions.forEach(up ->
+                                                        pt.item(pi -> pi.partitionId(up))))));
+                                        }
+                                    });
+                                })
                             )))))
                     .build();
 
@@ -894,6 +992,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         private final MessageConsumer sender;
         private final String groupId;
         private final String topic;
+        private final String consumerId;
         private final List<Integer> partitions;
         private final long originId;
         private final long routedId;
@@ -926,6 +1025,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             long authorization,
             String groupId,
             String topic,
+            String consumerId,
             List<Integer> partitions)
         {
             this.fanout = fanout;
@@ -938,6 +1038,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             this.authorization = authorization;
             this.groupId = groupId;
             this.topic = topic;
+            this.consumerId = consumerId;
             this.partitions = partitions;
         }
 
@@ -1110,6 +1211,19 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 traceId, authorization, affinity, extension);
         }
 
+        private void doConsumerReplyData(
+            long traceId,
+            int flag,
+            int reserved,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, replyBud, flag, reserved, payload, extension);
+
+            replySeq += reserved;
+        }
+
         private void doConsumerReplyEnd(
             long traceId)
         {
@@ -1194,16 +1308,18 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
     final class TopicPartition
     {
+        private final String consumerId;
         private final String topic;
         private final List<Integer> partitions;
 
         TopicPartition(
+            String consumerId,
             String topic,
             List<Integer> partitions)
         {
+            this.consumerId = consumerId;
             this.topic = topic;
             this.partitions = partitions;
         }
     }
-
 }
