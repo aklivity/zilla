@@ -309,7 +309,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
         if (isTlsEnabled)
         {
             // tls_server0 binding
-            patch.replace("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEYS}}");
+            patch.replace("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEY}}");
             patch.replace("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
             patch.replace("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
             // tls_client0 binding
