@@ -195,7 +195,6 @@ scope kafka
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
-            case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
@@ -252,7 +251,13 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
-        struct KafkaMergedFlushEx
+        union KafkaMergedFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
+            case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
+        }
+
+        struct KafkaMergedFetchFlushEx
         {
             KafkaOffset partition;
             KafkaOffset[] progress;
@@ -261,9 +266,9 @@ scope kafka
             KafkaKey key;
         }
 
-        struct KafkaGroupFlushEx
+        struct KafkaMergedConsumerFlushEx
         {
-           KafkaOffset partition;
+            KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
@@ -344,7 +349,7 @@ scope kafka
             KafkaHeader[] headers;
         }
 
-        struct TopicPartition
+        struct KafkaTopicPartition
         {
             int32 partitionId;
         }
@@ -352,7 +357,13 @@ scope kafka
         struct KafkaGroupTopicMetadata
         {
             string16 topic;
-            TopicPartition[] partitions;
+            KafkaTopicPartition[] partitions;
+        }
+
+        struct KafkaGroupMemberMetadata
+        {
+            string16 consumerId;
+            KafkaGroupTopicMetadata[] topics;
         }
 
         struct KafkaGroupBeginEx
@@ -360,7 +371,7 @@ scope kafka
             string16 groupId;
             string16 protocol;
             int32 timeout;
-            KafkaGroupTopicMetadata[] metadata;
+            KafkaGroupMemberMetadata metadata;
         }
 
         struct KafkaGroupMember
@@ -379,20 +390,28 @@ scope kafka
         struct KafkaConsumerBeginEx
         {
             string16 groupId;
-            string16 topic;
+            string16 consumerId;
             int32 timeout;
-            TopicPartition[] partitionIds;
+            string16 topic;
+            KafkaTopicPartition[] partitionIds;
+        }
+
+        struct KafkaConsumerAssignment
+        {
+            string16 consumerId;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaConsumerDataEx
         {
-            TopicPartition[] partitions;
+            KafkaTopicPartition[] partitions;
+            KafkaConsumerAssignment[] assignments;
         }
 
         struct KafkaOffsetFetchTopic
         {
             string16 topic;
-            TopicPartition[] partitions;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaOffsetFetchBeginEx

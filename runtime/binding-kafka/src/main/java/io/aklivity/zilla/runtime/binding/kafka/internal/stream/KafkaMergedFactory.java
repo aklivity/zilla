@@ -1295,18 +1295,18 @@ public final class KafkaMergedFactory implements BindingHandler
             assert kafkaFlushEx != null;
             assert kafkaFlushEx.kind() == KafkaFlushExFW.KIND_MERGED;
             final KafkaMergedFlushExFW kafkaMergedFlushEx = kafkaFlushEx.merged();
-            final KafkaCapabilities newCapabilities = kafkaMergedFlushEx.capabilities().get();
-            final Array32FW<KafkaFilterFW> filters = kafkaMergedFlushEx.filters();
+            final KafkaCapabilities newCapabilities = kafkaMergedFlushEx.fetch().capabilities().get();
+            final Array32FW<KafkaFilterFW> filters = kafkaMergedFlushEx.fetch().filters();
             final List<KafkaMergedFilter> newFilters = asMergedFilters(filters);
 
             if (capabilities != newCapabilities)
             {
-                this.maximumOffset = asMaximumOffset(kafkaMergedFlushEx.progress());
+                this.maximumOffset = asMaximumOffset(kafkaMergedFlushEx.fetch().progress());
 
                 if (hasFetchCapability(newCapabilities) && !hasFetchCapability(capabilities))
                 {
                     final Long2LongHashMap initialOffsetsById = new Long2LongHashMap(-3L);
-                    kafkaMergedFlushEx.progress().forEach(p ->
+                    kafkaMergedFlushEx.fetch().progress().forEach(p ->
                     {
                         final long partitionId = p.partitionId();
                         if (partitionId >= 0L)
@@ -1330,8 +1330,8 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 if (hasProduceCapability(capabilities))
                 {
-                    final KafkaOffsetFW partition = kafkaMergedFlushEx.partition();
-                    final KafkaKeyFW key = kafkaMergedFlushEx.key();
+                    final KafkaOffsetFW partition = kafkaMergedFlushEx.fetch().partition();
+                    final KafkaKeyFW key = kafkaMergedFlushEx.fetch().key();
                     if (partition != null)
                     {
                         final int partitionId = partition.partitionId();
@@ -1675,12 +1675,12 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(f -> f
-                                .progress(ps -> nextOffsetsById.longForEach((p, o) ->
-                                        ps.item(i -> i.partitionId((int) p)
-                                                .partitionOffset(o)
-                                                .stableOffset(initialStableOffsetsById.get(p))
-                                                .latestOffset(initialLatestOffsetsById.get(p))))))
+                        .merged(ff -> ff
+                            .fetch(f -> f.progress(ps -> nextOffsetsById.longForEach((p, o) ->
+                                ps.item(i -> i.partitionId((int) p)
+                                    .partitionOffset(o)
+                                    .stableOffset(initialStableOffsetsById.get(p))
+                                    .latestOffset(initialLatestOffsetsById.get(p)))))))
                         .build();
 
                 doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -3093,8 +3093,8 @@ public final class KafkaMergedFactory implements BindingHandler
                 .typeId(kafkaTypeId)
                 .produce(c ->
                 {
-                    c.partition(kafkaMergedFlushEx.partition());
-                    c.key(kafkaMergedFlushEx.key());
+                    c.partition(kafkaMergedFlushEx.fetch().partition());
+                    c.key(kafkaMergedFlushEx.fetch().key());
                 })
                 .build();
 

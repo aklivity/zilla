@@ -470,6 +470,40 @@ scope protocol
                 string16 groupInstanceId = null;
             }
 
+            struct OffsetFetchRequest
+            {
+                string16 groupId;
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicRequest
+            {
+                string16 topic;
+                int32 partitionsCount;
+            }
+
+            struct OffsetFetchResponse
+            {
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetFetchPartition
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                string16 metadata = null;
+                int16 errorCode;
+            }
+        }
+
+        scope rebalance
+        {
             struct TopicPartition
             {
                 int32 partitionId;
@@ -494,40 +528,9 @@ scope protocol
                 TopicAssignment[] assignments;
             }
 
-            struct OffsetFetchRequest
-            {
-                string16 groupId;
-                int32 topicCount;
-            }
-
-            struct OffsetFetchTopicRequest
-            {
-                string16 topic;
-                int32 partitionsCount;
-            }
-
             struct PartitionIndex
             {
                 int32 index;
-            }
-
-            struct OffsetFetchResponse
-            {
-                int32 topicCount;
-            }
-
-            struct OffsetFetchTopicResponse
-            {
-                string16 name;
-                int32 partitionCount;
-            }
-
-            struct OffsetFetchPartition
-            {
-                int32 partitionIndex;
-                int64 committedOffset;
-                string16 metadata = null;
-                int16 errorCode;
             }
         }
 
