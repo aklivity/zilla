@@ -3300,6 +3300,21 @@ public class KafkaFunctionsTest
         assertEquals(87, resetEx.error());
     }
 
+    @Test
+    public void shouldGenerateResetExtensionWithConsumerId()
+    {
+        byte[] build = KafkaFunctions.resetEx()
+            .typeId(0x01)
+            .consumerId("consumer-1")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals("consumer-1", resetEx.consumerId().asString());
+    }
+
 
     @Test
     public void shouldMatchProduceDataExtensionTimestamp() throws Exception

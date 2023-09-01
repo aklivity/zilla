@@ -123,10 +123,9 @@ write zilla:data.ext ${kafka:dataEx()
                                .key("client-1")
                                .build()
                            .build()}
-
 write ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
+            .subscription("sensor/one", 1)
+            .build()}
 write flush
 
 read zilla:data.ext ${kafka:matchDataEx()
@@ -138,8 +137,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
+           .subscription("sensor/one", 1)
+           .build()}
 
 write notify SESSION_STATE_FINISHED
 
@@ -179,6 +178,5 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .header("zilla:format", "TEXT")
                                 .build()
                             .build()}
-
 read "message"
 

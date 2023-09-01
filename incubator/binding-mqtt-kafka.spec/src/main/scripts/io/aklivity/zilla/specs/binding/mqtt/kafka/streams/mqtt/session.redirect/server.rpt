@@ -33,5 +33,4 @@ write zilla:reset.ext ${mqtt:resetEx()
                              .typeId(zilla:id("mqtt"))
                              .serverRef("localhost:1884")
                              .build()}
-
 read abort

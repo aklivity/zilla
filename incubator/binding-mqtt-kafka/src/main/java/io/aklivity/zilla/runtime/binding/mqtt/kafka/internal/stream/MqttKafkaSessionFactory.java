@@ -2373,7 +2373,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             Flyweight mqttResetEx = EMPTY_OCTETS;
 
-            if (kafkaResetEx != null && kafkaResetEx.consumerId() != null)
+            final String16FW consumerId = kafkaResetEx != null ? kafkaResetEx.consumerId() : null;
+
+            if (consumerId != null)
             {
                 mqttResetEx = mqttResetExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
