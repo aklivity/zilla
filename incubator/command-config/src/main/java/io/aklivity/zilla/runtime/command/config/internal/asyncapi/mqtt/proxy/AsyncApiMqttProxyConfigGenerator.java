@@ -56,9 +56,9 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     private boolean isTlsEnabled;
 
     public AsyncApiMqttProxyConfigGenerator(
-        InputStream inputStream)
+        InputStream input)
     {
-        this.inputStream = inputStream;
+        this.inputStream = input;
     }
 
     @Override
