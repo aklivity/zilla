@@ -60,7 +60,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .group()
                                    .groupId("client-1")
                                    .protocol("highlander")
-                                   .timeout(1000)
+                                   .timeout(100000)
                                    .build()
                                .build()}
 
@@ -77,22 +77,8 @@ read zilla:data.ext ${kafka:matchDataEx()
 
 write advise zilla:flush
 
-write notify HEARTBEAT1_SENT
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
-                                 .members(2)
-                                 .build()
-                             .build()}
-
-write close
-
-write notify GROUP1_CLOSED
-
-connect await GROUP1_CLOSED
+connect await INIT_MIGRATE_CLOSED
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -140,54 +126,3 @@ write zilla:data.ext ${kafka:dataEx()
 write flush
 
 read advised zilla:flush
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1")
-                               .build()
-                           .build()}
-
-write ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
-write flush
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1")
-                               .build()
-                           .build()}
-read ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-read zilla:data.empty
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-write zilla:data.empty
-write flush

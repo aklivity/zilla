@@ -183,7 +183,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final InstanceId instanceId;
     private final boolean willAvailable;
     private final int reconnectDelay;
-    private final int sessionExpiryIntervalLimitMillis;
+    private final int sessionExpiryIntervalMaxMillis;
+    private final int sessionExpiryIntervalMinMillis;
 
     private int reconnectAttempt;
 
@@ -223,7 +224,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = reconnectDelay.getAsInt(config);
-        this.sessionExpiryIntervalLimitMillis = config.sessionExpiryInterval();
+        this.sessionExpiryIntervalMaxMillis = config.sessionExpiryIntervalMax();
+        this.sessionExpiryIntervalMinMillis = config.sessionExpiryIntervalMin();
     }
 
     @Override
@@ -3047,15 +3049,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert replyAck <= replySeq;
 
             Flyweight mqttBeginEx = EMPTY_OCTETS;
-            if (delegate.sessionExpiryMillis > sessionExpiryIntervalLimitMillis)
+
+            //TODO: decide where to do this? How will the group stream reject the invalid timeout?
+            final int sessionExpiryMillisNew =
+                Math.max(sessionExpiryIntervalMinMillis, Math.min(sessionExpiryIntervalMaxMillis, delegate.sessionExpiryMillis));
+            if (delegate.sessionExpiryMillis != sessionExpiryMillisNew)
             {
                 mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
                         .flags(delegate.sessionFlags)
-                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryIntervalLimitMillis))
+                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillisNew))
                         .clientId(delegate.clientId))
                     .build();
+                delegate.sessionExpiryMillis = sessionExpiryMillisNew;
             }
 
             delegate.doMqttBegin(traceId, authorization, affinity, mqttBeginEx);
@@ -3676,7 +3683,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 // TODO: this will be rejected if if sessionExpiryMs > max group timeout in Kafka
-                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(30000))
+                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(sessionExpiryMs))
                 .build();
 
 
