@@ -2380,7 +2380,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 mqttResetEx = mqttResetExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mqttTypeId)
-                    .serverRef(kafkaResetEx.consumerId())
+                    .serverRef(consumerId)
                     .build();
             }
 
