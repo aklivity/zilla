@@ -74,7 +74,9 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -1049,6 +1051,17 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExBuilder metadata(
+                String consumerId,
+                String topic,
+                int partitionId)
+            {
+                groupBeginExRW.metadata(m -> m.consumerId(consumerId)
+                    .topics(t -> t.item(tp -> tp.topic(topic)
+                        .partitions(p -> p.item(pi -> pi.partitionId(partitionId))))));
+                return this;
+            }
+
             public KafkaBeginExBuilder build()
             {
                 final KafkaGroupBeginExFW groupBeginEx = groupBeginExRW.build();
@@ -1071,6 +1084,20 @@ public final class KafkaFunctions
                 String groupId)
             {
                 consumerBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder consumerId(
+                String consumerId)
+            {
+                consumerBeginExRW.consumerId(consumerId);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder timeout(
+                int timeout)
+            {
+                consumerBeginExRW.timeout(timeout);
                 return this;
             }
 
@@ -1905,11 +1932,25 @@ public final class KafkaFunctions
                 mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
+            public KafkaMergedFlushExBuilder typeId(
+                int typeId)
+            {
+                mergedFlushExRW.typeId(typeId);
+                return this;
+            }
+
             public KafkaMergedFetchFlushExBuilder fetchFlush()
+            {
+                mergedFlushExRW.kind(KafkaApi.FETCH.value());
+
+                return new KafkaMergedFetchFlushExBuilder();
+            }
+
+            public KafkaMergedConsumerFlushExBuilder consumerFlush()
             {
                 mergedFlushExRW.kind(KafkaApi.CONSUMER.value());
 
-                return new KafkaMergedFetchFlushExBuilder();
+                return new KafkaMergedConsumerFlushExBuilder();
             }
 
             public KafkaFlushExBuilder build()
@@ -1925,7 +1966,9 @@ public final class KafkaFunctions
 
                 private KafkaMergedFetchFlushExBuilder()
                 {
-                    mergedFetchFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
+                    mergedFetchFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_FETCH,
+                        writeBuffer.capacity());
                 }
 
                 public KafkaMergedFetchFlushExBuilder progress(
@@ -2027,6 +2070,44 @@ public final class KafkaFunctions
                 {
                     final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
                     flushExRO.wrap(writeBuffer, 0, mergedFetchFlushExRW.limit());
+                    return KafkaFlushExBuilder.this;
+                }
+            }
+
+            public final class KafkaMergedConsumerFlushExBuilder
+            {
+                private final KafkaMergedConsumerFlushExFW.Builder mergedConsumerFlushExRW =
+                    new KafkaMergedConsumerFlushExFW.Builder();
+
+                private KafkaMergedConsumerFlushExBuilder()
+                {
+                    mergedConsumerFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
+                }
+
+                public KafkaMergedConsumerFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedConsumerFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedConsumerFlushExRW.partition(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaFlushExBuilder build()
+                {
+                    final KafkaMergedConsumerFlushExFW mergedConsumerFlushEx = mergedConsumerFlushExRW.build();
+                    flushExRO.wrap(writeBuffer, 0, mergedConsumerFlushExRW.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -3379,7 +3460,9 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaFilterBuilder<KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder> filter()
+                public KafkaFilterBuilder
+                    <KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder.KafkaMergedFetchFlushEx>
+                    filter()
                 {
                     if (filtersRW == null)
                     {
@@ -3389,13 +3472,13 @@ public final class KafkaFunctions
 
                     return new KafkaFilterBuilder<>()
                     {
-
                         @Override
-                        protected KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder build(
+                        protected KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder.KafkaMergedFetchFlushEx
+                            build(
                             KafkaFilterFW filter)
                         {
                             filtersRW.item(fb -> set(fb, filter));
-                            return KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder.this;
+                            return KafkaMergedFetchFlushEx.this;
                         }
                     };
                 }
@@ -3960,6 +4043,8 @@ public final class KafkaFunctions
             private String16FW protocol;
             private int timeout;
 
+            private KafkaGroupMemberMetadataFW.Builder metadataRW;
+
             private KafkaGroupBeginExMatcherBuilder()
             {
             }
@@ -3985,6 +4070,19 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder metadata(
+                String consumerId,
+                String topic,
+                int partitionId)
+            {
+                metadataRW = new KafkaGroupMemberMetadataFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                metadataRW
+                    .consumerId(consumerId)
+                    .topics(t -> t.item(tp -> tp.topic(topic)
+                        .partitions(p -> p.item(pi -> pi.partitionId(partitionId)))));
+                return this;
+            }
+
             public KafkaBeginExMatcherBuilder build()
             {
                 return KafkaBeginExMatcherBuilder.this;
@@ -3997,7 +4095,8 @@ public final class KafkaFunctions
                 return matchGroupId(groupBeginEx) &&
                     matchGroupId(groupBeginEx) &&
                     matchProtocol(groupBeginEx) &&
-                    matchTimeout(groupBeginEx);
+                    matchTimeout(groupBeginEx) &&
+                    matchMetadata(groupBeginEx);
             }
 
             private boolean matchGroupId(
@@ -4016,6 +4115,15 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 return timeout == 0 || timeout == groupBeginExFW.timeout();
+            }
+
+            private boolean matchMetadata(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                KafkaGroupMemberMetadataFW metadata = groupBeginExFW.metadata();
+                return metadataRW == null ||
+                    metadataRW.build().consumerId().equals(metadata.consumerId()) &&
+                    metadataRW.build().topics().fieldCount() == groupBeginExFW.metadata().topics().fieldCount();
             }
         }
 

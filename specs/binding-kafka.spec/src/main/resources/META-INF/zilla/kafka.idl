@@ -33,7 +33,6 @@ scope kafka
         int64 partitionOffset = -1;
         int64 stableOffset = -1;
         int64 latestOffset = -1;
-        octets metadata = null;
     }
 
     enum KafkaTransactionResult
@@ -230,7 +229,7 @@ scope kafka
             string16 topic;
             string16 groupId = null;
             string16 consumerId = null;
-            int32 timeout;
+            int32 timeout = 0;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
