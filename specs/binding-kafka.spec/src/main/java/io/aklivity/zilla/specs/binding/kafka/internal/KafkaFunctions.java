@@ -3298,7 +3298,6 @@ public final class KafkaFunctions
 
                 return new KafkaFilterBuilder<>()
                 {
-
                     @Override
                     protected KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder build(
                         KafkaFilterFW filter)
