@@ -377,7 +377,8 @@ scope kafka
         struct KafkaGroupMember
         {
             string16 id;
-            octets metadata;
+            varint32 metadataLen;
+            octets[metadataLen] metadata;
         }
 
         struct KafkaGroupFlushEx

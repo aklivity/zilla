@@ -2124,7 +2124,7 @@ public class KafkaFunctionsTest
             .group()
                 .leaderId("consumer-1")
                 .memberId("consumer-2")
-                .members("member-1", new byte[0])
+                .members("member-1", "test")
                 .build()
             .build();
 

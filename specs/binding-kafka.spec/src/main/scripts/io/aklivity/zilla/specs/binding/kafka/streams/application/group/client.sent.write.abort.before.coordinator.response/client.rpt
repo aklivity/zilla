@@ -24,6 +24,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(45000)
+                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 

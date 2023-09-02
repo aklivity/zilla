@@ -26,7 +26,6 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-
 public class GroupIT
 {
     private final K3poRule k3po = new K3poRule()

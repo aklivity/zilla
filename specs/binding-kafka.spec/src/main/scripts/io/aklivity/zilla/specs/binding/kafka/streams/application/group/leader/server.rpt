@@ -28,6 +28,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(45000)
+                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 
@@ -39,16 +40,17 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(30000)
+                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 write flush
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .members(1)
+                                 .members("memberId-1", "test")
                                  .build()
                              .build()}
-write flush
+

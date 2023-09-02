@@ -2241,38 +2241,41 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExBuilder
         {
-            private final KafkaGroupFlushExFW.Builder flushDataExRW = new KafkaGroupFlushExFW.Builder();
+            private final KafkaGroupFlushExFW.Builder flushGroupExRW = new KafkaGroupFlushExFW.Builder();
 
             private KafkaGroupFlushExBuilder()
             {
-                flushDataExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                flushGroupExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
             }
 
             public KafkaGroupFlushExBuilder leaderId(
                 String leaderId)
             {
-                flushDataExRW.leaderId(leaderId);
+                flushGroupExRW.leaderId(leaderId);
                 return this;
             }
 
             public KafkaGroupFlushExBuilder memberId(
                 String memberId)
             {
-                flushDataExRW.memberId(memberId);
+                flushGroupExRW.memberId(memberId);
                 return this;
             }
 
             public KafkaGroupFlushExBuilder members(
                 String memberId,
-                byte[] metadata)
+                String metadata)
             {
-                flushDataExRW.members(m -> m.item(gm -> gm.id(memberId).metadata(md -> md.put(metadata))));
+                flushGroupExRW.members(m ->
+                    m.item(gm -> gm.id(memberId)
+                        .metadataLen(metadata.length())
+                        .metadata(md -> md.put(metadata.getBytes()))));
                 return this;
             }
 
             public KafkaFlushExBuilder build()
             {
-                final KafkaGroupFlushExFW groupDataEx = flushDataExRW.build();
+                final KafkaGroupFlushExFW groupDataEx = flushGroupExRW.build();
                 flushExRO.wrap(writeBuffer, 0, groupDataEx.limit());
                 return KafkaFlushExBuilder.this;
             }
