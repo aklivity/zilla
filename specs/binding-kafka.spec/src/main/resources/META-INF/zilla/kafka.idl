@@ -33,6 +33,7 @@ scope kafka
         int64 partitionOffset = -1;
         int64 stableOffset = -1;
         int64 latestOffset = -1;
+        octets metadata = null;
     }
 
     enum KafkaTransactionResult

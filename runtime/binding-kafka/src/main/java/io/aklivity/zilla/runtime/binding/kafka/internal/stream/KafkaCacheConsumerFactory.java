@@ -15,62 +15,50 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.IntHashSet;
-import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheMetaFactory implements BindingHandler
+public final class KafkaCacheConsumerFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final int SIGNAL_RECONNECT = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -104,19 +92,13 @@ public final class KafkaCacheMetaFactory implements BindingHandler
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
-    private final Function<String, KafkaCache> supplyCache;
-    private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
-    private final LongBinaryOperator supplyCacheId;
-    private final int reconnectDelay;
 
-    public KafkaCacheMetaFactory(
+    private final Object2ObjectHashMap<String, KafkaCacheConsumerFanout> clientConsumerFansByGroupId;
+
+    public KafkaCacheConsumerFactory(
         KafkaConfiguration config,
         EngineContext context,
-        LongFunction<KafkaBindingConfig> supplyBinding,
-        Function<String, KafkaCache> supplyCache,
-        LongFunction<KafkaCacheRoute> supplyCacheRoute,
-        LongBinaryOperator supplyCacheId,
-        IntPropertyDef reconnectDelay)
+        LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -130,10 +112,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
-        this.supplyCache = supplyCache;
-        this.supplyCacheRoute = supplyCacheRoute;
-        this.supplyCacheId = supplyCacheId;
-        this.reconnectDelay = reconnectDelay.getAsInt(config);
+        this.clientConsumerFansByGroupId = new Object2ObjectHashMap<>();
     }
 
     @Override
@@ -157,45 +136,44 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
         assert beginEx != null && beginEx.typeId() == kafkaTypeId;
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::wrap);
-        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_META;
-        final KafkaMetaBeginExFW kafkaMetaBeginEx = kafkaBeginEx.meta();
-        final String16FW beginTopic = kafkaMetaBeginEx.topic();
-        final String topicName = beginTopic.asString();
+        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_CONSUMER;
+        final KafkaConsumerBeginExFW kafkaConsumerBeginEx = kafkaBeginEx.consumer();
+        final String groupId = kafkaConsumerBeginEx.groupId().asString();
+        final String topic = kafkaConsumerBeginEx.topic().asString();
+        final String consumerId = kafkaConsumerBeginEx.consumerId().asString();
+        final int timeout = kafkaConsumerBeginEx.timeout();
+        final IntHashSet partitions = new IntHashSet();
+        kafkaConsumerBeginEx.partitionIds().forEach(p -> partitions.add(p.partitionId()));
 
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, groupId) : null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
-            final int topicKey = cacheRoute.topicKey(topicName);
-            KafkaCacheMetaFanout fanout = cacheRoute.metaFanoutsByTopic.get(topicKey);
+
+            KafkaCacheConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
+
             if (fanout == null)
             {
-                final long cacheId = supplyCacheId.applyAsLong(routedId, resolvedId);
-                final String cacheName = String.format("%s.%s", supplyNamespace.apply(cacheId), supplyLocalName.apply(cacheId));
-                final KafkaCache cache = supplyCache.apply(cacheName);
-                final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCacheMetaFanout newFanout = new KafkaCacheMetaFanout(routedId, resolvedId, authorization, topic);
-
-                cacheRoute.metaFanoutsByTopic.put(topicKey, newFanout);
+                KafkaCacheConsumerFanout newFanout =
+                     new KafkaCacheConsumerFanout(routedId, resolvedId, authorization, groupId,
+                         topic, consumerId, partitions, timeout);
                 fanout = newFanout;
+                clientConsumerFansByGroupId.put(groupId, fanout);
             }
 
-            if (fanout != null)
-            {
-                newStream = new KafkaCacheMetaStream(
-                        fanout,
-                        sender,
-                        originId,
-                        routedId,
-                        initialId,
-                        affinity,
-                        authorization)::onMetaMessage;
-            }
+            newStream = new KafkaCacheConsumerStream(
+                fanout,
+                sender,
+                originId,
+                routedId,
+                initialId,
+                affinity,
+                authorization
+                )::onConsumerMessage;
         }
 
         return newStream;
@@ -402,15 +380,19 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheMetaFanout
+    final class KafkaCacheConsumerFanout
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaCacheTopic topic;
-        private final List<KafkaCacheMetaStream> members;
-        private final KafkaCacheRoute cacheRoute;
-        private final Int2IntHashMap leadersByPartitionId;
+        private final String groupId;
+        private final String topic;
+        private final String consumerId;
+        private final int timeout;
+        private final List<KafkaCacheConsumerStream> members;
+        private final IntHashSet partitions;
+        private final IntHashSet assignedPartitions;
+        private final Object2ObjectHashMap<String, IntHashSet> assignments;
 
         private long initialId;
         private long replyId;
@@ -426,81 +408,83 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private long replyAck;
         private int replyMax;
 
-        private long reconnectAt = NO_CANCEL_ID;
-        private int reconnectAttempt;
 
-        private KafkaCacheMetaFanout(
+        private KafkaCacheConsumerFanout(
             long originId,
             long routedId,
             long authorization,
-            KafkaCacheTopic topic)
+            String groupId,
+            String topic,
+            String consumerId,
+            IntHashSet partitions,
+            int timeout)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
+            this.groupId = groupId;
             this.topic = topic;
+            this.consumerId = consumerId;
+            this.partitions = partitions;
+            this.timeout = timeout;
             this.members = new ArrayList<>();
-            this.cacheRoute = supplyCacheRoute.apply(routedId);
-            this.leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topic.name());
+            this.assignedPartitions = new IntHashSet();
+            this.assignments = new Object2ObjectHashMap<>();
         }
 
-        private void onMetaFanoutMemberOpening(
+        private void onConsumerFanoutMemberOpening(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheConsumerStream member)
         {
             members.add(member);
 
             assert !members.isEmpty();
 
-            doMetaFanoutInitialBeginIfNecessary(traceId);
+            doConsumerFanoutInitialBeginIfNecessary(traceId);
 
             if (KafkaState.initialOpened(state))
             {
-                member.doMetaInitialWindow(traceId, 0L, 0, 0, 0);
+                member.doConsumerInitialWindow(traceId, 0L, 0, 0, 0);
             }
 
             if (KafkaState.replyOpened(state))
             {
-                member.doMetaReplyBeginIfNecessary(traceId);
+                member.doConsumerReplyBeginIfNecessary(traceId);
             }
         }
 
-        private void onMetaFanoutMemberOpened(
+        private void onConsumerFanoutMemberOpened(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheConsumerStream member)
         {
-            if (!leadersByPartitionId.isEmpty())
-            {
-                final KafkaDataExFW kafkaDataEx =
-                        kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                     .typeId(kafkaTypeId)
-                                     .meta(m -> leadersByPartitionId.forEach((p, l) -> m.partitionsItem(i -> i.partitionId(p)
-                                                                                                              .leaderId(l))))
-                                     .build();
-                member.doMetaReplyDataIfNecessary(traceId, kafkaDataEx);
-            }
+            final KafkaDataExFW kafkaDataEx =
+                    kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                 .typeId(kafkaTypeId)
+                                 .consumer(m -> m
+                                     .partitions(p ->
+                                        assignedPartitions.forEach(ap -> p.item(np -> np.partitionId(ap))))
+                                     .assignments(a ->
+                                         assignments.forEach((k, v) -> a.item(na -> na.consumerId(k)
+                                         .partitions(pa ->
+                                             v.forEach(pi -> pa.item(pai -> pai.partitionId(pi))))))))
+                                 .build();
+            member.doConsumerReplyDataIfNecessary(traceId, kafkaDataEx);
         }
 
-        private void onMetaFanoutMemberClosed(
+        private void onConsumerFanoutMemberClosed(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheConsumerStream member)
         {
             members.remove(member);
 
             if (members.isEmpty())
             {
-                if (reconnectAt != NO_CANCEL_ID)
-                {
-                    signaler.cancel(reconnectAt);
-                    this.reconnectAt = NO_CANCEL_ID;
-                }
-
-                doMetaFanoutInitialEndIfNecessary(traceId);
-                doMetaFanoutReplyResetIfNecessary(traceId);
+                doConsumerFanoutInitialEndIfNecessary(traceId);
+                doConsumerFanoutReplyResetIfNecessary(traceId);
             }
         }
 
-        private void doMetaFanoutInitialBeginIfNecessary(
+        private void doConsumerFanoutInitialBeginIfNecessary(
             long traceId)
         {
             if (KafkaState.closed(state))
@@ -510,43 +494,42 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
             if (!KafkaState.initialOpening(state))
             {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META connect\n", topic);
-                }
-
-                doMetaFanoutInitialBegin(traceId);
+                doConsumerFanoutInitialBegin(traceId);
             }
         }
 
-        private void doMetaFanoutInitialBegin(
+        private void doConsumerFanoutInitialBegin(
             long traceId)
         {
             assert state == 0;
 
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.receiver = newStream(this::onMetaFanoutMessage,
+            this.receiver = newStream(this::onConsumerFanoutMessage,
                 originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .meta(m -> m.topic(topic.name()))
+                        .consumer(m -> m.groupId(groupId)
+                            .consumerId(consumerId)
+                            .timeout(timeout)
+                            .topic(topic)
+                            .partitionIds(p -> partitions.forEach(tp -> p.item(np -> np.partitionId(tp.intValue())))))
                         .build()
                         .sizeof()));
             state = KafkaState.openingInitial(state);
         }
 
-        private void doMetaFanoutInitialEndIfNecessary(
+        private void doConsumerFanoutInitialEndIfNecessary(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
             {
-                doMetaFanoutInitialEnd(traceId);
+                doConsumerFanoutInitialEnd(traceId);
             }
         }
 
-        private void doMetaFanoutInitialEnd(
+        private void doConsumerFanoutInitialEnd(
             long traceId)
         {
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -555,16 +538,16 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
         }
 
-        private void doMetaFanoutInitialAbortIfNecessary(
+        private void doConsumerFanoutInitialAbortIfNecessary(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
             {
-                doMetaFanoutInitialAbort(traceId);
+                doConsumerFanoutInitialAbort(traceId);
             }
         }
 
-        private void doMetaFanoutInitialAbort(
+        private void doConsumerFanoutInitialAbort(
             long traceId)
         {
             doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -573,7 +556,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
         }
 
-        private void onMetaFanoutInitialReset(
+        private void onConsumerFanoutInitialReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
@@ -584,52 +567,26 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            doMetaFanoutReplyResetIfNecessary(traceId);
+            doConsumerFanoutReplyResetIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty())
-            {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META reconnect in %ds, error %d\n", topic, reconnectDelay, error);
-                }
-
-                if (reconnectAt != NO_CANCEL_ID)
-                {
-                    signaler.cancel(reconnectAt);
-                }
-
-                this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
-                        SIGNAL_RECONNECT,
-                        this::onMetaFanoutSignal);
-            }
-            else
-            {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META disconnect, error %d\n", topic, error);
-                }
-
-                members.forEach(s -> s.doMetaInitialResetIfNecessary(traceId));
-            }
+            members.forEach(s -> s.doConsumerInitialResetIfNecessary(traceId));
         }
 
-        private void onMetaFanoutInitialWindow(
+        private void onConsumerFanoutInitialWindow(
             WindowFW window)
         {
             if (!KafkaState.initialOpened(state))
             {
-                this.reconnectAttempt = 0;
 
                 final long traceId = window.traceId();
 
                 state = KafkaState.openedInitial(state);
 
-                members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
+                members.forEach(s -> s.doConsumerInitialWindow(traceId, 0L, 0, 0, 0));
             }
         }
 
-        private void onMetaFanoutMessage(
+        private void onConsumerFanoutMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -639,46 +596,46 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onMetaFanoutReplyBegin(begin);
+                onConsumerFanoutReplyBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onMetaFanoutReplyData(data);
+                onConsumerFanoutReplyData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onMetaFanoutReplyEnd(end);
+                onConsumerFanoutReplyEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onMetaFanoutReplyAbort(abort);
+                onConsumerFanoutReplyAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onMetaFanoutInitialReset(reset);
+                onConsumerFanoutInitialReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onMetaFanoutInitialWindow(window);
+                onConsumerFanoutInitialWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onMetaFanoutReplyBegin(
+        private void onConsumerFanoutReplyBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
 
             state = KafkaState.openingReply(state);
 
-            members.forEach(s -> s.doMetaReplyBeginIfNecessary(traceId));
+            members.forEach(s -> s.doConsumerReplyBeginIfNecessary(traceId));
 
-            doMetaFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
+            doConsumerFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
         }
 
-        private void onMetaFanoutReplyData(
+        private void onConsumerFanoutReplyData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -697,117 +654,65 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
             final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
             final KafkaDataExFW kafkaDataEx = dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-            assert kafkaDataEx == null || kafkaDataEx.kind() == KafkaBeginExFW.KIND_META;
-            final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx != null ? kafkaDataEx.meta() : null;
+            assert kafkaDataEx == null || kafkaDataEx.kind() == KafkaBeginExFW.KIND_CONSUMER;
+            final KafkaConsumerDataExFW kafkaConsumerDataEx = kafkaDataEx != null ? kafkaDataEx.consumer() : null;
 
-            if (kafkaMetaDataEx != null)
+            if (kafkaConsumerDataEx != null)
             {
-                final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
-                leadersByPartitionId.clear();
-                partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
+                final Array32FW<KafkaTopicPartitionFW> newPartitions = kafkaConsumerDataEx.partitions();
+                final Array32FW<KafkaConsumerAssignmentFW> newAssignments = kafkaConsumerDataEx.assignments();
 
-                members.forEach(s -> s.doMetaReplyDataIfNecessary(traceId, kafkaDataEx));
+                assignedPartitions.clear();
+                newPartitions.forEach(p -> this.assignedPartitions.add(p.partitionId()));
+
+                assignments.clear();
+                newAssignments.forEach(a ->
+                {
+                    IntHashSet partitions = new IntHashSet();
+                    a.partitions().forEach(p -> partitions.add(p.partitionId()));
+                    assignments.put(a.consumerId().asString(), partitions);
+                });
+
+                members.forEach(s -> s.doConsumerReplyDataIfNecessary(traceId, kafkaDataEx));
             }
 
-            doMetaFanoutReplyWindow(traceId, 0, replyMax);
+            doConsumerFanoutReplyWindow(traceId, 0, replyMax);
         }
 
-        private void onMetaFanoutReplyEnd(
+        private void onConsumerFanoutReplyEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
 
             state = KafkaState.closedReply(state);
 
-            doMetaFanoutInitialEndIfNecessary(traceId);
+            doConsumerFanoutInitialEndIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty())
-            {
-                if (KafkaConfiguration.DEBUG && !members.isEmpty())
-                {
-                    System.out.format("%s META reconnect in %ds\n", topic, reconnectDelay);
-                }
-
-                if (reconnectAt != NO_CANCEL_ID)
-                {
-                    signaler.cancel(reconnectAt);
-                }
-
-                this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
-                        SIGNAL_RECONNECT,
-                        this::onMetaFanoutSignal);
-            }
-            else
-            {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META disconnect\n", topic);
-                }
-
-                members.forEach(s -> s.doMetaReplyEndIfNecessary(traceId));
-            }
+            members.forEach(s -> s.doConsumerReplyEndIfNecessary(traceId));
         }
 
-        private void onMetaFanoutReplyAbort(
+        private void onConsumerFanoutReplyAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
 
             state = KafkaState.closedReply(state);
 
-            doMetaFanoutInitialAbortIfNecessary(traceId);
+            doConsumerFanoutInitialAbortIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty())
-            {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META reconnect in %ds\n", topic, reconnectDelay);
-                }
-
-                if (reconnectAt != NO_CANCEL_ID)
-                {
-                    signaler.cancel(reconnectAt);
-                }
-
-                this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
-                        SIGNAL_RECONNECT,
-                        this::onMetaFanoutSignal);
-            }
-            else
-            {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("%s META disconnect\n", topic);
-                }
-
-                members.forEach(s -> s.doMetaReplyAbortIfNecessary(traceId));
-            }
+            members.forEach(s -> s.doConsumerReplyAbortIfNecessary(traceId));
         }
 
-        private void onMetaFanoutSignal(
-            int signalId)
-        {
-            assert signalId == SIGNAL_RECONNECT;
-
-            this.reconnectAt = NO_CANCEL_ID;
-
-            final long traceId = supplyTraceId.getAsLong();
-
-            doMetaFanoutInitialBeginIfNecessary(traceId);
-        }
-
-        private void doMetaFanoutReplyResetIfNecessary(
+        private void doConsumerFanoutReplyResetIfNecessary(
             long traceId)
         {
             if (!KafkaState.replyClosed(state))
             {
-                doMetaFanoutReplyReset(traceId);
+                doConsumerFanoutReplyReset(traceId);
             }
         }
 
-        private void doMetaFanoutReplyReset(
+        private void doConsumerFanoutReplyReset(
             long traceId)
         {
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -816,7 +721,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void doMetaFanoutReplyWindow(
+        private void doConsumerFanoutReplyWindow(
             long traceId,
             int minReplyNoAck,
             int minReplyMax)
@@ -838,9 +743,9 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheMetaStream
+    private final class KafkaCacheConsumerStream
     {
-        private final KafkaCacheMetaFanout group;
+        private final KafkaCacheConsumerFanout group;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -862,8 +767,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         private long replyBudgetId;
 
-        KafkaCacheMetaStream(
-            KafkaCacheMetaFanout group,
+        KafkaCacheConsumerStream(
+            KafkaCacheConsumerFanout group,
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -881,7 +786,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             this.authorization = authorization;
         }
 
-        private void onMetaMessage(
+        private void onConsumerMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -891,75 +796,75 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onMetaInitialBegin(begin);
+                onConsumerInitialBegin(begin);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onMetaInitialEnd(end);
+                onConsumerInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onMetaInitialAbort(abort);
+                onConsumerInitialAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onMetaReplyWindow(window);
+                onConsumerReplyWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onMetaReplyReset(reset);
+                onConsumerReplyReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onMetaInitialBegin(
+        private void onConsumerInitialBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
 
             state = KafkaState.openingInitial(state);
 
-            group.onMetaFanoutMemberOpening(traceId, this);
+            group.onConsumerFanoutMemberOpening(traceId, this);
         }
 
-        private void onMetaInitialEnd(
+        private void onConsumerInitialEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
 
             state = KafkaState.closedInitial(state);
 
-            group.onMetaFanoutMemberClosed(traceId, this);
+            group.onConsumerFanoutMemberClosed(traceId, this);
 
-            doMetaReplyEndIfNecessary(traceId);
+            doConsumerReplyEndIfNecessary(traceId);
         }
 
-        private void onMetaInitialAbort(
+        private void onConsumerInitialAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
 
             state = KafkaState.closedInitial(state);
 
-            group.onMetaFanoutMemberClosed(traceId, this);
+            group.onConsumerFanoutMemberClosed(traceId, this);
 
-            doMetaReplyAbortIfNecessary(traceId);
+            doConsumerReplyAbortIfNecessary(traceId);
         }
 
-        private void doMetaInitialResetIfNecessary(
+        private void doConsumerInitialResetIfNecessary(
             long traceId)
         {
             if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
-                doMetaInitialReset(traceId);
+                doConsumerInitialReset(traceId);
             }
 
             state = KafkaState.closedInitial(state);
         }
 
-        private void doMetaInitialReset(
+        private void doConsumerInitialReset(
             long traceId)
         {
             state = KafkaState.closedInitial(state);
@@ -968,7 +873,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                     traceId, authorization);
         }
 
-        private void doMetaInitialWindow(
+        private void doConsumerInitialWindow(
             long traceId,
             long budgetId,
             int minInitialNoAck,
@@ -991,40 +896,35 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             }
         }
 
-        private void doMetaReplyBeginIfNecessary(
+        private void doConsumerReplyBeginIfNecessary(
             long traceId)
         {
             if (!KafkaState.replyOpening(state))
             {
-                doMetaReplyBegin(traceId);
+                doConsumerReplyBegin(traceId);
             }
         }
 
-        private void doMetaReplyBegin(
+        private void doConsumerReplyBegin(
             long traceId)
         {
             state = KafkaState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity,
-                ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .meta(m -> m.topic(group.topic.name()))
-                        .build()
-                        .sizeof()));
+                    traceId, authorization, affinity, EMPTY_EXTENSION);
         }
 
-        private void doMetaReplyDataIfNecessary(
+        private void doConsumerReplyDataIfNecessary(
             long traceId,
             KafkaDataExFW extension)
         {
             if (KafkaState.replyOpened(state))
             {
-                doMetaReplyData(traceId, extension);
+                doConsumerReplyData(traceId, extension);
             }
         }
 
-        private void doMetaReplyData(
+        private void doConsumerReplyData(
             long traceId,
             KafkaDataExFW extension)
         {
@@ -1036,18 +936,18 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             replySeq += reserved;
         }
 
-        private void doMetaReplyEndIfNecessary(
+        private void doConsumerReplyEndIfNecessary(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
-                doMetaReplyEnd(traceId);
+                doConsumerReplyEnd(traceId);
             }
 
             state = KafkaState.closedReply(state);
         }
 
-        private void doMetaReplyEnd(
+        private void doConsumerReplyEnd(
             long traceId)
         {
             state = KafkaState.closedReply(state);
@@ -1055,18 +955,18 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
-        private void doMetaReplyAbortIfNecessary(
+        private void doConsumerReplyAbortIfNecessary(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
-                doMetaReplyAbort(traceId);
+                doConsumerReplyAbort(traceId);
             }
 
             state = KafkaState.closedReply(state);
         }
 
-        private void doMetaReplyAbort(
+        private void doConsumerReplyAbort(
             long traceId)
         {
             state = KafkaState.closedReply(state);
@@ -1074,19 +974,19 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
-        private void onMetaReplyReset(
+        private void onConsumerReplyReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
 
             state = KafkaState.closedInitial(state);
 
-            group.onMetaFanoutMemberClosed(traceId, this);
+            group.onConsumerFanoutMemberClosed(traceId, this);
 
-            doMetaInitialResetIfNecessary(traceId);
+            doConsumerInitialResetIfNecessary(traceId);
         }
 
-        private void onMetaReplyWindow(
+        private void onConsumerReplyWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -1112,7 +1012,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                 state = KafkaState.openedReply(state);
 
                 final long traceId = window.traceId();
-                group.onMetaFanoutMemberOpened(traceId, this);
+                group.onConsumerFanoutMemberOpened(traceId, this);
             }
         }
     }
