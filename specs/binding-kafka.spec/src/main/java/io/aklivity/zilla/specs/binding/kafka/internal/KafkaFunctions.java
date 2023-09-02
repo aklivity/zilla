@@ -3344,6 +3344,8 @@ public final class KafkaFunctions
 
         public final class KafkaMergedFlushExMatcherBuilder
         {
+            KafkaMergedFetchFlushEx mergedFetchFlush;
+
             private KafkaMergedFlushExMatcherBuilder()
             {
             }
@@ -3361,7 +3363,10 @@ public final class KafkaFunctions
 
             public KafkaMergedFetchFlushEx mergedFetch()
             {
-                final KafkaMergedFetchFlushEx mergedFetchFlush = new KafkaMergedFetchFlushEx();
+                if (mergedFetchFlush == null)
+                {
+                    mergedFetchFlush = new KafkaMergedFetchFlushEx();
+                }
                 return  mergedFetchFlush;
             }
 
