@@ -31,13 +31,9 @@
                     {
                         "properties":
                         {
-                            "host":
+                            "url":
                             {
                                 "type": "string"
-                            },
-                            "port":
-                            {
-                                "type": "integer"
                             },
                             "context":
                             {

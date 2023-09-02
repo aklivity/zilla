@@ -21,8 +21,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class SchemaRegistryCatalogConfig extends OptionsConfig
 {
-    public final String host;
-    public final String port;
+    public final String url;
     public final String context;
 
     public static SchemaRegistryCatalogConfigBuilder<SchemaRegistryCatalogConfig> builder()
@@ -37,12 +36,10 @@ public class SchemaRegistryCatalogConfig extends OptionsConfig
     }
 
     public SchemaRegistryCatalogConfig(
-        String host,
-        String port,
+        String url,
         String context)
     {
-        this.host = host;
-        this.port = port;
+        this.url = url;
         this.context = context;
     }
 }

@@ -24,8 +24,7 @@ public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private String host;
-    private String port;
+    private String url;
     private String context;
 
     SchemaRegistryCatalogConfigBuilder(
@@ -41,17 +40,10 @@ public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T
         return (Class<SchemaRegistryCatalogConfigBuilder<T>>) getClass();
     }
 
-    public SchemaRegistryCatalogConfigBuilder<T> host(
-        String host)
+    public SchemaRegistryCatalogConfigBuilder<T> url(
+        String url)
     {
-        this.host = host;
-        return this;
-    }
-
-    public SchemaRegistryCatalogConfigBuilder<T> port(
-        String port)
-    {
-        this.port = port;
+        this.url = url;
         return this;
     }
 
@@ -65,6 +57,6 @@ public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaRegistryCatalogConfig(host, port, context));
+        return mapper.apply(new SchemaRegistryCatalogConfig(url, context));
     }
 }

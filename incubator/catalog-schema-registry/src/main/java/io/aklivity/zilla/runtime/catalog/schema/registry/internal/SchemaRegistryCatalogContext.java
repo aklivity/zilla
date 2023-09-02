@@ -15,21 +15,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
-import org.agrona.collections.Long2ObjectHashMap;
-
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogContext implements CatalogContext
 {
-    private final Long2ObjectHashMap<SchemaRegistryCatalogHandler> handlersById;
-
-    public SchemaRegistryCatalogContext()
-    {
-        this.handlersById = new Long2ObjectHashMap<>();
-    }
-
     @Override
     public CatalogHandler attach(
         CatalogConfig catalog)
@@ -41,6 +32,5 @@ public class SchemaRegistryCatalogContext implements CatalogContext
     public void detach(
         CatalogConfig catalog)
     {
-
     }
 }

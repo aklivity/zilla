@@ -18,14 +18,14 @@ package io.aklivity.zilla.runtime.catalog.schema.registry.internal.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterSpi
+public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String HOST = "host";
-    private static final String PORT = "port";
+    private static final String URL = "url";
     private static final String CONTEXT = "context";
 
     @Override
@@ -47,16 +47,10 @@ public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterS
         SchemaRegistryCatalogConfig config = (SchemaRegistryCatalogConfig) options;
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        if (config.host != null &&
-            !config.host.isEmpty())
+        if (config.url != null &&
+            !config.url.isEmpty())
         {
-            catalog.add(HOST, config.host);
-        }
-
-        if (config.port != null &&
-            !config.port.isEmpty())
-        {
-            catalog.add(PORT, config.port);
+            catalog.add(URL, config.url);
         }
 
         if (config.context != null &&
@@ -76,14 +70,9 @@ public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterS
 
         if (object != null)
         {
-            if (object.containsKey(HOST))
+            if (object.containsKey(URL))
             {
-                options.host(object.getString(HOST));
-            }
-
-            if (object.containsKey(PORT))
-            {
-                options.port(object.getString(PORT));
+                options.url(object.getString(URL));
             }
 
             if (object.containsKey(CONTEXT))
