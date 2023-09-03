@@ -371,7 +371,8 @@ scope kafka
             string16 groupId;
             string16 protocol;
             int32 timeout;
-            KafkaGroupMemberMetadata metadata;
+            varint32 metadataLen;
+            octets[metadataLen] metadata = null;
         }
 
         struct KafkaGroupMember

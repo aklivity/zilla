@@ -74,7 +74,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -1052,13 +1051,9 @@ public final class KafkaFunctions
             }
 
             public KafkaGroupBeginExBuilder metadata(
-                String consumerId,
-                String topic,
-                int partitionId)
+                String metadata)
             {
-                groupBeginExRW.metadata(m -> m.consumerId(consumerId)
-                    .topics(t -> t.item(tp -> tp.topic(topic)
-                        .partitions(p -> p.item(pi -> pi.partitionId(partitionId))))));
+                groupBeginExRW.metadataLen(metadata.length()).metadata(m -> m.set(metadata.getBytes()));
                 return this;
             }
 
@@ -4053,7 +4048,7 @@ public final class KafkaFunctions
             private String16FW protocol;
             private int timeout;
 
-            private KafkaGroupMemberMetadataFW.Builder metadataRW;
+            private OctetsFW.Builder metadataRW;
 
             private KafkaGroupBeginExMatcherBuilder()
             {
@@ -4081,15 +4076,10 @@ public final class KafkaFunctions
             }
 
             public KafkaGroupBeginExMatcherBuilder metadata(
-                String consumerId,
-                String topic,
-                int partitionId)
+                String metadata)
             {
-                metadataRW = new KafkaGroupMemberMetadataFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                metadataRW
-                    .consumerId(consumerId)
-                    .topics(t -> t.item(tp -> tp.topic(topic)
-                        .partitions(p -> p.item(pi -> pi.partitionId(partitionId)))));
+                metadataRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                metadataRW.set(metadata.getBytes());
                 return this;
             }
 
@@ -4130,10 +4120,8 @@ public final class KafkaFunctions
             private boolean matchMetadata(
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
-                KafkaGroupMemberMetadataFW metadata = groupBeginExFW.metadata();
-                return metadataRW == null ||
-                    metadataRW.build().consumerId().equals(metadata.consumerId()) &&
-                    metadataRW.build().topics().fieldCount() == groupBeginExFW.metadata().topics().fieldCount();
+                OctetsFW metadata = groupBeginExFW.metadata();
+                return metadataRW == null || metadata.equals(metadataRW);
             }
         }
 

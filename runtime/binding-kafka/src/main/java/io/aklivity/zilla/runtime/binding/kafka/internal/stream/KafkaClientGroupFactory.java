@@ -158,6 +158,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
     private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
         new Array32FW<>(new MemberAssignmentFW());
+    private final KafkaGroupMemberMetadataFW groupMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshake = this::decodeSaslHandshake;
@@ -1164,11 +1165,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_GROUP;
             final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx.group();
 
-            KafkaGroupMemberMetadataFW metadata = kafkaGroupBeginEx.metadata();
-            final int metadataSize = metadata.sizeof();
+            OctetsFW metadata = kafkaGroupBeginEx.metadata();
+            final int metadataSize = kafkaGroupBeginEx.metadataLen();
 
-            metadataBuffer.putBytes(topicMetadataLimit, metadata.buffer(), metadata.offset(), metadataSize);
-            topicMetadataLimit += metadataSize;
+            if (metadataSize > 0)
+            {
+                metadataBuffer.putBytes(0, metadata.buffer(), metadata.offset(), kafkaGroupBeginEx.metadataLen());
+                topicMetadataLimit += metadataSize;
+            }
 
             state = KafkaState.openingInitial(state);
 
@@ -1273,7 +1277,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final KafkaBeginExFW kafkaBeginEx =
                 kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .group(g -> g.groupId(groupId).protocol(protocol).timeout(timeout))
+                    .group(g -> g
+                        .groupId(groupId)
+                        .protocol(protocol)
+                        .timeout(timeout))
                     .build();
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,

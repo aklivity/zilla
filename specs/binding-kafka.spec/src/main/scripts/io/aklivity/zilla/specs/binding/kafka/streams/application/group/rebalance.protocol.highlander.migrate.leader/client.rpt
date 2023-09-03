@@ -24,7 +24,6 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(45000)
-                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 
@@ -36,7 +35,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(30000)
-                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 
@@ -63,7 +61,6 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(45000)
-                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 
@@ -75,7 +72,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .groupId("test")
                                    .protocol("highlander")
                                    .timeout(30000)
-                                   .metadata("localhost:9092", "test", 0)
                                    .build()
                                .build()}
 

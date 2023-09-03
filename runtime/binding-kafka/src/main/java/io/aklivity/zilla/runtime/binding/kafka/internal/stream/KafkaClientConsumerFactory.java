@@ -90,9 +90,11 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private final KafkaGroupMemberMetadataFW.Builder kafkaGroupMemberMetadataRW = new KafkaGroupMemberMetadataFW.Builder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -107,6 +109,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -160,7 +163,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             if (fanout == null)
             {
                 KafkaClientConsumerFanout newFanout =
-                    new KafkaClientConsumerFanout(routedId, resolvedId, authorization, groupId, timeout);
+                    new KafkaClientConsumerFanout(routedId, resolvedId, authorization, consumerId, groupId, timeout);
                 fanout = newFanout;
                 clientConsumerFansByGroupId.put(groupId, fanout);
             }
@@ -173,9 +176,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 initialId,
                 affinity,
                 authorization,
-                groupId,
                 topic,
-                consumerId,
                 partitions)::onConsumerMessage;
         }
 
@@ -526,6 +527,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
 
     final class KafkaClientConsumerFanout
     {
+        private final String consumerId;
         private final String groupId;
         private final long originId;
         private final long routedId;
@@ -559,12 +561,14 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             long originId,
             long routedId,
             long authorization,
+            String consumerId,
             String groupId,
             int timeout)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
+            this.consumerId = consumerId;
             this.groupId = groupId;
             this.timeout = timeout;
             this.streams = new ArrayList<>();
@@ -585,6 +589,16 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             {
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
+
+                KafkaGroupMemberMetadataFW metadata = kafkaGroupMemberMetadataRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .consumerId(consumerId)
+                    .topics(t -> streams.forEach(s -> t.item(tp -> tp
+                        .topic(s.topic)
+                        .partitions(p -> s.partitions.forEach(sp ->
+                            p.item(gtp -> gtp.partitionId(sp)))))))
+                    .build();
+
                 this.receiver = newStream(this::onConsumerMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L,
@@ -594,13 +608,8 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                             g.groupId(groupId)
                                 .protocol("highlander")
                                 .timeout(timeout)
-                                .metadata(md -> streams.forEach(s ->
-                                    md.consumerId(s.consumerId)
-                                        .topics(t -> t.item(tp -> tp
-                                            .topic(s.topic)
-                                            .partitions(p -> s.partitions.forEach(sp ->
-                                                    p.item(gtp -> gtp.partitionId(sp))))))
-                                    ))).build().sizeof()));
+                                .metadata(metadata.buffer(), 0, metadata.sizeof()))
+                        .build().sizeof()));
                 state = KafkaState.openingInitial(state);
             }
         }
@@ -990,9 +999,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
     {
         private final KafkaClientConsumerFanout fanout;
         private final MessageConsumer sender;
-        private final String groupId;
         private final String topic;
-        private final String consumerId;
         private final List<Integer> partitions;
         private final long originId;
         private final long routedId;
@@ -1023,9 +1030,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
-            String groupId,
             String topic,
-            String consumerId,
             List<Integer> partitions)
         {
             this.fanout = fanout;
@@ -1036,9 +1041,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.groupId = groupId;
             this.topic = topic;
-            this.consumerId = consumerId;
             this.partitions = partitions;
         }
 

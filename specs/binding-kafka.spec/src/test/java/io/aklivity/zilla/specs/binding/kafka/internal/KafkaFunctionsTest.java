@@ -3855,7 +3855,30 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
-                .metadata("localhost:9092", "test", 0)
+                .metadata("test")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.GROUP.value(), beginEx.kind());
+
+        final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
+        assertEquals("test", groupBeginEx.groupId().asString());
+        assertEquals("roundrobin", groupBeginEx.protocol().asString());
+        assertEquals(10, groupBeginEx.timeout());
+    }
+
+    @Test
+    public void shouldGenerateGroupBeginWithEmptyMetadataExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .group()
+                .groupId("test")
+                .protocol("roundrobin")
+                .timeout(10)
                 .build()
             .build();
 
@@ -3958,9 +3981,8 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
-                .metadata(m -> m.consumerId("test")
-                    .topics(t -> t.item(i -> i.topic("test")
-                        .partitions(p -> p.item(pi -> pi.partitionId(0)))))))
+                .metadataLen("test".length())
+                .metadata(m -> m.set("test".getBytes())))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
