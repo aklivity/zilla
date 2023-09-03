@@ -1579,7 +1579,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                                 o.item(to -> to
                                     .partitionId(k)
                                     .partitionOffset(v)
-                                    .latestOffset(v)
                                 )))))
                     .build();
 

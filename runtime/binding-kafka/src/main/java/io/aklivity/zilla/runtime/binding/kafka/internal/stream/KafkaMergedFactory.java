@@ -1806,7 +1806,6 @@ public final class KafkaMergedFactory implements BindingHandler
             partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
             partitionCount.value = 0;
             partitions.forEach(partition -> partitionCount.value++);
-            assert leadersByAssignedId.size() == partitionCount.value;
 
             if (this.consumerStream != null)
             {
@@ -1816,6 +1815,7 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 leadersByAssignedId.clear();
                 partitions.forEach(p -> leadersByAssignedId.put(p.partitionId(), p.leaderId()));
+                assert leadersByAssignedId.size() == partitionCount.value;
 
                 doFetchPartitionsIfNecessary(traceId);
                 doProducePartitionsIfNecessary(traceId);
@@ -1854,15 +1854,13 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (hasFetchCapability(capabilities))
             {
-                final int partitionCount = leadersByAssignedId.size();
                 leadersByAssignedId.forEach((k, v) -> doFetchPartitionIfNecessary(traceId, k));
                 assert fetchStreams.size() >= leadersByAssignedId.size();
 
-                int offsetCount = nextOffsetsById.size();
-                for (int partitionId = partitionCount; partitionId < offsetCount; partitionId++)
-                {
-                    nextOffsetsById.remove(partitionId);
-                }
+                nextOffsetsById.entrySet()
+                    .removeIf(
+                        entry -> !leadersByPartitionId.containsKey(entry.getKey().intValue()));
+
                 assert nextOffsetsById.size() <= leadersByAssignedId.size();
             }
         }
