@@ -3881,7 +3881,7 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
-                .metadata("test")
+                .metadata("test".getBytes())
                 .build()
             .build();
 

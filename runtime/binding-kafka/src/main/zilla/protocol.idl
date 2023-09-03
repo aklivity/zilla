@@ -502,38 +502,6 @@ scope protocol
             }
         }
 
-        scope rebalance
-        {
-            struct TopicPartition
-            {
-                int32 partitionId;
-            }
-
-            struct ConsumerAssignment
-            {
-                string16 consumerId;
-                TopicPartition[] partitions;
-            }
-
-            struct TopicAssignment
-            {
-                string16 topic;
-                TopicPartition[] partitions;
-                ConsumerAssignment[] userdata;
-            }
-
-            struct MemberAssignment
-            {
-                string16 memberId;
-                TopicAssignment[] assignments;
-            }
-
-            struct PartitionIndex
-            {
-                int32 index;
-            }
-        }
-
         scope sasl
         {
             struct SaslHandshakeRequest // v1

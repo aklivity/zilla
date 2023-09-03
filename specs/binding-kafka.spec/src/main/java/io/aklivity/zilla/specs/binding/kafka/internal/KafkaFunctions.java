@@ -62,6 +62,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
@@ -74,6 +75,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -89,6 +91,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceB
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 
 public final class KafkaFunctions
 {
@@ -276,6 +279,12 @@ public final class KafkaFunctions
                 (byte) ((bits >> 63) & 0x01)
             };
         }
+    }
+
+    @Function
+    public static KafkaGroupMemberMetadataBuilder memberMetadata()
+    {
+        return new KafkaGroupMemberMetadataBuilder();
     }
 
     public abstract static class KafkaHeadersBuilder<T>
@@ -554,6 +563,44 @@ public final class KafkaFunctions
                                         .values(values));
                 break;
             }
+        }
+    }
+
+    public static final class KafkaGroupMemberMetadataBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final KafkaGroupMemberMetadataFW.Builder groupMemberMetadataRW =
+            new KafkaGroupMemberMetadataFW.Builder();
+
+        public KafkaGroupMemberMetadataBuilder()
+        {
+            groupMemberMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaGroupMemberMetadataBuilder consumerId(
+            String consumerId)
+        {
+            groupMemberMetadataRW.consumerId(consumerId);
+            return this;
+        }
+
+        public KafkaGroupMemberMetadataBuilder topic(
+            String topic,
+            int partitionId)
+        {
+            groupMemberMetadataRW.topics(t ->
+                t.item(tp -> tp.topic(topic)
+                    .partitions(p -> p.item(i -> i.partitionId(partitionId)))));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final KafkaGroupMemberMetadataFW metadata = groupMemberMetadataRW.build();
+            final byte[] array = new byte[metadata.sizeof()];
+            metadata.buffer().getBytes(metadata.offset(), array);
+            return array;
         }
     }
 
@@ -1051,9 +1098,9 @@ public final class KafkaFunctions
             }
 
             public KafkaGroupBeginExBuilder metadata(
-                String metadata)
+                byte[] metadata)
             {
-                groupBeginExRW.metadataLen(metadata.length()).metadata(m -> m.set(metadata.getBytes()));
+                groupBeginExRW.metadataLen(metadata.length).metadata(m -> m.set(metadata));
                 return this;
             }
 
@@ -1068,11 +1115,15 @@ public final class KafkaFunctions
         public final class KafkaConsumerBeginExBuilder
         {
             private final KafkaConsumerBeginExFW.Builder consumerBeginExRW = new KafkaConsumerBeginExFW.Builder();
+            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
+                new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
 
 
             private KafkaConsumerBeginExBuilder()
             {
                 consumerBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+                partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
             }
 
             public KafkaConsumerBeginExBuilder groupId(
@@ -1106,12 +1157,13 @@ public final class KafkaFunctions
             public KafkaConsumerBeginExBuilder partition(
                 int partitionId)
             {
-                consumerBeginExRW.partitionIds(p -> p.item(i -> i.partitionId(partitionId)));
+                partitionsRW.item(i -> i.partitionId(partitionId));
                 return this;
             }
 
             public KafkaBeginExBuilder build()
             {
+                consumerBeginExRW.partitionIds(partitionsRW.build());
                 final KafkaConsumerBeginExFW consumerBeginEx = consumerBeginExRW.build();
                 beginExRO.wrap(writeBuffer, 0, consumerBeginEx.limit());
                 return KafkaBeginExBuilder.this;
@@ -1781,20 +1833,42 @@ public final class KafkaFunctions
         {
             private final KafkaConsumerDataExFW.Builder consumerDataExRW = new KafkaConsumerDataExFW.Builder();
 
+            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
+                new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
+
+            private final Array32FW.Builder<KafkaConsumerAssignmentFW.Builder, KafkaConsumerAssignmentFW> assignmentsRW =
+                new Array32FW.Builder<>(new KafkaConsumerAssignmentFW.Builder(), new  KafkaConsumerAssignmentFW());
+
             private KafkaConsumerDataExBuilder()
             {
                 consumerDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+                partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
             }
 
             public KafkaConsumerDataExBuilder partition(
                 int partitionId)
             {
-                consumerDataExRW.partitions(p -> p.item(i -> i.partitionId(partitionId)));
+                partitionsRW.item(i -> i.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaConsumerDataExBuilder assignment(
+                String consumerId,
+                int partitionId)
+            {
+                assignmentsRW.item(i -> i
+                    .consumerId(consumerId)
+                    .partitions(p -> p.item(tp -> tp.partitionId(partitionId))));
+
                 return this;
             }
 
             public KafkaDataExBuilder build()
             {
+                consumerDataExRW.partitions(partitionsRW.build());
+                consumerDataExRW.assignments(assignmentsRW.build());
                 final KafkaConsumerDataExFW consumerDataEx = consumerDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
                 return KafkaDataExBuilder.this;
@@ -4059,7 +4133,7 @@ public final class KafkaFunctions
             private String16FW protocol;
             private int timeout;
 
-            private OctetsFW.Builder metadataRW;
+            private byte[] metadata;
 
             private KafkaGroupBeginExMatcherBuilder()
             {
@@ -4087,10 +4161,9 @@ public final class KafkaFunctions
             }
 
             public KafkaGroupBeginExMatcherBuilder metadata(
-                String metadata)
+                byte[] metadata)
             {
-                metadataRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                metadataRW.set(metadata.getBytes());
+                this.metadata = metadata;
                 return this;
             }
 
@@ -4132,7 +4205,7 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 OctetsFW metadata = groupBeginExFW.metadata();
-                return metadataRW == null || metadata.equals(metadataRW);
+                return metadata == null || metadata.equals(this.metadata);
             }
         }
 
