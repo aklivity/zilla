@@ -65,7 +65,6 @@ public class ClientGroupIT
     @Specification({
         "${app}/rebalance.protocol.highlander/client",
         "${net}/rebalance.protocol.highlander/server"})
-
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();

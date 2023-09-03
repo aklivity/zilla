@@ -2147,7 +2147,8 @@ public class KafkaFunctionsTest
             .group()
                 .leaderId("consumer-1")
                 .memberId("consumer-2")
-                .members("member-1", "test")
+                .members("memberId-1", "test")
+                .members("memberId-2", "test")
                 .build()
             .build();
 
@@ -2160,7 +2161,32 @@ public class KafkaFunctionsTest
         final String memberId = groupFlushEx.memberId().asString();
         assertEquals("consumer-1", leaderId);
         assertEquals("consumer-2", memberId);
-        assertEquals(1, groupFlushEx.members().fieldCount());
+        assertEquals(2, groupFlushEx.members().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateGroupFlushExtensionWithEmptyMetadata()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .group()
+            .leaderId("consumer-1")
+            .memberId("consumer-2")
+            .members("memberId-1")
+            .members("memberId-2")
+            .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
+        final String leaderId = groupFlushEx.leaderId().asString();
+        final String memberId = groupFlushEx.memberId().asString();
+        assertEquals("consumer-1", leaderId);
+        assertEquals("consumer-2", memberId);
+        assertEquals(2, groupFlushEx.members().fieldCount());
     }
 
     @Test

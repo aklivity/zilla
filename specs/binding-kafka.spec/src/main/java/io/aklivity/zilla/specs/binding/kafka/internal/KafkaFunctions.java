@@ -2238,11 +2238,15 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExBuilder
         {
+            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             private final KafkaGroupFlushExFW.Builder flushGroupExRW = new KafkaGroupFlushExFW.Builder();
+            private final Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> memberRW =
+                new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new  KafkaGroupMemberFW());
 
             private KafkaGroupFlushExBuilder()
             {
                 flushGroupExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                memberRW.wrap(memberBuffer, 0, memberBuffer.capacity());
             }
 
             public KafkaGroupFlushExBuilder leaderId(
@@ -2263,17 +2267,24 @@ public final class KafkaFunctions
                 String memberId,
                 String metadata)
             {
-                flushGroupExRW.members(m ->
-                    m.item(gm -> gm.id(memberId)
-                        .metadataLen(metadata.length())
-                        .metadata(md -> md.put(metadata.getBytes()))));
+                memberRW.item(gm -> gm.id(memberId)
+                    .metadataLen(metadata.length())
+                    .metadata(md -> md.put(metadata.getBytes())));
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder members(
+                String memberId)
+            {
+                memberRW.item(gm -> gm.id(memberId));
                 return this;
             }
 
             public KafkaFlushExBuilder build()
             {
-                final KafkaGroupFlushExFW groupDataEx = flushGroupExRW.build();
-                flushExRO.wrap(writeBuffer, 0, groupDataEx.limit());
+                flushGroupExRW.members(memberRW.build());
+                final KafkaGroupFlushExFW groupFlushEx = flushGroupExRW.build();
+                flushExRO.wrap(writeBuffer, 0, groupFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
         }

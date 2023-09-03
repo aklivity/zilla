@@ -379,7 +379,7 @@ scope kafka
         {
             string16 id;
             varint32 metadataLen;
-            octets[metadataLen] metadata;
+            octets[metadataLen] metadata = null;
         }
 
         struct KafkaGroupFlushEx
