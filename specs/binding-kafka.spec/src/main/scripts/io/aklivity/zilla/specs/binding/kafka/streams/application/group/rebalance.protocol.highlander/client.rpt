@@ -50,7 +50,7 @@ read advised zilla:flush ${kafka:flushEx()
 write zilla:data.empty
 write flush
 
-read zilla:data.null
+read zilla:data.empty
 
 write advise zilla:flush
 
@@ -67,7 +67,7 @@ read advised zilla:flush ${kafka:flushEx()
 write zilla:data.empty
 write flush
 
-read zilla:data.null
+read zilla:data.empty
 
 write close
 read closed

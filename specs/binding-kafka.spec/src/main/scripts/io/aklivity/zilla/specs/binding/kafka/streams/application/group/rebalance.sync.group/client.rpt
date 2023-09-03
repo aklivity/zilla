@@ -14,36 +14,31 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
-                                   .protocol("unknown")
+                                   .protocol("highlander")
                                    .timeout(45000)
                                    .build()
                                .build()}
 
 connected
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
-                                   .protocol("unknown")
+                                   .protocol("highlander")
                                    .timeout(30000)
                                    .build()
                                .build()}
-write flush
 
-write advise zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
@@ -52,9 +47,19 @@ write advise zilla:flush ${kafka:flushEx()
                                  .build()
                              .build()}
 
-read zilla:data.empty
+write zilla:data.empty
+write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1")
+                                 .build()
+                             .build()}
 
 write zilla:data.empty
 write flush
 
-rejected
+read zilla:data.empty

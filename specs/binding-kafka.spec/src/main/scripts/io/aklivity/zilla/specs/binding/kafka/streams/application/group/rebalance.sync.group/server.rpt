@@ -26,7 +26,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
-                                   .protocol("unknown")
+                                   .protocol("highlander")
                                    .timeout(45000)
                                    .build()
                                .build()}
@@ -37,7 +37,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
-                                   .protocol("unknown")
+                                   .protocol("highlander")
                                    .timeout(30000)
                                    .build()
                                .build()}
@@ -54,7 +54,16 @@ write advise zilla:flush ${kafka:flushEx()
 
 read zilla:data.empty
 
+write advise zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1")
+                                 .build()
+                             .build()}
+
+read zilla:data.empty
+
 write zilla:data.empty
 write flush
-
-rejected

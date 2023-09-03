@@ -442,7 +442,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-    private void doDataNull(
+    private void doDataEmpty(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -467,6 +467,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
+                .payload(EMPTY_OCTETS)
                 .extension(extension)
                 .build();
 
@@ -1303,7 +1304,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
             else
             {
-                doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doDataEmpty(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, EMPTY_EXTENSION);
             }
 

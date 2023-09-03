@@ -43,8 +43,14 @@ read advised zilla:flush ${kafka:flushEx()
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
+                                 .members("memberId-1")
                                  .build()
                              .build()}
+
+write zilla:data.empty
+write flush
+
+read zilla:data.empty
 
 read notify ROUTED_BROKER_SERVER
 
