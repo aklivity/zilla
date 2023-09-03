@@ -61,8 +61,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Member
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.MemberAssignmentFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.TopicAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;

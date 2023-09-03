@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Offset
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.PartitionIndexFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.PartitionIndexFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
