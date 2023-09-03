@@ -416,7 +416,7 @@ scope protocol
             struct Assignment
             {
                string16 memberId;
-               uint32 length;
+               int32 length;
                octets[length] value = null;
             }
 
