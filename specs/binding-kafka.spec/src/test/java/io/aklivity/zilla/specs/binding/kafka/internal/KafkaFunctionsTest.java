@@ -879,13 +879,13 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateMergedFlushExtension()
+    public void shouldGenerateMergedFetchFlushExtension()
     {
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
                                         .typeId(0x01)
-                                        .fetchFlush()
+                                        .fetch()
                                          .partition(1, 2)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L)
@@ -934,13 +934,13 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateMergedFlushExtensionWithStableOffset()
+    public void shouldGenerateMergedFetchFlushExtensionWithStableOffset()
     {
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
                                         .typeId(0x01)
-                                        .fetchFlush()
+                                        .fetch()
                                          .partition(0, 1L, 1L)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L, 1L, 1L)
@@ -989,6 +989,29 @@ public class KafkaFunctionsTest
                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                                 "value".equals(c.header().value()
                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null));
+    }
+
+    @Test
+    public void shouldGenerateMergedConsumerFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .merged()
+                .typeId(0x252)
+                .consumer()
+                    .partition(1, 2)
+                    .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, flushEx.typeId());
+        assertEquals(0x252, flushEx.merged().typeId());
+
+        final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
+
+        assertEquals(mergedFlushEx.consumer().partition().partitionId(), 1);
+        assertEquals(mergedFlushEx.consumer().partition().partitionOffset(), 2);
     }
 
     @Test
@@ -4265,7 +4288,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                    .mergedFetch()
+                    .fetch()
                         .partition(1, 2)
                         .progress(0, 1L)
                         .key("key")
@@ -4293,7 +4316,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                    .mergedFetch()
+                    .fetch()
                     .partition(0, 1L, 1L)
                     .progress(0, 1L, 1L)
                     .build()
@@ -4343,7 +4366,7 @@ public class KafkaFunctionsTest
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .merged()
-                .mergedFetch()
+                .fetch()
                 .progress(0, 1L, 1L, 1L)
                 .build()
                 .build();
@@ -4370,7 +4393,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
             .merged()
-                .mergedFetch()
+                .fetch()
                     .filter()
                         .key("key")
                         .header("name", "value")
@@ -4429,7 +4452,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                .mergedFetch()
+                .fetch()
                     .progress(0, 2L)
                     .build()
                 .build();
@@ -4676,6 +4699,32 @@ public class KafkaFunctionsTest
 
         matcher.match(byteBuf);
     }
+
+    @Test
+    public void shouldMatchGroupFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .group()
+               .leaderId("memberId-1")
+               .memberId("memberId-2")
+               .members("memberId-1", "test")
+               .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+                members(m -> m.item(i ->
+                    i.id("memberId-1")
+                     .metadataLen("test".length()).metadata(o -> o.set("test".getBytes())))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
 
     @Test(expected = Exception.class)
     public void shouldNotMatchFetchFlushExtensionWithLatestOffset() throws Exception

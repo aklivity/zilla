@@ -1939,14 +1939,14 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaMergedFetchFlushExBuilder fetchFlush()
+            public KafkaMergedFetchFlushExBuilder fetch()
             {
                 mergedFlushExRW.kind(KafkaApi.FETCH.value());
 
                 return new KafkaMergedFetchFlushExBuilder();
             }
 
-            public KafkaMergedConsumerFlushExBuilder consumerFlush()
+            public KafkaMergedConsumerFlushExBuilder consumer()
             {
                 mergedFlushExRW.kind(KafkaApi.CONSUMER.value());
 
@@ -2081,7 +2081,9 @@ public final class KafkaFunctions
 
                 private KafkaMergedConsumerFlushExBuilder()
                 {
-                    mergedConsumerFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
+                    mergedConsumerFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_CONSUMER,
+                        writeBuffer.capacity());
                 }
 
                 public KafkaMergedConsumerFlushExBuilder partition(
@@ -3358,12 +3360,12 @@ public final class KafkaFunctions
                 boolean matched = false;
                 if (kafkaFlushEx.merged().typeId() == KafkaApi.FETCH.value())
                 {
-                    matched = mergedFetch().match(kafkaFlushEx);
+                    matched = fetch().match(kafkaFlushEx);
                 }
                 return matched;
             }
 
-            public KafkaMergedFetchFlushEx mergedFetch()
+            public KafkaMergedFetchFlushEx fetch()
             {
                 if (mergedFetchFlush == null)
                 {
@@ -3634,20 +3636,21 @@ public final class KafkaFunctions
 
             public KafkaGroupFlushExMatchBuilder members(
                 String memberId,
-                byte[] metadata)
+                String metadata)
             {
                 if (membersRW == null)
                 {
                     this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
                         .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
-                this.membersRW.item(m -> m.id(memberId).metadata(md -> md.put(metadata)));
+                this.membersRW.item(m -> m.id(memberId).metadataLen(metadata.length())
+                    .metadata(md -> md.set(metadata.getBytes())));
                 return this;
             }
 
-            public KafkaGroupFlushExMatchBuilder build()
+            public KafkaFlushExMatcherBuilder build()
             {
-                return KafkaGroupFlushExMatchBuilder.this;
+                return KafkaFlushExMatcherBuilder.this;
             }
 
             private boolean match(
