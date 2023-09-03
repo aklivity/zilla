@@ -51,15 +51,15 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write ${mqtt:sessionSignal()
             .expiry()
-            .clientId("client-1")
-            .delay(1000)
-            .expireAt(expireAt)
-            .instanceId("zilla-1")
-            .build()
-        .build()}
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(2000)
+                .expireAt(expireAt)
+                .build()
+            .build()}
 write flush
 
-write await WAIT_1_SECOND
+write await ONE_SECOND_ELAPSED
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

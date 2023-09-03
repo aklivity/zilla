@@ -514,9 +514,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.end.expire.session.state/client",
-        "${mqtt}/session.end.expire.session.state/server"})
-    public void shouldExpireSessionOnEnd() throws Exception
+        "${mqtt}/session.close.expire.session.state/client",
+        "${mqtt}/session.close.expire.session.state/server"})
+    public void shouldExpireSessionOnClose() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
@@ -582,7 +582,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/session.will.message.takeover.deliver.will/client",
         "${mqtt}/session.will.message.takeover.deliver.will/server"})
-    public void shouldSendWillMessageOnAbortClientTakeover() throws Exception
+    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");

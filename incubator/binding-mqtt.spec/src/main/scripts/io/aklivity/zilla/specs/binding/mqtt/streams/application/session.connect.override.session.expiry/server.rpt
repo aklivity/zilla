@@ -24,7 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .expiry(100)
-                                .clientId("one")
+                                .clientId("client-1")
                                 .build()
                              .build()}
 
@@ -32,7 +32,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .expiry(30)
-                                .clientId("one")
+                                .clientId("client-1")
                                 .build()
                              .build()}
 

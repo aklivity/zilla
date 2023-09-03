@@ -13,11 +13,14 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -33,8 +36,10 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
+read notify SIGNAL_STREAM_STARTED
 
-read zilla:data.ext ${kafka:matchDataEx()
+write await RECEIVED_EXPIRY_CANCELLATION_SIGNAL
+write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -44,48 +49,51 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-read zilla:data.null
+write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#expiry-signal")
-                               .header("type", "expiry-signal")
-                               .build()
-                           .build()}
-read ${mqtt:sessionSignal()
-            .expiry()
-            .clientId("client-1")
-            .delay(1000)
-            .expireAt(-1)
-            .instanceId("zilla-1")
-            .build()
-        .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#expiry-signal")
-                               .header("type", "expiry-signal")
-                               .build()
-                           .build()}
-read ${mqtt:sessionSignal()
-            .expiry()
-            .clientId("client-1")
-            .delay(1000)
-            .expireAt(2000)
-            .instanceId("zilla-1")
-            .build()
-        .build()}
-
-read notify RECEIVED_WILL_DELIVER_AT_SIGNAL
-
-
+write await RECEIVED_EXPIRE_LATER_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
+write flush
+
+# expiry signal for client-1, expire at (now + delay)
+write await RECEIVED_EXPIRE_AT_SIGNAL
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .expireAt(2000)
+                .build()
+            .build()}
+write flush
+
+# cleanup session state
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -94,15 +102,12 @@ write zilla:data.ext ${kafka:dataEx()
                                .hashKey("client-1")
                                .build()
                            .build()}
-write flush
+read zilla:data.null
 
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -116,8 +121,9 @@ write zilla:begin.ext ${kafka:beginEx()
                             .build()}
 
 connected
+# receive sender-1 migrate signal
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -127,20 +133,15 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("sender-id", "sender-1")
                                .build()
                            .build()}
-write zilla:data.empty
-write flush
-write notify SENT_INITIAL_MIGRATE_SIGNAL
+read zilla:data.empty
 
-write close
 read closed
+write close
 
 
-connect await SENT_INITIAL_MIGRATE_SIGNAL
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("client-1")
@@ -151,7 +152,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+# send group members (leader)
+write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
@@ -159,18 +161,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
-read zilla:data.null
-read notify RECEIVED_GROUP_MEMBERS_LEADER
+write flush
 
-write close
+read closed
 
 
-connect await RECEIVED_GROUP_MEMBERS_LEADER
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -189,7 +187,7 @@ write zilla:begin.ext ${kafka:beginEx()
 connected
 
 # will delivery cancellation signal for client-1
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -199,9 +197,12 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write flush
+read zilla:data.null
+read notify RECEIVED_WILL_CANCELLATION_SIGNAL
 
-write zilla:data.ext ${kafka:dataEx()
+
+# session expiry cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -211,9 +212,11 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-write flush
+read zilla:data.null
+read notify RECEIVED_EXPIRY_CANCELLATION_SIGNAL
 
-write zilla:data.ext ${kafka:dataEx()
+# expiry signal for client-1, deliver later
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -223,20 +226,23 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-write ${mqtt:sessionSignal()
+read ${mqtt:sessionSignal()
            .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(-1)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
 
-# no will signals
+write notify RECEIVED_EXPIRE_LATER_SIGNAL
+
 # no session state
-read advised zilla:flush
+# no migrate signals
+write advise zilla:flush
 
-write zilla:data.ext ${kafka:dataEx()
+# expiry signal for client-1, expire at (now + delay)
+read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .deferred(0)
@@ -246,15 +252,16 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-write ${mqtt:sessionSignal()
+read ${mqtt:sessionSignal()
            .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(2000)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
-write flush
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+           .build()}
 
-write close
+write notify RECEIVED_EXPIRE_AT_SIGNAL
+
 read closed
+write close

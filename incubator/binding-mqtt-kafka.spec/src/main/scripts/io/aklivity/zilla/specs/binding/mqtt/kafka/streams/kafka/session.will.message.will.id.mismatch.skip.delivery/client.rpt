@@ -57,14 +57,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:sessionSignal()
            .will()
-           .clientId("client-1")
-           .delay(1000)
-           .deliverAt(-1)
-           .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
-           .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .deliverAt(-1)
+               .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
+               .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
+               .build()
+           .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -77,14 +77,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:sessionSignal()
            .will()
-           .clientId("client-1")
-           .delay(1000)
-           .deliverAt(2000)
-           .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
-           .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-           .instanceId("zilla-1")
-           .build()
-        .build()}
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .deliverAt(2000)
+               .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
+               .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
+               .build()
+           .build()}
 read notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
 
@@ -240,13 +240,13 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write ${mqtt:sessionSignal()
-           .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(-1)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -283,14 +283,14 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write ${mqtt:sessionSignal()
             .will()
-            .clientId("client-1")
-            .delay(1000)
-            .deliverAt(-1)
-            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
-            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-            .instanceId("zilla-1")
-            .build()
-        .build()}
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .deliverAt(-1)
+                .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
+                .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
+                .build()
+            .build()}
 write flush
 
 write advise zilla:flush ${kafka:flushEx()
@@ -322,14 +322,14 @@ write zilla:data.ext ${kafka:dataEx()
 
 write ${mqtt:sessionSignal()
             .will()
-            .clientId("client-1")
-            .delay(1000)
-            .deliverAt(2000)
-            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
-            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-            .instanceId("zilla-1")
-            .build()
-        .build()}
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .deliverAt(2000)
+                .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
+                .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
+                .build()
+            .build()}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -343,13 +343,13 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write ${mqtt:sessionSignal()
-           .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(2000)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+            .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+            .build()}
 write flush
 
 write abort

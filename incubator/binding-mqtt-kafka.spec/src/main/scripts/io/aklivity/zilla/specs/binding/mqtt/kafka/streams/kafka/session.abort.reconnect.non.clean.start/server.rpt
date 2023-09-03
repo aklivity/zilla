@@ -135,12 +135,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:sessionSignal()
            .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(-1)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
 
 write advise zilla:flush
 
@@ -183,12 +183,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:sessionSignal()
            .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(2000)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+           .build()}
 
 read aborted
 write abort

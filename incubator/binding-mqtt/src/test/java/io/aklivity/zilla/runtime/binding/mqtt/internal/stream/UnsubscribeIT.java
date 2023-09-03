@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -64,7 +63,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.after.subscribe/client",
         "${app}/unsubscribe.after.subscribe/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledge() throws Exception
@@ -78,7 +76,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.topic.filter.single/client",
         "${app}/unsubscribe.topic.filter.single/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeSingleTopicFilters() throws Exception
@@ -92,7 +89,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.publish.unfragmented/client",
         "${app}/unsubscribe.publish.unfragmented/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
@@ -106,7 +102,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
@@ -120,7 +115,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.no.matching.subscription/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeNoMatchingSubscription() throws Exception
@@ -134,7 +128,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedPacket() throws Exception
@@ -148,7 +141,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.reject.missing.packet.id/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWithoutPacketId() throws Exception
@@ -162,7 +154,6 @@ public class UnsubscribeIT
         "${net}/unsubscribe.reject.no.topic.filter/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectNoTopicFilter() throws Exception

@@ -577,9 +577,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.end.expire.session.state/client",
-        "${kafka}/session.end.expire.session.state/server"})
-    public void shouldExpireSessionOnEnd() throws Exception
+        "${kafka}/session.close.expire.session.state/client",
+        "${kafka}/session.close.expire.session.state/server"})
+    public void shouldExpireSessionOnClose() throws Exception
     {
         k3po.finish();
     }
@@ -640,8 +640,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+        "${kafka}/session.will.message.will.id.mismatch.skip.delivery/client",
+        "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
     public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception
     {
         k3po.finish();

@@ -99,20 +99,20 @@ scope mqtt
 
     struct MqttWillSignal
     {
+        string16 instanceId;
         string16 clientId;
         int32 delay = 0;
         int64 deliverAt = -1;
         string16 lifetimeId = null;
         string16 willId = null;
-        string16 instanceId;
     }
 
     struct MqttExpirySignal
     {
+        string16 instanceId;
         string16 clientId;
         int32 delay = 0;
         int64 expireAt = -1;
-        string16 instanceId;
     }
 
     struct MqttWillMessage

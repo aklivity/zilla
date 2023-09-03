@@ -45,14 +45,13 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt:sessionSignal()
             .expiry()
-            .clientId("client-1")
-            .delay(1000)
-            .expireAt(expireAt)
-            .instanceId("zilla-1")
-            .build()
-        .build()}
-
-read notify WAIT_1_SECOND
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(2000)
+                .expireAt(expireAt)
+                .build()
+            .build()}
+read notify ONE_SECOND_ELAPSED
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))

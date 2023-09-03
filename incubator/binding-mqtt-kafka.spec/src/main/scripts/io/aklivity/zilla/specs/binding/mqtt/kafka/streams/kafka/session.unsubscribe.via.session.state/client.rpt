@@ -132,13 +132,13 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write ${mqtt:sessionSignal()
-           .expiry()
-           .clientId("client-1")
-           .delay(1000)
-           .expireAt(-1)
-           .instanceId("zilla-1")
-           .build()
-       .build()}
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
 write flush
 
 read advised zilla:flush

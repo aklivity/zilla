@@ -1259,10 +1259,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean connected;
 
         private short topicAliasMaximum = 0;
-        private int connectSessionExpiryInterval = 0;
-        private int sessionExpiryIntervalLimit = Integer.MAX_VALUE;
+        private int connectSessionExpiry = 0;
+        private int sessionExpiry;
         private boolean assignedClientId = false;
-        private int propertyMask = 0;
+        private int decodablePropertyMask = 0;
 
         private int state;
         private long sessionId;
@@ -1572,35 +1572,36 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (mqttProperty.kind())
                 {
                 case KIND_TOPIC_ALIAS_MAXIMUM:
-                    if (isSetTopicAliasMaximum(propertyMask))
+                    if (isSetTopicAliasMaximum(decodablePropertyMask))
                     {
                         topicAliasMaximum = 0;
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
-                    this.propertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
+                    this.decodablePropertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
                     final short topicAliasMaximum = (short) (mqttProperty.topicAliasMaximum() & 0xFFFF);
                     this.topicAliasMaximum = (short) Math.min(topicAliasMaximum, topicAliasMaximumLimit);
                     break;
                 case KIND_SESSION_EXPIRY:
-                    if (isSetSessionExpiryInterval(propertyMask))
+                    if (isSetSessionExpiryInterval(decodablePropertyMask))
                     {
-                        connectSessionExpiryInterval = 0;
+                        connectSessionExpiry = 0;
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
-                    this.propertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
-                    this.connectSessionExpiryInterval = (int) mqttProperty.sessionExpiry();
+                    this.decodablePropertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
+                    this.connectSessionExpiry = (int) mqttProperty.sessionExpiry();
+                    this.sessionExpiry = connectSessionExpiry;
                     break;
                 case KIND_RECEIVE_MAXIMUM:
                 case KIND_MAXIMUM_PACKET_SIZE:
                     final int maxConnectPacketSize = (int) mqttProperty.maximumPacketSize();
-                    if (maxConnectPacketSize == 0 || isSetMaximumPacketSize(propertyMask))
+                    if (maxConnectPacketSize == 0 || isSetMaximumPacketSize(decodablePropertyMask))
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
-                    this.propertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
+                    this.decodablePropertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
                     //TODO: remove this once we will support large messages
                     maximumPacketSize = Math.min(maxConnectPacketSize, maximumPacketSize);
                     break;
@@ -1833,9 +1834,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
-                .session(sessionBuilder -> sessionBuilder
+                .session(s -> s
                     .flags(flags)
-                    .expiry(connectSessionExpiryInterval)
+                    .expiry(sessionExpiry)
                     .clientId(clientId)
                     .serverRef(serverRef)
                 );
@@ -2288,14 +2289,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
-                    if (isSetSessionExpiryInterval(propertyMask))
-                    {
-                        reasonCode = PROTOCOL_ERROR;
-                        break decode;
-                    }
-                    this.propertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
-                    final int sessionExpiryInterval = (int) mqttProperty.sessionExpiry();
-                    if (sessionExpiryInterval > sessionExpiryIntervalLimit)
+                    if (isSetSessionExpiryInterval(decodablePropertyMask))
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
@@ -2608,10 +2602,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .build();
                 propertiesSize = mqttProperty.limit();
 
-                if (connectSessionExpiryInterval > sessionExpiryIntervalLimit)
+                if (connectSessionExpiry != sessionExpiry)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .sessionExpiry(sessionExpiryIntervalLimit)
+                        .sessionExpiry(sessionExpiry)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -3264,7 +3258,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SESSION;
                     final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
 
-                    sessionExpiryIntervalLimit = mqttSessionBeginEx.expiry();
+                    sessionExpiry = mqttSessionBeginEx.expiry();
                 }
 
                 doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);

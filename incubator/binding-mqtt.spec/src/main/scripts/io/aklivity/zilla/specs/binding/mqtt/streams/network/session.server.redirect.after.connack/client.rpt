@@ -21,23 +21,23 @@ connect "zilla://streams/net0"
 
 connected
 
-write [0x10 0x13]                          # CONNECT
-      [0x00 0x04] "MQTT"                   # protocol name
-      [0x05]                               # protocol version
-      [0x02]                               # flags = clean start
-      [0x00 0x3c]                          # keep alive = 60s
-      [0x00]                               # properties = none
-      [0x00 0x06] "client"                 # client id
+write [0x10 0x13]                                   # CONNECT
+      [0x00 0x04] "MQTT"                            # protocol name
+      [0x05]                                        # protocol version
+      [0x02]                                        # flags = clean start
+      [0x00 0x3c]                                   # keep alive = 60s
+      [0x00]                                        # properties = none
+      [0x00 0x06] "client"                          # client id
 
-read  [0x20 0x08]                          # CONNACK
-      [0x00]                               # flags = none
-      [0x00]                               # reason code
-      [0x05]                               # properties = none
-      [0x27] 66560                         # maximum packet size = 66560
+read  [0x20 0x08]                                   # CONNACK
+      [0x00]                                        # flags = none
+      [0x00]                                        # reason code
+      [0x05]                                        # properties = none
+      [0x27] 66560                                  # maximum packet size = 66560
 
-read  [0xe0 0x13]                          # DISCONNECT
-      [0x9d]                               # reason code = Use another server
-      [0x11]                               # properties
-      [0x1c 0x00 0x0e] "localhost:1884"    # server reference
+read  [0xe0 0x1c]                                   # DISCONNECT
+      [0x9d]                                        # reason code = Use another server
+      [0x1a]                                        # properties
+      [0x1c 0x00 0x17] "mqtt-2.example.com:1883"    # server reference
 
 

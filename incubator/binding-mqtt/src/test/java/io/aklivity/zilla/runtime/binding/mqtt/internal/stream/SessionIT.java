@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationT
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SERVER_REFERENCE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -64,7 +63,6 @@ public class SessionIT
     @Specification({
         "${net}/session.connect.with.session.expiry/client",
         "${app}/session.connect.with.session.expiry/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldConnectWithSessionExpiry() throws Exception
@@ -77,7 +75,6 @@ public class SessionIT
     @Specification({
         "${net}/session.connect.override.session.expiry/client",
         "${app}/session.connect.override.session.expiry/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldConnectServerOverridesSessionExpiry() throws Exception
@@ -90,7 +87,6 @@ public class SessionIT
     @Specification({
         "${net}/session.subscribe/client",
         "${app}/session.subscribe/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -103,7 +99,6 @@ public class SessionIT
     @Specification({
         "${net}/session.subscribe.multiple.isolated/client",
         "${app}/session.subscribe.multiple.isolated/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception
@@ -116,7 +111,6 @@ public class SessionIT
     @Specification({
         "${net}/session.subscribe.via.session.state/client",
         "${app}/session.subscribe.via.session.state/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldSubscribeViaSessionState() throws Exception
@@ -129,7 +123,6 @@ public class SessionIT
     @Specification({
         "${net}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldUnsubscribeSaveNewSessionState() throws Exception
@@ -142,7 +135,6 @@ public class SessionIT
     @Specification({
         "${net}/session.unsubscribe.after.subscribe.deferred/client",
         "${app}/session.unsubscribe.after.subscribe.deferred/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldUnsubscribeAfterSubscribeDeferred() throws Exception
@@ -155,7 +147,6 @@ public class SessionIT
     @Specification({
         "${net}/session.subscribe/client",
         "${app}/session.unsubscribe.via.session.state/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldUnsubscribeViaSessionState() throws Exception
@@ -168,7 +159,6 @@ public class SessionIT
     @Specification({
         "${net}/session.will.message.retain/client",
         "${app}/session.will.message.retain/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldStoreWillMessageInSessionState() throws Exception
@@ -181,7 +171,6 @@ public class SessionIT
     @Specification({
         "${net}/session.connect.payload.fragmented/client",
         "${app}/session.will.message.retain/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldStoreWillMessageInSessionStatePayloadFragmented() throws Exception
@@ -195,7 +184,6 @@ public class SessionIT
     @Specification({
         "${net}/session.will.message.normal.disconnect/client",
         "${app}/session.will.message.normal.disconnect/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldCloseSessionNormalDisconnect() throws Exception
@@ -208,7 +196,6 @@ public class SessionIT
     @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${app}/session.will.message.abort/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldCloseSessionDisconnectWithWill() throws Exception
@@ -221,7 +208,6 @@ public class SessionIT
     @Specification({
         "${net}/session.will.message.no.ping.within.keep.alive/client",
         "${app}/session.will.message.abort/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
@@ -235,7 +221,6 @@ public class SessionIT
     @Specification({
         "${net}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldCloseExistingConnectionCleanStart() throws Exception
@@ -248,7 +233,6 @@ public class SessionIT
     @Specification({
         "${net}/session.abort.reconnect.non.clean.start/client",
         "${app}/session.abort.reconnect.non.clean.start/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldClientAbortAndReconnectWithNonCleanStart() throws Exception
@@ -261,7 +245,6 @@ public class SessionIT
     @Specification({
         "${net}/session.client.takeover/client",
         "${app}/session.client.takeover/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldClientTakeOverSession() throws Exception
@@ -274,10 +257,9 @@ public class SessionIT
     @Specification({
         "${net}/session.server.redirect.after.connack/client",
         "${app}/session.server.redirect.after.connack/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SERVER_REFERENCE_NAME, value = "localhost:1883")
+    @Configure(name = SERVER_REFERENCE_NAME, value = "mqtt-1.example.com:1883")
     public void shouldRedirectAfterConnack() throws Exception
     {
         k3po.finish();
@@ -288,10 +270,9 @@ public class SessionIT
     @Specification({
         "${net}/session.server.redirect.before.connack/client",
         "${app}/session.server.redirect.before.connack/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SERVER_REFERENCE_NAME, value = "localhost:1883")
+    @Configure(name = SERVER_REFERENCE_NAME, value = "mqtt-1.example.com:1883")
     public void shouldRedirectBeforeConnack() throws Exception
     {
         k3po.finish();

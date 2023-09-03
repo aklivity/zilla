@@ -44,13 +44,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write zilla:data.empty
 write flush
+write notify SENT_INIT_MIGRATE
 
 write close
 read closed
 
-write notify INIT_MIGRATE_FINISHED
 
-connect await INIT_MIGRATE_FINISHED
+connect await SENT_INIT_MIGRATE
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -74,10 +74,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
+read notify RECEIVED_LEADER_DATA
 
-write notify GROUP_FINISHED
-
-connect await GROUP_FINISHED
+connect await RECEIVED_LEADER_DATA
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -140,10 +139,10 @@ read zilla:data.ext ${kafka:matchDataEx()
 read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
+read notify RECEIVED_SESSION_STATE
 
-write notify SESSION_STATE_FINISHED
 
-connect await SESSION_STATE_FINISHED
+connect await RECEIVED_SESSION_STATE
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
