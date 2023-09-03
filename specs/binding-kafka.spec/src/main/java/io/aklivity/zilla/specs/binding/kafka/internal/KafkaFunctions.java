@@ -3377,7 +3377,7 @@ public final class KafkaFunctions
                 {
                     mergedFetchFlush = new KafkaMergedFetchFlushEx();
                 }
-                return  mergedFetchFlush;
+                return mergedFetchFlush;
             }
 
             public final class KafkaMergedFetchFlushEx

@@ -69,7 +69,6 @@ read "Hello, world #A2"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
-                                .fetch()
                                  .partition(1, 2, 2)
                                  .progress(0, 3)
                                  .progress(1, 3)
