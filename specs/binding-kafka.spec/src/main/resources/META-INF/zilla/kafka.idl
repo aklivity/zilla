@@ -251,7 +251,7 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
-        union KafkaMergedFlushEx switch (uint8) extends core::stream::Extension
+        union KafkaMergedFlushEx switch (uint8)
         {
             case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;

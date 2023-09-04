@@ -2104,8 +2104,6 @@ public final class KafkaFunctions
 
             public KafkaMergedFetchFlushExBuilder fetch()
             {
-                mergedFlushExRW.typeId(KafkaApi.FETCH.value());
-
                 mergedFlushExRW.kind(KafkaApi.FETCH.value());
 
                 return new KafkaMergedFetchFlushExBuilder();
@@ -2113,7 +2111,6 @@ public final class KafkaFunctions
 
             public KafkaMergedConsumerFlushExBuilder consumer()
             {
-                mergedFlushExRW.typeId(KafkaApi.CONSUMER.value());
                 mergedFlushExRW.kind(KafkaApi.CONSUMER.value());
 
                 return new KafkaMergedConsumerFlushExBuilder();
@@ -3535,7 +3532,7 @@ public final class KafkaFunctions
                 KafkaFlushExFW kafkaFlushEx)
             {
                 boolean matched = false;
-                if (kafkaFlushEx.merged().typeId() == KafkaApi.FETCH.value())
+                if (kafkaFlushEx.merged().kind() == KafkaApi.FETCH.value())
                 {
                     matched = fetch().match(kafkaFlushEx);
                 }

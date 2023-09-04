@@ -1716,7 +1716,6 @@ public final class KafkaMergedFactory implements BindingHandler
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
                         .merged(ff -> ff
-                            .typeId(1)
                             .fetch(f -> f.progress(ps -> nextOffsetsById.longForEach((p, o) ->
                                 ps.item(i -> i.partitionId((int) p)
                                     .partitionOffset(o)

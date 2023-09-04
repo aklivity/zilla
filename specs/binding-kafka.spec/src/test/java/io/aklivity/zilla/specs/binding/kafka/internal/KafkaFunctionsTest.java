@@ -4397,7 +4397,7 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.typeId(0x01)
+                .merged(f -> f
                     .fetch(m -> m.partition(p -> p.partitionId(1).partitionOffset(2))
                     .progressItem(p -> p
                         .partitionId(0)
@@ -4426,7 +4426,6 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m -> m.partition(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
                     .progressItem(p -> p
                         .partitionId(0)
@@ -4449,7 +4448,6 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m ->
                     m.progressItem(p -> p
                     .partitionId(0)
@@ -4474,7 +4472,6 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m -> m.progressItem(p -> p
                     .partitionId(0)
                     .partitionOffset(1L)
@@ -4505,7 +4502,6 @@ public class KafkaFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m -> m.filtersItem(i -> i
                     .conditionsItem(c -> c
                         .key(k -> k
@@ -4535,7 +4531,6 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m -> m.progressItem(p -> p
                     .partitionId(0)
                     .partitionOffset(1L))))
@@ -4560,7 +4555,6 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .merged(f -> f
-                    .typeId(0x01)
                     .fetch(m -> m.progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))))
