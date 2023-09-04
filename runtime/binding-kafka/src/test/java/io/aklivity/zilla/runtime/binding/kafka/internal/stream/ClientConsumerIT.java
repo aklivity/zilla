@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -45,7 +44,6 @@ public class ClientConsumerIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
-        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .external("net0")
         .clean();
 

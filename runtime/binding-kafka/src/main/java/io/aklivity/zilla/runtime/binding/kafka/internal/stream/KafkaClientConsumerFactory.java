@@ -815,7 +815,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 });
             }
 
-            doConsumerReplyWindow(traceId, authorizationId, 0, replyPad);
+            doPartitionAssignment(traceId, authorization);
         }
 
         private void onConsumerReplyData(
@@ -856,7 +856,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                                     .forEach(np -> p.item(tp -> tp.partitionId(np.partitionId()))))))))
                     .build();
 
-                stream.doConsumerReplyData(traceId, flags, 0, EMPTY_OCTETS, kafkaDataExFW);
+                stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS, kafkaDataExFW);
             });
         }
 
