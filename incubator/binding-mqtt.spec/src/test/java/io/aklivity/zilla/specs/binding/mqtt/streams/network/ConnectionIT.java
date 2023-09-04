@@ -427,4 +427,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.invalid.session.expiry/client",
+        "${net}/disconnect.invalid.session.expiry/server"})
+    public void shouldRejectInvalidSessionExpiryOnDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

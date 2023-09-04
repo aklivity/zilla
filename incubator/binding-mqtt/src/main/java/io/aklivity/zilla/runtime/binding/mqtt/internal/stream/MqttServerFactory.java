@@ -2294,6 +2294,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
+                    this.decodablePropertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
+                    final int sessionExpiryInterval = (int) mqttProperty.sessionExpiry();
+                    if (sessionExpiryInterval > 0 && this.sessionExpiry == 0)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
                     break;
                 default:
                     reasonCode = MALFORMED_PACKET;

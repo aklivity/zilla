@@ -233,9 +233,6 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.cancel.session.expiry/server"})
     public void shouldCancelSessionExpiry() throws Exception
     {
-        k3po.start();
-        Thread.sleep(1000);
-        k3po.notifyBarrier("ONE_SECOND_ELAPSED");
         k3po.finish();
     }
 

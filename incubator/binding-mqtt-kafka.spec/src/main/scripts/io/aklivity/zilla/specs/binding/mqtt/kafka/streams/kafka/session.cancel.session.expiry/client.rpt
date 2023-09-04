@@ -51,7 +51,6 @@ read ${mqtt:sessionSignal()
                 .expireAt(expireAt)
                 .build()
             .build()}
-read notify ONE_SECOND_ELAPSED
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))

@@ -559,4 +559,16 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.invalid.session.expiry/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    public void shouldRejectInvalidSessionExpiryOnDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -59,7 +59,6 @@ write ${mqtt:sessionSignal()
             .build()}
 write flush
 
-write await ONE_SECOND_ELAPSED
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
