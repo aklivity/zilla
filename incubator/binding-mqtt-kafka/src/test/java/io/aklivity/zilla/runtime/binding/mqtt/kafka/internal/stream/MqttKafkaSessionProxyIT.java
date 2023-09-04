@@ -207,6 +207,20 @@ public class MqttKafkaSessionProxyIT
         k3po.finish();
     }
 
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
+    @Specification({
+        "${mqtt}/session.redirect/client",
+        "${kafka}/session.redirect/server"})
+    public void shouldRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({

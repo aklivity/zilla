@@ -2250,6 +2250,13 @@ public final class KafkaFunctions
             return this;
         }
 
+        public KafkaResetExBuilder consumerId(
+            String consumerId)
+        {
+            resetExRW.consumerId(consumerId);
+            return this;
+        }
+
         public byte[] build()
         {
             final KafkaResetExFW resetEx = resetExRW.build();
@@ -4035,6 +4042,7 @@ public final class KafkaFunctions
             private KafkaCapabilities capabilities;
             private String16FW topic;
             private String16FW groupId;
+            private String16FW consumerId;
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
@@ -4065,6 +4073,13 @@ public final class KafkaFunctions
                 String groupId)
             {
                 this.groupId = new String16FW(groupId);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder consumerId(
+                String consumerId)
+            {
+                this.consumerId = new String16FW(consumerId);
                 return this;
             }
 
@@ -4169,6 +4184,7 @@ public final class KafkaFunctions
                 return matchCapabilities(mergedBeginEx) &&
                     matchTopic(mergedBeginEx) &&
                     matchGroupId(mergedBeginEx) &&
+                    matchConsumerId(mergedBeginEx) &&
                     matchPartitions(mergedBeginEx) &&
                     matchFilters(mergedBeginEx) &&
                     matchIsolation(mergedBeginEx) &&
@@ -4193,6 +4209,12 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return groupId == null || groupId.equals(mergedBeginEx.groupId());
+            }
+
+            private boolean matchConsumerId(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return consumerId == null || consumerId.equals(mergedBeginEx.consumerId());
             }
 
             private boolean matchPartitions(
