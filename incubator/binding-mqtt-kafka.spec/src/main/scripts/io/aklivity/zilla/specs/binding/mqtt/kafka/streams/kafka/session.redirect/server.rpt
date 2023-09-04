@@ -25,7 +25,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
                                 .groupId("mqtt-clients")
-                                .consumerId("localhost:1883")
+                                .consumerId("mqtt-1.example.com:1883")
                                 .filter()
                                     .key("client-1#migrate")
                                     .headerNot("sender-id", "sender-1")
@@ -84,7 +84,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt_sessions")
                                 .groupId("mqtt-clients")
-                                .consumerId("localhost:1883")
+                                .consumerId("mqtt-1.example.com:1883")
                                 .filter()
                                     .key("client-1")
                                     .build()
@@ -110,8 +110,41 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+# session expiry cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expire later signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
+
 write zilla:reset.ext ${kafka:resetEx()
                              .typeId(zilla:id("kafka"))
-                             .consumerId("localhost:1884")
+                             .consumerId("mqtt-2.example.com:1883")
                              .build()}
 read abort

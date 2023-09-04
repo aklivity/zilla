@@ -415,6 +415,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.connect.override.max.session.expiry/client",
+        "${mqtt}/session.connect.override.max.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.connect.override.min.session.expiry/client",
+        "${mqtt}/session.connect.override.min.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${mqtt}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
@@ -496,6 +514,28 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.expire.session.state/client",
+        "${mqtt}/session.close.expire.session.state/server"})
+    public void shouldExpireSessionOnClose() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.abort.expire.session.state/client",
+        "${mqtt}/session.abort.expire.session.state/server"})
+    public void shouldExpireSessionOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${mqtt}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
@@ -540,9 +580,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.will.message.client.takeover.deliver.will/client",
-        "${mqtt}/session.will.message.client.takeover.deliver.will/server"})
-    public void shouldSendWillMessageOnAbortClientTakeover() throws Exception
+        "${mqtt}/session.will.message.takeover.deliver.will/client",
+        "${mqtt}/session.will.message.takeover.deliver.will/server"})
+    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");

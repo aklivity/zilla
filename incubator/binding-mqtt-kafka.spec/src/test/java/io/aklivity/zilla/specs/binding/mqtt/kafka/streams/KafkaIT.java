@@ -577,6 +577,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expire.session.state/client",
+        "${kafka}/session.close.expire.session.state/server"})
+    public void shouldExpireSessionOnClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.abort.expire.session.state/client",
+        "${kafka}/session.abort.expire.session.state/server"})
+    public void shouldExpireSessionOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.cancel.session.expiry/client",
+        "${kafka}/session.cancel.session.expiry/server"})
+    public void shouldCancelSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
@@ -613,8 +640,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/client",
-        "${kafka}/session.will.message.will.id.mismatch.no.deliver/server"})
+        "${kafka}/session.will.message.will.id.mismatch.skip.delivery/client",
+        "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
     public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception
     {
         k3po.finish();
@@ -661,6 +688,33 @@ public class KafkaIT
         "${kafka}/session.will.stream.reset.reconnect/client",
         "${kafka}/session.will.stream.reset.reconnect/server"})
     public void shouldReconnectWillStreamOnKafkaReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.connect.override.max.session.expiry/client",
+        "${kafka}/session.connect.override.max.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.connect.override.min.session.expiry/client",
+        "${kafka}/session.connect.override.min.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.redirect/client",
+        "${kafka}/session.redirect/server"})
+    public void shouldRedirect() throws Exception
     {
         k3po.finish();
     }

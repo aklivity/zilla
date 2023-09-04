@@ -32,6 +32,9 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
+                                .filter()
+                                    .header("type", "expiry-signal")
+                                    .build()
                                 .build()
                             .build()}
 
@@ -46,17 +49,19 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "will-signal")
                                .build()
                            .build()}
-write ${mqtt:willSignal()
-            .clientId("client-1")
-            .delay(1000)
-            .deliverAt(deliverAt)
-            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
-            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-            .instanceId("zilla-1")
-        .build()}
+write ${mqtt:sessionSignal()
+            .will()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .deliverAt(deliverAt)
+                .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
+                .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
+                .build()
+            .build()}
 write flush
 
-write await WAIT_1_SECOND
+write await ONE_SECOND_ELAPSED
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

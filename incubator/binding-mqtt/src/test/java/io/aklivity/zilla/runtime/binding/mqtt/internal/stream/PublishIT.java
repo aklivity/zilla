@@ -20,10 +20,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationT
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.RETAIN_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -70,10 +68,8 @@ public class PublishIT
         "${net}/publish.one.message/client",
         "${app}/publish.one.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishOneMessage() throws Exception
     {
         k3po.finish();
@@ -85,10 +81,8 @@ public class PublishIT
         "${net}/publish.retained/client",
         "${app}/publish.retained/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
@@ -100,11 +94,9 @@ public class PublishIT
         "${net}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMessageWithTopicAlias() throws Exception
     {
         k3po.finish();
@@ -116,10 +108,8 @@ public class PublishIT
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMultipleMessages() throws Exception
     {
         k3po.finish();
@@ -131,10 +121,8 @@ public class PublishIT
         "${net}/publish.multiple.messages.unfragmented/client",
         "${app}/publish.multiple.messages/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMultipleMessagesUnfragmented() throws Exception
     {
         k3po.finish();
@@ -146,10 +134,8 @@ public class PublishIT
         "${net}/publish.one.message.subscribe.unfragmented/client",
         "${app}/publish.one.message.subscribe.unfragmented/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishOneMessageSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
@@ -161,10 +147,8 @@ public class PublishIT
         "${net}/publish.multiple.messages.with.delay/client",
         "${app}/publish.multiple.messages/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = PUBLISH_TIMEOUT_NAME, value = "5")
     public void shouldPublishMultipleMessagesWithDelay() throws Exception
     {
@@ -181,11 +165,9 @@ public class PublishIT
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMessagesWithTopicAliasDistinct() throws Exception
     {
         k3po.finish();
@@ -197,11 +179,9 @@ public class PublishIT
         "${net}/publish.messages.with.topic.alias.repeated/client",
         "${app}/publish.messages.with.topic.alias.repeated/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMessagesWithTopicAliasRepeated() throws Exception
     {
         k3po.finish();
@@ -213,11 +193,9 @@ public class PublishIT
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${app}/publish.messages.with.topic.alias.replaced/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishMessagesWithTopicAliasReplaced() throws Exception
     {
         k3po.finish();
@@ -229,11 +207,9 @@ public class PublishIT
         "${net}/publish.messages.with.topic.alias.invalid.scope/client",
         "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
     {
         k3po.finish();
@@ -244,10 +220,8 @@ public class PublishIT
     @Specification({
         "${net}/publish.topic.not.routed/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectTopicNotRouted() throws Exception
     {
         k3po.finish();
@@ -258,10 +232,8 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.exceeds.maximum/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishWhenTopicAliasExceedsMaximum() throws Exception
     {
         k3po.finish();
@@ -272,11 +244,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.repeated/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishWithMultipleTopicAliases() throws Exception
     {
         k3po.finish();
@@ -287,11 +257,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.client.sent.subscription.id/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishClientSentSubscriptionId() throws Exception
     {
         k3po.finish();
@@ -302,11 +270,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.invalid.payload.format/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishInvalidPayloadFormat() throws Exception
     {
         k3po.finish();
@@ -317,11 +283,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos1.not.supported/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "0")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublisQos1NotSupported() throws Exception
     {
         k3po.finish();
@@ -332,11 +296,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos2.not.supported/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "0")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublisQos2NotSupported() throws Exception
     {
         k3po.finish();
@@ -348,11 +310,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos0.with.packet.id/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishQos0WithPacketId() throws Exception
     {
         k3po.finish();
@@ -364,11 +324,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos1.without.packet.id/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishQos1WithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -380,11 +338,9 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos2.without.packet.id/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishQos2WithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -399,7 +355,6 @@ public class PublishIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectPublishRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -411,10 +366,8 @@ public class PublishIT
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishWithUserProperty() throws Exception
     {
         k3po.finish();
@@ -426,10 +379,8 @@ public class PublishIT
         "${net}/publish.with.user.properties.distinct/client",
         "${app}/publish.with.user.properties.distinct/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishWithDistinctUserProperties() throws Exception
     {
         k3po.finish();
@@ -441,10 +392,8 @@ public class PublishIT
         "${net}/publish.with.user.properties.repeated/client",
         "${app}/publish.with.user.properties.repeated/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishWithRepeatedUserProperties() throws Exception
     {
         k3po.finish();
@@ -456,10 +405,8 @@ public class PublishIT
         "${net}/publish.empty.retained.message/client",
         "${app}/publish.empty.retained.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
@@ -471,10 +418,8 @@ public class PublishIT
         "${net}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldPublishEmptyMessage() throws Exception
     {
         k3po.finish();
@@ -485,10 +430,8 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.packet.too.large/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldRejectPacketTooLarge() throws Exception
     {

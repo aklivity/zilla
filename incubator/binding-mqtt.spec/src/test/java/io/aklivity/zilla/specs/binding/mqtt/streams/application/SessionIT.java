@@ -48,6 +48,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.override.session.expiry/client",
+        "${app}/session.connect.override.session.expiry/server"})
+    public void shouldConnectServerOverridesSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
     public void shouldRemoveSessionAtCleanStart() throws Exception

@@ -44,13 +44,13 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write zilla:data.empty
 write flush
+write notify SENT_INIT_MIGRATE
 
 write close
 read closed
 
-write notify INIT_MIGRATE_FINISHED
 
-connect await INIT_MIGRATE_FINISHED
+connect await SENT_INIT_MIGRATE
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -74,13 +74,10 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .members(1)
                                  .build()
                              .build()}
+read notify RECEIVED_LEADER_DATA
+read notify CONNACK_TRIGGERED
 
-write notify CONNACK_TRIGGERED
-
-
-write notify GROUP_FINISHED
-
-connect await GROUP_FINISHED
+connect await RECEIVED_LEADER_DATA
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -111,6 +108,18 @@ write zilla:data.ext ${kafka:dataEx()
                                .key("client-1#will-signal")
                                .hashKey("client-1")
                                .header("type", "will-signal")
+                               .build()
+                           .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
                                .build()
                            .build()}
 write flush

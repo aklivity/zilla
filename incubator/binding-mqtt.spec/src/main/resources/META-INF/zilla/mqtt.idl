@@ -54,7 +54,7 @@ scope mqtt
         TEXT
     }
 
-    enum MqttWillDeliverAt (int64)
+    enum MqttTime (int64)
     {
         UNKNOWN(-1L)
     }
@@ -85,14 +85,34 @@ scope mqtt
         MqttTopicFilter[] subscriptions;
     }
 
+    enum MqttSessionSignalType (uint8)
+    {
+        WILL (0),
+        EXPIRY (1)
+    }
+
+    union MqttSessionSignal switch (uint8)
+    {
+        case 0: mqtt::MqttWillSignal will;
+        case 1: mqtt::MqttExpirySignal expiry;
+    }
+
     struct MqttWillSignal
     {
+        string16 instanceId;
         string16 clientId;
         int32 delay = 0;
         int64 deliverAt = -1;
         string16 lifetimeId = null;
         string16 willId = null;
+    }
+
+    struct MqttExpirySignal
+    {
         string16 instanceId;
+        string16 clientId;
+        int32 delay = 0;
+        int64 expireAt = -1;
     }
 
     struct MqttWillMessage

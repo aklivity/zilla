@@ -19,9 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -65,10 +63,8 @@ public class PingIT
     @Specification({
         "${net}/ping/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldConnectThenPingRequestResponse() throws Exception
     {
         k3po.finish();
@@ -80,10 +76,8 @@ public class PingIT
         "${net}/ping.keep.alive/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
     public void shouldPingAtKeepAliveInterval() throws Exception
     {

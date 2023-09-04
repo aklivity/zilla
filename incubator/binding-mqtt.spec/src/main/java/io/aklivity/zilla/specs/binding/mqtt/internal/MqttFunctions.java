@@ -32,11 +32,14 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttExpirySignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionFlags;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
@@ -122,9 +125,9 @@ public final class MqttFunctions
     }
 
     @Function
-    public static MqttWillSignalBuilder willSignal()
+    public static MqttSessionSignalBuilder sessionSignal()
     {
-        return new MqttWillSignalBuilder();
+        return new MqttSessionSignalBuilder();
     }
 
     @Function
@@ -880,66 +883,148 @@ public final class MqttFunctions
         }
     }
 
-    public static final class MqttWillSignalBuilder
+    public static final class MqttSessionSignalBuilder
     {
-        private final MqttWillSignalFW.Builder willSignalRW = new MqttWillSignalFW.Builder();
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
-        private MqttWillSignalBuilder()
+        private final MqttSessionSignalFW signalRO = new MqttSessionSignalFW();
+
+        private final MqttSessionSignalFW.Builder signalRW = new MqttSessionSignalFW.Builder();
+
+
+        private MqttSessionSignalBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            willSignalRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+            signalRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public MqttWillSignalBuilder clientId(
-            String clientId)
+        public MqttSessionExpirySignalBuilder expiry()
         {
-            willSignalRW.clientId(clientId);
-            return this;
+            signalRW.kind(MqttSessionSignalType.EXPIRY.value());
+
+            return new MqttSessionExpirySignalBuilder();
         }
 
-        public MqttWillSignalBuilder delay(
-            int delay)
+        public MqttSessionWillSignalBuilder will()
         {
-            willSignalRW.delay(delay);
-            return this;
-        }
+            signalRW.kind(MqttSessionSignalType.WILL.value());
 
-        public MqttWillSignalBuilder deliverAt(
-            long deliverAt)
-        {
-            willSignalRW.deliverAt(deliverAt);
-            return this;
-        }
-
-        public MqttWillSignalBuilder lifetimeId(
-            String lifetimeId)
-        {
-            willSignalRW.lifetimeId(lifetimeId);
-            return this;
-        }
-
-        public MqttWillSignalBuilder willId(
-            String willId)
-        {
-            willSignalRW.willId(willId);
-            return this;
-        }
-
-        public MqttWillSignalBuilder instanceId(
-            String instanceId)
-        {
-            willSignalRW.instanceId(instanceId);
-            return this;
+            return new MqttSessionWillSignalBuilder();
         }
 
         public byte[] build()
         {
-            final MqttWillSignalFW willSignal = willSignalRW.build();
-            final byte[] array = new byte[willSignal.sizeof()];
-            willSignal.buffer().getBytes(willSignal.offset(), array);
+            final MqttSessionSignalFW signal = signalRO;
+            final byte[] array = new byte[signal.sizeof()];
+            signal.buffer().getBytes(signal.offset(), array);
             return array;
         }
+
+
+        public final class MqttSessionWillSignalBuilder
+        {
+            private final MqttWillSignalFW.Builder willSignalRW = new MqttWillSignalFW.Builder();
+
+            private MqttSessionWillSignalBuilder()
+            {
+                willSignalRW.wrap(writeBuffer, MqttSessionSignalFW.FIELD_OFFSET_WILL, writeBuffer.capacity());
+            }
+
+            public MqttSessionWillSignalBuilder clientId(
+                String clientId)
+            {
+                willSignalRW.clientId(clientId);
+                return this;
+            }
+
+            public MqttSessionWillSignalBuilder delay(
+                int delay)
+            {
+                willSignalRW.delay(delay);
+                return this;
+            }
+
+            public MqttSessionWillSignalBuilder deliverAt(
+                long deliverAt)
+            {
+                willSignalRW.deliverAt(deliverAt);
+                return this;
+            }
+
+            public MqttSessionWillSignalBuilder lifetimeId(
+                String lifetimeId)
+            {
+                willSignalRW.lifetimeId(lifetimeId);
+                return this;
+            }
+
+            public MqttSessionWillSignalBuilder willId(
+                String willId)
+            {
+                willSignalRW.willId(willId);
+                return this;
+            }
+
+            public MqttSessionWillSignalBuilder instanceId(
+                String instanceId)
+            {
+                willSignalRW.instanceId(instanceId);
+                return this;
+            }
+
+            public MqttSessionSignalBuilder build()
+            {
+                final MqttWillSignalFW willSignal = willSignalRW.build();
+                signalRO.wrap(writeBuffer, 0, willSignal.limit());
+                return MqttSessionSignalBuilder.this;
+            }
+        }
+
+        public final class MqttSessionExpirySignalBuilder
+        {
+            private final MqttExpirySignalFW.Builder expirySignalRW = new MqttExpirySignalFW.Builder();
+
+            private MqttSessionExpirySignalBuilder()
+            {
+                expirySignalRW.wrap(writeBuffer, MqttSessionSignalFW.FIELD_OFFSET_EXPIRY, writeBuffer.capacity());
+            }
+
+            public MqttSessionExpirySignalBuilder clientId(
+                String clientId)
+            {
+                expirySignalRW.clientId(clientId);
+                return this;
+            }
+
+            public MqttSessionExpirySignalBuilder delay(
+                int delay)
+            {
+                expirySignalRW.delay(delay);
+                return this;
+            }
+
+            public MqttSessionExpirySignalBuilder expireAt(
+                long expireAt)
+            {
+                expirySignalRW.expireAt(expireAt);
+                return this;
+            }
+
+            public MqttSessionExpirySignalBuilder instanceId(
+                String instanceId)
+            {
+                expirySignalRW.instanceId(instanceId);
+                return this;
+            }
+
+            public MqttSessionSignalBuilder build()
+            {
+                final MqttExpirySignalFW expirySignal = expirySignalRW.build();
+                signalRO.wrap(writeBuffer, 0, expirySignal.limit());
+                return MqttSessionSignalBuilder.this;
+            }
+        }
     }
+
 
     public static final class MqttBeginExMatcherBuilder
     {

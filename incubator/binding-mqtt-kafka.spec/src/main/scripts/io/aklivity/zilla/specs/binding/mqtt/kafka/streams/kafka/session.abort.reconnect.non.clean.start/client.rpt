@@ -114,6 +114,38 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-1")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
+write flush
+
 read advised zilla:flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -141,6 +173,25 @@ read zilla:data.ext ${kafka:matchDataEx()
 read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+            .build()}
 
 write abort
 read aborted

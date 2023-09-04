@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.NO_LOCAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
@@ -67,10 +66,8 @@ public class SubscribeIT
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
@@ -82,10 +79,8 @@ public class SubscribeIT
         "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveCorrelationData() throws Exception
     {
         k3po.finish();
@@ -97,10 +92,8 @@ public class SubscribeIT
         "${net}/subscribe.one.message.user.properties.unaltered/client",
         "${app}/subscribe.one.message.user.properties.unaltered/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
     {
         k3po.finish();
@@ -111,10 +104,8 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.with.invalid.subscription.id/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveOneMessageWithInvalidSubscriptionId() throws Exception
     {
         k3po.finish();
@@ -126,10 +117,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterExact() throws Exception
     {
         k3po.finish();
@@ -141,10 +130,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.multi.level.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -156,10 +143,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -171,10 +156,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.level.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -186,10 +169,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.two.single.level.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -201,10 +182,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.aggregated.both.exact/client",
         "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterAggregatedBothExact() throws Exception
     {
         k3po.finish();
@@ -216,10 +195,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.isolated.both.exact/client",
         "${app}/subscribe.topic.filters.isolated.both.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterIsolatedBothExact() throws Exception
     {
         k3po.finish();
@@ -231,10 +208,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterIsolatedBothWildcard() throws Exception
     {
         k3po.finish();
@@ -246,10 +221,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterAggregatedExactAndWildcard() throws Exception
     {
         k3po.finish();
@@ -261,10 +234,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.disjoint.wildcards/client",
         "${app}/subscribe.topic.filters.disjoint.wildcards/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterDisjointWildcard() throws Exception
     {
         k3po.finish();
@@ -276,10 +247,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
     {
         k3po.finish();
@@ -291,10 +260,8 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.overlapping.wildcards/client",
         "${app}/subscribe.topic.filters.overlapping.wildcards/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldFilterOverlappingWildcard() throws Exception
     {
         k3po.finish();
@@ -306,10 +273,8 @@ public class SubscribeIT
         "${net}/subscribe.get.retained.as.published/client",
         "${app}/subscribe.get.retained.as.published/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveRetainedAsPublished() throws Exception
     {
         k3po.finish();
@@ -321,10 +286,8 @@ public class SubscribeIT
         "${net}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldNotReplayRetained() throws Exception
     {
         k3po.finish();
@@ -336,10 +299,8 @@ public class SubscribeIT
         "${net}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${app}/subscribe.qos0.replay.retained.no.packet.id/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveAndReplayRetainedQos0() throws Exception
     {
         k3po.finish();
@@ -352,7 +313,6 @@ public class SubscribeIT
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = NO_LOCAL_NAME, value = "false")
     public void shouldRejectNoLocal() throws Exception
     {
@@ -365,10 +325,8 @@ public class SubscribeIT
         "${net}/subscribe.receive.message/client",
         "${app}/subscribe.receive.message/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveOneMessageAfterPublish() throws Exception
     {
         k3po.finish();
@@ -380,10 +338,8 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.overlapping.wildcard/client",
         "${app}/subscribe.receive.message.overlapping.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveMessageOverlappingWildcard() throws Exception
     {
         k3po.finish();
@@ -395,10 +351,8 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.wildcard/client",
         "${app}/subscribe.receive.message.wildcard/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveOneMessageWithPatternTopic() throws Exception
     {
         k3po.finish();
@@ -410,10 +364,8 @@ public class SubscribeIT
         "${net}/subscribe.retain.as.published/client",
         "${app}/subscribe.retain.as.published/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldReceiveRetainAsPublished() throws Exception
     {
         k3po.finish();
@@ -425,10 +377,8 @@ public class SubscribeIT
         "${net}/subscribe.publish.no.local/client",
         "${app}/subscribe.publish.no.local/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldNotReceivePublishLocal() throws Exception
     {
         k3po.finish();
@@ -439,10 +389,8 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.fixed.header.flags/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
@@ -453,10 +401,8 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.filter/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectInvalidTopicFilter() throws Exception
     {
         k3po.finish();
@@ -470,7 +416,6 @@ public class SubscribeIT
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectWildcardSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
@@ -481,11 +426,9 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.subscription.ids.not.supported/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectSubscriptionIdentifiersNotSupported() throws Exception
     {
         k3po.finish();
@@ -496,10 +439,8 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.shared.subscriptions.not.supported/client"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectSharedSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();

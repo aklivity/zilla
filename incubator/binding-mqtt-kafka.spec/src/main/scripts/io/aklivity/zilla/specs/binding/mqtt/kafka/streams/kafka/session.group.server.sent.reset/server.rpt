@@ -111,6 +111,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+# session expiry cancellation signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 write advise zilla:flush
 
 write notify CONNACK_TRIGGERED
