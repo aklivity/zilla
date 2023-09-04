@@ -38,3 +38,5 @@ read zilla:data.ext ${kafka:dataEx()
                                  .assignment("localhost:9092", 0)
                                  .build()
                              .build()}
+
+read zilla:data.null

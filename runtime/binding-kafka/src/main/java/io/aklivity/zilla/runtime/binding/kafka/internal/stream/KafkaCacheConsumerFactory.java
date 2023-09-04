@@ -266,7 +266,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .extension(extension.buffer(), extension.offset(), extension.limit())
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
@@ -457,18 +457,21 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             long traceId,
             KafkaCacheConsumerStream member)
         {
-            final KafkaDataExFW kafkaDataEx =
+            if (!assignedPartitions.isEmpty())
+            {
+                final KafkaDataExFW kafkaDataEx =
                     kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                 .typeId(kafkaTypeId)
-                                 .consumer(m -> m
-                                     .partitions(p ->
-                                        assignedPartitions.forEach(ap -> p.item(np -> np.partitionId(ap))))
-                                     .assignments(a ->
-                                         assignments.forEach((k, v) -> a.item(na -> na.consumerId(k)
-                                         .partitions(pa ->
-                                             v.forEach(pi -> pa.item(pai -> pai.partitionId(pi))))))))
-                                 .build();
-            member.doConsumerReplyDataIfNecessary(traceId, kafkaDataEx);
+                        .typeId(kafkaTypeId)
+                        .consumer(m -> m
+                            .partitions(p ->
+                                assignedPartitions.forEach(ap -> p.item(np -> np.partitionId(ap))))
+                            .assignments(a ->
+                                assignments.forEach((k, v) -> a.item(na -> na.consumerId(k)
+                                    .partitions(pa ->
+                                        v.forEach(pi -> pa.item(pai -> pai.partitionId(pi))))))))
+                        .build();
+                member.doConsumerReplyDataIfNecessary(traceId, kafkaDataEx);
+            }
         }
 
         private void onConsumerFanoutMemberClosed(
@@ -916,7 +919,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private void doConsumerReplyDataIfNecessary(
             long traceId,
-            KafkaDataExFW extension)
+            Flyweight extension)
         {
             if (KafkaState.replyOpened(state))
             {
@@ -926,7 +929,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private void doConsumerReplyData(
             long traceId,
-            KafkaDataExFW extension)
+            Flyweight extension)
         {
             final int reserved = replyPad;
 

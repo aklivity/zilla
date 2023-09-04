@@ -2200,6 +2200,7 @@ public class KafkaFunctionsTest
                 .leaderId("consumer-1")
                 .memberId("consumer-2")
                 .members("memberId-1", "test".getBytes())
+                .members("memberId-2", "test".getBytes())
                 .build()
             .build();
 
