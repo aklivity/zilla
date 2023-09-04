@@ -45,12 +45,16 @@ write flush
 
 read advised zilla:flush
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .members(1)
+                                 .members("memberId-1")
                                  .build()
                              .build()}
+
+read zilla:data.empty
+
+write zilla:data.empty
 write flush

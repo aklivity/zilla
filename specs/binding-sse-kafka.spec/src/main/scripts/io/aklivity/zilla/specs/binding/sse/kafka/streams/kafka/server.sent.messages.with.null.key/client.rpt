@@ -53,6 +53,7 @@ read "Hello, again"
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                 .fetch()
                                    .progress(0, 2, 2, 2)
                                    .build()
                                .build()}

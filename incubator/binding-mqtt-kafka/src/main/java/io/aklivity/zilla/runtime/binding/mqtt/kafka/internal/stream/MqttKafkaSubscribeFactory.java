@@ -301,30 +301,30 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m ->
-                    {
-                        m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
-                        filters.forEach(filter ->
-
-                            m.filtersItem(f ->
-                            {
-                                f.conditionsItem(ci ->
+                    .merged(mf ->
+                        mf.fetch(m ->
+                        {
+                            m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
+                            filters.forEach(filter ->
+                                m.filtersItem(f ->
                                 {
-                                    subscriptionIds.add((int) filter.subscriptionId());
-                                    buildHeaders(ci, filter.pattern().asString());
-                                });
-                                boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
-                                if (noLocal)
-                                {
-                                    final DirectBuffer valueBuffer = new String16FW(clientId).value();
-                                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                        h.nameLen(helper.kafkaLocalHeaderName.sizeof())
-                                            .name(helper.kafkaLocalHeaderName)
-                                            .valueLen(valueBuffer.capacity())
-                                            .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                }
-                            }));
-                    })
+                                    f.conditionsItem(ci ->
+                                    {
+                                        subscriptionIds.add((int) filter.subscriptionId());
+                                        buildHeaders(ci, filter.pattern().asString());
+                                    });
+                                    boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
+                                    if (noLocal)
+                                    {
+                                        final DirectBuffer valueBuffer = new String16FW(clientId).value();
+                                        f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                                            h.nameLen(helper.kafkaLocalHeaderName.sizeof())
+                                                .name(helper.kafkaLocalHeaderName)
+                                                .valueLen(valueBuffer.capacity())
+                                                .value(valueBuffer, 0, valueBuffer.capacity())))));
+                                    }
+                                }));
+                        }))
                     .build();
 
             delegate.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
