@@ -43,7 +43,6 @@ connected
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
-                                   .typeId(1)
                                    .fetch()
                                     .progress(0, 2, 2, 2)
                                     .progress(1, 2, 2, 2)
