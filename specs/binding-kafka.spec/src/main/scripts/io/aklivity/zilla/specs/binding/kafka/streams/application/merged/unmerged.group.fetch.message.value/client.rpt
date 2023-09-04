@@ -103,9 +103,40 @@ read zilla:data.ext ${kafka:dataEx()
                                  .partition(1, 2)
                                  .build()
                              .build()}
+
+
 read notify PARTITION_COUNT_2
 
 connect await PARTITION_COUNT_2
+        "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .consumer()
+                                .groupId("client-1")
+                                .consumerId("localhost:9092")
+                                .timeout(45000)
+                                .topic("test")
+                                .partition(0)
+                                .partition(1)
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .consumer()
+                                 .partition(0)
+                                 .assignment("localhost:9092", 0)
+                                 .build()
+                             .build()}
+
+read notify RECEIVED_CONSUMER
+
+connect await RECEIVED_CONSUMER
         "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -132,142 +163,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
                                  .partition(0, 1, 2)
-                                 .key("key1")
-                                 .header("header2", "value2")
                                  .build()
                              .build()}
 read "Hello, world #A1"
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 2, 2)
-                                 .header("header1", "value1")
-                                 .build()
-                             .build()}
-read "Hello, world #A2"
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 3, 6)
-                                 .key("key1")
-                                 .header("header1", "value1")
-                                 .build()
-                             .build()}
-read "Hello, world #A3"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 4, 6)
-                                 .header("header1", "value1")
-                                 .header("header2", "value2")
-                                 .build()
-                             .build()}
-read "Hello, world #A4"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 5, 6)
-                                 .header("header3", "one")
-                                 .build()
-                             .build()}
-read "Hello, world #A5"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 6, 6)
-                                 .header("header3", "one")
-                                 .header("header3", "")
-                                 .header("header3", "three")
-                                 .header("header3", "")
-                                 .build()
-                             .build()}
-read "Hello, world #A6"
-
-connect await PARTITION_COUNT_2
-        "zilla://streams/app1"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
-                                   .partition(1, -2)
-                                   .build()
-                               .build()}
-
-connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(1, 1, 2)
-                                  .build()
-                              .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 1, 2)
-                                 .header("header1", "value1")
-                                 .header("header2", "value2")
-                                 .build()
-                             .build()}
-read "Hello, world #B1"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 2, 2)
-                                 .key("key1")
-                                 .header("header1", "value1")
-                                 .build()
-                             .build()}
-read "Hello, world #B2"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 3, 6)
-                                 .header("header1", "value1")
-                                 .build()
-                             .build()}
-read "Hello, world #B3"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 4, 6)
-                                 .key("key1")
-                                 .header("header2", "value2")
-                                 .build()
-                             .build()}
-read "Hello, world #B4"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 5, 6)
-                                 .header("header3", "one")
-                                 .header("header3", "")
-                                 .build()
-                             .build()}
-read "Hello, world #B5"
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(1, 6, 6)
-                                 .header("header3", "one")
-                                 .header("header3", "two")
-                                 .header("header3", "three")
-                                 .header("header3", "four")
-                                 .build()
-                             .build()}
-read "Hello, world #B6"

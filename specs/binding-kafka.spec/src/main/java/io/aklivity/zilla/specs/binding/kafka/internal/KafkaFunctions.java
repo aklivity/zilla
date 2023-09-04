@@ -856,6 +856,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaMergedBeginExBuilder timeout(
+                int timeout)
+            {
+                mergedBeginExRW.timeout(timeout);
+                return this;
+            }
+
             public KafkaMergedBeginExBuilder partition(
                 int partitionId,
                 long offset)

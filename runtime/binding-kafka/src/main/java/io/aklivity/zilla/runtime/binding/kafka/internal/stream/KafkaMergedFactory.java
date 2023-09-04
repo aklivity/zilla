@@ -1859,7 +1859,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 nextOffsetsById.entrySet()
                     .removeIf(
-                        entry -> !leadersByPartitionId.containsKey(entry.getKey().intValue()));
+                        entry -> !leadersByAssignedId.containsKey(entry.getKey().intValue()));
 
                 assert nextOffsetsById.size() <= leadersByAssignedId.size();
             }
@@ -2655,11 +2655,12 @@ public final class KafkaMergedFactory implements BindingHandler
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .consumer(c -> c.groupId(merged.groupId)
+                    .consumer(c -> c
+                        .groupId(merged.groupId)
                         .consumerId(merged.consumerId)
                         .timeout(merged.timeout)
                         .topic(merged.topic)
-                        .partitionIds(p -> merged.leadersByAssignedId.forEach((k, v) ->
+                        .partitionIds(p -> merged.leadersByPartitionId.forEach((k, v) ->
                             p.item(tp -> tp.partitionId(k))))
                     )
                     .build()
