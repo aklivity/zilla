@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.MQTT_CLIENTS_GROUP_ID;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -2788,24 +2787,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
 
             delegate.doMqttWindow(authorization, traceId, budgetId, padding + delegate.sessionPadding, capabilities);
-        }
-
-        @Override
-        protected void onKafkaReset(
-            ResetFW reset)
-        {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final long traceId = reset.traceId();
-
-            assert acknowledge <= sequence;
-            assert acknowledge >= initialAck;
-
-            this.initialAck = acknowledge;
-
-            assert initialAck <= initialSeq;
-
-            delegate.doMqttReset(traceId);
         }
 
         private void cancelWillSignal(

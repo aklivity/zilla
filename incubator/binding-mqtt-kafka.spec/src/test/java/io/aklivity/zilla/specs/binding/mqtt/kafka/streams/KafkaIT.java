@@ -709,4 +709,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.redirect/client",
+        "${kafka}/session.redirect/server"})
+    public void shouldRedirect() throws Exception
+    {
+        k3po.finish();
+    }
 }
