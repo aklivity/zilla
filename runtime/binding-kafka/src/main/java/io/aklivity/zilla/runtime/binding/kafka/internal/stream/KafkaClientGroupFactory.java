@@ -747,7 +747,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                     client.onDecodeResource(traceId, client.authorization, resourceError, resourceName);
                     // TODO: use different decoder for configs
-                    if (resourceError != ERROR_NONE || !client.nodeId.equals(resourceName))
+                    if (resourceError != ERROR_NONE || !client.delegate.nodeId.equals(resourceName))
                     {
                         client.decoder = decodeIgnoreAll;
                         break decode;
@@ -2306,7 +2306,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int decodeSlotReserved;
 
         private int nextResponseId;
-        private String nodeId;
 
         private KafkaDescribeClientDecoder decoder;
         private LongLongConsumer encoder;
@@ -2337,7 +2336,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             switch (errorCode)
             {
             case ERROR_NONE:
-                assert resource.equals(this.nodeId);
+                assert resource.equals(delegate.nodeId);
                 break;
             default:
                 final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2547,6 +2546,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long affinity)
         {
+            if (KafkaState.closed(state))
+            {
+                replyAck = 0;
+                replySeq = 0;
+                state = 0;
+            }
+
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
             state = KafkaState.openingInitial(state);
 
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -2653,7 +2662,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (KafkaConfiguration.DEBUG)
             {
-                System.out.format("[client] %s DESCRIBE\n", nodeId);
+                System.out.format("[client] %s DESCRIBE\n", delegate.nodeId);
             }
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
@@ -2681,7 +2690,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final ResourceRequestFW resourceRequest = resourceRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .type(RESOURCE_TYPE_BROKER)
-                .name(nodeId)
+                .name(delegate.nodeId)
                 .configNamesCount(configs.size())
                 .build();
 
@@ -2904,8 +2913,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            delegate.timeout = Integer.valueOf(newConfigs.get(GROUP_MAX_SESSION_TIMEOUT));
-            delegate.coordinatorClient.doNetworkBegin(traceId, authorization, 0);
+            int timeoutMin = Integer.valueOf(newConfigs.get(GROUP_MIN_SESSION_TIMEOUT)).intValue();
+            int timeoutMax = Integer.valueOf(newConfigs.get(GROUP_MAX_SESSION_TIMEOUT)).intValue();
+            if (delegate.timeout < timeoutMin)
+            {
+                delegate.timeout = timeoutMin;
+            }
+            else if (delegate.timeout > timeoutMax)
+            {
+                delegate.timeout = timeoutMax;
+            }
+
+            delegate.coordinatorClient.doNetworkBeginIfNecessary(traceId, authorization, 0);
 
             cleanupNetwork(traceId);
         }
