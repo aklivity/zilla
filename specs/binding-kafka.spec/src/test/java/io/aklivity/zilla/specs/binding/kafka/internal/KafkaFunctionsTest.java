@@ -936,6 +936,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                        .typeId(0x01)
                                         .fetch()
                                          .partition(1, 2)
                                          .capabilities("PRODUCE_AND_FETCH")
@@ -990,6 +991,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                        .typeId(0x01)
                                         .fetch()
                                          .partition(0, 1L, 1L)
                                          .capabilities("PRODUCE_AND_FETCH")
@@ -1047,6 +1049,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
             .typeId(0x01)
             .merged()
+                .typeId(0x252)
                 .consumer()
                     .partition(1, 2)
                     .build()
@@ -1055,6 +1058,7 @@ public class KafkaFunctionsTest
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, flushEx.typeId());
+        assertEquals(0x252, flushEx.merged().typeId());
 
         final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
 
