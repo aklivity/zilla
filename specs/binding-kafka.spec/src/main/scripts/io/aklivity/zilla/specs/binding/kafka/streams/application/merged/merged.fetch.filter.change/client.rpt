@@ -58,7 +58,6 @@ read "Hello, world #A5"
 write advise zilla:flush ${kafka:flushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
-                                  .typeId(1)
                                   .fetch()
                                    .capabilities("FETCH_ONLY")
                                    .filter()

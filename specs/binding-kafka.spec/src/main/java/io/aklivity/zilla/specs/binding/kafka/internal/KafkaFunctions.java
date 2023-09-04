@@ -2102,15 +2102,10 @@ public final class KafkaFunctions
                 mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
-            public KafkaMergedFlushExBuilder typeId(
-                int typeId)
-            {
-                mergedFlushExRW.typeId(typeId);
-                return this;
-            }
-
             public KafkaMergedFetchFlushExBuilder fetch()
             {
+                mergedFlushExRW.typeId(KafkaApi.FETCH.value());
+
                 mergedFlushExRW.kind(KafkaApi.FETCH.value());
 
                 return new KafkaMergedFetchFlushExBuilder();
@@ -2118,6 +2113,7 @@ public final class KafkaFunctions
 
             public KafkaMergedConsumerFlushExBuilder consumer()
             {
+                mergedFlushExRW.typeId(KafkaApi.CONSUMER.value());
                 mergedFlushExRW.kind(KafkaApi.CONSUMER.value());
 
                 return new KafkaMergedConsumerFlushExBuilder();
