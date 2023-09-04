@@ -312,7 +312,6 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
     }
 
-
     private void doData(
         MessageConsumer receiver,
         long originId,
@@ -327,7 +326,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         int flags,
         int reserved,
         OctetsFW payload,
-        Flyweight extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -342,12 +341,11 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             .budgetId(budgetId)
             .reserved(reserved)
             .payload(payload)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .extension(extension)
             .build();
 
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
     }
-
 
     private void doDataNull(
         MessageConsumer receiver,
@@ -845,18 +843,17 @@ public final class KafkaClientConsumerFactory implements BindingHandler
                 KafkaClientConsumerStream stream =
                     streams.stream().filter(s -> s.topic.equals(ta.topic().asString())).findFirst().get();
 
-                final KafkaDataExFW kafkaDataExFW = kafkaDataExRW
-                    .wrap(writeBuffer, DataFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .consumer(c -> c.partitions(p -> ta
-                            .partitions()
+                stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS,
+                    ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .consumer(c -> c.partitions(p -> ta
+                                .partitions()
                                 .forEach(np -> p.item(tp -> tp.partitionId(np.partitionId()))))
                             .assignments(a -> ta.userdata().forEach(u ->
                                 a.item(ua -> ua.consumerId(u.consumerId()).partitions(p -> u.partitions()
                                     .forEach(np -> p.item(tp -> tp.partitionId(np.partitionId()))))))))
-                    .build();
-
-                stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS, kafkaDataExFW);
+                        .build()
+                        .sizeof()));
             });
         }
 
@@ -1220,7 +1217,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             int flag,
             int reserved,
             OctetsFW payload,
-            Flyweight extension)
+            Consumer<OctetsFW.Builder> extension)
         {
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, replyBud, flag, reserved, payload, extension);
