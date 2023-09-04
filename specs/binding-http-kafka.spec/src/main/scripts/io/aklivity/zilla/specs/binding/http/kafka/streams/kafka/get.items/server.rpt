@@ -77,6 +77,7 @@ write flush
 write advise zilla:flush ${kafka:flushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                 .fetch()
                                    .progress(0, 1, 1, 1)
                                    .progress(1, 1, 1, 1)
                                    .build()
