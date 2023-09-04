@@ -517,12 +517,6 @@ public final class KafkaClientConsumerFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    @Override
-    public int routedTypeId()
-    {
-        return BindingHandler.super.routedTypeId();
-    }
-
     final class KafkaClientConsumerFanout
     {
         private final String consumerId;

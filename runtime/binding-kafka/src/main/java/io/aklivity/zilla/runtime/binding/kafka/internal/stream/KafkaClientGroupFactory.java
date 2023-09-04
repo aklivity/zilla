@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -36,6 +35,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
+import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -3415,7 +3415,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
-            AtomicInteger encodeProgress = new AtomicInteger(encodeOffset);
+            MutableInteger encodeProgress = new MutableInteger(encodeOffset);
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .length(0)
