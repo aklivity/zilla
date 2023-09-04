@@ -56,6 +56,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
@@ -70,6 +72,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -95,6 +98,55 @@ public class KafkaFunctionsTest
     {
         factory = newExpressionFactory();
         ctx = new ExpressionContext();
+    }
+
+    @Test
+    public void shouldGenerateMemberMetadata()
+    {
+        byte[] build = KafkaFunctions.memberMetadata()
+            .consumerId("localhost:9092")
+            .topic("test", 0)
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaGroupMemberMetadataFW memberMetadata =
+            new KafkaGroupMemberMetadataFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals("localhost:9092", memberMetadata.consumerId().asString());
+    }
+
+    @Test
+    public void shouldGenerateMemberAssignment()
+    {
+        byte[] build = KafkaFunctions.memberAssignment()
+            .member("memberId-1", "test", 0, "localhost:9092", 0)
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        Array32FW<MemberAssignmentFW> assignments =
+            new Array32FW<>(new MemberAssignmentFW()).wrap(buffer, 0, buffer.capacity());
+
+        assignments.forEach(a ->
+        {
+            assertEquals("memberId-1", a.memberId().asString());
+        });
+    }
+
+    @Test
+    public void shouldGenerateTopicAssignment()
+    {
+        byte[] build = KafkaFunctions.topicAssignment()
+            .topic("test", 0, "localhost:9092", 0)
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        Array32FW<TopicAssignmentFW> topics =
+            new Array32FW<>(new TopicAssignmentFW()).wrap(buffer, 0, buffer.capacity());
+
+        topics.forEach(t ->
+        {
+            assertEquals("test", t.topic().asString());
+        });
     }
 
     @Test
@@ -2148,7 +2200,6 @@ public class KafkaFunctionsTest
                 .leaderId("consumer-1")
                 .memberId("consumer-2")
                 .members("memberId-1", "test".getBytes())
-                .members("memberId-2", "test".getBytes())
                 .build()
             .build();
 
@@ -3924,13 +3975,13 @@ public class KafkaFunctionsTest
     {
         byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
-            .consumer()
-            .groupId("test")
-            .consumerId("consumer-1")
-            .timeout(10000)
-            .topic("topic")
-            .partition(1)
-            .build()
+                .consumer()
+                    .groupId("test")
+                    .consumerId("consumer-1")
+                    .timeout(10000)
+                    .topic("topic")
+                    .partition(0)
+                    .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);

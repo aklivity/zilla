@@ -60,6 +60,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
@@ -289,9 +290,15 @@ public final class KafkaFunctions
     }
 
     @Function
-    public static MemberAssignmentBuilder memberAssignment()
+    public static MemberAssignmentsBuilder memberAssignment()
     {
-        return new MemberAssignmentBuilder();
+        return new MemberAssignmentsBuilder();
+    }
+
+    @Function
+    public static TopicAssignmentsBuilder topicAssignment()
+    {
+        return new TopicAssignmentsBuilder();
     }
 
     public abstract static class KafkaHeadersBuilder<T>
@@ -611,19 +618,19 @@ public final class KafkaFunctions
         }
     }
 
-    public static final class MemberAssignmentBuilder
+    public static final class MemberAssignmentsBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignments =
             new Array32FW.Builder(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
 
-        public MemberAssignmentBuilder()
+        public MemberAssignmentsBuilder()
         {
             memberAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public MemberAssignmentBuilder member(
+        public MemberAssignmentsBuilder member(
             String memberId,
             String topic,
             int partitionId,
@@ -648,6 +655,44 @@ public final class KafkaFunctions
             Array32FW<MemberAssignmentFW> members = memberAssignments.build();
             final byte[] array = new byte[members.sizeof()];
             members.buffer().getBytes(members.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class TopicAssignmentsBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
+            new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+
+        public TopicAssignmentsBuilder()
+        {
+            topicAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public TopicAssignmentsBuilder topic(
+            String topic,
+            int partitionId,
+            String consumerId,
+            int consumerPartitionId)
+        {
+            topicAssignments.item(i ->
+                i.topic(topic)
+                    .partitions(p -> p.item(tpa -> tpa.partitionId(partitionId)))
+                    .userdata(u ->
+                        u.item(ud -> ud
+                            .consumerId(consumerId)
+                            .partitions(pt -> pt.item(pi -> pi.partitionId(consumerPartitionId)))))
+            );
+            return this;
+        }
+
+        public byte[] build()
+        {
+            Array32FW<TopicAssignmentFW> topics = topicAssignments.build();
+            final byte[] array = new byte[topics.sizeof()];
+            topics.buffer().getBytes(topics.offset(), array);
             return array;
         }
     }
@@ -1893,6 +1938,7 @@ public final class KafkaFunctions
             {
                 consumerDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
                 partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
+                assignmentsRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
             }
 
             public KafkaConsumerDataExBuilder partition(

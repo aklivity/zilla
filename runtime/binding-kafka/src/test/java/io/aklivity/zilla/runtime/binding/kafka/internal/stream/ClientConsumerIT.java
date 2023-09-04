@@ -13,34 +13,53 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.application;
+package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class ConsumerIT
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+
+public class ClientConsumerIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/application/group")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/consumer");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
+
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .commandBufferCapacity(1024)
+        .responseBufferCapacity(1024)
+        .counterValuesBufferCapacity(8192)
+        .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
+        .external("net0")
+        .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
         "${app}/partition.assignment/client",
-        "${app}/partition.assignment/server"})
-    public void shouldAssignPartition() throws Exception
+        "${net}/partition.assignment/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/net0\"")
+    public void shouldAssignGroupPartition() throws Exception
     {
         k3po.finish();
     }

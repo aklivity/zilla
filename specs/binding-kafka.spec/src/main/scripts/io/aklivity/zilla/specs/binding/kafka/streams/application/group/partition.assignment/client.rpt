@@ -14,30 +14,26 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("test")
+                                   .groupId("client-1")
                                    .protocol("highlander")
                                    .timeout(45000)
                                    .metadata(kafka:memberMetadata()
-                                        .consumerId("localhost:9092")
-                                        .topic("test", 0)
-                                        .build())
+                                       .consumerId("localhost:9092")
+                                       .topic("test", 0)
+                                       .build())
                                    .build()
                                .build()}
 
 connected
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("test")
@@ -45,9 +41,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .timeout(30000)
                                    .build()
                                .build()}
-write flush
 
-write advise zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("memberId-1")
@@ -59,9 +54,11 @@ write advise zilla:flush ${kafka:flushEx()
                                  .build()
                              .build()}
 
-read ${kafka:memberAssignment()
-        .member("memberId-1", "test", 0, "localhost:9092", 0)
-        .build()}
-
-write zilla:data.empty
+write ${kafka:memberAssignment()
+          .member("memberId-1", "test", 0, "localhost:9092", 0)
+          .build()}
 write flush
+
+read ${kafka:topicAssignment()
+              .topic("test", 0, "localhost:9092", 0)
+              .build()}

@@ -23,9 +23,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                .consumer()
                                    .groupId("client-1")
                                    .consumerId("localhost:9092")
+                                   .timeout(45000)
                                    .topic("test")
                                    .partition(0)
-                                   .partition(1)
                                    .build()
                                .build()}
 
@@ -35,6 +35,6 @@ read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
                                  .partition(0)
-                                 .assignment("example:9092", 1)
+                                 .assignment("localhost:9092", 0)
                                  .build()
                              .build()}

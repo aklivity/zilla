@@ -98,4 +98,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/partition.assignment/client",
+        "${app}/partition.assignment/server"})
+    public void shouldAssignGroupPartition() throws Exception
+    {
+        k3po.finish();
+    }
 }
