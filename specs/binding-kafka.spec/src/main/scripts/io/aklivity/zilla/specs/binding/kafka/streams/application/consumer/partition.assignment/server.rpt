@@ -43,4 +43,6 @@ write zilla:data.ext ${kafka:dataEx()
                                  .assignment("localhost:9092", 0)
                                  .build()
                              .build()}
+
+write zilla:data.empty
 write flush

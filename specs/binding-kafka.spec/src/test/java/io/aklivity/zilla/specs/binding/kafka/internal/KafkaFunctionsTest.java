@@ -4070,19 +4070,21 @@ public class KafkaFunctionsTest
     public void shouldGenerateConsumerDataExtension()
     {
         byte[] build = KafkaFunctions.dataEx()
-            .typeId(0x01)
+            .typeId(0x03)
             .consumer()
                 .partition(0)
+                .assignment("localhost:9092", 0)
                 .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0x01, dataEx.typeId());
+        assertEquals(0x03, dataEx.typeId());
         assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
 
         final KafkaConsumerDataExFW consumerDataEx = dataEx.consumer();
         assertTrue(consumerDataEx.partitions().fieldCount() == 1);
+        assertTrue(consumerDataEx.assignments().fieldCount() == 1);
     }
 
     @Test
