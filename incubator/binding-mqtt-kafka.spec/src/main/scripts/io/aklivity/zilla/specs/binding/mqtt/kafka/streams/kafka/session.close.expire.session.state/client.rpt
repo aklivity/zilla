@@ -159,7 +159,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                  .members("member-1")
                                  .build()
                              .build()}
-write notify RECEIVED_GROUP_MEMBERS_LEADER
+read notify RECEIVED_GROUP_MEMBERS_LEADER
 
 write zilla:data.empty
 write flush

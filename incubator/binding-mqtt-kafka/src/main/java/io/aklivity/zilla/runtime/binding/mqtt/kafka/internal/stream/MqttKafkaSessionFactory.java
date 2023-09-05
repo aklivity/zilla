@@ -3031,6 +3031,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onKafkaBegin(begin);
                 break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onKafkaData(data);
@@ -3152,6 +3156,32 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             delegate.doMqttBegin(traceId, authorization, affinity, mqttBeginEx);
             doKafkaWindow(traceId, authorization, 0, 0, 0);
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final boolean wasOpen = MqttKafkaState.initialOpened(state);
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            state = MqttKafkaState.openInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            if (!wasOpen)
+            {
+                doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, EMPTY_OCTETS, EMPTY_OCTETS);
+            }
         }
 
         private void onKafkaData(
