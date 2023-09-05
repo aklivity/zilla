@@ -31,8 +31,6 @@ public class IntegerValidator implements Validator
         int index,
         int length)
     {
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        return payloadBytes.length == 4 ? true : false;
+        return length == 4 ? true : false;
     }
 }

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-public class ValidatorConfig
+public abstract class ValidatorConfig
 {
     public final String type;
 

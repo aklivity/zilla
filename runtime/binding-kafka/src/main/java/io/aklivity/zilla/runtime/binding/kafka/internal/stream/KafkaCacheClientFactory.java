@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -49,6 +50,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final ValidatorFactory validator;
 
     public KafkaCacheClientFactory(
         KafkaConfiguration config,
@@ -96,13 +98,14 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         this.factories = factories;
         this.bindings = bindings;
         this.supplyCatalog = context::supplyCatalog;
+        this.validator = ValidatorFactory.instantiate();
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validator);
         bindings.put(binding.id, kafkaBinding);
     }
 

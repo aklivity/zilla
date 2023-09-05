@@ -47,11 +47,11 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
         AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
 
-        if (validatorConfig.catalogList != null &&
-                !validatorConfig.catalogList.isEmpty())
+        if (validatorConfig.catalogs != null &&
+                !validatorConfig.catalogs.isEmpty())
         {
             JsonArrayBuilder entries = Json.createArrayBuilder();
-            validatorConfig.catalogList.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
+            validatorConfig.catalogs.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
 
             validator.add(CATALOG_NAME, entries);
         }

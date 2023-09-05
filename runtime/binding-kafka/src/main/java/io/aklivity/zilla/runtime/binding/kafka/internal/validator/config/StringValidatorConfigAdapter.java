@@ -22,7 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public final class StringValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
-    private static final String ENCODING = "encoding";
+    private static final String ENCODING_NAME = "encoding";
 
     @Override
     public JsonObject adaptToJson(
@@ -32,9 +32,9 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
         JsonObjectBuilder validator = Json.createObjectBuilder();
 
         if (validatorConfig.encoding != null &&
-                !validatorConfig.encoding.isEmpty())
+            !validatorConfig.encoding.isEmpty())
         {
-            validator.add(ENCODING, validatorConfig.encoding);
+            validator.add(ENCODING_NAME, validatorConfig.encoding);
         }
 
         return validator.build();
@@ -44,8 +44,8 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
     public StringValidatorConfig adaptFromJson(
         JsonObject object)
     {
-        String encoding = object.containsKey(ENCODING)
-                ? object.getString(ENCODING)
+        String encoding = object.containsKey(ENCODING_NAME)
+                ? object.getString(ENCODING_NAME)
                 : null;
 
         return new StringValidatorConfig(encoding);

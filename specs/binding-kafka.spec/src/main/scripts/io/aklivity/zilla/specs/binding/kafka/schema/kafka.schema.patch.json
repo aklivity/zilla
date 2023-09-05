@@ -91,14 +91,11 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "byte_buffer",
-                                                        "bytes",
                                                         "double",
                                                         "float",
                                                         "integer",
                                                         "avro",
                                                         "json",
-                                                        "json_decoder",
                                                         "list",
                                                         "long",
                                                         "short",
@@ -128,34 +125,70 @@
                                                     "type": "array",
                                                     "items":
                                                     {
-                                                        "type": "object",
-                                                        "additionalProperties": false,
-                                                        "properties":
-                                                        {
-                                                            "name":
+                                                        "oneOf":
+                                                        [
                                                             {
-                                                                "type": "string"
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties":
+                                                                {
+                                                                    "name":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "id":
+                                                                    {
+                                                                        "title": "ID",
+                                                                        "type": "integer"
+                                                                    }
+                                                                },
+                                                                "required": ["name", "id"]
                                                             },
-                                                            "strategy":
                                                             {
-                                                                "title": "Strategy",
-                                                                "type": "string",
-                                                                "enum": [ "topic", "record", "topic-record" ],
-                                                                "default": "topic"
-                                                            },
-                                                            "version":
-                                                            {
-                                                                "title": "Version",
-                                                                "type": "string",
-                                                                "default": "latest"
-                                                            },
-                                                            "id":
-                                                            {
-                                                                "title": "ID",
-                                                                "type": "integer"
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties":
+                                                                {
+                                                                    "name":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "strategy":
+                                                                    {
+                                                                        "title": "Strategy",
+                                                                        "type": "string",
+                                                                        "enum": [ "topic", "record", "topic-record" ],
+                                                                        "default": "topic"
+                                                                    },
+                                                                    "version":
+                                                                    {
+                                                                        "title": "Version",
+                                                                        "type": "string",
+                                                                        "default": "latest"
+                                                                    }
+                                                                },
+                                                                "required": ["name"]
                                                             }
-                                                        }
+                                                        ]
                                                     }
+                                                }
+                                            },
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "type":
+                                                    {
+                                                        "enum": ["avro", "json"]
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "required": ["catalog"],
+                                                "not":
+                                                {
+                                                    "required": ["encoding"]
                                                 }
                                             }
                                         },
@@ -171,14 +204,11 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "byte_buffer",
-                                                        "bytes",
                                                         "double",
                                                         "float",
                                                         "integer",
                                                         "avro",
                                                         "json",
-                                                        "json_decoder",
                                                         "list",
                                                         "long",
                                                         "short",
@@ -208,34 +238,70 @@
                                                     "type": "array",
                                                     "items":
                                                     {
-                                                        "type": "object",
-                                                        "additionalProperties": false,
-                                                        "properties":
-                                                        {
-                                                            "name":
+                                                        "oneOf":
+                                                        [
                                                             {
-                                                                "type": "string"
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties":
+                                                                {
+                                                                    "name":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "id":
+                                                                    {
+                                                                        "title": "ID",
+                                                                        "type": "integer"
+                                                                    }
+                                                                },
+                                                                "required": ["name", "id"]
                                                             },
-                                                            "strategy":
                                                             {
-                                                                "title": "Strategy",
-                                                                "type": "string",
-                                                                "enum": [ "topic", "record", "topic-record" ],
-                                                                "default": "topic"
-                                                            },
-                                                            "version":
-                                                            {
-                                                                "title": "Version",
-                                                                "type": "string",
-                                                                "default": "latest"
-                                                            },
-                                                            "id":
-                                                            {
-                                                                "title": "ID",
-                                                                "type": "integer"
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties":
+                                                                {
+                                                                    "name":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "strategy":
+                                                                    {
+                                                                        "title": "Strategy",
+                                                                        "type": "string",
+                                                                        "enum": [ "topic", "record", "topic-record" ],
+                                                                        "default": "topic"
+                                                                    },
+                                                                    "version":
+                                                                    {
+                                                                        "title": "Version",
+                                                                        "type": "string",
+                                                                        "default": "latest"
+                                                                    }
+                                                                },
+                                                                "required": ["name"]
                                                             }
-                                                        }
+                                                        ]
                                                     }
+                                                }
+                                            },
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "type":
+                                                    {
+                                                        "enum": ["avro", "json"]
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "required": ["catalog"],
+                                                "not":
+                                                {
+                                                    "required": ["encoding"]
                                                 }
                                             }
                                         }

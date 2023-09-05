@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 
 public class TestCatalogHandler implements CatalogHandler
@@ -24,15 +23,15 @@ public class TestCatalogHandler implements CatalogHandler
     private final String schema;
 
     public TestCatalogHandler(
-        CatalogConfig options)
+        TestCatalogConfig options)
     {
-        this.schema = TestCatalogConfig.class.cast(options.options).schema;
+        this.schema = options.schema;
     }
 
     @Override
     public int register(
-        String schemaDefinition,
-        String subject)
+        String subject,
+        String schema)
     {
         return 1;
     }

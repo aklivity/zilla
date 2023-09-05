@@ -42,12 +42,12 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    private final ValidatorFactory validator = ValidatorFactory.instantiate();
-    public final Map<String, KafkaTopicType> validatorsMap;
+    public final Map<String, KafkaTopicType> topics;
 
     public KafkaBindingConfig(
         BindingConfig binding,
-        LongFunction<CatalogHandler> supplyCatalog)
+        LongFunction<CatalogHandler> supplyCatalog,
+        ValidatorFactory validator)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -55,7 +55,7 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.validatorsMap = options != null &&
+        this.topics = options != null &&
                 options.topics != null
                     ? options.topics.stream()
                     .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
