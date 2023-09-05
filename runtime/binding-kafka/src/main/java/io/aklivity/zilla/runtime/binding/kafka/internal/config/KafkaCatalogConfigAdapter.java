@@ -51,9 +51,9 @@ public class KafkaCatalogConfigAdapter implements JsonbAdapter<KafkaCatalogConfi
             catalog.add(CATALOG_VERSION, config.version);
         }
 
-        if (config.id > 0)
+        if (config.schemaId > 0)
         {
-            catalog.add(CATALOG_ID, config.id);
+            catalog.add(CATALOG_ID, config.schemaId);
         }
 
         return catalog.build();

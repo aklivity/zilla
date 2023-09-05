@@ -17,22 +17,22 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 public class KafkaCatalogConfig
 {
-    public transient long catalogId;
+    public transient long id;
 
     public final String name;
     public final String strategy;
     public final String version;
-    public final int id;
+    public final int schemaId;
 
     public KafkaCatalogConfig(
         String name,
         String strategy,
         String version,
-        int id)
+        int schemaId)
     {
         this.name = name;
         this.strategy = strategy;
         this.version = version;
-        this.id = id;
+        this.schemaId = schemaId;
     }
 }

@@ -15,18 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
+import java.util.function.Predicate;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
 
 public final class StringValidator implements Validator
 {
-    private String encoding;
+    private Predicate<byte[]> predicate;
 
     public StringValidator(
         StringValidatorConfig config)
     {
-        this.encoding = config.encoding;
+        this.predicate = config.encoding.equals("utf_8") ? this::isValidUTF8 : bytes -> false;
     }
 
     @Override
@@ -37,12 +39,7 @@ public final class StringValidator implements Validator
     {
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
-        switch (encoding)
-        {
-        case "utf_8":
-            return isValidUTF8(payloadBytes);
-        }
-        return false;
+        return predicate.test(payloadBytes);
     }
 
     private boolean isValidUTF8(

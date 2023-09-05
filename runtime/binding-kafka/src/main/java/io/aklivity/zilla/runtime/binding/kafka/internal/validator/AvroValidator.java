@@ -48,10 +48,10 @@ public final class AvroValidator implements Validator
     {
         this.handlersById = new Long2ObjectHashMap<>();
         this.decoder = DecoderFactory.get();
-        this.catalogs = config.catalogList.stream().map(c ->
+        this.catalogs = config.catalogs.stream().map(c ->
         {
-            c.catalogId = resolveId.applyAsLong(c.name);
-            handlersById.put(c.catalogId, supplyCatalog.apply(c.catalogId));
+            c.id = resolveId.applyAsLong(c.name);
+            handlersById.put(c.id, supplyCatalog.apply(c.id));
             return c;
         }).collect(Collectors.toList());
     }
@@ -80,7 +80,7 @@ public final class AvroValidator implements Validator
         try
         {
             reader = new GenericDatumReader(new Schema.Parser().parse(
-                handlersById.get(catalogs.get(0).catalogId).resolve(schemaId)));
+                handlersById.get(catalogs.get(0).id).resolve(schemaId)));
             reader.read(null, decoder.binaryDecoder(valBytes, null));
             return true;
         }
