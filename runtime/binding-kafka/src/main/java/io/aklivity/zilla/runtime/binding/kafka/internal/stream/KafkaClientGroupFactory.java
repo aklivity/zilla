@@ -19,9 +19,12 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.ByteOrder;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -32,6 +35,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
+import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -40,11 +44,15 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ConfigResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
@@ -61,6 +69,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Member
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -69,7 +79,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -86,12 +98,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 {
     private static final short ERROR_EXISTS = -1;
     private static final short ERROR_NONE = 0;
+
     private static final short ERROR_COORDINATOR_NOT_AVAILABLE = 15;
     private static final short ERROR_NOT_COORDINATOR_FOR_CONSUMER = 16;
     private static final short ERROR_UNKNOWN_MEMBER = 25;
     private static final short ERROR_MEMBER_ID_REQUIRED = 79;
     private static final short ERROR_REBALANCE_IN_PROGRESS = 27;
     private static final short SIGNAL_NEXT_REQUEST = 1;
+    private static final short DESCRIBE_CONFIGS_API_KEY = 32;
+    private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
+    private static final byte RESOURCE_TYPE_BROKER = 1;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
     private static final short JOIN_GROUP_API_KEY = 11;
@@ -105,6 +121,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private static final String UNKNOWN_MEMBER_ID = "";
     private static final String HIGHLANDER_PROTOCOL = "highlander";
+    private static final String GROUP_MIN_SESSION_TIMEOUT = "group.min.session.timeout.ms";
+    private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -123,16 +141,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
+    private final DescribeConfigsRequestFW.Builder describeConfigsRequestRW = new DescribeConfigsRequestFW.Builder();
+    private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
+    private final String16FW.Builder configNameRW = new String16FW.Builder(ByteOrder.BIG_ENDIAN);
     private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
     private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
     private final ProtocolMetadataFW.Builder protocolMetadataRW = new ProtocolMetadataFW.Builder();
@@ -141,9 +164,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
     private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
-    private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
 
+    private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
+    private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
+    private final DescribeConfigsResponseFW describeConfigsResponseRO = new DescribeConfigsResponseFW();
     private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
     private final JoinGroupResponseFW joinGroupResponseRO = new JoinGroupResponseFW();
     private final MemberMetadataFW memberMetadataRO = new MemberMetadataFW();
@@ -151,8 +176,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final LeaveGroupResponseFW leaveGroupResponseRO = new LeaveGroupResponseFW();
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
-    private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
+    private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
+        new Array32FW<>(new MemberAssignmentFW());
 
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaDescribeClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaDescribeClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaDescribeClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
+    private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshake = this::decodeSaslHandshake;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
@@ -185,6 +220,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorIgnoreAll = this::decodeIgnoreAll;
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorReject = this::decodeCoordinatorReject;
 
+    private final Map<String, String> configs = new LinkedHashMap<>();
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -436,7 +472,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-    private void doDataNull(
+    private void doDataEmpty(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -461,10 +497,42 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
+                .payload(EMPTY_OCTETS)
                 .extension(extension)
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Flyweight extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doEnd(
@@ -593,6 +661,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     }
 
     @FunctionalInterface
+    private interface KafkaDescribeClientDecoder
+    {
+        int decode(
+            DescribeClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            MutableDirectBuffer buffer,
+            int offset,
+            int progress,
+            int limit);
+    }
+
+    @FunctionalInterface
     private interface KafkaGroupCoordinatorClientDecoder
     {
         int decode(
@@ -605,6 +688,117 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int offset,
             int progress,
             int limit);
+    }
+
+    private int decodeDescribeResponse(
+        DescribeClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
+            if (responseHeader == null)
+            {
+                client.decoder = decodeIgnoreAll;
+                break decode;
+            }
+
+            final int responseSize = responseHeader.length();
+
+            if (length >= responseHeader.sizeof() + responseSize)
+            {
+                progress = responseHeader.limit();
+
+                final DescribeConfigsResponseFW describeConfigsResponse =
+                    describeConfigsResponseRO.tryWrap(buffer, progress, limit);
+
+                if (describeConfigsResponse == null)
+                {
+                    client.decoder = decodeIgnoreAll;
+                    break decode;
+                }
+
+                progress = describeConfigsResponse.limit();
+
+                final int resourceCount = describeConfigsResponse.resourceCount();
+                for (int resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+                {
+                    final ResourceResponseFW resource = resourceResponseRO.tryWrap(buffer, progress, limit);
+                    if (resource == null)
+                    {
+                        client.decoder = decodeIgnoreAll;
+                        break decode;
+                    }
+
+                    progress = resource.limit();
+
+                    final String resourceName = resource.name().asString();
+                    final int resourceError = resource.errorCode();
+
+                    client.onDecodeResource(traceId, client.authorization, resourceError, resourceName);
+                    // TODO: use different decoder for configs
+                    if (resourceError != ERROR_NONE || !client.delegate.nodeId.equals(resourceName))
+                    {
+                        client.decoder = decodeIgnoreAll;
+                        break decode;
+                    }
+
+                    final int configCount = resource.configCount();
+                    configs.clear();
+                    for (int configIndex = 0; configIndex < configCount; configIndex++)
+                    {
+                        final ConfigResponseFW config = configResponseRO.tryWrap(buffer, progress, limit);
+                        if (config == null)
+                        {
+                            client.decoder = decodeIgnoreAll;
+                            break decode;
+                        }
+
+                        progress = config.limit();
+
+                        final String name = config.name().asString();
+                        final String value = config.value().asString();
+
+                        configs.put(name, value);
+                    }
+
+                    client.onDecodeDescribeResponse(traceId, configs);
+                }
+            }
+        }
+
+        if (client.decoder == decodeIgnoreAll)
+        {
+            client.cleanupNetwork(traceId);
+        }
+
+        return progress;
+    }
+
+    private int decodeReject(
+        DescribeClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.doNetworkResetIfNecessary(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
     }
 
     private int decodeFindCoordinatorResponse(
@@ -650,7 +844,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else if (findCoordinatorResponse.errorCode() == ERROR_NONE)
                 {
-                    client.onFindCoordinator(traceId, authorization,
+                    client.onFindCoordinator(traceId, authorization, findCoordinatorResponse.nodeId(),
                         findCoordinatorResponse.host(), findCoordinatorResponse.port());
                 }
                 else
@@ -787,7 +981,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         final MemberMetadataFW memberMetadata = memberMetadataRO.tryWrap(buffer, progress, limit);
                         if (memberMetadata != null)
                         {
-                            client.members.add(memberMetadata.memberId().asString());
+                            client.members.add(new MemberProtocol(
+                                memberMetadata.memberId().asString(), memberMetadata.metadata()));
                             progress = memberMetadata.limit();
                         }
                         else
@@ -797,7 +992,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     }
 
                     client.onJoinGroupResponse(traceId, authorization, joinGroupResponse.leader().asString(),
-                        joinGroupResponse.memberId().asString(), errorCode);
+                        joinGroupResponse.memberId().asString());
                 }
                 else
                 {
@@ -1016,11 +1211,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     {
         private final MessageConsumer application;
         private final ClusterClient clusterClient;
+        private final DescribeClient describeClient;
         private final CoordinatorClient coordinatorClient;
         private final GroupMembership groupMembership;
         private final String groupId;
         private final String protocol;
-        private final int timeout;
+        private int timeout;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -1028,6 +1224,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final long affinity;
         private final long resolvedId;
         private final KafkaSaslConfig sasl;
+        public String host;
+        public int port;
+        private String nodeId;
+        private MutableDirectBuffer metadataBuffer;
 
         private int state;
 
@@ -1041,6 +1241,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int replyPad;
 
         private long replyBudgetId;
+        private int topicMetadataLimit;
 
         KafkaGroupStream(
             MessageConsumer application,
@@ -1068,7 +1269,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.groupMembership = groupMembership;
             this.sasl = sasl;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
+            this.describeClient = new DescribeClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
+            this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
         }
 
         private void onApplication(
@@ -1117,6 +1320,22 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
+            final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaBeginExFW kafkaBeginEx = beginEx != null && beginEx.typeId() == kafkaTypeId ?
+                kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+
+            assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_GROUP;
+            final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx.group();
+
+            OctetsFW metadata = kafkaGroupBeginEx.metadata();
+            final int metadataSize = kafkaGroupBeginEx.metadataLen();
+
+            if (metadataSize > 0)
+            {
+                metadataBuffer.putBytes(0, metadata.buffer(), metadata.offset(), kafkaGroupBeginEx.metadataLen());
+                topicMetadataLimit += metadataSize;
+            }
 
             state = KafkaState.openingInitial(state);
 
@@ -1221,7 +1440,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final KafkaBeginExFW kafkaBeginEx =
                 kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .group(g -> g.groupId(groupId).protocol(protocol).timeout(timeout))
+                    .group(g -> g
+                        .groupId(groupId)
+                        .protocol(protocol)
+                        .timeout(timeout))
                     .build();
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1231,8 +1453,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationData(
             long traceId,
             long authorization,
-            OctetsFW payload,
-            Consumer<OctetsFW.Builder> extension)
+            OctetsFW payload)
         {
             final int reserved = replyPad;
 
@@ -1240,17 +1461,31 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved,
-                    payload.value(), payload.offset(), payload.sizeof(), extension);
+                    payload.value(), payload.offset(), payload.sizeof(), EMPTY_EXTENSION);
             }
             else
             {
-                doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, extension);
+                doDataEmpty(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, replyBudgetId, reserved, EMPTY_EXTENSION);
             }
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+        }
+
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                final int reserved = replyPad;
+
+                doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, replyBudgetId, reserved, extension);
+            }
         }
 
         private void doApplicationEnd(
@@ -1338,7 +1573,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             int error)
         {
-            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(writeBuffer,
+                    ResetFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .error(error)
                 .build();
@@ -1980,12 +2216,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onFindCoordinator(
             long traceId,
             long authorization,
+            int nodeId,
             String16FW host,
             int port)
         {
             nextResponseId++;
 
-            delegate.coordinatorClient.doNetworkBeginIfNecessary(traceId, authorization, 0, host, port);
+            delegate.nodeId = String.valueOf(nodeId);
+            delegate.host = host.asString();
+            delegate.port = port;
+
+            delegate.describeClient.doNetworkBegin(traceId, authorization, 0);
 
             cleanupNetwork(traceId, authorization);
         }
@@ -2033,6 +2274,691 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         }
     }
 
+    private final class DescribeClient extends KafkaSaslClient
+    {
+        private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+        private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
+        private final LongLongConsumer encodeDescribeRequest = this::doEncodeDescribeRequest;
+
+        private MessageConsumer network;
+        private final Map<String, String> configs;
+        private final KafkaGroupStream delegate;
+
+        private int state;
+        private long authorization;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private int initialPad;
+        private long initialBudgetId;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private long encodeSlotTraceId;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int decodeSlotReserved;
+
+        private int nextResponseId;
+
+        private KafkaDescribeClientDecoder decoder;
+        private LongLongConsumer encoder;
+
+        DescribeClient(
+            long originId,
+            long routedId,
+            KafkaSaslConfig sasl,
+            KafkaGroupStream delegate)
+        {
+            super(sasl, originId, routedId);
+            this.configs = new LinkedHashMap<>();
+            this.delegate = delegate;
+
+            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
+            this.decoder = decodeReject;
+
+            this.configs.put(GROUP_MIN_SESSION_TIMEOUT, null);
+            this.configs.put(GROUP_MAX_SESSION_TIMEOUT, null);
+        }
+
+        public void onDecodeResource(
+            long traceId,
+            long authorization,
+            int errorCode,
+            String resource)
+        {
+            switch (errorCode)
+            {
+            case ERROR_NONE:
+                assert resource.equals(delegate.nodeId);
+                break;
+            default:
+                final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .error(errorCode)
+                    .build();
+                delegate.cleanupApplication(traceId, resetEx);
+                doNetworkEnd(traceId, authorization);
+                break;
+            }
+        }
+
+        private void onNetwork(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetworkBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetworkData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetworkEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetworkAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetworkReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetworkWindow(window);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetworkSignal(signal);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetworkBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            authorization = begin.authorization();
+            state = KafkaState.openingReply(state);
+
+            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+        }
+
+        private void onNetworkData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long budgetId = data.budgetId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + data.reserved();
+            authorization = data.authorization();
+
+            assert replyAck <= replySeq;
+
+            if (replySeq > replyAck + replyMax)
+            {
+                cleanupNetwork(traceId);
+            }
+            else
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupNetwork(traceId);
+                }
+                else
+                {
+                    final OctetsFW payload = data.payload();
+                    int reserved = data.reserved();
+                    int offset = payload.offset();
+                    int limit = payload.limit();
+
+                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
+                    decodeSlotOffset += limit - offset;
+                    decodeSlotReserved += reserved;
+
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                    reserved = decodeSlotReserved;
+
+                    decodeNetwork(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+                }
+            }
+        }
+
+        private void onNetworkEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            cleanupDecodeSlotIfNecessary();
+
+            if (!KafkaState.replyOpened(delegate.state))
+            {
+                cleanupNetwork(traceId);
+            }
+            else if (decodeSlot == NO_SLOT)
+            {
+                delegate.doApplicationEnd(traceId);
+            }
+        }
+
+        private void onNetworkAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            cleanupNetwork(traceId);
+        }
+
+        private void onNetworkReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = KafkaState.closedInitial(state);
+
+            cleanupNetwork(traceId);
+        }
+
+        private void onNetworkWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert acknowledge <= sequence;
+            assert sequence <= initialSeq;
+            assert acknowledge >= initialAck;
+            assert maximum + acknowledge >= initialMax + initialAck;
+
+            this.initialAck = acknowledge;
+            this.initialMax = maximum;
+            this.initialPad = padding;
+            this.initialBudgetId = budgetId;
+
+            assert initialAck <= initialSeq;
+
+            this.authorization = window.authorization();
+
+            state = KafkaState.openedInitial(state);
+
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final int limit = encodeSlotOffset;
+
+                encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
+            }
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void onNetworkSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final int signalId = signal.signalId();
+
+            if (signalId == SIGNAL_NEXT_REQUEST)
+            {
+                doEncodeRequestIfNecessary(traceId, initialBudgetId);
+            }
+        }
+
+        private void doNetworkBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            if (KafkaState.closed(state))
+            {
+                replyAck = 0;
+                replySeq = 0;
+                state = 0;
+            }
+
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
+            state = KafkaState.openingInitial(state);
+
+            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, EMPTY_EXTENSION);
+        }
+
+        @Override
+        protected void doNetworkData(
+            long traceId,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+                encodeSlotTraceId = traceId;
+
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+            }
+
+            encodeNetwork(traceId, authorization, budgetId, buffer, offset, limit);
+        }
+
+        private void doNetworkEnd(
+            long traceId,
+            long authorization)
+        {
+            state = KafkaState.closedInitial(state);
+
+            cleanupEncodeSlotIfNecessary();
+
+            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, EMPTY_EXTENSION);
+        }
+
+        private void doNetworkAbortIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+                state = KafkaState.closedInitial(state);
+            }
+
+            cleanupEncodeSlotIfNecessary();
+        }
+
+        private void doNetworkResetIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+                state = KafkaState.closedReply(state);
+            }
+
+            cleanupDecodeSlotIfNecessary();
+        }
+
+        private void doNetworkWindow(
+            long traceId,
+            long budgetId,
+            int minReplyNoAck,
+            int minReplyPad,
+            int minReplyMax)
+        {
+            final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                assert replyAck <= replySeq;
+
+                replyMax = minReplyMax;
+
+                state = KafkaState.openedReply(state);
+
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, minReplyPad);
+            }
+        }
+
+        private void doEncodeRequestIfNecessary(
+            long traceId,
+            long budgetId)
+        {
+            if (nextRequestId == nextResponseId)
+            {
+                encoder.accept(traceId, budgetId);
+            }
+        }
+
+        private void doEncodeDescribeRequest(
+            long traceId,
+            long budgetId)
+        {
+            if (KafkaConfiguration.DEBUG)
+            {
+                System.out.format("[client] %s DESCRIBE\n", delegate.nodeId);
+            }
+
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            int encodeProgress = encodeOffset;
+
+            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                .length(0)
+                .apiKey(DESCRIBE_CONFIGS_API_KEY)
+                .apiVersion(DESCRIBE_CONFIGS_API_VERSION)
+                .correlationId(0)
+                .clientId((String) null)
+                .build();
+
+            encodeProgress = requestHeader.limit();
+
+            final DescribeConfigsRequestFW describeConfigsRequest =
+                describeConfigsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .resourceCount(1)
+                    .build();
+
+            encodeProgress = describeConfigsRequest.limit();
+
+            final ResourceRequestFW resourceRequest = resourceRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                .type(RESOURCE_TYPE_BROKER)
+                .name(delegate.nodeId)
+                .configNamesCount(configs.size())
+                .build();
+
+            encodeProgress = resourceRequest.limit();
+
+            for (String config : configs.keySet())
+            {
+                final String16FW configName = configNameRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .set(config, UTF_8)
+                    .build();
+
+                encodeProgress = configName.limit();
+            }
+
+            final int requestId = nextRequestId++;
+            final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+
+            requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                .length(requestSize)
+                .apiKey(requestHeader.apiKey())
+                .apiVersion(requestHeader.apiVersion())
+                .correlationId(requestId)
+                .clientId(requestHeader.clientId().asString())
+                .build();
+
+            doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+            decoder = decodeDescribeResponse;
+        }
+
+        private void encodeNetwork(
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int maxLength = limit - offset;
+            final int initialWin = initialMax - (int)(initialSeq - initialAck);
+            final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+
+            if (length > 0)
+            {
+                final int reserved = length + initialPad;
+
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
+
+                initialSeq += reserved;
+
+                assert initialAck <= initialSeq;
+            }
+
+            final int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(initialId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    cleanupNetwork(traceId);
+                }
+                else
+                {
+                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlotIfNecessary();
+            }
+        }
+
+        private void decodeNetwork(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            MutableDirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            KafkaDescribeClientDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+            }
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupNetwork(traceId);
+                }
+                else
+                {
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    decodeBuffer.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
+                }
+
+                doNetworkWindow(traceId, budgetId, decodeSlotOffset, 0, replyMax);
+            }
+            else
+            {
+                cleanupDecodeSlotIfNecessary();
+
+                if (reserved > 0)
+                {
+                    doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
+                }
+            }
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeResponse(
+            long traceId)
+        {
+            decoder = decodeSaslHandshakeResponse;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshake(
+            long traceId)
+        {
+            decoder = decodeSaslHandshake;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeMechanisms(
+            long traceId)
+        {
+            decoder = decodeSaslHandshakeMechanisms;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeMechansim(
+            long traceId)
+        {
+            decoder = decodeSaslHandshakeMechanism;
+        }
+
+        @Override
+        protected void doDecodeSaslAuthenticateResponse(
+            long traceId)
+        {
+            decoder = decodeSaslAuthenticateResponse;
+        }
+
+        @Override
+        protected void doDecodeSaslAuthenticate(
+            long traceId)
+        {
+            decoder = decodeSaslAuthenticate;
+        }
+
+        @Override
+        protected void onDecodeSaslHandshakeResponse(
+            long traceId,
+            long authorization,
+            int errorCode)
+        {
+            switch (errorCode)
+            {
+            case ERROR_NONE:
+                encoder = encodeSaslAuthenticateRequest;
+                decoder = decodeSaslAuthenticateResponse;
+                break;
+            default:
+                delegate.cleanupApplication(traceId, errorCode);
+                doNetworkEnd(traceId, authorization);
+                break;
+            }
+        }
+
+        @Override
+        protected void onDecodeSaslAuthenticateResponse(
+            long traceId,
+            long authorization,
+            int errorCode)
+        {
+            switch (errorCode)
+            {
+            case ERROR_NONE:
+                encoder = encodeDescribeRequest;
+                decoder = decodeDescribeResponse;
+                break;
+            default:
+                delegate.cleanupApplication(traceId, errorCode);
+                doNetworkEnd(traceId, authorization);
+                break;
+            }
+        }
+
+        @Override
+        protected void onDecodeSaslResponse(
+            long traceId)
+        {
+            nextResponseId++;
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void onDecodeDescribeResponse(
+            long traceId,
+            Map<String, String> newConfigs)
+        {
+            nextResponseId++;
+
+            int timeoutMin = Integer.valueOf(newConfigs.get(GROUP_MIN_SESSION_TIMEOUT)).intValue();
+            int timeoutMax = Integer.valueOf(newConfigs.get(GROUP_MAX_SESSION_TIMEOUT)).intValue();
+            if (delegate.timeout < timeoutMin)
+            {
+                delegate.timeout = timeoutMin;
+            }
+            else if (delegate.timeout > timeoutMax)
+            {
+                delegate.timeout = timeoutMax;
+            }
+
+            delegate.coordinatorClient.doNetworkBeginIfNecessary(traceId, authorization, 0);
+
+            cleanupNetwork(traceId);
+        }
+
+        private void cleanupNetwork(
+            long traceId)
+        {
+            doNetworkResetIfNecessary(traceId);
+            doNetworkAbortIfNecessary(traceId);
+        }
+
+        private void cleanupDecodeSlotIfNecessary()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+                decodeSlotReserved = 0;
+            }
+        }
+
+        private void cleanupEncodeSlotIfNecessary()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSlotTraceId = 0;
+            }
+        }
+    }
+
     private final class CoordinatorClient extends KafkaSaslClient
     {
         private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
@@ -2041,7 +2967,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final LongLongConsumer encodeSyncGroupRequest = this::doEncodeSyncGroupRequest;
         private final LongLongConsumer encodeHeartbeatRequest = this::doEncodeHeartbeatRequest;
         private final LongLongConsumer encodeLeaveGroupRequest = this::doEncodeLeaveGroupRequest;
-        private final List<String> members;
+        private final List<MemberProtocol> members;
         private final KafkaGroupStream delegate;
 
         private MessageConsumer network;
@@ -2282,9 +3208,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doNetworkBeginIfNecessary(
             long traceId,
             long authorization,
-            long affinity,
-            String16FW host,
-            int port)
+            long affinity)
         {
             if (KafkaState.closed(state))
             {
@@ -2295,16 +3219,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (!KafkaState.initialOpening(state))
             {
-                doNetworkBegin(traceId, authorization, affinity, host, port);
+                doNetworkBegin(traceId, authorization, affinity);
             }
         }
 
         private void doNetworkBegin(
             long traceId,
             long authorization,
-            long affinity,
-            String16FW host,
-            int port)
+            long affinity)
         {
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -2315,9 +3237,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .typeId(proxyTypeId)
                 .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                     .source("0.0.0.0")
-                    .destination(host)
+                    .destination(delegate.host)
                     .sourcePort(0)
-                    .destinationPort(port)))
+                    .destinationPort(delegate.port)))
                 .build()
                 .sizeof());
 
@@ -2462,7 +3384,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(delegate.protocol)
-                    .metadata(EMPTY_OCTETS)
+                    .metadata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                     .build();
 
             encodeProgress = protocolMetadata.limit();
@@ -2493,9 +3415,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
-            int encodeProgress = encodeOffset;
+            MutableInteger encodeProgress = new MutableInteger(encodeOffset);
 
-            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .length(0)
                 .apiKey(SYNC_GROUP_API_KEY)
                 .apiVersion(SYNC_GROUP_VERSION)
@@ -2503,39 +3425,55 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .clientId(clientId)
                 .build();
 
-            encodeProgress = requestHeader.limit();
+            encodeProgress.set(requestHeader.limit());
 
             final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
-            final boolean isLeader = leader.equals(memberId);
-
             final SyncGroupRequestFW syncGroupRequest =
-                syncGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                syncGroupRequestRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                     .groupId(delegate.groupId)
                     .generatedId(generationId)
                     .memberId(memberId)
                     .groupInstanceId(delegate.groupMembership.instanceId)
-                    .assignmentCount(isLeader ? members.size() : 0)
+                    .assignmentCount(members.size())
                     .build();
 
-            encodeProgress = syncGroupRequest.limit();
+            encodeProgress.set(syncGroupRequest.limit());
 
-            if (isLeader)
+            if (assignment.sizeof() > 0)
             {
-                for (int i = 0; i < members.size(); i++)
+                Array32FW<MemberAssignmentFW> assignments = memberAssignmentRO
+                    .wrap(assignment.buffer(), assignment.offset(), assignment.limit());
+
+                assignments.forEach(a ->
                 {
+                    Array32FW<TopicAssignmentFW> topicPartitions = a.assignments();
                     final AssignmentFW groupAssignment =
-                        assignmentRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                            .memberId(members.get(i))
-                            .value(assignment)
+                        assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                            .memberId(a.memberId())
+                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.length())
                             .build();
 
-                    encodeProgress = groupAssignment.limit();
-                }
+                    encodeProgress.set(groupAssignment.limit());
+                });
+            }
+            else
+            {
+                members.forEach(m ->
+                {
+                    final AssignmentFW groupAssignment =
+                        assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                            .memberId(m.memberId)
+                            .value(m.metadata)
+                            .build();
+
+                    encodeProgress.set(groupAssignment.limit());
+                });
             }
 
+
             final int requestId = nextRequestId++;
-            final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+            final int requestSize = encodeProgress.get() - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
 
             requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                 .length(requestSize)
@@ -2545,7 +3483,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .clientId(requestHeader.clientId().asString())
                 .build();
 
-            doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+            doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress.get());
 
             decoder = decodeSyncGroupResponse;
         }
@@ -2886,16 +3824,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.onNotCoordinatorError(traceId, authorization);
         }
 
-        private void onJoinGroupUnknownMemberError(
-            long traceId,
-            long authorization)
-        {
-            nextResponseId++;
-
-            delegate.groupMembership.memberIds.put(delegate.groupId, UNKNOWN_MEMBER_ID);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
-        }
-
         private void onJoinGroupMemberIdError(
             long traceId,
             long authorization,
@@ -2910,18 +3838,36 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onJoinGroupResponse(
             long traceId,
             long authorization,
-            String leader,
-            String memberId,
-            int error)
+            String leaderId,
+            String memberId)
         {
             nextResponseId++;
 
-            this.leader = leader;
+            this.leader = leaderId;
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
+            final KafkaFlushExFW kafkaFlushEx =
+                kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .group(g -> g.leaderId(leaderId)
+                            .memberId(memberId)
+                            .members(gm -> members.forEach(m ->
+                                gm.item(i ->
+                                {
+                                    KafkaGroupMemberFW.Builder member = i.id(m.memberId);
+                                    if (m.metadata.sizeof() > 0)
+                                    {
+                                        member.metadataLen(m.metadata.sizeof())
+                                            .metadata(m.metadata)
+                                            .build();
+                                    }
+                                }))))
+                            .build();
+
+            delegate.doApplicationFlush(traceId, authorization, kafkaFlushEx);
+
             encoder = encodeSyncGroupRequest;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onSynGroupRebalance(
@@ -2941,16 +3887,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
+            delegate.doApplicationData(traceId, authorization, assignment);
 
-            delegate.doApplicationData(traceId, authorization, assignment,
-                ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
-                    .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leader).memberId(memberId).members(members.size()))
-                    .build()
-                    .sizeof()));
-
-            if (heartbeatRequestId != NO_CANCEL_ID)
+            if (heartbeatRequestId == NO_CANCEL_ID)
             {
                 encoder = encodeHeartbeatRequest;
 
@@ -3050,6 +3989,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.instanceId = instanceId;
             this.memberIds = new Object2ObjectHashMap<>();
+        }
+    }
+
+    private final class MemberProtocol
+    {
+        private final String memberId;
+        private final OctetsFW metadata;
+
+        MemberProtocol(
+            String memberId,
+            OctetsFW metadata)
+        {
+
+            this.memberId = memberId;
+            this.metadata = metadata;
         }
     }
 }

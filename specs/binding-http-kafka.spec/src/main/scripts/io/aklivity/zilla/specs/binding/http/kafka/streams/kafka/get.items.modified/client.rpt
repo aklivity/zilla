@@ -70,6 +70,7 @@ read '{ "name": "gizmo" }'
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                 .fetch()
                                    .progress(0, 2, 2, 2)
                                    .progress(1, 1, 1, 1)
                                    .build()

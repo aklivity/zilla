@@ -75,6 +75,9 @@ public class KafkaConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka");
+        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
+            KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
         KAFKA_CLIENT_META_MAX_AGE_MILLIS = config.property("client.meta.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS = config.property("client.describe.max.age.ms", 5 * 60 * 1000);
@@ -84,6 +87,10 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
+        KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
+            KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
+        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
+            (c, v) -> Duration.parse(v), "PT4S");
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -104,13 +111,6 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
-        KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
-                KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
-        KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
-            (c, v) -> Duration.parse(v), "PT4S");
-        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
-        KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
-            KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CONFIG = config;
     }
 
@@ -300,8 +300,7 @@ public class KafkaConfiguration extends Configuration
     }
 
     private static NonceSupplier decodeNonceSupplier(
-            Configuration config,
-            String value)
+        String value)
     {
         NonceSupplier supplier = null;
 
@@ -335,15 +334,13 @@ public class KafkaConfiguration extends Configuration
         return supplier;
     }
 
-    private static NonceSupplier defaultNonceSupplier(
-            Configuration config)
+    private static String defaultNonceSupplier()
     {
-        return () ->
-                 new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
+        return new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
     }
 
     @FunctionalInterface
-    public interface InstanceIdSupplier extends Supplier<String>
+    private interface InstanceIdSupplier extends Supplier<String>
     {
     }
 

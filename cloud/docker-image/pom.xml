@@ -366,6 +366,12 @@
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>command-config</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
       </dependencies>
     </profile>
   </profiles>
