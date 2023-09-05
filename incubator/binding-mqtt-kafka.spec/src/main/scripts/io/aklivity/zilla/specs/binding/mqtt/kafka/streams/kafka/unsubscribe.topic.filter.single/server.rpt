@@ -45,6 +45,7 @@ connected
 read advised zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                  .fetch()
                                     .capabilities("FETCH_ONLY")
                                     .filter()
                                         .headers("zilla:filter")

@@ -195,7 +195,6 @@ scope kafka
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
-            case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
@@ -230,6 +229,7 @@ scope kafka
             string16 topic;
             string16 groupId = null;
             string16 consumerId = null;
+            int32 timeout = 0;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
@@ -251,7 +251,13 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
-        struct KafkaMergedFlushEx
+        union KafkaMergedFlushEx switch (uint8)
+        {
+            case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
+            case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
+        }
+
+        struct KafkaMergedFetchFlushEx
         {
             KafkaOffset partition;
             KafkaOffset[] progress;
@@ -260,9 +266,9 @@ scope kafka
             KafkaKey key;
         }
 
-        struct KafkaGroupFlushEx
+        struct KafkaMergedConsumerFlushEx
         {
-           KafkaOffset partition;
+            KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
@@ -343,41 +349,71 @@ scope kafka
             KafkaHeader[] headers;
         }
 
+        struct KafkaTopicPartition
+        {
+            int32 partitionId;
+        }
+
+        struct KafkaGroupTopicMetadata
+        {
+            string16 topic;
+            KafkaTopicPartition[] partitions;
+        }
+
+        struct KafkaGroupMemberMetadata
+        {
+            string16 consumerId;
+            KafkaGroupTopicMetadata[] topics;
+        }
+
         struct KafkaGroupBeginEx
         {
             string16 groupId;
             string16 protocol;
             int32 timeout;
+            varint32 metadataLen;
+            octets[metadataLen] metadata = null;
         }
 
-        struct KafkaGroupDataEx
+        struct KafkaGroupMember
+        {
+            string16 id;
+            varint32 metadataLen;
+            octets[metadataLen] metadata = null;
+        }
+
+        struct KafkaGroupFlushEx
         {
             string16 leaderId;
             string16 memberId;
-            int32 members;
-        }
-
-        struct TopicPartition
-        {
-            int32 partitionId;
+            KafkaGroupMember[] members;
         }
 
         struct KafkaConsumerBeginEx
         {
             string16 groupId;
+            string16 consumerId;
+            int32 timeout;
             string16 topic;
-            TopicPartition[] partitionIds;
+            KafkaTopicPartition[] partitionIds;
+        }
+
+        struct KafkaConsumerAssignment
+        {
+            string16 consumerId;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaConsumerDataEx
         {
-            TopicPartition[] partitions;
+            KafkaTopicPartition[] partitions;
+            KafkaConsumerAssignment[] assignments;
         }
 
         struct KafkaOffsetFetchTopic
         {
             string16 topic;
-            TopicPartition[] partitions;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaOffsetFetchBeginEx
@@ -407,6 +443,38 @@ scope kafka
         {
             int32 partitionId;
             int64 partitionOffset;
+        }
+    }
+
+    scope rebalance
+    {
+        struct TopicPartition
+        {
+            int32 partitionId;
+        }
+
+        struct ConsumerAssignment
+        {
+            string16 consumerId;
+            TopicPartition[] partitions;
+        }
+
+        struct TopicAssignment
+        {
+            string16 topic;
+            TopicPartition[] partitions;
+            ConsumerAssignment[] userdata;
+        }
+
+        struct MemberAssignment
+        {
+            string16 memberId;
+            TopicAssignment[] assignments;
+        }
+
+        struct PartitionIndex
+        {
+            int32 index;
         }
     }
 }

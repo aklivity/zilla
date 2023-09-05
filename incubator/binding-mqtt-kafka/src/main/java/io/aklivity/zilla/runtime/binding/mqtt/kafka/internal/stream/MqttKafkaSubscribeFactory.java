@@ -368,19 +368,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m ->
+                .merged(m -> m.fetch(f ->
                 {
-                    m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
+                    f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                     filters.forEach(filter ->
                     {
                         if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
                         {
                             retainAvailable = true;
                         }
-                        m.filtersItem(f ->
+                        f.filtersItem(fi ->
                         {
                             final int subscriptionId = (int) filter.subscriptionId();
-                            f.conditionsItem(ci ->
+                            fi.conditionsItem(ci ->
                             {
                                 if (!messagesSubscriptionIds.contains(subscriptionId))
                                 {
@@ -393,7 +393,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             if (noLocal)
                             {
                                 final DirectBuffer valueBuffer = clientId.value();
-                                f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                                fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                     h.nameLen(helper.kafkaLocalHeaderName.sizeof())
                                         .name(helper.kafkaLocalHeaderName)
                                         .valueLen(valueBuffer.capacity())
@@ -401,7 +401,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             }
                         });
                     });
-                })
+                }))
                 .build();
 
             messages.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
@@ -1270,15 +1270,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final KafkaFlushExFW retainedKafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m ->
+                    .merged(m -> m.fetch(f ->
                     {
-                        m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
+                        f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                         retainedFilters.forEach(filter ->
                         {
-                            m.filtersItem(f ->
+                            f.filtersItem(fi ->
                             {
                                 final int subscriptionId = (int) filter.subscriptionId();
-                                f.conditionsItem(ci ->
+                                fi.conditionsItem(ci ->
                                 {
                                     if (!mqtt.messagesSubscriptionIds.contains(subscriptionId))
                                     {
@@ -1288,7 +1288,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 });
                             });
                         });
-                    })
+                    }))
                     .build();
 
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,

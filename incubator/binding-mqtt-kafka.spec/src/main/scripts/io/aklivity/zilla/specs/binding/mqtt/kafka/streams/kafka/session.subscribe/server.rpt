@@ -64,15 +64,17 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 connected
 
 # This is the second prerequisite
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(1)
+                                 .members("consumer-1")
                                  .build()
                              .build()}
 write flush
+
+read zilla:data.empty
 
 
 accepted

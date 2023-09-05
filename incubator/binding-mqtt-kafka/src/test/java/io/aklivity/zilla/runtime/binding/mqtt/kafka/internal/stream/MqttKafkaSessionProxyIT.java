@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_EXPIRY_INTERVAL_MAX_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_EXPIRY_INTERVAL_MIN_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
@@ -75,7 +73,6 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_MAX_NAME, value = "30000")
     @Specification({
         "${mqtt}/session.connect.override.max.session.expiry/client",
         "${kafka}/session.connect.override.max.session.expiry/server"})
@@ -87,8 +84,6 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_MAX_NAME, value = "30000")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_MIN_NAME, value = "2000")
     @Specification({
         "${mqtt}/session.connect.override.min.session.expiry/client",
         "${kafka}/session.connect.override.min.session.expiry/server"})

@@ -404,9 +404,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     final KafkaFlushExFW kafkaFlushEx =
                         kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
-                            .merged(m -> m.partition(p -> p.partitionId(-1).partitionOffset(-1))
+                            .merged(m -> m.fetch(f -> f
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
                                 .capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
-                                .key(key))
+                                .key(key)))
                             .build();
                     retained.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
                 }

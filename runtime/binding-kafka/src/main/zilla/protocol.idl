@@ -416,15 +416,8 @@ scope protocol
             struct Assignment
             {
                string16 memberId;
-               uint32 length;
-               octets[length] value;
-            }
-
-            struct TopicPartition
-            {
-                int32 version;
-                string16 topic;
-                int32 partitionCount;
+               int32 length;
+               octets[length] value = null;
             }
 
             struct Partition
@@ -477,22 +470,35 @@ scope protocol
                 string16 groupInstanceId = null;
             }
 
-            struct TopicPartition
+            struct OffsetFetchRequest
             {
-                int32 partitionId;
+                string16 groupId;
+                int32 topicCount;
             }
 
-            struct ConsumerAssignment
-            {
-                string16 consumerId;
-                TopicPartition[] partitions;
-            }
-
-            struct MemberAssignment
+            struct OffsetFetchTopicRequest
             {
                 string16 topic;
-                TopicPartition[] partitions;
-                octets userdata;
+                int32 partitionsCount;
+            }
+
+            struct OffsetFetchResponse
+            {
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetFetchPartition
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                string16 metadata = null;
+                int16 errorCode;
             }
         }
 

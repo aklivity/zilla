@@ -66,33 +66,35 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(1)
+                                 .members("consumer-1")
                                  .build()
                              .build()}
+write zilla:data.empty
 
 write advise zilla:flush
 
 write notify HEARTBEAT1_SENT
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(2)
+                                 .members("consumer-1")
+                                 .members("consumer-2")
                                  .build()
                              .build()}
+read notify RECEIVED_LEAVE_GROUP_DATA
 
 write close
 
-write notify GROUP1_CLOSED
 
-connect await GROUP1_CLOSED
+connect await RECEIVED_LEAVE_GROUP_DATA
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -332,29 +334,34 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-2")
-                                 .members(2)
+                                 .members("consumer-1")
+                                 .members("consumer-2")
                                  .build()
                              .build()}
 
+write zilla:data.empty
+
 write advise zilla:flush
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-2")
                                  .memberId("consumer-2")
-                                 .members(1)
+                                 .members("consumer-2")
                                  .build()
                              .build()}
+read notify RECEIVED_LEADER2
 
-write notify GROUP2_FINISHED
+write zilla:data.empty
 
-connect await GROUP2_FINISHED
+
+connect await RECEIVED_LEADER2
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"

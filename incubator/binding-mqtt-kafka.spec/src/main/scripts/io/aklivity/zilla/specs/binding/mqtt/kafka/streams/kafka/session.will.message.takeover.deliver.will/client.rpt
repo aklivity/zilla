@@ -191,23 +191,24 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
                                  .memberId("member-1")
-                                 .members(1)
+                                 .members("member-1")
                                  .build()
                              .build()}
-read zilla:data.null
 read notify RECEIVED_GROUP_MEMBERS_LEADER
+write zilla:data.empty
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
                                  .memberId("member-1")
-                                 .members(2)
+                                 .members("member-1")
+                                 .members("member-2")
                                  .build()
                              .build()}
 
@@ -325,15 +326,16 @@ write flush
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
-                                    .capabilities("PRODUCE_AND_FETCH")
-                                    .filter()
-                                        .key("client-1")
+                                    .fetch()
+                                        .capabilities("PRODUCE_AND_FETCH")
+                                        .filter()
+                                            .key("client-1")
+                                            .build()
+                                        .filter()
+                                            .key("client-1#migrate")
+                                            .headerNot("sender-id", "sender-1")
+                                            .build()
                                         .build()
-                                    .filter()
-                                        .key("client-1#migrate")
-                                        .headerNot("sender-id", "sender-1")
-                                        .build()
-                                    .build()
                                 .build()}
 
 read advised zilla:flush
