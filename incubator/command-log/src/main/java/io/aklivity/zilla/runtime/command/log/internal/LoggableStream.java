@@ -86,7 +86,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchDat
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFlushExFW;
@@ -1075,9 +1075,6 @@ public final class LoggableStream implements AutoCloseable
         case KafkaDataExFW.KIND_DESCRIBE:
             onKafkaDescribeDataEx(offset, timestamp, kafkaDataEx.describe());
             break;
-        case KafkaDataExFW.KIND_GROUP:
-            onKafkaGroupDataEx(offset, timestamp, kafkaDataEx.group());
-            break;
         case KafkaDataExFW.KIND_FETCH:
             onKafkaFetchDataEx(offset, timestamp, kafkaDataEx.fetch());
             break;
@@ -1103,17 +1100,6 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, "[describe]");
         configs.forEach(c -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", c.name().asString(), c.value().asString())));
-    }
-
-    private void onKafkaGroupDataEx(
-        int offset,
-        long timestamp,
-        KafkaGroupDataExFW group)
-    {
-        String16FW leader = group.leaderId();
-        String16FW member = group.memberId();
-
-        out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s", leader.asString(), member.asString()));
     }
 
     private void onKafkaFetchDataEx(
@@ -1195,6 +1181,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaFlushExFW.KIND_MERGED:
             onKafkaMergedFlushEx(offset, timestamp, kafkaFlushEx.merged());
             break;
+        case KafkaFlushExFW.KIND_GROUP:
+            onKafkaGroupFlushEx(offset, timestamp, kafkaFlushEx.group());
+            break;
         case KafkaFlushExFW.KIND_FETCH:
             onKafkaFetchFlushEx(offset, timestamp, kafkaFlushEx.fetch());
             break;
@@ -1206,8 +1195,8 @@ public final class LoggableStream implements AutoCloseable
         long timestamp,
         KafkaMergedFlushExFW merged)
     {
-        final ArrayFW<KafkaOffsetFW> progress = merged.progress();
-        final Array32FW<KafkaFilterFW> filters = merged.filters();
+        final ArrayFW<KafkaOffsetFW> progress = merged.fetch().progress();
+        final Array32FW<KafkaFilterFW> filters = merged.fetch().filters();
 
         out.printf(verboseFormat, index, offset, timestamp, "[merged]");
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
@@ -1217,6 +1206,18 @@ public final class LoggableStream implements AutoCloseable
                        p.stableOffset(),
                        p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
+    }
+
+    private void onKafkaGroupFlushEx(
+        int offset,
+        long timestamp,
+        KafkaGroupFlushExFW group)
+    {
+        String16FW leader = group.leaderId();
+        String16FW member = group.memberId();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s (%d)", leader.asString(),
+            member.asString(), group.members().fieldCount()));
     }
 
     private void onKafkaFetchFlushEx(

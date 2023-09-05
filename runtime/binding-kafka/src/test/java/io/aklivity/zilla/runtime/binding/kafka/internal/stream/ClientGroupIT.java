@@ -65,7 +65,6 @@ public class ClientGroupIT
     @Specification({
         "${app}/rebalance.protocol.highlander/client",
         "${net}/rebalance.protocol.highlander/server"})
-
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
     {
         k3po.finish();
@@ -124,7 +123,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/rebalance.sync.group/client",
         "${net}/rebalance.sync.group/server"})
     public void shouldHandleRebalanceSyncGroup() throws Exception
     {

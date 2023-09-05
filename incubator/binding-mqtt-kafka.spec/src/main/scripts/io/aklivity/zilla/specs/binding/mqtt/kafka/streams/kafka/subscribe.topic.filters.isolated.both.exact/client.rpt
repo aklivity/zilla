@@ -15,7 +15,7 @@
 
 connect "zilla://streams/kafka0"
          option zilla:window 8192
-         option zilla:transmission "duplex"      
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
@@ -38,6 +38,7 @@ connected
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                  .fetch()
                                     .capabilities("FETCH_ONLY")
                                     .filter()
                                         .headers("zilla:filter")

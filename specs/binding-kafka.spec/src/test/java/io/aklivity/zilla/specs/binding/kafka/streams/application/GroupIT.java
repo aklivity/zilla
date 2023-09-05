@@ -26,7 +26,6 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-
 public class GroupIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -87,6 +86,24 @@ public class GroupIT
         "${app}/ignore.heartbeat.before.handshake/client",
         "${app}/ignore.heartbeat.before.handshake/server"})
     public void shouldIgnoreHeartbeatBeforeHandshakeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.sync.group/client",
+        "${app}/rebalance.sync.group/server"})
+    public void shouldHandleRebalanceSyncGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/partition.assignment/client",
+        "${app}/partition.assignment/server"})
+    public void shouldAssignGroupPartition() throws Exception
     {
         k3po.finish();
     }
