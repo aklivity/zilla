@@ -647,4 +647,22 @@ public class MergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/merged.group.fetch.message.value/client",
+        "${app}/merged.group.fetch.message.value/server"})
+    public void shouldFetchGroupMergedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.fetch.message.value/client",
+        "${app}/unmerged.group.fetch.message.value/server"})
+    public void shouldFetchGroupUnmergedMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

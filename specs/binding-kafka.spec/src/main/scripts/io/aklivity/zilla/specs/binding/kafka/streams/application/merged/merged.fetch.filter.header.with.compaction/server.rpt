@@ -51,6 +51,7 @@ write "Hello, world #A1"
 write advise zilla:flush ${kafka:flushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                  .fetch()
                                    .progress(0, 2, 2, 2)
                                    .build()
                                .build()}
