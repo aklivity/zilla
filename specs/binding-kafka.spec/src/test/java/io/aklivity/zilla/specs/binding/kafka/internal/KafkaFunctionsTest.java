@@ -2747,6 +2747,41 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchMergedBeginExtensionGroupId() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .merged()
+                .topic("topic")
+                .groupId("test")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("topic")
+                .groupId("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchMergedBeginExtensionConsumerId() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -4846,7 +4881,30 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldMatchGroupFlushExtension() throws Exception
+    public void shouldMatchGroupFlushExtensionMembers() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("memberId-1")
+                .memberId("memberId-2")
+                .members("memberId-1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+                members(m -> m.item(i -> i.id("memberId-1"))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchGroupFlushExtensionMembersMetadata() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
@@ -4862,8 +4920,7 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
-                members(m -> m.item(i ->
-                    i.id("memberId-1")
+                members(m -> m.item(i -> i.id("memberId-1")
                      .metadataLen("test".length()).metadata(o -> o.set("test".getBytes())))))
             .build();
 
