@@ -31,6 +31,7 @@ public class TestCatalogHandler implements CatalogHandler
     @Override
     public int register(
         String subject,
+        String type,
         String schema)
     {
         return 1;

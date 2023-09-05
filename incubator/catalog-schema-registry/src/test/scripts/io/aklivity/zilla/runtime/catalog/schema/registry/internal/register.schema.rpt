@@ -13,33 +13,42 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "http://localhost:8081/schemas/ids/9"
+accept "http://localhost:8081/subjects/items-snapshots/versions"
 
 accepted
 connected
 
-read http:method "GET"
+read http:method "POST"
 read http:version "HTTP/1.1"
+read http:header "Host" "localhost:8081"
+read http:header "content-type" "application/json"
+
+read '{'
+    '"schema":'
+     '"{'
+        '\"type\": \"record\",'
+        '\"name\": \"test\",'
+        '\"fields\":'
+          '['
+            '{'
+              '\"type\": \"string\",'
+              '\"name\": \"field1\"'
+            '},'
+            '{'
+              '\"type\": \"com.acme.Referenced\",'
+              '\"name\": \"int\"'
+            '}'
+           ']'
+      '}",'
+   '"schemaType": "AVRO"'
+ '}'
+
 read closed
 
 write http:status "200" "OK"
 write http:header "content-type" "application/vnd.schemaregistry.v1+json"
 write http:content-length
 
-write '{'
-  '"fields":['
-    '{'
-      '"name":"id",'
-      '"type":"string"'
-    '},'
-    '{'
-      '"name":"status",'
-      '"type":"string"'
-    '}'
-  '],'
-  '"name":"Event",'
-  '"namespace":"io.aklivity.example",'
-  '"type":"record"'
-'}'
+write '{"id":1}'
 
 write close

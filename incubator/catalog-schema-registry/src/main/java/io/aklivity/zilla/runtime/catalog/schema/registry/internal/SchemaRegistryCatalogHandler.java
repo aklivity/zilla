@@ -1,17 +1,16 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
@@ -22,32 +21,49 @@ import java.net.http.HttpResponse;
 import java.text.MessageFormat;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}/schema";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}/schema";
+    private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
 
-    private final SchemaRegistryCatalogConfig config;
     private final HttpClient client;
     private final String baseUrl;
+    private final RegisterSchemaRequest request;
 
     public SchemaRegistryCatalogHandler(
-        CatalogConfig catalog)
+        SchemaRegistryCatalogConfig config)
     {
-        this.config = SchemaRegistryCatalogConfig.class.cast(catalog.options);
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
+        this.request = new RegisterSchemaRequest();
     }
 
     @Override
     public int register(
-        String schema,
-        String subject)
+        String subject,
+        String type,
+        String schema)
     {
-        return 0;
+        int schemaId = 0;
+        HttpRequest httpRequest = HttpRequest
+            .newBuilder(toURI(baseUrl, MessageFormat.format(REGISTER_SCHEMA_PATH, subject)))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(request.buildRequestBody(type, schema)))
+            .build();
+        try
+        {
+            HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            schemaId = response.statusCode() == 200 ? request.resolveRegisterResponse(response.body()) : 0;
+        }
+        catch (Exception e)
+        {
+            System.out.println("Error registering schema" + e);
+        }
+        return schemaId;
     }
 
     @Override
@@ -68,25 +84,27 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private String sendHttpRequest(
         String path)
     {
-        try
-        {
-            HttpRequest httpRequest = HttpRequest
+        HttpRequest httpRequest = HttpRequest
                 .newBuilder(toURI(baseUrl, path))
                 .GET()
                 .build();
-            // TODO: introduce interrupt/timeout for request to schema registry
+        // TODO: introduce interrupt/timeout for request to schema registry
+
+        try
+        {
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200 ? response.body() : null;
         }
         catch (Exception e)
         {
-            System.out.println("Error fetching schema");
+            System.out.println("Error fetching schema" + e);
         }
         return null;
     }
 
     private URI toURI(
-        String baseUrl, String path)
+        String baseUrl,
+        String path)
     {
         return URI.create(baseUrl + path);
     }
