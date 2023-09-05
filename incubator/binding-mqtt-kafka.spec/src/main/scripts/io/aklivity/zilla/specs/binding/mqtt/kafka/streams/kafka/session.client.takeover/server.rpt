@@ -62,27 +62,30 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(1)
+                                 .members("consumer-1")
                                  .build()
                              .build()}
 write flush
+
+read zilla:data.empty
 
 read advised zilla:flush
 
 # On the session stream the heartbeat arrives (on the mqtt_sessions merged stream)
 read await HEARTBEAT1_SENT
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(2)
+                                 .members("consumer-1")
+                                 .members("consumer-2")
                                  .build()
                              .build()}
 write flush
@@ -322,32 +325,37 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-2")
-                                 .members(2)
+                                 .members("consumer-1")
+                                 .members("consumer-2")
                                  .build()
                              .build()}
 write flush
 
-# On the session publish stream, send a heartbeat
+read zilla:data.empty
 
+# On the session publish stream, send a heartbeat
 read advised zilla:flush
+
 
 # Wait until I receive a data frame, that confirms that I'm the leader
 # Once it's confirmed, I can send the CONNACK
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-2")
                                  .memberId("consumer-2")
-                                 .members(1)
+                                 .members("consumer-2")
                                  .build()
                              .build()}
 write flush
+
+read zilla:data.empty
 
 accepted
 

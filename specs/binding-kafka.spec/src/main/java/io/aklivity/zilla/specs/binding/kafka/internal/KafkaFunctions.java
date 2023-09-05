@@ -3845,6 +3845,18 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupFlushExMatchBuilder members(
+                String memberId)
+            {
+                if (membersRW == null)
+                {
+                    this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                this.membersRW.item(m -> m.id(memberId));
+                return this;
+            }
+
             public KafkaFlushExMatcherBuilder build()
             {
                 return KafkaFlushExMatcherBuilder.this;

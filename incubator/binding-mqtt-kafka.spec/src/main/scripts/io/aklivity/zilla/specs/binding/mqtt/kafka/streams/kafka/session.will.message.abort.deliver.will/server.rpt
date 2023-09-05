@@ -194,15 +194,16 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 connected
 
 # send group members (leader)
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
                                  .memberId("member-1")
-                                 .members(1)
+                                 .members("member-1")
                                  .build()
                              .build()}
-write flush
+
+read zilla:data.empty
 
 read aborted
 
@@ -324,15 +325,16 @@ write notify RECEIVED_WILL_DELIVER_LATER_SIGNAL
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
-                                    .capabilities("PRODUCE_AND_FETCH")
-                                    .filter()
-                                        .key("client-1")
+                                    .fetch()
+                                        .capabilities("PRODUCE_AND_FETCH")
+                                        .filter()
+                                            .key("client-1")
+                                            .build()
+                                        .filter()
+                                            .key("client-1#migrate")
+                                            .headerNot("sender-id", "sender-1")
+                                            .build()
                                         .build()
-                                    .filter()
-                                        .key("client-1#migrate")
-                                        .headerNot("sender-id", "sender-1")
-                                        .build()
-                                    .build()
                                 .build()}
 
 # no session state

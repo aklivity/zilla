@@ -64,16 +64,27 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(1)
+                                 .members("consumer-1")
                                  .build()
                              .build()}
+
+write zilla:data.empty
 
 write advise zilla:flush
 

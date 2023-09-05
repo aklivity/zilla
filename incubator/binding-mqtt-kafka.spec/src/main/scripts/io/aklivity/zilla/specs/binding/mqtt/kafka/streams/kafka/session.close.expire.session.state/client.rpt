@@ -151,16 +151,19 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("member-1")
                                  .memberId("member-1")
-                                 .members(1)
+                                 .members("member-1")
                                  .build()
                              .build()}
-read zilla:data.null
-read notify RECEIVED_GROUP_MEMBERS_LEADER
+write notify RECEIVED_GROUP_MEMBERS_LEADER
+
+write zilla:data.empty
+write flush
+
 
 write close
 

@@ -65,17 +65,20 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
-                                 .members(1)
+                                 .members("consumer-1")
                                  .build()
                              .build()}
-read notify RECEIVED_LEADER_DATA
+read notify RECEIVED_LEADER
 
-connect await RECEIVED_LEADER_DATA
+write zilla:data.empty
+
+
+connect await RECEIVED_LEADER
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
