@@ -129,12 +129,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>catalog-schema-registry</artifactId>
-      <version>${project.version}</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>command-start</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>

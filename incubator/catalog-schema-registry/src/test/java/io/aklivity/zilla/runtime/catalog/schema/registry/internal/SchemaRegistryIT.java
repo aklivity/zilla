@@ -102,7 +102,7 @@ public class SchemaRegistryIT
 
         k3po.finish();
 
-        assertThat(schema, not(nullValue()));
+        assertThat(schemaId, not(nullValue()));
         assertEquals(schemaId, 1);
     }
 }
