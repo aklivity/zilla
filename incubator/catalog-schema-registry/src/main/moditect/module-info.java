@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.catalog.schema.registry
 {
+    requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
