@@ -44,16 +44,14 @@ write ${mqtt:session()
 read ${mqtt:session()
                .subscription("sensor/one", 1)
                .build()}
+read notify RECEIVED_SESSION_STATE
 
-write notify SUBSCRIBED
 
 read ${mqtt:session()
                .build()}
 
-write notify SESSION_READY
 
-
-connect await SESSION_READY
+connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"

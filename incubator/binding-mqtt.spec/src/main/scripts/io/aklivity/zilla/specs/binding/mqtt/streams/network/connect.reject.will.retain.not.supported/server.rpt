@@ -27,7 +27,8 @@ read  [0x10 0x28]                   # CONNECT
       [0x05]                        # protocol version
       [0x26]                        # flags = will flag, will retain, clean start
       [0x00 0x3c]                   # keep alive = 60s
-      [0x00]                        # properties = none
+      [0x05]                        # properties
+      [0x27] 66560                  # maximum packet size = 66560
       [0x00 0x06] "client"          # client id
       [0x00]                        # will properties
       [0x00 0x09] "willTopic"       # will topic
