@@ -31,6 +31,6 @@ public class IntegerValidator implements Validator
         int index,
         int length)
     {
-        return length == 4 ? true : false;
+        return length == 4;
     }
 }

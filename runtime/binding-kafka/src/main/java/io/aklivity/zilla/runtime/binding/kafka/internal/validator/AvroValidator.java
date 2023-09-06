@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.LongFunction;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Parser;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
@@ -38,8 +40,10 @@ public final class AvroValidator implements Validator
 
     private final List<KafkaCatalogConfig> catalogs;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
+    private final CatalogHandler handler;
     private final DecoderFactory decoder;
     private DatumReader reader;
+    private Parser parser;
 
     public AvroValidator(
         AvroValidatorConfig config,
@@ -54,6 +58,8 @@ public final class AvroValidator implements Validator
             handlersById.put(c.id, supplyCatalog.apply(c.id));
             return c;
         }).collect(Collectors.toList());
+        this.handler = handlersById.get(catalogs.get(0).id);
+        this.parser = new Schema.Parser();
     }
 
     @Override
@@ -62,31 +68,32 @@ public final class AvroValidator implements Validator
         int index,
         int length)
     {
+        boolean status = false;
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
         ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
 
-        if (byteBuf.get() != MAGIC_BYTE)
-        {
-            System.out.println("Unknown magic byte!");
-            return false;
-        }
-
-        int schemaId = byteBuf.getInt();
-        int valLength = length - 1 - 4;
-        byte[] valBytes = new byte[valLength];
-        data.getBytes(length - valLength, valBytes);
-
+        tryValidate:
         try
         {
-            reader = new GenericDatumReader(new Schema.Parser().parse(
-                handlersById.get(catalogs.get(0).id).resolve(schemaId)));
+            if (byteBuf.get() != MAGIC_BYTE)
+            {
+                System.out.println("Unknown magic byte!");
+                break tryValidate;
+            }
+
+            int schemaId = byteBuf.getInt();
+            int valLength = length - 1 - 4;
+            byte[] valBytes = new byte[valLength];
+            data.getBytes(length - valLength, valBytes);
+
+            reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
             reader.read(null, decoder.binaryDecoder(valBytes, null));
-            return true;
+            status = true;
         }
-        catch (Exception e)
+        catch (IOException e)
         {
-            return false;
         }
+        return status;
     }
 }

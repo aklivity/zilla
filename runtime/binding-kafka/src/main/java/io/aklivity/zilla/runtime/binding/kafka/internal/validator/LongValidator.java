@@ -32,6 +32,6 @@ public class LongValidator implements Validator
         int index,
         int length)
     {
-        return length == 8 ? true : false;
+        return length == 8;
     }
 }

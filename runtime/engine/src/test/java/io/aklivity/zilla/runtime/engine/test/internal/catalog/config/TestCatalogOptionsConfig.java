@@ -19,22 +19,22 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class TestCatalogConfig extends OptionsConfig
+public class TestCatalogOptionsConfig extends OptionsConfig
 {
     public final String schema;
 
-    public static TestCatalogConfigBuilder<TestCatalogConfig> builder()
+    public static TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> builder()
     {
-        return new TestCatalogConfigBuilder<>(TestCatalogConfig.class::cast);
+        return new TestCatalogOptionsConfigBuilder<>(TestCatalogOptionsConfig.class::cast);
     }
 
-    public static <T> TestCatalogConfigBuilder<T> builder(
+    public static <T> TestCatalogOptionsConfigBuilder<T> builder(
             Function<OptionsConfig, T> mapper)
     {
-        return new TestCatalogConfigBuilder<>(mapper);
+        return new TestCatalogOptionsConfigBuilder<>(mapper);
     }
 
-    public TestCatalogConfig(
+    public TestCatalogOptionsConfig(
         String schema)
     {
         this.schema = schema;

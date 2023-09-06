@@ -20,13 +20,13 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class TestCatalogConfigBuilder<T> extends ConfigBuilder<T, TestCatalogConfigBuilder<T>>
+public final class TestCatalogOptionsConfigBuilder<T> extends ConfigBuilder<T, TestCatalogOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
     private String schema;
 
-    TestCatalogConfigBuilder(
+    TestCatalogOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -34,12 +34,12 @@ public final class TestCatalogConfigBuilder<T> extends ConfigBuilder<T, TestCata
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<TestCatalogConfigBuilder<T>> thisType()
+    protected Class<TestCatalogOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<TestCatalogConfigBuilder<T>>) getClass();
+        return (Class<TestCatalogOptionsConfigBuilder<T>>) getClass();
     }
 
-    public TestCatalogConfigBuilder<T> schema(
+    public TestCatalogOptionsConfigBuilder<T> schema(
         String schema)
     {
         this.schema = schema;
@@ -49,6 +49,6 @@ public final class TestCatalogConfigBuilder<T> extends ConfigBuilder<T, TestCata
     @Override
     public T build()
     {
-        return mapper.apply(new TestCatalogConfig(schema));
+        return mapper.apply(new TestCatalogOptionsConfig(schema));
     }
 }

@@ -46,7 +46,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final LongFunction<CatalogHandler> supplyCatalog;
-    private final ValidatorFactory validator;
+    private final ValidatorFactory validatorFactory;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -94,14 +94,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         this.factories = factories;
         this.bindings = bindings;
         this.supplyCatalog = context::supplyCatalog;
-        this.validator = ValidatorFactory.instantiate();
+        this.validatorFactory = ValidatorFactory.instantiate();
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validator);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validatorFactory);
         bindings.put(binding.id, kafkaBinding);
 
         KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);

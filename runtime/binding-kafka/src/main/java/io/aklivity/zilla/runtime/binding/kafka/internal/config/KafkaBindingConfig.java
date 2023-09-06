@@ -47,7 +47,7 @@ public final class KafkaBindingConfig
     public KafkaBindingConfig(
         BindingConfig binding,
         LongFunction<CatalogHandler> supplyCatalog,
-        ValidatorFactory validator)
+        ValidatorFactory validatorFactory)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -59,8 +59,8 @@ public final class KafkaBindingConfig
                 options.topics != null
                     ? options.topics.stream()
                     .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                    t.key != null ? validator.create(t.key, resolveId, supplyCatalog) : null,
-                    t.value != null ? validator.create(t.value, resolveId, supplyCatalog) : null
+                    t.key != null ? validatorFactory.create(t.key, resolveId, supplyCatalog) : null,
+                    t.value != null ? validatorFactory.create(t.value, resolveId, supplyCatalog) : null
                     ))) : null;
     }
 

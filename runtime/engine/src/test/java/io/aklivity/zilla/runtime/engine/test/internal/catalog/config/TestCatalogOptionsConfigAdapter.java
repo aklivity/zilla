@@ -22,7 +22,7 @@ import jakarta.json.JsonObjectBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class TestCatalogConfigAdapter implements OptionsConfigAdapterSpi
+public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String SCHEMA = "schema";
 
@@ -42,7 +42,7 @@ public class TestCatalogConfigAdapter implements OptionsConfigAdapterSpi
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        TestCatalogConfig config = (TestCatalogConfig) options;
+        TestCatalogOptionsConfig config = (TestCatalogOptionsConfig) options;
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
         if (config.schema != null &&
@@ -58,7 +58,7 @@ public class TestCatalogConfigAdapter implements OptionsConfigAdapterSpi
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        TestCatalogConfigBuilder<TestCatalogConfig> testOptions = TestCatalogConfig.builder();
+        TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> testOptions = TestCatalogOptionsConfig.builder();
 
         if (object != null)
         {
