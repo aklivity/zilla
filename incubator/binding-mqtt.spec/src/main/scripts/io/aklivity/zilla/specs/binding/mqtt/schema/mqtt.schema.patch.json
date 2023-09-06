@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server" ]
+                        "enum": [ "server", "client" ]
                     },
                     "vault": false,
                     "options":

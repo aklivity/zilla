@@ -13,13 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -34,9 +30,8 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-public class PingIT
+public class ConnectionIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
@@ -52,40 +47,19 @@ public class PingIT
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
-        .external("app0")
+        .external("net0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("client.yaml")
     @Specification({
-        "${net}/ping/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    public void shouldConnectThenPingRequestResponse() throws Exception
+        "${net}/session.subscribe/server",
+        "${app}/session.subscribe/client"})
+    public void shouldSubscribe() throws Exception
     {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/ping.keep.alive/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
-    public void shouldPingAtKeepAliveInterval() throws Exception
-    {
-        k3po.start();
-        Thread.sleep(1000);
-        k3po.notifyBarrier("WAIT_1_SECOND");
-        Thread.sleep(1000);
-        k3po.notifyBarrier("WAIT_1_SECOND2");
         k3po.finish();
     }
 }

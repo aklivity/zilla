@@ -115,7 +115,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
@@ -148,7 +147,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
@@ -236,7 +234,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
-    private final MqttPublishDataExFW mqttPublishDataExRO = new MqttPublishDataExFW();
     private final MqttDataExFW mqttSubscribeDataExRO = new MqttDataExFW();
     private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -245,7 +242,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttBeginExFW.Builder mqttSubscribeBeginExRW = new MqttBeginExFW.Builder();
     private final MqttBeginExFW.Builder mqttSessionBeginExRW = new MqttBeginExFW.Builder();
     private final MqttDataExFW.Builder mqttPublishDataExRW = new MqttDataExFW.Builder();
-    private final MqttDataExFW.Builder mqttSubscribeDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSessionDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
     private final MqttWillMessageFW.Builder mqttWillMessageRW = new MqttWillMessageFW.Builder();
@@ -268,20 +264,11 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttPropertyFW mqttPropertyRO = new MqttPropertyFW();
     private final MqttPropertyFW.Builder mqttPropertyRW = new MqttPropertyFW.Builder();
 
-    private final MqttPropertiesFW mqttPropertiesRO = new MqttPropertiesFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
 
-    private final String16FW.Builder clientIdRW = new String16FW.Builder(BIG_ENDIAN);
-
-    private final String16FW clientIdRO = new String16FW(BIG_ENDIAN);
     private final String16FW contentTypeRO = new String16FW(BIG_ENDIAN);
     private final String16FW responseTopicRO = new String16FW(BIG_ENDIAN);
-    private final String16FW willTopicRO = new String16FW(BIG_ENDIAN);
     private final String16FW usernameRO = new String16FW(BIG_ENDIAN);
-
-    private final OctetsFW.Builder sessionPayloadRW = new OctetsFW.Builder();
-
-    private final BinaryFW willPayloadRO = new BinaryFW();
     private final BinaryFW passwordRO = new BinaryFW();
 
     private final MqttPublishHeader mqttPublishHeaderRO = new MqttPublishHeader();
@@ -296,9 +283,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttDisconnectFW.Builder mqttDisconnectRW = new MqttDisconnectFW.Builder();
     private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
-
-    private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> topicFiltersRW =
-        new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
     private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> willUserPropertiesRW =
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
 
@@ -337,15 +321,12 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer dataExtBuffer;
-    private final MutableDirectBuffer clientIdBuffer;
-    private final MutableDirectBuffer willDataExtBuffer;
     private final MutableDirectBuffer payloadBuffer;
     private final MutableDirectBuffer propertyBuffer;
     private final MutableDirectBuffer sessionExtBuffer;
     private final MutableDirectBuffer sessionStateBuffer;
     private final MutableDirectBuffer userPropertiesBuffer;
     private final MutableDirectBuffer willMessageBuffer;
-    private final MutableDirectBuffer willPropertyBuffer;
     private final MutableDirectBuffer willUserPropertiesBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
@@ -388,15 +369,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.dataExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.clientIdBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willDataExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.propertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.sessionExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.sessionStateBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willPropertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willUserPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();

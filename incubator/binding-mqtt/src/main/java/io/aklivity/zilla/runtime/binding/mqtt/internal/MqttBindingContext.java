@@ -15,11 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttClientFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttServerFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -38,7 +40,7 @@ final class MqttBindingContext implements BindingContext
     {
         final EnumMap<KindConfig, MqttStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new MqttServerFactory(config, context));
-        //factories.put(CLIENT, new MqttClientFactory(config, context));
+        factories.put(CLIENT, new MqttClientFactory(config, context));
         this.factories = factories;
     }
 
