@@ -1002,12 +1002,16 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = MALFORMED_PACKET;
             }
+            server.decodableRemainingBytes = subscribe.sizeof();
 
             if (reasonCode == 0)
             {
-                server.onDecodeSubscribe(traceId, authorization, subscribe);
-                server.decoder = decodePacketType;
-                progress = subscribe.limit();
+                progress = server.onDecodeSubscribe(traceId, authorization, progress, subscribe);
+                server.decodableRemainingBytes -= progress - offset;
+                if (server.decodableRemainingBytes == 0)
+                {
+                    server.decoder = decodePacketType;
+                }
             }
             else
             {
@@ -1888,9 +1892,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             doSignalKeepAliveTimeout();
         }
 
-        private void onDecodeSubscribe(
+        private int onDecodeSubscribe(
             long traceId,
             long authorization,
+            int progress,
             MqttSubscribeFW subscribe)
         {
             final int packetId = subscribe.packetId();
@@ -1911,9 +1916,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int propertiesLimit = propertiesValue.limit();
 
             MqttPropertyFW mqttProperty;
-            for (int progress = propertiesOffset; progress < propertiesLimit; progress = mqttProperty.limit())
+            for (int propertiesProgress = propertiesOffset;
+                 propertiesProgress < propertiesLimit; propertiesProgress = mqttProperty.limit())
             {
-                mqttProperty = mqttPropertyRO.tryWrap(propertiesBuffer, progress, propertiesLimit);
+                mqttProperty = mqttPropertyRO.tryWrap(propertiesBuffer, propertiesProgress, propertiesLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_SUBSCRIPTION_ID:
@@ -1927,114 +1933,124 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 onDecodeError(traceId, authorization, PROTOCOL_ERROR);
                 decoder = decodeIgnoreAll;
+                progress = subscribe.limit();
             }
             else
             {
                 final List<Subscription> newSubscriptions = new ArrayList<>();
 
-                for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
+                decode:
                 {
-                    final MqttSubscribePayloadFW mqttSubscribePayload =
-                        mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
-                    if (mqttSubscribePayload == null)
+                    for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                     {
-                        break;
-                    }
-                    decodeProgress = mqttSubscribePayload.limit();
+                        final MqttSubscribePayloadFW mqttSubscribePayload =
+                            mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                        if (mqttSubscribePayload == null)
+                        {
+                            break;
+                        }
+                        decodeProgress = mqttSubscribePayload.limit();
 
-                    final String filter = mqttSubscribePayload.filter().asString();
-                    if (filter == null)
+                        final String filter = mqttSubscribePayload.filter().asString();
+                        if (filter == null)
+                        {
+                            onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        final boolean validTopicFilter = validator.isTopicFilterValid(filter);
+                        if (!validTopicFilter)
+                        {
+                            onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+                        if (wildcardSubscriptions == 0 && (filter.contains("+") || filter.contains("#")))
+                        {
+                            onDecodeError(traceId, authorization, WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        if (sharedSubscriptions == 0 && filter.contains(SHARED_SUBSCRIPTION_LITERAL))
+                        {
+                            onDecodeError(traceId, authorization, SHARED_SUBSCRIPTION_NOT_SUPPORTED);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        if (subscriptionIdentifiers == 0 && containsSubscriptionId)
+                        {
+                            onDecodeError(traceId, authorization, SUBSCRIPTION_IDS_NOT_SUPPORTED);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        final int options = mqttSubscribePayload.options();
+                        final int flags = calculateSubscribeFlags(traceId, authorization, options);
+
+                        if (!noLocal && isSetNoLocal(flags))
+                        {
+                            onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        Subscription subscription = new Subscription();
+                        subscription.id = subscriptionId;
+                        subscription.filter = filter;
+                        subscription.flags = flags;
+                        //TODO: what if we don't have a subscriptionId
+                        subscribePacketIds.put(subscriptionId, packetId);
+                        newSubscriptions.add(subscription);
+                    }
+
+                    if (session)
                     {
-                        onDecodeError(traceId, authorization, PROTOCOL_ERROR);
-                        decoder = decodeIgnoreAll;
-                        break;
-                    }
+                        final MqttDataExFW.Builder sessionDataExBuilder =
+                            mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                                .typeId(mqttTypeId)
+                                .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
-                    final boolean validTopicFilter = validator.isTopicFilterValid(filter);
-                    if (!validTopicFilter)
+                        final MqttSessionStateFW.Builder state =
+                            mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
+
+                        sessionStream.unAckedSubscriptions.addAll(newSubscriptions);
+                        sessionStream.subscriptions.forEach(sub ->
+                            state.subscriptionsItem(subscriptionBuilder ->
+                                subscriptionBuilder
+                                    .subscriptionId(sub.id)
+                                    .flags(sub.flags)
+                                    .pattern(sub.filter))
+                        );
+
+                        newSubscriptions.forEach(sub ->
+                            state.subscriptionsItem(subscriptionBuilder ->
+                                subscriptionBuilder
+                                    .subscriptionId(sub.id)
+                                    .flags(sub.flags)
+                                    .pattern(sub.filter))
+                        );
+
+                        final MqttSessionStateFW sessionState = state.build();
+                        final int payloadSize = sessionState.sizeof();
+
+                        if (!sessionStream.hasSessionWindow(payloadSize))
+                        {
+                            break decode;
+                        }
+                        sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
+                    }
+                    else
                     {
-                        onDecodeError(traceId, authorization, PROTOCOL_ERROR);
-                        decoder = decodeIgnoreAll;
-                        break;
+                        openSubscribeStreams(packetId, traceId, authorization, newSubscriptions, false);
                     }
-                    if (wildcardSubscriptions == 0 && (filter.contains("+") || filter.contains("#")))
-                    {
-                        onDecodeError(traceId, authorization, WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED);
-                        decoder = decodeIgnoreAll;
-                        break;
-                    }
-
-                    if (sharedSubscriptions == 0 && filter.contains(SHARED_SUBSCRIPTION_LITERAL))
-                    {
-                        onDecodeError(traceId, authorization, SHARED_SUBSCRIPTION_NOT_SUPPORTED);
-                        decoder = decodeIgnoreAll;
-                        break;
-                    }
-
-                    if (subscriptionIdentifiers == 0 && containsSubscriptionId)
-                    {
-                        onDecodeError(traceId, authorization, SUBSCRIPTION_IDS_NOT_SUPPORTED);
-                        decoder = decodeIgnoreAll;
-                        break;
-                    }
-
-                    final int options = mqttSubscribePayload.options();
-                    final int flags = calculateSubscribeFlags(traceId, authorization, options);
-
-                    if (!noLocal && isSetNoLocal(flags))
-                    {
-                        onDecodeError(traceId, authorization, PROTOCOL_ERROR);
-                        decoder = decodeIgnoreAll;
-                        break;
-                    }
-
-                    Subscription subscription = new Subscription();
-                    subscription.id = subscriptionId;
-                    subscription.filter = filter;
-                    subscription.flags = flags;
-                    //TODO: what if we don't have a subscriptionId
-                    subscribePacketIds.put(subscriptionId, packetId);
-                    newSubscriptions.add(subscription);
-                }
-
-                if (session)
-                {
-                    final MqttDataExFW.Builder sessionDataExBuilder =
-                        mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                            .typeId(mqttTypeId)
-                            .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
-
-                    final MqttSessionStateFW.Builder state =
-                        mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
-
-                    sessionStream.unAckedSubscriptions.addAll(newSubscriptions);
-                    sessionStream.subscriptions.forEach(sub ->
-                        state.subscriptionsItem(subscriptionBuilder ->
-                            subscriptionBuilder
-                                .subscriptionId(sub.id)
-                                .flags(sub.flags)
-                                .pattern(sub.filter))
-                    );
-
-                    newSubscriptions.forEach(sub ->
-                        state.subscriptionsItem(subscriptionBuilder ->
-                            subscriptionBuilder
-                                .subscriptionId(sub.id)
-                                .flags(sub.flags)
-                                .pattern(sub.filter))
-                    );
-
-                    final MqttSessionStateFW sessionState = state.build();
-                    final int payloadSize = sessionState.sizeof();
-
-                    sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
-                }
-                else
-                {
-                    openSubscribeStreams(packetId, traceId, authorization, newSubscriptions, false);
+                    progress = subscribe.limit();
                 }
             }
             doSignalKeepAliveTimeout();
+            return progress;
         }
 
         private void openSubscribeStreams(
@@ -2122,8 +2138,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                         sessionStream.deferredUnsubscribes.put(packetId, topicFilters);
                         return;
                     }
-                    topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
-                    doSendSessionState(traceId, topicFilters);
+                    if (topicFilters.stream().anyMatch(tf ->
+                        sessionStream.subscriptions.stream().noneMatch(s -> s.filter.equals(tf))))
+                    {
+                        sendUnsuback(packetId, traceId, authorization, topicFilters, false);
+                    }
+                    else
+                    {
+                        topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
+                        doSendSessionState(traceId, topicFilters);
+                    }
                 }
                 else
                 {
@@ -2153,9 +2177,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             newState.forEach(subscription ->
                 sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
                 {
-                    subscriptionBuilder.pattern(subscription.filter);
                     subscriptionBuilder.subscriptionId(subscription.id);
+                    subscriptionBuilder.qos(subscription.qos);
                     subscriptionBuilder.flags(subscription.flags);
+                    subscriptionBuilder.pattern(subscription.filter);
                 })
             );
 

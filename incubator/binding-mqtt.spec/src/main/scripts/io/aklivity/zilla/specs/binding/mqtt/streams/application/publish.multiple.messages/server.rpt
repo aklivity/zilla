@@ -22,6 +22,22 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                             .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")

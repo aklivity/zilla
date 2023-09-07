@@ -65,7 +65,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveOneMessage() throws Exception
@@ -78,7 +77,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveCorrelationData() throws Exception
@@ -91,7 +89,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.user.properties.unaltered/client",
         "${app}/subscribe.one.message.user.properties.unaltered/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
@@ -116,7 +113,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterExact() throws Exception
@@ -129,7 +125,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.multi.level.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterMultiLevelWildcard() throws Exception
@@ -142,7 +137,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
@@ -155,7 +149,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.level.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterSingleLevelWildcard() throws Exception
@@ -168,7 +161,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.two.single.level.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterTwoSingleLevelWildcard() throws Exception
@@ -181,7 +173,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.aggregated.both.exact/client",
         "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterAggregatedBothExact() throws Exception
@@ -194,7 +185,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.exact/client",
         "${app}/subscribe.topic.filters.isolated.both.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterIsolatedBothExact() throws Exception
@@ -207,7 +197,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterIsolatedBothWildcard() throws Exception
@@ -220,7 +209,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterAggregatedExactAndWildcard() throws Exception
@@ -233,7 +221,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.disjoint.wildcards/client",
         "${app}/subscribe.topic.filters.disjoint.wildcards/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterDisjointWildcard() throws Exception
@@ -246,7 +233,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
@@ -259,7 +245,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filters.overlapping.wildcards/client",
         "${app}/subscribe.topic.filters.overlapping.wildcards/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFilterOverlappingWildcard() throws Exception
@@ -272,7 +257,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.get.retained.as.published/client",
         "${app}/subscribe.get.retained.as.published/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveRetainedAsPublished() throws Exception
@@ -324,7 +308,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message/client",
         "${app}/subscribe.receive.message/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveOneMessageAfterPublish() throws Exception
@@ -337,7 +320,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message.overlapping.wildcard/client",
         "${app}/subscribe.receive.message.overlapping.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveMessageOverlappingWildcard() throws Exception
@@ -350,7 +332,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message.wildcard/client",
         "${app}/subscribe.receive.message.wildcard/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveOneMessageWithPatternTopic() throws Exception
@@ -363,7 +344,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.retain.as.published/client",
         "${app}/subscribe.retain.as.published/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveRetainAsPublished() throws Exception
@@ -376,7 +356,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.publish.no.local/client",
         "${app}/subscribe.publish.no.local/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldNotReceivePublishLocal() throws Exception

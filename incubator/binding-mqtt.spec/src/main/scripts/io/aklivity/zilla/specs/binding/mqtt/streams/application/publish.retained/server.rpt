@@ -18,6 +18,21 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                             .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
 
 accepted
 

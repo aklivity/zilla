@@ -67,7 +67,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.one.message/client",
         "${app}/publish.one.message/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishOneMessage() throws Exception
@@ -80,7 +79,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.retained/client",
         "${app}/publish.retained/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishRetainedMessage() throws Exception
@@ -107,7 +105,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishMultipleMessages() throws Exception
@@ -120,7 +117,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages.unfragmented/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishMultipleMessagesUnfragmented() throws Exception
@@ -133,7 +129,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.one.message.subscribe.unfragmented/client",
         "${app}/publish.one.message.subscribe.unfragmented/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishOneMessageSubscribeUnfragmented() throws Exception
@@ -146,7 +141,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = PUBLISH_TIMEOUT_NAME, value = "5")
@@ -365,7 +359,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithUserProperty() throws Exception
@@ -378,7 +371,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.distinct/client",
         "${app}/publish.with.user.properties.distinct/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithDistinctUserProperties() throws Exception
@@ -391,7 +383,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.repeated/client",
         "${app}/publish.with.user.properties.repeated/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithRepeatedUserProperties() throws Exception
@@ -404,7 +395,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.retained.message/client",
         "${app}/publish.empty.retained.message/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishEmptyRetainedMessage() throws Exception
@@ -417,7 +407,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishEmptyMessage() throws Exception

@@ -164,7 +164,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect.after.subscribe.and.publish/client",
         "${app}/disconnect.after.subscribe.and.publish/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
@@ -276,7 +275,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.close/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentClose() throws Exception
@@ -289,7 +287,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.abort/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentAbort() throws Exception
@@ -302,7 +299,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.reset/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentReset() throws Exception
@@ -538,7 +534,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.subscribe.unfragmented/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")

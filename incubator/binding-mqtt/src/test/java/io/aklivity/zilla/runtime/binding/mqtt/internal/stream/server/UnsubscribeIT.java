@@ -41,7 +41,7 @@ public class UnsubscribeIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -62,7 +62,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${app}/unsubscribe.after.subscribe/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledge() throws Exception
@@ -75,7 +74,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.topic.filter.single/client",
         "${app}/unsubscribe.topic.filter.single/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeSingleTopicFilters() throws Exception
@@ -101,7 +99,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
@@ -114,7 +111,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.no.matching.subscription/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeNoMatchingSubscription() throws Exception
@@ -127,7 +123,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedPacket() throws Exception
@@ -140,7 +135,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.missing.packet.id/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWithoutPacketId() throws Exception
@@ -153,7 +147,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.no.topic.filter/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectNoTopicFilter() throws Exception

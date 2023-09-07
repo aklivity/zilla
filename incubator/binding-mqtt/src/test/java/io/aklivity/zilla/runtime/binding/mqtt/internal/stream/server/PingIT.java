@@ -75,7 +75,6 @@ public class PingIT
     @Specification({
         "${net}/ping.keep.alive/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")

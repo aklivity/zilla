@@ -27,8 +27,7 @@ read  [0x10 0x0b]                   # CONNECT
       [0x05]                        # protocol version
       [0x1a]                        # flags = will retain, clean start
       [0x00 0x3c]                   # keep alive = 60s
-      [0x05]                        # properties
-      [0x27] 66560                  # maximum packet size = 66560
+      [0x00]                        # properties = none
       [0x00 0x06] "client"          # client id
 
 write [0x20 0x03]                   # CONNACK
