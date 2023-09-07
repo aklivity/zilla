@@ -1,8 +1,6 @@
 ---
 name: example
 telemetry:
-  attributes:
-    service.namespace: example
   metrics:
     - http.request.size
     - http.response.size

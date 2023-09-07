@@ -251,9 +251,6 @@ bindings:
           - cidr: 0.0.0.0/0
 
 telemetry:
-  attributes:
-    service.namespace: zilla-quickstart
-
   # Desired metrics to track
   metrics:
     - http.request.size
