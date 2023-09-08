@@ -14,12 +14,15 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import java.io.StringReader;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
+import jakarta.json.stream.JsonParsingException;
 
 public class RegisterSchemaRequest
 {
@@ -27,7 +30,7 @@ public class RegisterSchemaRequest
     private static final String TYPE = "schemaType";
     private static final String ID = "id";
 
-    public String buildRequestBody(
+    public String buildBody(
         String type,
         String schema)
     {
@@ -46,14 +49,19 @@ public class RegisterSchemaRequest
         return register.build().toString();
     }
 
-    public int resolveRegisterResponse(
+    public int resolveResponse(
         String response)
     {
-        JsonReader jsonReader = Json.createReader(new StringReader(response));
-        JsonObject object = jsonReader.readObject();
+        try
+        {
+            JsonReader reader = Json.createReader(new StringReader(response));
+            JsonObject object = reader.readObject();
 
-        return object.containsKey(ID)
-                ? object.getInt(ID)
-                : 0;
+            return object.containsKey(ID) ? object.getInt(ID) : NO_SCHEMA_ID;
+        }
+        catch (JsonParsingException ex)
+        {
+            return NO_SCHEMA_ID;
+        }
     }
 }

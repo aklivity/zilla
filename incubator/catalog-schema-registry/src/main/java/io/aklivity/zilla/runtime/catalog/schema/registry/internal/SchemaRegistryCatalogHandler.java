@@ -52,16 +52,16 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         HttpRequest httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, MessageFormat.format(REGISTER_SCHEMA_PATH, subject)))
             .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(request.buildRequestBody(type, schema)))
+            .POST(HttpRequest.BodyPublishers.ofString(request.buildBody(type, schema)))
             .build();
         try
         {
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            schemaId = response.statusCode() == 200 ? request.resolveRegisterResponse(response.body()) : 0;
+            schemaId = response.statusCode() == 200 ? request.resolveResponse(response.body()) : NO_SCHEMA_ID;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            System.out.println("Error registering schema" + e);
+            ex.printStackTrace(System.out);
         }
         return schemaId;
     }
@@ -95,9 +95,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200 ? response.body() : null;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            System.out.println("Error fetching schema" + e);
+            ex.printStackTrace(System.out);
         }
         return null;
     }
@@ -106,6 +106,6 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         String baseUrl,
         String path)
     {
-        return URI.create(baseUrl + path);
+        return URI.create(baseUrl).resolve(path);
     }
 }
