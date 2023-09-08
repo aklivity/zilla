@@ -20,6 +20,25 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
                               .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
@@ -44,7 +63,8 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "message3"
 
-connect "zilla://streams/app0"
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 

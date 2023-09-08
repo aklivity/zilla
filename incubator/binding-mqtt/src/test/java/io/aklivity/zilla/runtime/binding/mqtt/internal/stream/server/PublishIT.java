@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.RETAIN_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -91,7 +90,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -158,7 +156,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -172,7 +169,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.repeated/client",
         "${app}/publish.messages.with.topic.alias.repeated/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -186,7 +182,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${app}/publish.messages.with.topic.alias.replaced/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
@@ -200,7 +195,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.invalid.scope/client",
         "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
@@ -212,8 +206,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.topic.not.routed/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.topic.not.routed/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectTopicNotRouted() throws Exception
@@ -224,8 +218,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.topic.alias.exceeds.maximum/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.topic.alias.exceeds.maximum/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectPublishWhenTopicAliasExceedsMaximum() throws Exception
@@ -236,8 +230,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.topic.alias.repeated/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.topic.alias.repeated/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -249,8 +243,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.client.sent.subscription.id/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.client.sent.subscription.id/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -262,8 +256,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.invalid.payload.format/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.invalid.payload.format/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -275,8 +269,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.qos1.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.qos1.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "0")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -288,8 +282,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.qos2.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.qos2.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "0")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -303,7 +297,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos0.with.packet.id/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -317,7 +310,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos1.without.packet.id/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -331,7 +323,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos2.without.packet.id/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
@@ -343,8 +334,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.retain.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.retain.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -417,8 +408,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.packet.too.large/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/publish.reject.packet.too.large/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")

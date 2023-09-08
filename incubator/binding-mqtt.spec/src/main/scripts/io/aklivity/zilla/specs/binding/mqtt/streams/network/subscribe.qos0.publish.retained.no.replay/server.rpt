@@ -28,7 +28,7 @@ read  [0x10 0x14]                    # CONNECT
       [0x02]                         # flags = clean start
       [0x00 0x3c]                    # keep alive = 60s
       [0x00]                         # properties = none
-      [0x00 0x07] "client2"          # client id
+      [0x00 0x07] "client1"          # client id
 
 write [0x20 0x08]                    # CONNACK
       [0x00]                         # flags = none
@@ -52,7 +52,7 @@ read  [0x10 0x14]                    # CONNECT
       [0x02]                         # flags = clean start
       [0x00 0x3c]                    # keep alive = 60s
       [0x00]                         # properties = none
-      [0x00 0x07] "client1"          # client id
+      [0x00 0x07] "client2"          # client id
 
 write [0x20 0x08]                    # CONNACK
       [0x00]                         # flags = none

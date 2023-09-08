@@ -23,6 +23,7 @@ public class MqttConfiguration extends Configuration
 {
     private static final ConfigurationDef MQTT_CONFIG;
     public static final LongPropertyDef CONNECT_TIMEOUT;
+    public static final LongPropertyDef CONNACK_TIMEOUT;
     public static final LongPropertyDef PUBLISH_TIMEOUT;
     public static final ShortPropertyDef KEEP_ALIVE_MINIMUM;
     public static final ShortPropertyDef KEEP_ALIVE_MAXIMUM;
@@ -32,7 +33,6 @@ public class MqttConfiguration extends Configuration
     public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION_AVAILABLE;
     public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS_AVAILABLE;
     public static final BooleanPropertyDef SHARED_SUBSCRIPTION_AVAILABLE;
-    public static final BooleanPropertyDef SESSIONS_AVAILABLE;
     public static final BooleanPropertyDef NO_LOCAL;
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
@@ -43,6 +43,7 @@ public class MqttConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt");
         PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.SECONDS.toSeconds(30));
         CONNECT_TIMEOUT = config.property("connect.timeout", TimeUnit.SECONDS.toSeconds(3));
+        CONNACK_TIMEOUT = config.property("connack.timeout", TimeUnit.SECONDS.toSeconds(3));
         //TODO: better default values?
         KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 10);
         KEEP_ALIVE_MAXIMUM = config.property("keep.alive.maximum", (short) 1000);
@@ -52,7 +53,6 @@ public class MqttConfiguration extends Configuration
         WILDCARD_SUBSCRIPTION_AVAILABLE = config.property("wildcard.subscription.available", true);
         SUBSCRIPTION_IDENTIFIERS_AVAILABLE = config.property("subscription.identifiers.available", true);
         SHARED_SUBSCRIPTION_AVAILABLE = config.property("shared.subscription.available", false);
-        SESSIONS_AVAILABLE = config.property("sessions.available", true);
         NO_LOCAL = config.property("no.local", true);
         SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");
@@ -74,6 +74,11 @@ public class MqttConfiguration extends Configuration
     public long connectTimeout()
     {
         return CONNECT_TIMEOUT.get(this);
+    }
+
+    public long connackTimeout()
+    {
+        return CONNACK_TIMEOUT.get(this);
     }
 
     public boolean retainAvailable()
@@ -114,11 +119,6 @@ public class MqttConfiguration extends Configuration
     public boolean sharedSubscriptionAvailable()
     {
         return SHARED_SUBSCRIPTION_AVAILABLE.get(this);
-    }
-
-    public boolean sessionsAvailable()
-    {
-        return SESSIONS_AVAILABLE.get(this);
     }
 
     public boolean noLocal()

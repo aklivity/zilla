@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.NO_LOCAL_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
@@ -99,8 +98,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.one.message.with.invalid.subscription.id/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.one.message.with.invalid.subscription.id/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveOneMessageWithInvalidSubscriptionId() throws Exception
@@ -269,7 +268,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldNotReplayRetained() throws Exception
@@ -282,7 +280,6 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${app}/subscribe.qos0.replay.retained.no.packet.id/server"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveAndReplayRetainedQos0() throws Exception
@@ -293,8 +290,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.no.local/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.reject.no.local/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = NO_LOCAL_NAME, value = "false")
@@ -366,8 +363,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.invalid.fixed.header.flags/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.invalid.fixed.header.flags/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedPacket() throws Exception
@@ -378,8 +375,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.invalid.topic.filter/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.invalid.topic.filter/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectInvalidTopicFilter() throws Exception
@@ -390,8 +387,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -403,8 +400,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.subscription.ids.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.reject.subscription.ids.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -416,8 +413,8 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.shared.subscriptions.not.supported/client"})
-    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/client",
+        "${app}/session.connect/server"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectSharedSubscriptionsNotSupported() throws Exception

@@ -17,28 +17,16 @@
 connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
-         option zilla:authorization 1L
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .publish()
+                              .session()
+                                .flags("CLEAN_START")
                                 .clientId("client")
-                                .topic("sensor/one")
                                 .build()
                               .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .qos("AT_MOST_ONCE")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
-                                .build()
-                             .build()}
+read zilla:data.empty
 
-write "message"
