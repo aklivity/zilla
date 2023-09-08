@@ -31,7 +31,7 @@ public class RegisterSchemaRequestTest
 
         String expected = "{\"schema\":\"{\\\"fields\\\":[{\\\"name\\\":\\\"id\\\",\\\"type\\\":\\\"string\\\"}," +
                 "{\\\"name\\\":\\\"status\\\",\\\"type\\\":\\\"string\\\"}],\\\"name\\\":\\\"" +
-                "Event\\\",\\\"namespace\\\":\\\"io.aklivity.example\\\",\\\"type\\\":\\\"record\\\"}\",\"schemaType\":\"avro\"}";
+                "Event\\\",\\\"namespace\\\":\\\"io.aklivity.example\\\",\\\"type\\\":\\\"record\\\"}\",\"schemaType\":\"AVRO\"}";
 
         String body = request.buildBody("avro", schema);
 
