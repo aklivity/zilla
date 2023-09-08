@@ -43,7 +43,7 @@ public class RegisterSchemaRequest
 
         if (type != null)
         {
-            register.add(TYPE, type);
+            register.add(TYPE, type.toUpperCase());
         }
 
         return register.build().toString();
