@@ -81,7 +81,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -107,7 +106,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short SIGNAL_NEXT_REQUEST = 1;
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
     private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
-    private static final byte RESOURCE_TYPE_BROKER = 1;
+    private static final byte RESOURCE_TYPE_BROKER = 4;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
     private static final short JOIN_GROUP_API_KEY = 11;
@@ -516,7 +515,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        Flyweight extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -529,7 +528,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .extension(extension)
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
@@ -1461,7 +1460,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved,
-                    payload.value(), payload.offset(), payload.sizeof(), EMPTY_EXTENSION);
+                    payload.value(), 0, payload.sizeof(), EMPTY_EXTENSION);
             }
             else
             {
@@ -1477,7 +1476,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationFlush(
             long traceId,
             long authorization,
-            Flyweight extension)
+            Consumer<OctetsFW.Builder> extension)
         {
             if (!KafkaState.replyClosed(state))
             {
@@ -3451,7 +3450,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     final AssignmentFW groupAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                             .memberId(a.memberId())
-                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.length())
+                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.sizeof())
                             .build();
 
                     encodeProgress.set(groupAssignment.limit());
@@ -3847,25 +3846,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
-            final KafkaFlushExFW kafkaFlushEx =
-                kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .group(g -> g.leaderId(leaderId)
-                            .memberId(memberId)
-                            .members(gm -> members.forEach(m ->
-                                gm.item(i ->
-                                {
-                                    KafkaGroupMemberFW.Builder member = i.id(m.memberId);
-                                    if (m.metadata.sizeof() > 0)
-                                    {
-                                        member.metadataLen(m.metadata.sizeof())
-                                            .metadata(m.metadata)
-                                            .build();
-                                    }
-                                }))))
-                            .build();
-
-            delegate.doApplicationFlush(traceId, authorization, kafkaFlushEx);
+            delegate.doApplicationFlush(traceId, authorization,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .group(g -> g.leaderId(leaderId)
+                        .memberId(memberId)
+                        .members(gm -> members.forEach(m ->
+                            gm.item(i ->
+                                i.id(m.memberId)
+                                    .metadataLen(m.metadata.sizeof())
+                                    .metadata(m.metadata)))))
+                    .build()
+                    .sizeof()));
 
             encoder = encodeSyncGroupRequest;
         }

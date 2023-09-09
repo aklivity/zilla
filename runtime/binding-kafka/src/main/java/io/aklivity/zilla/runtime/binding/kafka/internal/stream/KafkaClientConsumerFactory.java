@@ -830,7 +830,7 @@ public final class KafkaClientConsumerFactory implements BindingHandler
             assert replySeq <= replyAck + replyMax;
 
             Array32FW<TopicAssignmentFW> topicAssignments = topicAssignmentsRO
-                .wrap(payload.buffer(), payload.offset(), payload.limit());
+                .wrap(payload.value(), 0, payload.sizeof());
 
             topicAssignments.forEach(ta ->
             {

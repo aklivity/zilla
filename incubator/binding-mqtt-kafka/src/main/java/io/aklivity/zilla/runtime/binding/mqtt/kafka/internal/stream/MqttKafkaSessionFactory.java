@@ -3701,6 +3701,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_AND_FETCH))
                         .topic(sessionsTopicName)
                         .groupId(MQTT_CLIENTS_GROUP_ID)
+                        .consumerId("localhost:9092")
                         .filtersItem(f ->
                             f.conditionsItem(c -> c.header(h ->
                                 h.nameLen(TYPE_HEADER_NAME_OCTETS.sizeof())
