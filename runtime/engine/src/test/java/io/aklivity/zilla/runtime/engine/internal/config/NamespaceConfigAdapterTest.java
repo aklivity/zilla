@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultOptionsConfig;
@@ -253,6 +254,28 @@ public class NamespaceConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"," +
                 "\"options\":{\"mode\":\"test\"}}}}"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithCatalog()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .catalog()
+                    .name("default")
+                    .type("test")
+                    .options(TestCatalogOptionsConfig::builder)
+                        .schema("test")
+                        .build()
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"catalogs\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"schema\":\"test\"}}}}"));
     }
 
     @Test

@@ -33,6 +33,8 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
 
 public class KafkaOptionsConfigAdapterTest
 {
@@ -75,7 +77,7 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH))));
+        assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null))));
         assertThat(options.sasl.mechanism, equalTo("plain"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -86,14 +88,15 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new StringValidatorConfig("utf_8"))),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
+                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
+                "\"value\":{\"encoding\":\"utf_8\"}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 
@@ -126,7 +129,8 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH))));
+        assertThat(options.topics, equalTo(singletonList(
+                new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null))));
         assertThat(options.sasl.mechanism, equalTo("scram-sha-256"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -137,7 +141,7 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null)),
                 new KafkaSaslConfig("scram-sha-256", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -146,5 +150,23 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
                 "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}}"));
+    }
+
+    @Test
+    public void shouldWriteCatalogOptions()
+    {
+        KafkaOptionsConfig options = new KafkaOptionsConfig(
+                singletonList("test"),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new AvroValidatorConfig(
+                singletonList(new KafkaCatalogConfig("test0", "topic", "latest", 0))))),
+                new KafkaSaslConfig("plain", "username", "password"));
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
+                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
+                "\"value\":{\"catalog\":[{\"name\":\"test0\",\"strategy\":\"topic\",\"version\":\"latest\"}]}}]," +
+                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }

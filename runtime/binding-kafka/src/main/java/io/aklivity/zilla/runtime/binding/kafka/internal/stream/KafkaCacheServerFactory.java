@@ -32,9 +32,11 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaCacheServerFactory implements KafkaStreamFactory
@@ -47,6 +49,8 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final KafkaCacheServerAddressFactory cacheAddressFactory;
+    private final LongFunction<CatalogHandler> supplyCatalog;
+    private final ValidatorFactory validatorFactory;
 
     public KafkaCacheServerFactory(
         KafkaConfiguration config,
@@ -92,6 +96,8 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.supplyCatalog = context::supplyCatalog;
+        this.validatorFactory = ValidatorFactory.instantiate();
 
         this.cacheAddressFactory = new KafkaCacheServerAddressFactory(config, context, bindings::get);
     }
@@ -100,7 +106,8 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validatorFactory);
+
         bindings.put(binding.id, kafkaBinding);
 
         cacheAddressFactory.onAttached(binding.id);

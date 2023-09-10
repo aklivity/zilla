@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config");
 
     @Test
@@ -109,6 +110,22 @@ public class SchemaTest
     public void shouldValidateClientWhenTopic()
     {
         JsonObject config = schema.validate("client.when.topic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateCacheOptionsCatalog()
+    {
+        JsonObject config = schema.validate("cache.options.type.avro.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateCacheOptionsValueType()
+    {
+        JsonObject config = schema.validate("cache.options.type.string.yaml");
 
         assertThat(config, not(nullValue()));
     }

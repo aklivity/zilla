@@ -25,6 +25,8 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -119,8 +121,17 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
+        final Set<Catalog> catalogs = new LinkedHashSet<>();
+        final CatalogFactory catalogFactory = CatalogFactory.instantiate();
+        for (String name : catalogFactory.names())
+        {
+            Catalog catalog = catalogFactory.create(name, config);
+            catalogs.add(catalog);
+        }
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities, readonly);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
+                catalogs, errorHandler, affinities, readonly);
     }
 }

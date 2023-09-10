@@ -20,6 +20,7 @@ module io.aklivity.zilla.runtime.engine
 
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
+    exports io.aklivity.zilla.runtime.engine.catalog;
     exports io.aklivity.zilla.runtime.engine.exporter;
     exports io.aklivity.zilla.runtime.engine.guard;
     exports io.aklivity.zilla.runtime.engine.metrics;
@@ -48,6 +49,7 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;

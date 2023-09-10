@@ -70,6 +70,19 @@
             },
             "additionalProperties": false
         },
+        "catalogs":
+        {
+            "title": "Catalogs",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/catalog"
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -178,6 +191,32 @@
                 [
                 ]
             }
+        },
+        "catalog":
+        {
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": ["test"]
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ]
         },
         "binding":
         {

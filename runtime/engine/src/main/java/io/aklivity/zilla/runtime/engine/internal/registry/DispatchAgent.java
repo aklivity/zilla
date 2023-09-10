@@ -89,6 +89,9 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -219,6 +222,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Exporter> exporters,
         Collection<Guard> guards,
         Collection<Vault> vaults,
+        Collection<Catalog> catalogs,
         Collection<MetricGroup> metricGroups,
         Collector collector,
         int index,
@@ -355,6 +359,13 @@ public class DispatchAgent implements EngineContext, Agent
             vaultsByType.put(type, vault.supply(this));
         }
 
+        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
+        for (Catalog catalog : catalogs)
+        {
+            String type = catalog.name();
+            catalogsByType.put(type, catalog.supply(this));
+        }
+
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
         {
@@ -372,8 +383,8 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
-                labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
+                exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
                 this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -626,6 +637,14 @@ public class DispatchAgent implements EngineContext, Agent
     {
         VaultRegistry vault = configuration.resolveVault(vaultId);
         return vault != null ? vault.handler() : null;
+    }
+
+    @Override
+    public CatalogHandler supplyCatalog(
+        long catalogId)
+    {
+        CatalogRegistry catalog = configuration.resolveCatalog(catalogId);
+        return catalog != null ? catalog.handler() : null;
     }
 
     @Override

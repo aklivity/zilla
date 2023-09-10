@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.BINDINGS_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.CATALOGS_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.GUARDS_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.NAMESPACES_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder.TELEMETRY_DEFAULT;
@@ -41,6 +42,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final String NAMESPACES_NAME = "references";
     private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";
+    private static final String CATALOGS_NAME = "catalogs";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
 
@@ -49,6 +51,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private final BindingConfigsAdapter binding;
     private final VaultAdapter vault;
     private final GuardAdapter guard;
+    private final CatalogAdapter catalog;
 
     public NamespaceAdapter(
         ConfigAdapterContext context)
@@ -58,6 +61,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         binding = new BindingConfigsAdapter(context);
         guard = new GuardAdapter(context);
         vault = new VaultAdapter(context);
+        catalog = new CatalogAdapter(context);
     }
 
     @Override
@@ -85,6 +89,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             JsonObjectBuilder vaults = Json.createObjectBuilder();
             config.vaults.forEach(v -> vaults.add(v.name, vault.adaptToJson(v)));
             object.add(VAULTS_NAME, vaults);
+        }
+
+        if (!CATALOGS_DEFAULT.equals(config.catalogs))
+        {
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
+            config.catalogs.forEach(s -> catalogs.add(s.name, catalog.adaptToJson(s)));
+            object.add(CATALOGS_NAME, catalogs);
         }
 
         if (!TELEMETRY_DEFAULT.equals(config.telemetry))
@@ -142,6 +153,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             object.getJsonObject(VAULTS_NAME).entrySet().stream()
                 .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
                 .forEach(namespace::vault);
+        }
+
+        if (object.containsKey(CATALOGS_NAME))
+        {
+            object.getJsonObject(CATALOGS_NAME).entrySet().stream()
+                .map(e -> catalog.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
+                .forEach(namespace::catalog);
         }
 
         return namespace.build();

@@ -52,6 +52,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -320,13 +321,14 @@ public final class KafkaCachePartition
         OctetsFW value,
         KafkaCacheEntryFW ancestor,
         int entryFlags,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaTopicType type)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
         writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType);
+        writeEntryFinish(headers, deltaType, type);
     }
 
     public void writeEntryStart(
@@ -417,7 +419,8 @@ public final class KafkaCachePartition
 
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaTopicType type)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -493,6 +496,28 @@ public final class KafkaCachePartition
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
         }
 
+        if (type != null)
+        {
+            if (type.key != null)
+            {
+                OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
+                if (key != null &&
+                    !type.key.validate(key.value(), key.offset(), key.sizeof()))
+                {
+                    System.out.println("Key Validation failed");
+                }
+            }
+
+            if (type.value != null)
+            {
+                OctetsFW value = headEntry.value();
+                if (value != null &&
+                    !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                {
+                    System.out.println("Value Validation failed");
+                }
+            }
+        }
         headSegment.lastOffset(progress);
     }
 

@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheP
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -42,7 +41,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
@@ -53,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -227,16 +226,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)
             {
-                final KafkaTopicConfig topic = binding.topic(topicName);
-                final KafkaDeltaType routeDeltaType = topic != null ? topic.deltaType : deltaType;
-                final KafkaOffsetType defaultOffset = topic != null ? topic.defaultOffset : HISTORICAL;
+                final KafkaDeltaType routeDeltaType = binding.supplyDeltaType(topicName, deltaType);
+                final KafkaOffsetType defaultOffset = binding.supplyDefaultOffset(topicName);
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(routedId), supplyLocalName.apply(routedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
+                final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset);
+                        affinity, partition, routeDeltaType, defaultOffset, type);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
@@ -473,6 +472,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
+        private final KafkaTopicType type;
 
         private long leaderId;
         private long initialId;
@@ -506,7 +506,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long leaderId,
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
-            KafkaOffsetType defaultOffset)
+            KafkaOffsetType defaultOffset,
+            KafkaTopicType type)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -517,6 +518,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
+            this.type = type;
         }
 
         private void onServerFanoutMemberOpening(
@@ -762,7 +764,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(partitionOffset, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE);
+                        entryFlags, KafkaDeltaType.NONE, type);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -890,7 +892,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType);
+                partition.writeEntryFinish(headers, deltaType, type);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;
