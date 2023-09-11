@@ -48,6 +48,7 @@ connect await ROUTED_BROKER_CLIENT
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1
+    option zilla:byteorder "network"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -73,4 +74,4 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 10, 10)
                                  .build()
                              .build()}
-read [0x00 0x00 0x00 0x00 0x09] ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
+read [0x00] 0x09 ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"

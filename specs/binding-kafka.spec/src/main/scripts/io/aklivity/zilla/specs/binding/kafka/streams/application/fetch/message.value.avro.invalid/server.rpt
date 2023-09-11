@@ -22,6 +22,7 @@ property serverAddress "zilla://streams/app0"
 accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
 
 accepted
 
@@ -78,5 +79,5 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 10, 10)
                                   .build()
                               .build()}
-write [0x00 0x00 0x00 0x00 0x09] ${kafka:varint(3)} "id0"
+write [0x00] 0x09 ${kafka:varint(3)} "id0"
 write flush
