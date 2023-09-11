@@ -231,15 +231,6 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${net}/message.value.avro/client",
-        "${net}/message.value.avro/server"})
-    public void shouldReceiveMessageValueAvro() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/message.header/client",
         "${net}/message.header/server"})
     public void shouldReceiveMessageHeader() throws Exception
