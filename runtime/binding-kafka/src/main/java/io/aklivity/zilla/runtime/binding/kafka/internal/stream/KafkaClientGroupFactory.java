@@ -84,6 +84,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
@@ -3957,9 +3958,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             GroupUserdataFW userdata = groupUserdataRO.wrap(buffer, progress, limit);
 
                             gm.item(i ->
-                                i.id(m.memberId)
-                                    .metadataLen(userdata.userdata().sizeof())
-                                    .metadata(userdata.userdata()));
+                            {
+                                KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
+                                OctetsFW newUserdata = userdata.userdata();
+                                if (newUserdata.sizeof() > 0)
+                                {
+                                    builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
+                                }
+                            });
                         })))
                     .build()
                     .sizeof()));
