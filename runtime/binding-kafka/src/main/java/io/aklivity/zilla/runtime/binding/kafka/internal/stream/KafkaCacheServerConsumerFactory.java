@@ -100,7 +100,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
-    private final Object2ObjectHashMap<String, KafkaClientConsumerFanout> clientConsumerFansByGroupId;
+    private final Object2ObjectHashMap<String, KafkaCacheServerConsumerFanout> clientConsumerFansByGroupId;
 
     public KafkaCacheServerConsumerFactory(
         KafkaConfiguration config,
@@ -158,17 +158,17 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            KafkaClientConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
+            KafkaCacheServerConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
 
             if (fanout == null)
             {
-                KafkaClientConsumerFanout newFanout =
-                    new KafkaClientConsumerFanout(routedId, resolvedId, authorization, consumerId, groupId, timeout);
+                KafkaCacheServerConsumerFanout newFanout =
+                    new KafkaCacheServerConsumerFanout(routedId, resolvedId, authorization, consumerId, groupId, timeout);
                 fanout = newFanout;
                 clientConsumerFansByGroupId.put(groupId, fanout);
             }
 
-            newStream = new KafkaClientConsumerStream(
+            newStream = new KafkaCacheServerConsumerStream(
                 fanout,
                 sender,
                 originId,
@@ -517,7 +517,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaClientConsumerFanout
+    final class KafkaCacheServerConsumerFanout
     {
         private final String consumerId;
         private final String groupId;
@@ -525,7 +525,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final int timeout;
-        private final List<KafkaClientConsumerStream> streams;
+        private final List<KafkaCacheServerConsumerStream> streams;
         private final Object2ObjectHashMap<String, String> members;
         private final Object2ObjectHashMap<String, IntHashSet> partitionsByTopic;
         private final Object2ObjectHashMap<String, List<TopicPartition>> assignment;
@@ -549,7 +549,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private String memberId;
 
 
-        private KafkaClientConsumerFanout(
+        private KafkaCacheServerConsumerFanout(
             long originId,
             long routedId,
             long authorization,
@@ -834,7 +834,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             topicAssignments.forEach(ta ->
             {
-                KafkaClientConsumerStream stream =
+                KafkaCacheServerConsumerStream stream =
                     streams.stream().filter(s -> s.topic.equals(ta.topic().asString())).findFirst().get();
 
                 stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS,
@@ -985,9 +985,9 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         }
     }
 
-    final class KafkaClientConsumerStream
+    final class KafkaCacheServerConsumerStream
     {
-        private final KafkaClientConsumerFanout fanout;
+        private final KafkaCacheServerConsumerFanout fanout;
         private final MessageConsumer sender;
         private final String topic;
         private final List<Integer> partitions;
@@ -1012,8 +1012,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        KafkaClientConsumerStream(
-            KafkaClientConsumerFanout fanout,
+        KafkaCacheServerConsumerStream(
+            KafkaCacheServerConsumerFanout fanout,
             MessageConsumer sender,
             long originId,
             long routedId,
