@@ -209,7 +209,7 @@ write 126                                               # size
          2s                                                # version
          0                                                 # topics
          0                                                 # userdata
-         0                                                   # partitions
+         0                                                 # partitions
 
 read 101                                            # size
      14s                                           # sync group

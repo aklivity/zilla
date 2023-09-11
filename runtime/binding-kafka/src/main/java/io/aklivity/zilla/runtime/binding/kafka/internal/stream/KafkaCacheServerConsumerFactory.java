@@ -830,7 +830,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert replySeq <= replyAck + replyMax;
 
             Array32FW<TopicAssignmentFW> topicAssignments = topicAssignmentsRO
-                .wrap(payload.value(), 0, payload.sizeof());
+                .wrap(payload.buffer(), payload.offset(), payload.limit());
 
             topicAssignments.forEach(ta ->
             {

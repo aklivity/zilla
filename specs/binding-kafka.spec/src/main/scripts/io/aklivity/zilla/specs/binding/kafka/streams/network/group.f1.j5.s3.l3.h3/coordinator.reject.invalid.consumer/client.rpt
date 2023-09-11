@@ -101,7 +101,7 @@ connect await ROUTED_DESCRIBE_SERVER
 
 connected
 
-write  105                               # size
+write  119                               # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}
@@ -114,7 +114,8 @@ write  105                               # size
        8s "consumer"                     # protocol type
        1                                 # group protocol
          10s "highlander"                    # protocol name
-         0                                   # metadata
+        14                                   # metadata size
+        ${kafka:randomBytes(14)}             # metadata
 
 read  24                                                # size
       (int:newRequestId)
@@ -209,25 +210,25 @@ connect await ROUTED_DESCRIBE_SERVER_SECOND
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
-
 connected
 
-write  105                              # size
-      11s                               # join group
-      5s                                # v5
-      ${newRequestId}
-      5s "zilla"                        # no client id
-      4s "test"                         # consumer group
-      30000                             # session timeout
-      4000                              # rebalance timeout
-      0s                                # consumer group member
-      42s ${instanceId}                 # group instance id
-      8s "consumer"                     # protocol type
-      1                                 # group protocol
-        10s "highlander"                    # protocol name
-        0                                   # metadata
+write  119                              # size
+       11s                               # join group
+       5s                                # v5
+       ${newRequestId}
+       5s "zilla"                        # no client id
+       4s "test"                         # consumer group
+       30000                             # session timeout
+       4000                              # rebalance timeout
+       0s                                # consumer group member
+       42s ${instanceId}                 # group instance id
+       8s "consumer"                     # protocol type
+       1                                 # group protocol
+         10s "highlander"                     # protocol name
+         14                                   # metadata size
+         ${kafka:randomBytes(14)}             # metadata
 
-read  112                                               # size
+read  126                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -236,9 +237,13 @@ read  112                                               # size
       10s "memberId-1"                                  # leader id
       10s "memberId-1"                                  # consumer member group id
       1                                                 # members
-         10s "memberId-1"                                  # consumer member group id
-         42s [0..42]                                       # group instance id
-         0                                                 # metadata
+        10s "memberId-1"                                  # consumer member group id
+        42s [0..42]                                        # group instance id
+        14                                                 # metadata size
+        2s                                                 # version
+        0                                                  # topics
+        0                                                  # userdata
+        0                                                  # partitions
 
 write 101                                            # size
       14s                                           # sync group

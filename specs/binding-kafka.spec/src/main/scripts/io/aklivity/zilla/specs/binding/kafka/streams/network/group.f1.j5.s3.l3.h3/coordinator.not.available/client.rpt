@@ -118,7 +118,7 @@ connect await ROUTED_DESCRIBE_SERVER
 
 connected
 
-write  105                                # size
+write  119                                # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}
@@ -131,7 +131,8 @@ write  105                                # size
        8s "consumer"                     # protocol type
        1                                 # group protocol
          10s "highlander"                    # protocol name
-         0                                   # metadata
+         14                                   # metadata size
+        ${kafka:randomBytes(14)}              # metadata
 
 read  34                                                # size
       (int:newRequestId)
@@ -143,7 +144,7 @@ read  34                                                # size
       10s "memberId-1"                                  # consumer member group id
       0                                                 # members
 
-write  115                               # size
+write  129                               # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}
@@ -156,9 +157,10 @@ write  115                               # size
        8s "consumer"                     # protocol type
        1                                 # group protocol
          10s "highlander"                    # protocol name
-         0                                   # metadata
+         14                                   # metadata size
+         ${kafka:randomBytes(14)}             # metadata
 
-read  112                                               # size
+read  126                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -169,7 +171,11 @@ read  112                                               # size
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
-         0                                                 # metadata
+         14                                                # metadata size
+         2s                                                # version
+         0                                                 # topics
+         0                                                 # userdata
+         0                                                 # partitions
 
 write 101                                            # size
       14s                                           # sync group

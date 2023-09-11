@@ -111,28 +111,20 @@ write flush
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .consumer()
-                                .groupId("client-1")
-                                .consumerId("localhost:9092")
-                                .timeout(45000)
-                                .topic("test")
-                                .partition(0)
-                                .partition(1)
-                                .build()
-                              .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(45000)
+                                   .build()
+                               .build()}
 
 connected
 
-
-write zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .consumer()
-                                 .partition(0)
-                                 .assignment("localhost:9092", 0)
-                                 .build()
-                             .build()}
+write ${kafka:topicAssignment()
+          .topic("test", 0, "localhost:9092", 0)
+          .build()}
 write flush
 
 accepted
