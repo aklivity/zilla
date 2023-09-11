@@ -50,7 +50,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final KafkaCacheServerAddressFactory cacheAddressFactory;
     private final LongFunction<CatalogHandler> supplyCatalog;
-    private final ValidatorFactory validator;
+    private final ValidatorFactory validatorFactory;
 
     public KafkaCacheServerFactory(
         KafkaConfiguration config,
@@ -97,7 +97,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         this.factories = factories;
         this.bindings = bindings;
         this.supplyCatalog = context::supplyCatalog;
-        this.validator = ValidatorFactory.instantiate();
+        this.validatorFactory = ValidatorFactory.instantiate();
 
         this.cacheAddressFactory = new KafkaCacheServerAddressFactory(config, context, bindings::get);
     }
@@ -106,7 +106,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validator);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validatorFactory);
 
         bindings.put(binding.id, kafkaBinding);
 

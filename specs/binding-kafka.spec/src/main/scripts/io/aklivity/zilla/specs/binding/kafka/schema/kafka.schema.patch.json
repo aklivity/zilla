@@ -91,17 +91,10 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "double",
-                                                        "float",
                                                         "integer",
                                                         "avro",
-                                                        "json",
-                                                        "list",
                                                         "long",
-                                                        "short",
-                                                        "string",
-                                                        "uuid",
-                                                        "void"
+                                                        "string"
                                                     ]
                                                 },
                                                 "encoding":
@@ -110,12 +103,7 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "us_ascii",
-                                                        "iso_8859_1",
-                                                        "utf_8",
-                                                        "utf_16be",
-                                                        "utf_16le",
-                                                        "utf_16"
+                                                        "utf_8"
                                                     ],
                                                     "default": "utf_8"
                                                 },
@@ -204,17 +192,10 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "double",
-                                                        "float",
                                                         "integer",
                                                         "avro",
-                                                        "json",
-                                                        "list",
                                                         "long",
-                                                        "short",
-                                                        "string",
-                                                        "uuid",
-                                                        "void"
+                                                        "string"
                                                     ]
                                                 },
                                                 "encoding":
@@ -223,12 +204,7 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "us_ascii",
-                                                        "iso_8859_1",
-                                                        "utf_8",
-                                                        "utf_16be",
-                                                        "utf_16le",
-                                                        "utf_16"
+                                                        "utf_8"
                                                     ],
                                                     "default": "utf_8"
                                                 },

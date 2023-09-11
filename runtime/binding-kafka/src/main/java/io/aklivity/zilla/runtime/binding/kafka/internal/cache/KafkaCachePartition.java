@@ -498,20 +498,24 @@ public final class KafkaCachePartition
 
         if (type != null)
         {
-            OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
-            if (key != null &&
-                type.key != null &&
-                !type.key.validate(key.value(), key.offset(), key.sizeof()))
+            if (type.key != null)
             {
-                System.out.println("Key Validation failed");
+                OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
+                if (key != null &&
+                    !type.key.validate(key.value(), key.offset(), key.sizeof()))
+                {
+                    System.out.println("Key Validation failed");
+                }
             }
 
-            OctetsFW value = headEntry.value();
-            if (value != null &&
-                type.value != null &&
-                !type.value.validate(value.value(), value.offset(), value.sizeof()))
+            if (type.value != null)
             {
-                System.out.println("Value Validation failed");
+                OctetsFW value = headEntry.value();
+                if (value != null &&
+                    !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                {
+                    System.out.println("Value Validation failed");
+                }
             }
         }
         headSegment.lastOffset(progress);
