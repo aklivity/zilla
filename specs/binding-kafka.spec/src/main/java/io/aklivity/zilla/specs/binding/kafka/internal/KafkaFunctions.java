@@ -2444,7 +2444,7 @@ public final class KafkaFunctions
             public KafkaGroupFlushExBuilder members(
                 String memberId)
             {
-                memberRW.item(gm -> gm.id(memberId));
+                memberRW.item(gm -> gm.id(memberId).metadata(new OctetsFW().wrap(new UnsafeBuffer(), 0, 0)));
                 return this;
             }
 
