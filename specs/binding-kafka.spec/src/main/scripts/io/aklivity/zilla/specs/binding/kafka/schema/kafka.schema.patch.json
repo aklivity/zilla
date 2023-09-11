@@ -103,7 +103,8 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "utf_8"
+                                                        "utf_8",
+                                                        "utf_16"
                                                     ],
                                                     "default": "utf_8"
                                                 },
@@ -204,7 +205,8 @@
                                                     "type": "string",
                                                     "enum":
                                                     [
-                                                        "utf_8"
+                                                        "utf_8",
+                                                        "utf_16"
                                                     ],
                                                     "default": "utf_8"
                                                 },
