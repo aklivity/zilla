@@ -21,9 +21,9 @@ public final class MqttReasonCodes
 
     public static final byte NORMAL_DISCONNECT = 0x00;
 
-    public static final byte GRANTED_QOS_1 = 0x00;
-    public static final byte GRANTED_QOS_2 = 0x01;
-    public static final byte GRANTED_QOS_3 = 0x02;
+    public static final byte GRANTED_QOS_0 = 0x00;
+    public static final byte GRANTED_QOS_1 = 0x01;
+    public static final byte GRANTED_QOS_2 = 0x02;
 
     public static final byte DISCONNECT_WITH_WILL_MESSAGE = 0x04;
 

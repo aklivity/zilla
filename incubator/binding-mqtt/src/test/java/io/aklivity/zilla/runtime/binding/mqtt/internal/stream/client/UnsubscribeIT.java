@@ -31,7 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ConnectionIT
+public class UnsubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
@@ -56,9 +56,19 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/session.subscribe/server",
-        "${app}/session.subscribe/client"})
-    public void shouldSubscribe() throws Exception
+        "${net}/unsubscribe.topic.filter.single/server",
+        "${app}/unsubscribe.topic.filter.single/client"})
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.one.message/server",
+        "${app}/subscribe.one.message/client"})
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }

@@ -50,6 +50,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .flags("RETAIN")
+                                .format("TEXT")
                                 .build()
                             .build()}
 

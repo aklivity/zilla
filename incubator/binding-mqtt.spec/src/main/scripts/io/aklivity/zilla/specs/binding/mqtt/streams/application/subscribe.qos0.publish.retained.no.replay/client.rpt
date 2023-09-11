@@ -51,6 +51,7 @@ write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .flags("RETAIN")
+                                .format("TEXT")
                                 .build()
                             .build()}
 

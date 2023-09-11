@@ -62,6 +62,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .build()}
 
 connected
+write notify RECEIVED_SUBSCRIBE_OPEN
 
 read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
@@ -73,10 +74,8 @@ read zilla:data.ext ${mqtt:matchDataEx()
                              .build()}
 read "message2"
 
-write notify SUBSCRIBED
 
-
-connect await SUBSCRIBED
+connect await RECEIVED_SUBSCRIBE_OPEN
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
