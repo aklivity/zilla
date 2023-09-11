@@ -28,7 +28,9 @@ public final class StringValidator implements Validator
     public StringValidator(
         StringValidatorConfig config)
     {
-        this.predicate = config.encoding.equals("utf_8") ? this::isValidUTF8 : bytes -> false;
+        this.predicate = config.encoding.equals("utf_8") ? this::isValidUTF8 :
+                config.encoding.equals("utf_16") ? this::isValidUTF16 :
+                    bytes -> false;
     }
 
     @Override
@@ -101,5 +103,54 @@ public final class StringValidator implements Validator
             i += numBytes;
         }
         return true;
+    }
+
+    private boolean isValidUTF16(
+        byte[] byteArray)
+    {
+        int i = 0;
+        boolean status = false;
+
+        while (i < byteArray.length)
+        {
+            if (i + 1 >= byteArray.length)
+            {
+                status = false;
+                break;
+            }
+
+            int highByte = byteArray[i] & 0xFF;
+            int lowByte = byteArray[i + 1] & 0xFF;
+            int codeUnit = (highByte << 8) | lowByte;
+
+            if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
+            {
+                if (i + 3 >= byteArray.length)
+                {
+                    status = false;
+                    break;
+                }
+                int secondHighByte = byteArray[i + 2] & 0xFF;
+                int secondLowByte = byteArray[i + 3] & 0xFF;
+                int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
+                if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
+                {
+                    status = false;
+                    break;
+                }
+                i += 4;
+            }
+            else if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF)
+            {
+                status = false;
+                break;
+            }
+            else
+            {
+                i += 2;
+            }
+            status = true;
+        }
+        return status;
     }
 }
