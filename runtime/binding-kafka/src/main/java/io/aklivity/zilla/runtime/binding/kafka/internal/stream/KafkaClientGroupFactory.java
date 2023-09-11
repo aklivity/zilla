@@ -55,6 +55,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.Descr
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataTopicFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
@@ -69,9 +72,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Member
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.GroupMemberMetadataFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.GroupMetadataTopicFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.rebalance.GroupUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -169,9 +169,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
     private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
-    private final GroupMemberMetadataFW.Builder groupMemberMetadataRW = new GroupMemberMetadataFW.Builder();
-    private final GroupMetadataTopicFW.Builder groupMetadataTopicRW = new GroupMetadataTopicFW.Builder();
-    private final GroupUserdataFW.Builder groupUserdataRW = new GroupUserdataFW.Builder();
+    private final ConsumerMetadataFW.Builder groupMemberMetadataRW = new ConsumerMetadataFW.Builder();
+    private final ConsumerMetadataTopicFW.Builder groupMetadataTopicRW = new ConsumerMetadataTopicFW.Builder();
+    private final ConsumerUserdataFW.Builder groupUserdataRW = new ConsumerUserdataFW.Builder();
 
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
@@ -186,9 +186,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
     private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
         new Array32FW<>(new MemberAssignmentFW());
-    private final GroupMemberMetadataFW groupMemberMetadataRO = new GroupMemberMetadataFW();
-    private final GroupMetadataTopicFW groupMetadataTopicRO = new GroupMetadataTopicFW();
-    private final GroupUserdataFW groupUserdataRO = new GroupUserdataFW();
+    private final ConsumerMetadataFW groupMemberMetadataRO = new ConsumerMetadataFW();
+    private final ConsumerMetadataTopicFW groupMetadataTopicRO = new ConsumerMetadataTopicFW();
+    private final ConsumerUserdataFW groupUserdataRO = new ConsumerUserdataFW();
 
     private final KafkaGroupMemberMetadataFW kafkaMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
@@ -3434,7 +3434,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             KafkaGroupMemberMetadataFW memberMetadata = kafkaMemberMetadataRO
                 .wrap(delegate.metadataBuffer, 0, delegate.topicMetadataLimit);
 
-            GroupMemberMetadataFW metadata = groupMemberMetadataRW
+            ConsumerMetadataFW metadata = groupMemberMetadataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .version(METADATA_LOWEST_VERSION)
                 .metadataTopicCount(memberMetadata.topics().fieldCount())
@@ -3444,7 +3444,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             memberMetadata.topics().forEach(t ->
             {
-                GroupMetadataTopicFW metadataTopic = groupMetadataTopicRW
+                ConsumerMetadataTopicFW metadataTopic = groupMetadataTopicRW
                     .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                     .name(t.topic())
                     .build();
@@ -3453,7 +3453,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             memberMetadata.topics().forEach(t ->
             {
-                final GroupUserdataFW userdata = groupUserdataRW
+                final ConsumerUserdataFW userdata = groupUserdataRW
                     .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                     .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                     .ownedPartitions(0)
@@ -3473,7 +3473,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
 
-            GroupMemberMetadataFW metadata = groupMemberMetadataRW
+            ConsumerMetadataFW metadata = groupMemberMetadataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .version(METADATA_LOWEST_VERSION)
                 .metadataTopicCount(0)
@@ -3481,7 +3481,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress.set(metadata.limit());
 
-            final GroupUserdataFW userdata = groupUserdataRW
+            final ConsumerUserdataFW userdata = groupUserdataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                 .ownedPartitions(0)
@@ -3945,17 +3945,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                             int progress = 0;
 
-                            GroupMemberMetadataFW newGroupMetadata = groupMemberMetadataRO
+                            ConsumerMetadataFW newGroupMetadata = groupMemberMetadataRO
                                 .wrap(buffer, 0, metadata.sizeof());
                             progress = newGroupMetadata.limit();
 
                             for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
                             {
-                                GroupMetadataTopicFW topic = groupMetadataTopicRO.wrap(buffer, progress, limit);
+                                ConsumerMetadataTopicFW topic = groupMetadataTopicRO.wrap(buffer, progress, limit);
                                 progress = topic.limit();
                             }
 
-                            GroupUserdataFW userdata = groupUserdataRO.wrap(buffer, progress, limit);
+                            ConsumerUserdataFW userdata = groupUserdataRO.wrap(buffer, progress, limit);
 
                             gm.item(i ->
                             {

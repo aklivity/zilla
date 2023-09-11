@@ -538,32 +538,32 @@ scope protocol
             }
         }
 
-        scope rebalance
+        scope consumer
         {
-            struct TopicPartition
+            struct ConsumerTopicPartition
             {
                 int32 partitionId;
             }
 
-            struct GroupTopic
+            struct ConsumerTopic
             {
                 string16 topic;
                 int32 partitionCount;
             }
 
-            struct GroupUserdata
+            struct ConsumerUserdata
             {
                 uint32 userdataLength;
                 octets[userdataLength] userdata;
                 int32 ownedPartitions;
             }
 
-            struct GroupMetadataTopic
+            struct ConsumerMetadataTopic
             {
                 string16 name;
             }
 
-            struct GroupMemberMetadata
+            struct ConsumerMetadata
             {
                 int16 version;
                 int32 metadataTopicCount;
