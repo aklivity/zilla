@@ -21,10 +21,9 @@ import java.util.List;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class SseRouteConfig extends OptionsConfig
+public final class SseRouteConfig
 {
     public final long id;
 
