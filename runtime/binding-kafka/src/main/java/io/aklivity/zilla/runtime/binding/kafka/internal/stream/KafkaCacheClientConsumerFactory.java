@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheConsumerFactory implements BindingHandler
+public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -95,7 +95,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
     private final Object2ObjectHashMap<String, KafkaCacheConsumerFanout> clientConsumerFansByGroupId;
 
-    public KafkaCacheConsumerFactory(
+    public KafkaCacheClientConsumerFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
