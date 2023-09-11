@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheConsumerFactory implements BindingHandler
+public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -93,9 +93,9 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
-    private final Object2ObjectHashMap<String, KafkaCacheConsumerFanout> clientConsumerFansByGroupId;
+    private final Object2ObjectHashMap<String, KafkaCacheClientConsumerFanout> clientConsumerFansByGroupId;
 
-    public KafkaCacheConsumerFactory(
+    public KafkaCacheClientConsumerFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
@@ -154,18 +154,18 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            KafkaCacheConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
+            KafkaCacheClientConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
 
             if (fanout == null)
             {
-                KafkaCacheConsumerFanout newFanout =
-                     new KafkaCacheConsumerFanout(routedId, resolvedId, authorization, groupId,
+                KafkaCacheClientConsumerFanout newFanout =
+                     new KafkaCacheClientConsumerFanout(routedId, resolvedId, authorization, groupId,
                          topic, consumerId, partitions, timeout);
                 fanout = newFanout;
                 clientConsumerFansByGroupId.put(groupId, fanout);
             }
 
-            newStream = new KafkaCacheConsumerStream(
+            newStream = new KafkaCacheClientConsumerStream(
                 fanout,
                 sender,
                 originId,
@@ -380,7 +380,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheConsumerFanout
+    final class KafkaCacheClientConsumerFanout
     {
         private final long originId;
         private final long routedId;
@@ -389,7 +389,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         private final String topic;
         private final String consumerId;
         private final int timeout;
-        private final List<KafkaCacheConsumerStream> members;
+        private final List<KafkaCacheClientConsumerStream> members;
         private final IntHashSet partitions;
         private final IntHashSet assignedPartitions;
         private final Object2ObjectHashMap<String, IntHashSet> assignments;
@@ -409,7 +409,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         private int replyMax;
 
 
-        private KafkaCacheConsumerFanout(
+        private KafkaCacheClientConsumerFanout(
             long originId,
             long routedId,
             long authorization,
@@ -434,7 +434,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private void onConsumerFanoutMemberOpening(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             members.add(member);
 
@@ -455,7 +455,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private void onConsumerFanoutMemberOpened(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             if (!assignedPartitions.isEmpty())
             {
@@ -476,7 +476,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private void onConsumerFanoutMemberClosed(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             members.remove(member);
 
@@ -746,9 +746,9 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheConsumerStream
+    private final class KafkaCacheClientConsumerStream
     {
-        private final KafkaCacheConsumerFanout group;
+        private final KafkaCacheClientConsumerFanout group;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -770,8 +770,8 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private long replyBudgetId;
 
-        KafkaCacheConsumerStream(
-            KafkaCacheConsumerFanout group,
+        KafkaCacheClientConsumerStream(
+            KafkaCacheClientConsumerFanout group,
             MessageConsumer sender,
             long originId,
             long routedId,

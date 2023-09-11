@@ -114,25 +114,18 @@ connect await PARTITION_COUNT_2
 
 write zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .consumer()
-                                .groupId("client-1")
-                                .consumerId("localhost:9092")
-                                .timeout(45000)
-                                .topic("test")
-                                .partition(0)
-                                .partition(1)
-                                .build()
+                              .group()
+                                 .groupId("client-1")
+                                 .protocol("highlander")
+                                 .timeout(45000)
+                                 .build()
                               .build()}
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .consumer()
-                                 .partition(0)
-                                 .assignment("localhost:9092", 0)
-                                 .build()
-                             .build()}
+read ${kafka:topicAssignment()
+              .topic("test", 0, "localhost:9092", 0)
+              .build()}
 
 read notify RECEIVED_CONSUMER
 

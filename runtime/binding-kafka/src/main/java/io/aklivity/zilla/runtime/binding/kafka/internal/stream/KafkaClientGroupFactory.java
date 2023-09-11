@@ -55,6 +55,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.Descr
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataTopicFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
@@ -82,6 +85,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataEx
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -96,6 +100,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
+    private static final short METADATA_LOWEST_VERSION = 0;
     private static final short ERROR_EXISTS = -1;
     private static final short ERROR_NONE = 0;
 
@@ -107,7 +112,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short SIGNAL_NEXT_REQUEST = 1;
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
     private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
-    private static final byte RESOURCE_TYPE_BROKER = 1;
+    private static final byte RESOURCE_TYPE_BROKER = 4;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
     private static final short JOIN_GROUP_API_KEY = 11;
@@ -164,6 +169,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
     private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
+    private final ConsumerMetadataFW.Builder groupMemberMetadataRW = new ConsumerMetadataFW.Builder();
+    private final ConsumerMetadataTopicFW.Builder groupMetadataTopicRW = new ConsumerMetadataTopicFW.Builder();
+    private final ConsumerUserdataFW.Builder groupUserdataRW = new ConsumerUserdataFW.Builder();
 
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
@@ -178,6 +186,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
     private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
         new Array32FW<>(new MemberAssignmentFW());
+    private final ConsumerMetadataFW groupMemberMetadataRO = new ConsumerMetadataFW();
+    private final ConsumerMetadataTopicFW groupMetadataTopicRO = new ConsumerMetadataTopicFW();
+    private final ConsumerUserdataFW groupUserdataRO = new ConsumerUserdataFW();
+
+    private final KafkaGroupMemberMetadataFW kafkaMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
     private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaDescribeClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -516,7 +529,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        Flyweight extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -529,7 +542,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .extension(extension)
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
@@ -1333,7 +1346,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (metadataSize > 0)
             {
-                metadataBuffer.putBytes(0, metadata.buffer(), metadata.offset(), kafkaGroupBeginEx.metadataLen());
+                metadataBuffer.putBytes(0, metadata.value(), 0, metadataSize);
                 topicMetadataLimit += metadataSize;
             }
 
@@ -1461,7 +1474,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved,
-                    payload.value(), payload.offset(), payload.sizeof(), EMPTY_EXTENSION);
+                    payload.value(), 0, payload.sizeof(), EMPTY_EXTENSION);
             }
             else
             {
@@ -1477,7 +1490,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationFlush(
             long traceId,
             long authorization,
-            Flyweight extension)
+            Consumer<OctetsFW.Builder> extension)
         {
             if (!KafkaState.replyClosed(state))
             {
@@ -3381,10 +3394,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = joinGroupRequest.limit();
 
+            final int metadataLimit = delegate.topicMetadataLimit > 0 ? doGenerateMembersMetadata() :
+                doGenerateEmptyMetadata();
+
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(delegate.protocol)
-                    .metadata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
+                    .metadata(extBuffer, 0, metadataLimit)
                     .build();
 
             encodeProgress = protocolMetadata.limit();
@@ -3405,6 +3421,75 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             decoder = decodeJoinGroupResponse;
 
             delegate.doApplicationBeginIfNecessary(traceId, authorization);
+        }
+
+        private int doGenerateMembersMetadata()
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = 0;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            KafkaGroupMemberMetadataFW memberMetadata = kafkaMemberMetadataRO
+                .wrap(delegate.metadataBuffer, 0, delegate.topicMetadataLimit);
+
+            ConsumerMetadataFW metadata = groupMemberMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(memberMetadata.topics().fieldCount())
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            memberMetadata.topics().forEach(t ->
+            {
+                ConsumerMetadataTopicFW metadataTopic = groupMetadataTopicRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .name(t.topic())
+                    .build();
+                encodeProgress.set(metadataTopic.limit());
+            });
+
+            memberMetadata.topics().forEach(t ->
+            {
+                final ConsumerUserdataFW userdata = groupUserdataRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
+                    .ownedPartitions(0)
+                    .build();
+
+                encodeProgress.set(userdata.limit());
+            });
+
+            return encodeProgress.get();
+        }
+
+        private int doGenerateEmptyMetadata()
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = 0;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            ConsumerMetadataFW metadata = groupMemberMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(0)
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            final ConsumerUserdataFW userdata = groupUserdataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
+                .ownedPartitions(0)
+                .build();
+
+            encodeProgress.set(userdata.limit());
+
+            return encodeProgress.get();
         }
 
         private void doEncodeSyncGroupRequest(
@@ -3451,7 +3536,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     final AssignmentFW groupAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                             .memberId(a.memberId())
-                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.length())
+                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.sizeof())
                             .build();
 
                     encodeProgress.set(groupAssignment.limit());
@@ -3464,7 +3549,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     final AssignmentFW groupAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                             .memberId(m.memberId)
-                            .value(m.metadata)
+                            .value(EMPTY_OCTETS)
                             .build();
 
                     encodeProgress.set(groupAssignment.limit());
@@ -3847,25 +3932,43 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
-            final KafkaFlushExFW kafkaFlushEx =
-                kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .group(g -> g.leaderId(leaderId)
-                            .memberId(memberId)
-                            .members(gm -> members.forEach(m ->
-                                gm.item(i ->
-                                {
-                                    KafkaGroupMemberFW.Builder member = i.id(m.memberId);
-                                    if (m.metadata.sizeof() > 0)
-                                    {
-                                        member.metadataLen(m.metadata.sizeof())
-                                            .metadata(m.metadata)
-                                            .build();
-                                    }
-                                }))))
-                            .build();
+            delegate.doApplicationFlush(traceId, authorization,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .group(g -> g.leaderId(leaderId)
+                        .memberId(memberId)
+                        .members(gm -> members.forEach(m ->
+                        {
+                            OctetsFW metadata = m.metadata;
+                            DirectBuffer buffer = metadata.value();
+                            final int limit = metadata.sizeof();
 
-            delegate.doApplicationFlush(traceId, authorization, kafkaFlushEx);
+                            int progress = 0;
+
+                            ConsumerMetadataFW newGroupMetadata = groupMemberMetadataRO
+                                .wrap(buffer, 0, metadata.sizeof());
+                            progress = newGroupMetadata.limit();
+
+                            for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
+                            {
+                                ConsumerMetadataTopicFW topic = groupMetadataTopicRO.wrap(buffer, progress, limit);
+                                progress = topic.limit();
+                            }
+
+                            ConsumerUserdataFW userdata = groupUserdataRO.wrap(buffer, progress, limit);
+
+                            gm.item(i ->
+                            {
+                                KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
+                                OctetsFW newUserdata = userdata.userdata();
+                                if (newUserdata.sizeof() > 0)
+                                {
+                                    builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
+                                }
+                            });
+                        })))
+                    .build()
+                    .sizeof()));
 
             encoder = encodeSyncGroupRequest;
         }

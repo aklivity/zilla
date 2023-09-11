@@ -61,9 +61,6 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
             config, context, bindings::get, accountant::supplyDebitor);
 
-        final KafkaClientConsumerFactory clientConsumerFactory = new KafkaClientConsumerFactory(
-            config, context, bindings::get);
-
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
 
@@ -80,7 +77,6 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_GROUP, clientGroupFactory);
-        factories.put(KafkaBeginExFW.KIND_CONSUMER, clientConsumerFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, clientFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, clientOffsetFetchFactory);
