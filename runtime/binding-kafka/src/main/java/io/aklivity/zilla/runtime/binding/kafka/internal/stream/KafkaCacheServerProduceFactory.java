@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduc
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -1239,20 +1240,24 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                         if ((flags & FLAG_FIN) != 0x00 && type != null)
                         {
-                            if (type.key != null)
+                            Validator keyValidator = type.key;
+                            if (keyValidator != null)
                             {
                                 OctetsFW entryKey = key.value();
                                 if (entryKey != null &&
-                                    !type.key.validate(entryKey.value(), entryKey.offset(), entryKey.sizeof()))
+                                    !keyValidator.write(entryKey.value(), entryKey.offset(), entryKey.sizeof()))
                                 {
+                                    doServerInitialReset(traceId, EMPTY_OCTETS);
                                     System.out.println("Key Validation failed");
                                 }
                             }
 
-                            if (type.value != null &&
+                            Validator valueValidator = type.value;
+                            if (valueValidator != null &&
                                 value != null &&
-                                !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                                !valueValidator.write(value.value(), value.offset(), value.sizeof()))
                             {
+                                doServerInitialReset(traceId, EMPTY_OCTETS);
                                 System.out.println("Value Validation failed");
                             }
                         }

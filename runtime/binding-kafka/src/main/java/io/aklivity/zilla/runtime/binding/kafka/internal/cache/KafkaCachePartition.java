@@ -502,7 +502,7 @@ public final class KafkaCachePartition
             {
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
                 if (key != null &&
-                    !type.key.validate(key.value(), key.offset(), key.sizeof()))
+                    !type.key.read(key.value(), key.offset(), key.sizeof()))
                 {
                     System.out.println("Key Validation failed");
                 }
@@ -512,7 +512,7 @@ public final class KafkaCachePartition
             {
                 OctetsFW value = headEntry.value();
                 if (value != null &&
-                    !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                    !type.value.read(value.value(), value.offset(), value.sizeof()))
                 {
                     System.out.println("Value Validation failed");
                 }

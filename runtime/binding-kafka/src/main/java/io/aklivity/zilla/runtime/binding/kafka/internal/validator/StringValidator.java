@@ -32,7 +32,24 @@ public final class StringValidator implements Validator
     }
 
     @Override
-    public boolean validate(
+    public boolean read(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return validate(data, index, length);
+    }
+
+    @Override
+    public boolean write(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return validate(data, index, length);
+    }
+
+    private boolean validate(
         DirectBuffer data,
         int index,
         int length)

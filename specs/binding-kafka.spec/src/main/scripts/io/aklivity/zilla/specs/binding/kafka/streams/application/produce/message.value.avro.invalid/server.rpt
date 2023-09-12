@@ -73,4 +73,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .build()
                              .build()}
-read ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
+read ${kafka:varint(3)} "id0"
+
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(2)
+                           .build()}
+read abort
+write aborted

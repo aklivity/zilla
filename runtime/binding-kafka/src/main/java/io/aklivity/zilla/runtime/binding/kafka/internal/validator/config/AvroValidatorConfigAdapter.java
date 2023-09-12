@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfi
 public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
     private static final String CATALOG_NAME = "catalog";
+    private static final String NAME_NAME = "name";
 
     private final KafkaCatalogConfigAdapter catalog = new KafkaCatalogConfigAdapter();
 
@@ -75,6 +76,11 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
             catalogArray.forEach(v -> catalog0.add(catalog.adaptFromJson(v.asJsonObject())));
             catalogs = catalog0;
         }
-        return new AvroValidatorConfig(catalogs);
+
+        String name = object.containsKey(NAME_NAME)
+                ? object.getString(NAME_NAME)
+                : null;
+
+        return new AvroValidatorConfig(catalogs, name);
     }
 }

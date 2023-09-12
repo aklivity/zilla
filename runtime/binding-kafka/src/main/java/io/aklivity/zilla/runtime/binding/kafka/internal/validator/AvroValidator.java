@@ -29,7 +29,6 @@ import org.apache.avro.Schema.Parser;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
@@ -41,9 +40,11 @@ public final class AvroValidator implements Validator
     private static final byte MAGIC_BYTE = 0x0;
 
     private final List<KafkaCatalogConfig> catalogs;
+    private final KafkaCatalogConfig catalog;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final CatalogHandler handler;
     private final DecoderFactory decoder;
+    private final String topic;
     private DatumReader<GenericRecord> reader;
     private Parser parser;
 
@@ -61,11 +62,13 @@ public final class AvroValidator implements Validator
             return c;
         }).collect(Collectors.toList());
         this.handler = handlersById.get(catalogs.get(0).id);
+        this.catalog = catalogs.get(0);
         this.parser = new Schema.Parser();
+        this.topic = config.topic;
     }
 
     @Override
-    public boolean validate(
+    public boolean read(
         DirectBuffer data,
         int index,
         int length)
@@ -90,13 +93,39 @@ public final class AvroValidator implements Validator
             data.getBytes(length - valLength, valBytes);
 
             reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
-            GenericRecord record = reader.read(null, decoder.binaryDecoder(valBytes, null));
+            reader.read(null, decoder.binaryDecoder(valBytes, null));
             status = true;
+        }
+        catch (IOException e)
+        {
+        }
+        return status;
+    }
 
-            Schema avroSchema = record.getSchema();
+    @Override
+    public boolean write(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        boolean status = false;
+        int schemaId = catalog.schemaId;
 
-            System.out.println(avroSchema.toString(true));
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
 
+        try
+        {
+            if (schemaId > 0)
+            {
+                reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
+            }
+            else if (catalog.strategy.equals("topic"))
+            {
+                reader = new GenericDatumReader(parser.parse(handler.resolve(topic, catalog.version)));
+            }
+            reader.read(null, decoder.binaryDecoder(payloadBytes, null));
+            status = true;
         }
         catch (IOException e)
         {

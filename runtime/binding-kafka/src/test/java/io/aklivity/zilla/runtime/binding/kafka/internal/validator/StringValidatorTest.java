@@ -36,7 +36,7 @@ public class StringValidatorTest
 
         byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.validate(data, 0, data.capacity()));
+        assertTrue(validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -46,6 +46,6 @@ public class StringValidatorTest
 
         byte[] bytes = {(byte) 0xc0};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.validate(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity()));
     }
 }
