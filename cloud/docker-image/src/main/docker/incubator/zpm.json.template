@@ -32,6 +32,7 @@
     "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:binding-tls",
     "io.aklivity.zilla:binding-ws",
+    "io.aklivity.zilla:catalog-schema-registry",
     "io.aklivity.zilla:command",
     "io.aklivity.zilla:command-config",
     "io.aklivity.zilla:command-dump",

@@ -20,11 +20,14 @@
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-mqtt-kafka.spec</module>
+    <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
     <module>binding-mqtt-kafka</module>
+
+    <module>catalog-schema-registry</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -49,6 +52,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
