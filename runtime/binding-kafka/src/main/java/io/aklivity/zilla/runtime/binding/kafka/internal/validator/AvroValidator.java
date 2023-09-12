@@ -24,13 +24,13 @@ import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.apache.avro.Schema;
-import org.apache.avro.Schema.Parser;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro.Schema;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro.Schema.Parser;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro.generic.GenericDatumReader;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro.io.DatumReader;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro.io.DecoderFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
