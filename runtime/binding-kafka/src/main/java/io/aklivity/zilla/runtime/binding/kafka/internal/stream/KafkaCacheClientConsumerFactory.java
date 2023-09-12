@@ -748,7 +748,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
     private final class KafkaCacheClientConsumerStream
     {
-        private final KafkaCacheClientConsumerFanout group;
+        private final KafkaCacheClientConsumerFanout fanout;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -771,7 +771,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private long replyBudgetId;
 
         KafkaCacheClientConsumerStream(
-            KafkaCacheClientConsumerFanout group,
+            KafkaCacheClientConsumerFanout fanout,
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -779,7 +779,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             long affinity,
             long authorization)
         {
-            this.group = group;
+            this.fanout = fanout;
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -829,7 +829,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             state = KafkaState.openingInitial(state);
 
-            group.onConsumerFanoutMemberOpening(traceId, this);
+            fanout.onConsumerFanoutMemberOpening(traceId, this);
         }
 
         private void onConsumerInitialEnd(
@@ -839,7 +839,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fanout.onConsumerFanoutMemberClosed(traceId, this);
 
             doConsumerReplyEndIfNecessary(traceId);
         }
@@ -851,7 +851,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fanout.onConsumerFanoutMemberClosed(traceId, this);
 
             doConsumerReplyAbortIfNecessary(traceId);
         }
@@ -984,7 +984,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fanout.onConsumerFanoutMemberClosed(traceId, this);
 
             doConsumerInitialResetIfNecessary(traceId);
         }
@@ -1015,7 +1015,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                 state = KafkaState.openedReply(state);
 
                 final long traceId = window.traceId();
-                group.onConsumerFanoutMemberOpened(traceId, this);
+                fanout.onConsumerFanoutMemberOpened(traceId, this);
             }
         }
     }

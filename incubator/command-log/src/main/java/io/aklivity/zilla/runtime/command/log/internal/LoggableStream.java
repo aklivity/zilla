@@ -78,6 +78,9 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeDataExFW;
@@ -95,6 +98,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaData
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
@@ -890,6 +894,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaBeginExFW.KIND_GROUP:
             onKafkaGroupBeginEx(offset, timestamp, kafkaBeginEx.group());
             break;
+        case KafkaBeginExFW.KIND_CONSUMER:
+            onKafkaConsumerBeginEx(offset, timestamp, kafkaBeginEx.consumer());
+            break;
         case KafkaBeginExFW.KIND_FETCH:
             onKafkaFetchBeginEx(offset, timestamp, kafkaBeginEx.fetch());
             break;
@@ -957,6 +964,22 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s %d",
             groupId.asString(), protocol.asString(), timeout));
+    }
+
+    private void onKafkaConsumerBeginEx(
+        int offset,
+        long timestamp,
+        KafkaConsumerBeginExFW consumer)
+    {
+        String16FW groupId = consumer.groupId();
+        String16FW consumerId = consumer.consumerId();
+        String16FW topic = consumer.topic();
+        int timeout = consumer.timeout();
+        Array32FW<KafkaTopicPartitionFW> partitions = consumer.partitionIds();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[consumer] %s %s %s %d",
+            groupId.asString(), consumerId.asString(), topic.asString(), timeout));
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp, format("%d", p.partitionId())));
     }
 
     private void onKafkaFetchBeginEx(
@@ -1078,6 +1101,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaDataExFW.KIND_FETCH:
             onKafkaFetchDataEx(offset, timestamp, kafkaDataEx.fetch());
             break;
+        case KafkaDataExFW.KIND_CONSUMER:
+            onKafkaConsumerDataEx(offset, timestamp, kafkaDataEx.consumer());
+            break;
         case KafkaDataExFW.KIND_MERGED:
             onKafkaMergedDataEx(offset, timestamp, kafkaDataEx.merged());
             break;
@@ -1120,6 +1146,25 @@ public final class LoggableStream implements AutoCloseable
                            partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
+    }
+
+    private void onKafkaConsumerDataEx(
+        int offset,
+        long timestamp,
+        KafkaConsumerDataExFW consumer)
+    {
+        Array32FW<KafkaTopicPartitionFW> partitions = consumer.partitions();
+        Array32FW<KafkaConsumerAssignmentFW> assignments = consumer.assignments();
+
+        out.printf(verboseFormat, index, offset, timestamp, "[consumer]");
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%d", p.partitionId())));
+        assignments.forEach(a ->
+        {
+            out.printf(verboseFormat, index, offset, timestamp, a.consumerId().asString());
+            a.partitions().forEach(p ->
+                out.printf(verboseFormat, index, offset, timestamp, format("%d", p.partitionId())));
+        });
     }
 
     private void onKafkaMergedDataEx(

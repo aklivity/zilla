@@ -84,6 +84,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
@@ -143,6 +144,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final SignalFW signalRO = new SignalFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -1378,9 +1380,50 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onApplicationFlush(
             FlushFW flush)
         {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
+            final long authorizationId = flush.authorization();
+            final int reserved = flush.reserved();
+            final OctetsFW extension = flush.extension();
 
-            coordinatorClient.doHeartbeat(traceId);
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + reserved;
+            initialAck = initialSeq;
+
+            if (extension.sizeof() > 0)
+            {
+                final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                final KafkaFlushExFW kafkaFlushEx = beginEx != null && beginEx.typeId() == kafkaTypeId ?
+                    kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+
+                assert kafkaFlushEx.kind() == KafkaBeginExFW.KIND_GROUP;
+                final KafkaGroupFlushExFW kafkaGroupFlushEx = kafkaFlushEx.group();
+
+                Array32FW<KafkaGroupMemberFW> members = kafkaGroupFlushEx.members();
+
+                assert members.fieldCount() == 1;
+
+                members.forEach(m ->
+                {
+                    OctetsFW metadata = m.metadata();
+                    final int metadataSize = m.metadataLen();
+
+                    if (metadataSize > 0)
+                    {
+                        metadataBuffer.putBytes(0, metadata.value(), 0, metadataSize);
+                        topicMetadataLimit = metadataSize;
+                    }
+                });
+
+                coordinatorClient.doJoinGroupRequest(traceId);
+            }
+            else
+            {
+                coordinatorClient.doHeartbeat(traceId);
+            }
         }
 
         private void onApplicationAbort(
@@ -3681,6 +3724,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.assignment = assignment;
             doEncodeSyncGroupRequest(traceId, budgetId);
+        }
+
+        private void doJoinGroupRequest(
+            long traceId)
+        {
+            if (heartbeatRequestId != NO_CANCEL_ID)
+            {
+                signaler.cancel(heartbeatRequestId);
+                heartbeatRequestId = NO_CANCEL_ID;
+            }
+
+            doEncodeJoinGroupRequest(traceId, 0);
         }
 
         private void doHeartbeat(
