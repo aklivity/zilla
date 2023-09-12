@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -228,6 +229,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final KafkaCache cache = supplyCache.apply(cacheName);
             final KafkaCacheTopic topic = cache.supplyTopic(topicName);
             final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, remoteIndex);
+            final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
 
             newStream = new KafkaCacheServerProduceStream(
                     fan,
@@ -237,7 +239,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     initialId,
                     leaderId,
                     authorization,
-                    partition)::onServerMessage;
+                    partition,
+                    type)::onServerMessage;
         }
 
         return newStream;
@@ -990,6 +993,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private final KafkaCachePartition partition;
         private final KafkaCacheCursor cursor;
         private final KafkaCacheServerProduceFan fan;
+        private final KafkaTopicType type;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -1021,7 +1025,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long initialId,
             long leaderId,
             long authorization,
-            KafkaCachePartition partition)
+            KafkaCachePartition partition,
+            KafkaTopicType type)
         {
             this.partition = partition;
             this.cursor = cursorFactory.newCursor(
@@ -1036,6 +1041,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
             this.authorization = authorization;
+            this.type = type;
         }
 
         private void onServerMessage(
@@ -1229,6 +1235,26 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             crc32c.reset();
                             crc32c.update(buffer);
                             checksum = crc32c.getValue();
+                        }
+
+                        if ((flags & FLAG_FIN) != 0x00 && type != null)
+                        {
+                            if (type.key != null)
+                            {
+                                OctetsFW entryKey = key.value();
+                                if (entryKey != null &&
+                                    !type.key.validate(entryKey.value(), entryKey.offset(), entryKey.sizeof()))
+                                {
+                                    System.out.println("Key Validation failed");
+                                }
+                            }
+
+                            if (type.value != null &&
+                                value != null &&
+                                !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                            {
+                                System.out.println("Value Validation failed");
+                            }
                         }
 
                         switch (flags)

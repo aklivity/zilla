@@ -27,7 +27,9 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
@@ -42,7 +44,7 @@ public final class AvroValidator implements Validator
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final CatalogHandler handler;
     private final DecoderFactory decoder;
-    private DatumReader reader;
+    private DatumReader<GenericRecord> reader;
     private Parser parser;
 
     public AvroValidator(
@@ -88,8 +90,13 @@ public final class AvroValidator implements Validator
             data.getBytes(length - valLength, valBytes);
 
             reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
-            reader.read(null, decoder.binaryDecoder(valBytes, null));
+            GenericRecord record = reader.read(null, decoder.binaryDecoder(valBytes, null));
             status = true;
+
+            Schema avroSchema = record.getSchema();
+
+            System.out.println(avroSchema.toString(true));
+
         }
         catch (IOException e)
         {
