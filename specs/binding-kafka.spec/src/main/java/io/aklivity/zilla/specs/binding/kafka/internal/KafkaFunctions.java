@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -290,15 +292,15 @@ public final class KafkaFunctions
     }
 
     @Function
-    public static MemberAssignmentsBuilder memberAssignment()
+    public static KafkaMemberAssignmentsBuilder memberAssignment()
     {
-        return new MemberAssignmentsBuilder();
+        return new KafkaMemberAssignmentsBuilder();
     }
 
     @Function
-    public static TopicAssignmentsBuilder topicAssignment()
+    public static KafkaTopicAssignmentsBuilder topicAssignment()
     {
-        return new TopicAssignmentsBuilder();
+        return new KafkaTopicAssignmentsBuilder();
     }
 
     public abstract static class KafkaHeadersBuilder<T>
@@ -583,7 +585,6 @@ public final class KafkaFunctions
     public static final class KafkaGroupMemberMetadataBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-
         private final KafkaGroupMemberMetadataFW.Builder groupMemberMetadataRW =
             new KafkaGroupMemberMetadataFW.Builder();
 
@@ -599,14 +600,11 @@ public final class KafkaFunctions
             return this;
         }
 
-        public KafkaGroupMemberMetadataBuilder topic(
-            String topic,
-            int partitionId)
+        public KafkaTopicsBuilder topic(
+            String topic)
         {
-            groupMemberMetadataRW.topics(t ->
-                t.item(tp -> tp.topic(topic)
-                    .partitions(p -> p.item(i -> i.partitionId(partitionId)))));
-            return this;
+            KafkaTopicsBuilder topicsBuilder = new KafkaTopicsBuilder(topic);
+            return topicsBuilder;
         }
 
         public byte[] build()
@@ -616,62 +614,181 @@ public final class KafkaFunctions
             metadata.buffer().getBytes(metadata.offset(), array);
             return array;
         }
+
+        class KafkaTopicsBuilder
+        {
+            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final KafkaGroupTopicMetadataFW.Builder topicsRW = new KafkaGroupTopicMetadataFW.Builder();
+
+            KafkaTopicsBuilder(
+                String topic)
+            {
+                topicsRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                topicsRW.topic(topic);
+            }
+
+            public KafkaTopicsBuilder partitionId(
+                int partitionId)
+            {
+                topicsRW.partitionsItem(i -> i.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaGroupMemberMetadataBuilder build()
+            {
+                KafkaGroupTopicMetadataFW topic = topicsRW.build();
+                groupMemberMetadataRW.topicsItem(i -> i.topic(topic.topic()).partitions(topic.partitions()));
+
+                return KafkaGroupMemberMetadataBuilder.this;
+            }
+        }
     }
 
-    public static final class MemberAssignmentsBuilder
+    public static final class KafkaMemberAssignmentsBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
-        private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignments =
+        private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentsRW =
             new Array32FW.Builder(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
 
-        public MemberAssignmentsBuilder()
+        public KafkaMemberAssignmentsBuilder()
         {
-            memberAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
+            memberAssignmentsRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public MemberAssignmentsBuilder member(
-            String memberId,
-            String topic,
-            int partitionId,
-            String consumerId,
-            int consumerPartitionId)
+        public KafkaMemberBuilder member(
+            String memberId)
         {
-            memberAssignments.item(ma ->
-                ma.memberId(memberId)
-                    .assignments(ta -> ta.item(i ->
-                        i.topic(topic)
-                            .partitions(p -> p.item(tpa -> tpa.partitionId(partitionId)))
-                            .userdata(u ->
-                                u.item(ud -> ud
-                                    .consumerId(consumerId)
-                                    .partitions(pt -> pt.item(pi -> pi.partitionId(consumerPartitionId)))))
-                    )));
-            return this;
+            KafkaMemberBuilder member = new KafkaMemberBuilder(memberId);
+            return member;
         }
 
         public byte[] build()
         {
-            Array32FW<MemberAssignmentFW> members = memberAssignments.build();
+            Array32FW<MemberAssignmentFW> members = memberAssignmentsRW.build();
             final byte[] array = new byte[members.sizeof()];
             members.buffer().getBytes(members.offset(), array);
             return array;
         }
+
+        class KafkaMemberBuilder
+        {
+            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MemberAssignmentFW.Builder assignmentRW = new MemberAssignmentFW.Builder();
+            private final MutableDirectBuffer topicAssignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentsRW =
+                new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+
+            KafkaMemberBuilder(
+                String memberId)
+            {
+                assignmentRW.wrap(memberBuffer, 0, memberBuffer.capacity())
+                    .memberId(memberId);
+                topicAssignmentsRW.wrap(topicAssignmentBuffer, 0, topicAssignmentBuffer.capacity());
+            }
+
+            public KafkaTopicAssignmentBuilder assignment()
+            {
+                KafkaTopicAssignmentBuilder assignment = new KafkaTopicAssignmentBuilder();
+                return assignment;
+            }
+
+            public KafkaMemberAssignmentsBuilder build()
+            {
+                Array32FW<TopicAssignmentFW> topicAssignments = topicAssignmentsRW.build();
+                assignmentRW.assignments(topicAssignments);
+                MemberAssignmentFW assignment = assignmentRW.build();
+                memberAssignmentsRW.item(m -> m.set(assignment));
+
+                return KafkaMemberAssignmentsBuilder.this;
+            }
+
+            class KafkaTopicAssignmentBuilder
+            {
+                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                TopicAssignmentFW.Builder assignmentRW = new TopicAssignmentFW.Builder();
+
+                KafkaTopicAssignmentBuilder()
+                {
+                    assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
+                }
+
+                public KafkaTopicAssignmentBuilder topic(
+                    String topic)
+                {
+                    assignmentRW.topic(topic);
+                    return this;
+                }
+
+                public KafkaTopicAssignmentBuilder partitionId(
+                    int partitionId)
+                {
+                    assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaConsumerBuilder consumer(
+                    String consumerId)
+                {
+                    KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder(consumerId);
+                    return consumerBuilder;
+                }
+
+                public KafkaMemberBuilder build()
+                {
+                    TopicAssignmentFW assignment = assignmentRW.build();
+                    topicAssignmentsRW.item(i -> i
+                        .topic(assignment.topic())
+                        .partitions(assignment.partitions())
+                        .userdata(assignment.userdata()));
+                    return KafkaMemberBuilder.this;
+                }
+
+                class KafkaConsumerBuilder
+                {
+                    private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
+                    KafkaConsumerBuilder(
+                        String consumerId)
+                    {
+                        consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                        consumerRW.consumerId(consumerId);
+                    }
+
+                    public KafkaConsumerBuilder partitionId(
+                        int partitionId)
+                    {
+                        consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                        return this;
+                    }
+
+                    public KafkaTopicAssignmentBuilder build()
+                    {
+                        ConsumerAssignmentFW consumer = consumerRW.build();
+                        assignmentRW.userdataItem(u -> u
+                            .consumerId(consumer.consumerId())
+                            .partitions(consumer.partitions()));
+
+                        return KafkaTopicAssignmentBuilder.this;
+                    }
+                }
+            }
+        }
     }
 
-    public static final class TopicAssignmentsBuilder
+    public static final class KafkaTopicAssignmentsBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
             new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
 
-        public TopicAssignmentsBuilder()
+        public KafkaTopicAssignmentsBuilder()
         {
             topicAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public TopicAssignmentsBuilder topic(
+        public KafkaTopicAssignmentsBuilder topic(
             String topic,
             int partitionId,
             String consumerId,

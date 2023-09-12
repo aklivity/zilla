@@ -106,7 +106,10 @@ public class KafkaFunctionsTest
     {
         byte[] build = KafkaFunctions.memberMetadata()
             .consumerId("localhost:9092")
-            .topic("test", 0)
+            .topic("test")
+                .partitionId(0)
+                .partitionId(1)
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -120,8 +123,16 @@ public class KafkaFunctionsTest
     public void shouldGenerateMemberAssignment()
     {
         byte[] build = KafkaFunctions.memberAssignment()
-            .member("memberId-1", "test", 0, "localhost:9092", 0)
-            .build();
+            .member("memberId-1")
+               .assignment()
+                .topic("test")
+                .partitionId(0)
+                .consumer( "localhost:9092")
+                    .partitionId(0)
+                    .build()
+                .build()
+            .build()
+        .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         Array32FW<MemberAssignmentFW> assignments =
