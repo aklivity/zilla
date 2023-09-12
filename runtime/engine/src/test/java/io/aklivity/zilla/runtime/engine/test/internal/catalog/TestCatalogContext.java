@@ -34,9 +34,4 @@ public class TestCatalogContext implements CatalogContext
     {
         return new TestCatalogHandler(TestCatalogOptionsConfig.class.cast(catalog.options));
     }
-
-    public void detach(
-        CatalogConfig catalog)
-    {
-    }
 }

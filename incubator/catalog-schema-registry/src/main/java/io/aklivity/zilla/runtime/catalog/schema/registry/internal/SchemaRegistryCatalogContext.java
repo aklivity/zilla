@@ -27,9 +27,4 @@ public class SchemaRegistryCatalogContext implements CatalogContext
     {
         return new SchemaRegistryCatalogHandler(SchemaRegistryOptionsConfig.class.cast(catalog.options));
     }
-
-    public void detach(
-        CatalogConfig catalog)
-    {
-    }
 }
