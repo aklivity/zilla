@@ -20,7 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.MessageFormat;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
@@ -35,7 +35,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final RegisterSchemaRequest request;
 
     public SchemaRegistryCatalogHandler(
-        SchemaRegistryCatalogConfig config)
+        SchemaRegistryOptionsConfig config)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();

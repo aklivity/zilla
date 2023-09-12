@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SchemaRegistryCatalogConfigAdapterTest
+public class SchemaRegistryOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -34,7 +34,7 @@ public class SchemaRegistryCatalogConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new SchemaRegistryCatalogConfigAdapter());
+                .withAdapters(new SchemaRegistryOptionsConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -47,7 +47,7 @@ public class SchemaRegistryCatalogConfigAdapterTest
                     "\"context\": \"default\"," +
                     "}";
 
-        SchemaRegistryCatalogConfig catalog = jsonb.fromJson(text, SchemaRegistryCatalogConfig.class);
+        SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
@@ -57,7 +57,7 @@ public class SchemaRegistryCatalogConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        SchemaRegistryCatalogConfig catalog = new SchemaRegistryCatalogConfig("http://localhost:8081", "default");
+        SchemaRegistryOptionsConfig catalog = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
 
         String text = jsonb.toJson(catalog);
 

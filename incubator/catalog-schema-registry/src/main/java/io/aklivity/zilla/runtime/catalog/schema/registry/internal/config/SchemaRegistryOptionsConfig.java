@@ -18,23 +18,23 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class SchemaRegistryCatalogConfig extends OptionsConfig
+public class SchemaRegistryOptionsConfig extends OptionsConfig
 {
     public final String url;
     public final String context;
 
-    public static SchemaRegistryCatalogConfigBuilder<SchemaRegistryCatalogConfig> builder()
+    public static SchemaRegistryOptionsConfigBuilder<SchemaRegistryOptionsConfig> builder()
     {
-        return new SchemaRegistryCatalogConfigBuilder<>(SchemaRegistryCatalogConfig.class::cast);
+        return new SchemaRegistryOptionsConfigBuilder<>(SchemaRegistryOptionsConfig.class::cast);
     }
 
-    public static <T> SchemaRegistryCatalogConfigBuilder<T> builder(
+    public static <T> SchemaRegistryOptionsConfigBuilder<T> builder(
             Function<OptionsConfig, T> mapper)
     {
-        return new SchemaRegistryCatalogConfigBuilder<>(mapper);
+        return new SchemaRegistryOptionsConfigBuilder<>(mapper);
     }
 
-    public SchemaRegistryCatalogConfig(
+    public SchemaRegistryOptionsConfig(
         String url,
         String context)
     {

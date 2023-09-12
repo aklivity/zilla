@@ -30,7 +30,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 
 public class SchemaRegistryIT
 {
@@ -42,12 +42,12 @@ public class SchemaRegistryIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    private SchemaRegistryCatalogConfig config;
+    private SchemaRegistryOptionsConfig config;
 
     @Before
     public void setup()
     {
-        config = new SchemaRegistryCatalogConfig("http://localhost:8081", "default");
+        config = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
     }
 
     @Test

@@ -19,14 +19,14 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T, SchemaRegistryCatalogConfigBuilder<T>>
+public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T, SchemaRegistryOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
     private String url;
     private String context;
 
-    SchemaRegistryCatalogConfigBuilder(
+    SchemaRegistryOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -34,19 +34,19 @@ public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<SchemaRegistryCatalogConfigBuilder<T>> thisType()
+    protected Class<SchemaRegistryOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<SchemaRegistryCatalogConfigBuilder<T>>) getClass();
+        return (Class<SchemaRegistryOptionsConfigBuilder<T>>) getClass();
     }
 
-    public SchemaRegistryCatalogConfigBuilder<T> url(
+    public SchemaRegistryOptionsConfigBuilder<T> url(
         String url)
     {
         this.url = url;
         return this;
     }
 
-    public SchemaRegistryCatalogConfigBuilder<T> context(
+    public SchemaRegistryOptionsConfigBuilder<T> context(
         String context)
     {
         this.context = context;
@@ -56,6 +56,6 @@ public final class SchemaRegistryCatalogConfigBuilder<T> extends ConfigBuilder<T
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaRegistryCatalogConfig(url, context));
+        return mapper.apply(new SchemaRegistryOptionsConfig(url, context));
     }
 }

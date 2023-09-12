@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -45,8 +45,8 @@ public class SchemaRegistryCatalogFactoryTest
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(SchemaRegistryCatalogContext.class));
 
-        SchemaRegistryCatalogConfig catalogConfig =
-            new SchemaRegistryCatalogConfig("http://localhost:8081", "default");
+        SchemaRegistryOptionsConfig catalogConfig =
+            new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
         CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);
         assertThat(handler, instanceOf(SchemaRegistryCatalogHandler.class));

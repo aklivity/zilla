@@ -19,9 +19,15 @@ public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
 
-    int register(String subject, String type, String schema);
+    int register(
+        String subject,
+        String type,
+        String schema);
 
-    String resolve(int schemaId);
+    String resolve(
+        int schemaId);
 
-    String resolve(String subject, String version);
+    String resolve(
+        String subject,
+        String version);
 }

@@ -22,7 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
     private static final String CONTEXT = "context";
@@ -43,7 +43,7 @@ public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterS
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        SchemaRegistryCatalogConfig config = (SchemaRegistryCatalogConfig) options;
+        SchemaRegistryOptionsConfig config = (SchemaRegistryOptionsConfig) options;
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
         if (config.url != null &&
@@ -65,7 +65,7 @@ public class SchemaRegistryCatalogConfigAdapter implements OptionsConfigAdapterS
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        SchemaRegistryCatalogConfigBuilder<SchemaRegistryCatalogConfig> options = SchemaRegistryCatalogConfig.builder();
+        SchemaRegistryOptionsConfigBuilder<SchemaRegistryOptionsConfig> options = SchemaRegistryOptionsConfig.builder();
 
         if (object != null)
         {

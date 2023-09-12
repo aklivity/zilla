@@ -46,7 +46,7 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
         if (config.schema != null &&
-                !config.schema.isEmpty())
+            !config.schema.isEmpty())
         {
             catalog.add(SCHEMA, config.schema);
         }
