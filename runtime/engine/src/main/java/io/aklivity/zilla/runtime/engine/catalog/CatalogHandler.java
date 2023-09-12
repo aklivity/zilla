@@ -17,9 +17,17 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 public interface CatalogHandler
 {
-    int register(String subject, String schema);
+    int NO_SCHEMA_ID = 0;
 
-    String resolve(int schemaId);
+    int register(
+        String subject,
+        String type,
+        String schema);
 
-    String resolve(String subject, String version);
+    String resolve(
+        int schemaId);
+
+    String resolve(
+        String subject,
+        String version);
 }

@@ -19,9 +19,14 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public interface CatalogContext
 {
-    CatalogHandler attach(
-        CatalogConfig catalog);
+    default CatalogHandler attach(
+        CatalogConfig catalog)
+    {
+        return null;
+    }
 
-    void detach(
-        CatalogConfig catalog);
+    default void detach(
+        CatalogConfig catalog)
+    {
+    }
 }

@@ -265,6 +265,7 @@
                             <include>io/aklivity/zilla/runtime/**</include>
                             <include>io/aklivity/zilla/engine/**</include>
                             <include>io/aklivity/zilla/binding-*/**</include>
+                            <include>io/aklivity/zilla/catalog-*/**</include>
                             <include>io/aklivity/zilla/exporter-*/**</include>
                             <include>io/aklivity/zilla/guard-*/**</include>
                             <include>io/aklivity/zilla/metrics-*/**</include>
@@ -346,6 +347,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>binding-mqtt-kafka</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>catalog-schema-registry</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
