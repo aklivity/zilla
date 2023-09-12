@@ -22,10 +22,9 @@ import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class MqttRouteConfig extends OptionsConfig
+public final class MqttRouteConfig
 {
     public final long id;
 

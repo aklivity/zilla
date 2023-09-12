@@ -29,12 +29,11 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 
-public final class GrpcKafkaRouteConfig extends OptionsConfig
+public final class GrpcKafkaRouteConfig
 {
     public final long id;
 
