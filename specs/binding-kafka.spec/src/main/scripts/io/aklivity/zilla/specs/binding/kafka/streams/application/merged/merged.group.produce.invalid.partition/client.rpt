@@ -24,7 +24,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .capabilities("PRODUCE_ONLY")
                                    .topic("test")
                                    .groupId("client-1")
-                                   .consumerId("localhost:9092")
+                                   .consumerId("consumer-1")
                                    .ackMode("LEADER_ONLY")
                                    .build()
                                .build()}
@@ -45,6 +45,6 @@ write flush
 read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
                            .error(0)
-                           .consumerId("another-localhost:9092")
+                           .consumerId("consumer-2")
                            .build()}
 
