@@ -267,7 +267,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.limit())
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());

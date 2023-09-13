@@ -145,7 +145,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         final KafkaConsumerBeginExFW kafkaConsumerBeginEx = kafkaBeginEx.consumer();
         final String groupId = kafkaConsumerBeginEx.groupId().asString();
         final String topic = kafkaConsumerBeginEx.topic().asString();
-        final String consumerId = kafkaConsumerBeginEx.consumerId().asString();
+        String consumerId = kafkaConsumerBeginEx.consumerId().asString();
+        consumerId = consumerId != null ? consumerId : "";
         final int timeout = kafkaConsumerBeginEx.timeout();
         final List<Integer> partitions = new ArrayList<>();
         kafkaConsumerBeginEx.partitionIds().forEach(p -> partitions.add(p.partitionId()));
