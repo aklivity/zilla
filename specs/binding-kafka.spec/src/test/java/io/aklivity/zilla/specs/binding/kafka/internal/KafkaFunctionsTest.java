@@ -105,18 +105,24 @@ public class KafkaFunctionsTest
     public void shouldGenerateMemberMetadata()
     {
         byte[] build = KafkaFunctions.memberMetadata()
-            .consumerId("localhost:9092")
-            .topic("test")
-                .partitionId(0)
-                .partitionId(1)
-                .build()
-            .build();
+        .consumerId("localhost:9092")
+        .topic("test-1")
+            .partitionId(0)
+            .partitionId(1)
+            .build()
+        .topic("test-2")
+            .partitionId(0)
+            .partitionId(1)
+            .partitionId(2)
+            .build()
+        .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaGroupMemberMetadataFW memberMetadata =
             new KafkaGroupMemberMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("localhost:9092", memberMetadata.consumerId().asString());
+        assertEquals(2, memberMetadata.topics().fieldCount());
     }
 
     @Test
@@ -127,7 +133,8 @@ public class KafkaFunctionsTest
                .assignment()
                 .topic("test")
                 .partitionId(0)
-                .consumer( "localhost:9092")
+                .consumer()
+                    .id("localhost:9092")
                     .partitionId(0)
                     .build()
                 .build()
@@ -148,7 +155,14 @@ public class KafkaFunctionsTest
     public void shouldGenerateTopicAssignment()
     {
         byte[] build = KafkaFunctions.topicAssignment()
-            .topic("test", 0, "localhost:9092", 0)
+            .topic()
+            .id("test")
+            .partitionId(0)
+            .consumer()
+                .id("localhost:9092")
+                .partitionId(0)
+                .build()
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -4166,7 +4180,10 @@ public class KafkaFunctionsTest
             .typeId(0x03)
             .consumer()
                 .partition(0)
-                .assignment("localhost:9092", 0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partition(0)
+                    .build()
                 .build()
             .build();
 

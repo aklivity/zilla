@@ -62,4 +62,16 @@ public class CacheConsumerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/reassign.new.topic/client",
+        "${net}/reassign.new.topic/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReassignOnUpdatedTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

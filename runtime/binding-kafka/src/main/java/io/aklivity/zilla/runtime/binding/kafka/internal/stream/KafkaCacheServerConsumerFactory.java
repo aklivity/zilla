@@ -1013,6 +1013,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             if (memberId.equals(leaderId))
             {
                 int memberSize = members.size();
+                consumers.clear();
+
                 partitionsByTopic.forEach((t, p) ->
                 {
                     final int partitionSize = p.size();

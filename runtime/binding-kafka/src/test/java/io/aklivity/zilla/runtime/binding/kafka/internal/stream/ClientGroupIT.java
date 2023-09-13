@@ -139,4 +139,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance.updated.group/client",
+        "${net}/rebalance.updated.group/server"})
+    public void shouldRebalanceOnUpdatedTopic() throws Exception
+    {
+        k3po.finish();
+    }
 }

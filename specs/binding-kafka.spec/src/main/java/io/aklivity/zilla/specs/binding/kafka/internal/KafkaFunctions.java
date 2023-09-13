@@ -727,10 +727,9 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaConsumerBuilder consumer(
-                    String consumerId)
+                public KafkaConsumerBuilder consumer()
                 {
-                    KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder(consumerId);
+                    KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder();
                     return consumerBuilder;
                 }
 
@@ -748,11 +747,16 @@ public final class KafkaFunctions
                 {
                     private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
                     private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
-                    KafkaConsumerBuilder(
-                        String consumerId)
+                    KafkaConsumerBuilder()
                     {
                         consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
-                        consumerRW.consumerId(consumerId);
+                    }
+
+                    public KafkaConsumerBuilder id(
+                        String id)
+                    {
+                        consumerRW.consumerId(id);
+                        return this;
                     }
 
                     public KafkaConsumerBuilder partitionId(
@@ -788,21 +792,10 @@ public final class KafkaFunctions
             topicAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public KafkaTopicAssignmentsBuilder topic(
-            String topic,
-            int partitionId,
-            String consumerId,
-            int consumerPartitionId)
+        public KafkaTopicBuilder topic()
         {
-            topicAssignments.item(i ->
-                i.topic(topic)
-                    .partitions(p -> p.item(tpa -> tpa.partitionId(partitionId)))
-                    .userdata(u ->
-                        u.item(ud -> ud
-                            .consumerId(consumerId)
-                            .partitions(pt -> pt.item(pi -> pi.partitionId(consumerPartitionId)))))
-            );
-            return this;
+            KafkaTopicBuilder kafkaTopicBuilder = new KafkaTopicBuilder();
+            return kafkaTopicBuilder;
         }
 
         public byte[] build()
@@ -811,6 +804,80 @@ public final class KafkaFunctions
             final byte[] array = new byte[topics.sizeof()];
             topics.buffer().getBytes(topics.offset(), array);
             return array;
+        }
+
+        class KafkaTopicBuilder
+        {
+            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final TopicAssignmentFW.Builder topicAssignmentRW = new TopicAssignmentFW.Builder();
+            KafkaTopicBuilder()
+            {
+                topicAssignmentRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+            }
+
+            public KafkaTopicBuilder id(
+                String topic)
+            {
+                topicAssignmentRW.topic(topic);
+                return this;
+            }
+
+            public KafkaTopicBuilder partitionId(
+                int partitionId)
+            {
+                topicAssignmentRW.partitionsItem(p -> p.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaConsumerBuilder consumer()
+            {
+                KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder();
+                return consumerBuilder;
+            }
+
+            public KafkaTopicAssignmentsBuilder build()
+            {
+                TopicAssignmentFW topicAssignment = topicAssignmentRW.build();
+                topicAssignments.item(i -> i
+                    .topic(topicAssignment.topic())
+                    .partitions(topicAssignment.partitions())
+                    .userdata(topicAssignment.userdata()));
+                return KafkaTopicAssignmentsBuilder.this;
+            }
+
+            class KafkaConsumerBuilder
+            {
+                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
+                KafkaConsumerBuilder()
+                {
+                    consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                }
+
+                public KafkaConsumerBuilder id(
+                    String id)
+                {
+                    consumerRW.consumerId(id);
+                    return this;
+                }
+
+                public KafkaConsumerBuilder partitionId(
+                    int partitionId)
+                {
+                    consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaTopicBuilder build()
+                {
+                    ConsumerAssignmentFW consumer = consumerRW.build();
+                    topicAssignmentRW.userdataItem(u -> u
+                        .consumerId(consumer.consumerId())
+                        .partitions(consumer.partitions()));
+
+                    return KafkaTopicBuilder.this;
+                }
+            }
         }
     }
 
@@ -2050,46 +2117,64 @@ public final class KafkaFunctions
         {
             private final KafkaConsumerDataExFW.Builder consumerDataExRW = new KafkaConsumerDataExFW.Builder();
 
-            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
-                new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
-
-            private final Array32FW.Builder<KafkaConsumerAssignmentFW.Builder, KafkaConsumerAssignmentFW> assignmentsRW =
-                new Array32FW.Builder<>(new KafkaConsumerAssignmentFW.Builder(), new  KafkaConsumerAssignmentFW());
-
             private KafkaConsumerDataExBuilder()
             {
                 consumerDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
-                partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
-                assignmentsRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
             }
 
             public KafkaConsumerDataExBuilder partition(
                 int partitionId)
             {
-                partitionsRW.item(i -> i.partitionId(partitionId));
+                consumerDataExRW.partitionsItem(p -> p.partitionId(partitionId));
                 return this;
             }
 
-            public KafkaConsumerDataExBuilder assignment(
-                String consumerId,
-                int partitionId)
+            public KafkaConsumerBuilder consumer()
             {
-                assignmentsRW.item(i -> i
-                    .consumerId(consumerId)
-                    .partitions(p -> p.item(tp -> tp.partitionId(partitionId))));
-
-                return this;
+                KafkaConsumerBuilder kafkaConsumerBuilder = new KafkaConsumerBuilder();
+                return kafkaConsumerBuilder;
             }
 
             public KafkaDataExBuilder build()
             {
-                consumerDataExRW.partitions(partitionsRW.build());
-                consumerDataExRW.assignments(assignmentsRW.build());
                 final KafkaConsumerDataExFW consumerDataEx = consumerDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
                 return KafkaDataExBuilder.this;
+            }
+
+            class KafkaConsumerBuilder
+            {
+                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final KafkaConsumerAssignmentFW.Builder consumerRW = new KafkaConsumerAssignmentFW.Builder();
+
+                KafkaConsumerBuilder()
+                {
+                    consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                }
+
+                public KafkaConsumerBuilder id(
+                    String id)
+                {
+                    consumerRW.consumerId(id);
+                    return this;
+                }
+
+                public KafkaConsumerBuilder partition(
+                    int partitionId)
+                {
+                    consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaConsumerDataExBuilder build()
+                {
+                    KafkaConsumerAssignmentFW consumer = consumerRW.build();
+                    consumerDataExRW.assignmentsItem(a -> a
+                        .consumerId(consumer.consumerId())
+                        .partitions(consumer.partitions()));
+
+                    return KafkaConsumerDataExBuilder.this;
+                }
             }
         }
 

@@ -93,7 +93,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
-    private final Object2ObjectHashMap<String, KafkaCacheClientConsumerFanout> clientConsumerFansByGroupId;
+    private final Object2ObjectHashMap<String, KafkaCacheClientConsumerFanout> clientConsumerFansByConsumer;
 
     public KafkaCacheClientConsumerFactory(
         KafkaConfiguration config,
@@ -112,7 +112,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
-        this.clientConsumerFansByGroupId = new Object2ObjectHashMap<>();
+        this.clientConsumerFansByConsumer = new Object2ObjectHashMap<>();
     }
 
     @Override
@@ -154,7 +154,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            KafkaCacheClientConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
+            String consumer = String.format("%s-%s-%s-%d", groupId, topic, consumerId, resolvedId);
+            KafkaCacheClientConsumerFanout fanout = clientConsumerFansByConsumer.get(consumer);
 
             if (fanout == null)
             {
@@ -162,7 +163,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                      new KafkaCacheClientConsumerFanout(routedId, resolvedId, authorization, groupId,
                          topic, consumerId, partitions, timeout);
                 fanout = newFanout;
-                clientConsumerFansByGroupId.put(groupId, fanout);
+                clientConsumerFansByConsumer.put(consumer, fanout);
             }
 
             newStream = new KafkaCacheClientConsumerStream(
