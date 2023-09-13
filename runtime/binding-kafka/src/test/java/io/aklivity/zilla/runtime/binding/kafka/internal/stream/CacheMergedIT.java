@@ -428,7 +428,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.produce.message.value.invalid/client",
         "${app}/unmerged.produce.message.value.invalid/server"})
-    public void ProduceUnmergedMessageValueInvalid() throws Exception
+    public void shouldProduceUnmergedMessageValueInvalid() throws Exception
     {
         k3po.finish();
     }

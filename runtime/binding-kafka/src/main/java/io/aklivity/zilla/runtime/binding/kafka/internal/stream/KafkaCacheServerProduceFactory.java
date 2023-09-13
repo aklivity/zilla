@@ -96,7 +96,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
     private static final int FLAG_NONE = 0x00;
-    private static final int FLAG_INCOMPLETE = 0x04;
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -1276,20 +1275,20 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         {
                             switch (flags)
                             {
-                                case FLAG_INIT | FLAG_FIN:
-                                    doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
-                                            fragment, reserved, flags);
-                                    break;
-                                case FLAG_INIT:
-                                    doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
-                                            headers, trailers, fragment, reserved, flags);
-                                    break;
-                                case FLAG_NONE:
-                                    doServerInitialDataNone(traceId, fragment, reserved, length, flags);
-                                    break;
-                                case FLAG_FIN:
-                                    doServerInitialDataFin(traceId, headers, fragment, reserved, flags);
-                                    break;
+                            case FLAG_INIT | FLAG_FIN:
+                                doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
+                                        fragment, reserved, flags);
+                                break;
+                            case FLAG_INIT:
+                                doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
+                                        headers, trailers, fragment, reserved, flags);
+                                break;
+                            case FLAG_NONE:
+                                doServerInitialDataNone(traceId, fragment, reserved, length, flags);
+                                break;
+                            case FLAG_FIN:
+                                doServerInitialDataFin(traceId, headers, fragment, reserved, flags);
+                                break;
                             }
 
                             if ((flags & FLAG_FIN) == 0x00)
