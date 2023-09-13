@@ -273,28 +273,6 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.options.type.avro.yaml")
-    @Specification({
-        "${app}/message.value.avro/client",
-        "${app}/message.value.avro/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldSendMessageValueAvro() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.options.type.avro.yaml")
-    @Specification({
-        "${app}/message.value.avro.invalid/client",
-        "${app}/message.value.avro.invalid/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldSendMessageValueAvroInvalid() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header/client",

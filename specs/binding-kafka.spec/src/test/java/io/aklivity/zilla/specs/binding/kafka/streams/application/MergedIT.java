@@ -290,6 +290,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.value.invalid/client",
+        "${app}/merged.produce.message.value.invalid/server"})
+    public void shouldProduceMergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.server.sent.close/client",
         "${app}/merged.fetch.server.sent.close/server"})
     public void shouldMergedFetchServerSentClose() throws Exception
@@ -485,6 +494,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.flags.incomplete/client",
         "${app}/unmerged.produce.message.flags.incomplete/server"})
     public void shouldProduceUnmergedMessageFlagsIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.value.invalid/client",
+        "${app}/unmerged.produce.message.value.invalid/server"})
+    public void shouldProduceUnmergedMessageValueInvalid() throws Exception
     {
         k3po.finish();
     }

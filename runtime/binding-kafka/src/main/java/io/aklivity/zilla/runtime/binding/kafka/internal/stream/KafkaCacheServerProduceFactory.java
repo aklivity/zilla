@@ -87,6 +87,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
+    private static final int ERROR_INVALID_RECORD = 87;
 
     private static final String TRANSACTION_NONE = null;
 
@@ -95,6 +96,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
     private static final int FLAG_NONE = 0x00;
+    private static final int FLAG_INCOMPLETE = 0x04;
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -1238,65 +1240,76 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             checksum = crc32c.getValue();
                         }
 
+                        boolean valid = true;
+
                         if ((flags & FLAG_FIN) != 0x00 && type != null)
                         {
                             Validator keyValidator = type.key;
                             if (keyValidator != null)
                             {
                                 OctetsFW entryKey = key.value();
-                                if (entryKey != null &&
-                                    !keyValidator.write(entryKey.value(), entryKey.offset(), entryKey.sizeof()))
+                                if (entryKey != null)
                                 {
-                                    doServerInitialReset(traceId, EMPTY_OCTETS);
-                                    System.out.println("Key Validation failed");
+                                    valid = keyValidator.write(entryKey.value(), entryKey.offset(), entryKey.sizeof());
+                                    if (!valid)
+                                    {
+                                        System.out.println("Key Validation failed");
+                                        cleanupServer(traceId, ERROR_INVALID_RECORD);
+                                    }
                                 }
                             }
 
                             Validator valueValidator = type.value;
                             if (valueValidator != null &&
-                                value != null &&
-                                !valueValidator.write(value.value(), value.offset(), value.sizeof()))
+                                value != null)
                             {
-                                doServerInitialReset(traceId, EMPTY_OCTETS);
-                                System.out.println("Value Validation failed");
+                                valid = valueValidator.write(value.value(), value.offset(), value.sizeof());
+                                if (!valid)
+                                {
+                                    System.out.println("Value Validation failed");
+                                    cleanupServer(traceId, ERROR_INVALID_RECORD);
+                                }
                             }
                         }
 
-                        switch (flags)
+                        if (valid)
                         {
-                        case FLAG_INIT | FLAG_FIN:
-                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
-                                fragment, reserved, flags);
-                            break;
-                        case FLAG_INIT:
-                            doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
-                                headers, trailers, fragment, reserved, flags);
-                            break;
-                        case FLAG_NONE:
-                            doServerInitialDataNone(traceId, fragment, reserved, length, flags);
-                            break;
-                        case FLAG_FIN:
-                            doServerInitialDataFin(traceId, headers, fragment, reserved, flags);
-                            break;
-                        }
-
-                        if ((flags & FLAG_FIN) == 0x00)
-                        {
-                            this.messageOffset += length;
-                        }
-                        else
-                        {
-                            this.messageOffset = 0;
-
-                            if (KafkaState.initialClosed(state))
+                            switch (flags)
                             {
-                                fan.onServerFanMemberClosed(traceId, this);
+                                case FLAG_INIT | FLAG_FIN:
+                                    doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
+                                            fragment, reserved, flags);
+                                    break;
+                                case FLAG_INIT:
+                                    doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
+                                            headers, trailers, fragment, reserved, flags);
+                                    break;
+                                case FLAG_NONE:
+                                    doServerInitialDataNone(traceId, fragment, reserved, length, flags);
+                                    break;
+                                case FLAG_FIN:
+                                    doServerInitialDataFin(traceId, headers, fragment, reserved, flags);
+                                    break;
+                            }
 
-                                doServerReplyEndIfNecessary(traceId);
+                            if ((flags & FLAG_FIN) == 0x00)
+                            {
+                                this.messageOffset += length;
                             }
                             else
                             {
-                                cursor.advance(partitionOffset + 1);
+                                this.messageOffset = 0;
+
+                                if (KafkaState.initialClosed(state))
+                                {
+                                    fan.onServerFanMemberClosed(traceId, this);
+
+                                    doServerReplyEndIfNecessary(traceId);
+                                }
+                                else
+                                {
+                                    cursor.advance(partitionOffset + 1);
+                                }
                             }
                         }
                     }

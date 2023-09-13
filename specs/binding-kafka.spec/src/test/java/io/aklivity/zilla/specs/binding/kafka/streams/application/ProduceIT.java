@@ -231,24 +231,6 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/message.value.avro/client",
-        "${app}/message.value.avro/server"})
-    public void shouldSendMessageValueAvro() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/message.value.avro.invalid/client",
-        "${app}/message.value.avro.invalid/server"})
-    public void shouldSendMessageValueAvroInvalid() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
     public void shouldSendMessageHeader() throws Exception
