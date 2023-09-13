@@ -160,7 +160,8 @@ read ${kafka:memberAssignment()
               .topic("test")
               .partitionId(0)
               .partitionId(1)
-              .consumer("localhost:9092")
+              .consumer()
+                 .id("localhost:9092")
                  .partitionId(0)
                  .partitionId(1)
                  .build()
@@ -169,7 +170,14 @@ read ${kafka:memberAssignment()
            .build()}
 
 write ${kafka:topicAssignment()
-              .topic("test", 0, "localhost:9092", 0)
+                .topic()
+                  .id("test")
+                  .partitionId(0)
+                  .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
+                  .build()
               .build()}
 write flush
 
