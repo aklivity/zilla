@@ -25,8 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -61,6 +60,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
@@ -80,6 +80,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeg
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
