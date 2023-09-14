@@ -21,25 +21,30 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
-                                   .capabilities("FETCH_ONLY")
+                                   .capabilities("PRODUCE_ONLY")
                                    .topic("test")
                                    .groupId("client-1")
                                    .consumerId("consumer-1")
-                                   .timeout(45000)
-                                   .partition(0, 1)
-                                   .partition(1, 1)
-                                   .partition(-1, 1)
+                                   .ackMode("LEADER_ONLY")
                                    .build()
                                .build()}
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                 .partition(0, 1, 2)
-                                 .progress(0, 2)
-                                 .build()
-                             .build()}
-read "Hello, world #A1"
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(1, 1)
+                                  .build()
+                              .build()}
+write "Hello, world #A1"
+write flush
+
+
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(0)
+                           .consumerId("consumer-2")
+                           .build()}
 

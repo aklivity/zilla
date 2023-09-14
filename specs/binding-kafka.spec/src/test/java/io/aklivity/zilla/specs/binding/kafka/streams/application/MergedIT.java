@@ -665,4 +665,22 @@ public class MergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.produce.invalid.partition/client",
+        "${app}/unmerged.group.produce.invalid.partition/server"})
+    public void shouldRejectUnmergedMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.group.produce.invalid.partition/client",
+        "${app}/merged.group.produce.invalid.partition/server"})
+    public void shouldRejectMergedMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
 }

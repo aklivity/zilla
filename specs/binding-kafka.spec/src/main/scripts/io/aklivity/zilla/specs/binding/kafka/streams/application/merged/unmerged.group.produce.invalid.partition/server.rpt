@@ -16,6 +16,7 @@
 
 property deltaMillis 0L
 property newTimestamp ${kafka:timestamp() + deltaMillis}
+property padding 0
 
 accept "zilla://streams/app1"
     option zilla:window 8192
@@ -108,7 +109,6 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
-
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
@@ -116,7 +116,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .group()
                                    .groupId("client-1")
                                    .protocol("highlander")
-                                   .timeout(45000)
+                                   .timeout(0)
                                    .metadata(kafka:memberMetadata()
                                         .consumerId("consumer-1")
                                         .topic("test")
@@ -174,8 +174,12 @@ write ${kafka:topicAssignment()
                   .id("test")
                   .partitionId(0)
                   .consumer()
-                    .id("consumer-1")
-                    .partitionId(0)
+                      .id("consumer-1")
+                      .partitionId(0)
+                      .build()
+                  .consumer()
+                    .id("consumer-2")
+                    .partitionId(1)
                     .build()
                   .build()
               .build()}
@@ -185,9 +189,9 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .fetch()
+                              .produce()
                                   .topic("test")
-                                  .partition(0, -2)
+                                  .partition(0)
                                   .build()
                               .build()}
 
@@ -195,20 +199,9 @@ connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .fetch()
+                               .produce()
                                    .topic("test")
-                                   .partition(0, 1, 2)
+                                   .partition(0)
                                    .build()
                                .build()}
 write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .timestamp(newTimestamp)
-                                  .partition(0, 1, 2)
-                                  .build()
-                              .build()}
-write "Hello, world #A1"
-write flush
-

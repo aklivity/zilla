@@ -103,8 +103,6 @@ read zilla:data.ext ${kafka:dataEx()
                                  .partition(1, 2)
                                  .build()
                              .build()}
-
-
 read notify PARTITION_COUNT_2
 
 connect await PARTITION_COUNT_2
@@ -175,8 +173,12 @@ read ${kafka:topicAssignment()
                   .id("test")
                   .partitionId(0)
                   .consumer()
-                    .id("consumer-1")
-                    .partitionId(0)
+                     .id("consumer-1")
+                     .partitionId(0)
+                     .build()
+                  .consumer()
+                    .id("consumer-2")
+                    .partitionId(1)
                     .build()
                   .build()
               .build()}
@@ -187,12 +189,13 @@ connect await RECEIVED_CONSUMER
         "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:affinity 1
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .fetch()
+                               .produce()
                                    .topic("test")
-                                   .partition(0, -2)
+                                   .partition(0)
                                    .build()
                                .build()}
 
@@ -200,18 +203,20 @@ connected
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .fetch()
+                              .produce()
                                   .topic("test")
-                                  .partition(0, 1, 2)
+                                  .partition(0)
                                   .build()
                               .build()}
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 1, 2)
-                                 .build()
-                             .build()}
-read "Hello, world #A1"
-
-
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(10240 - 8192 + padding)
+                                  .timestamp(newTimestamp)
+                                  .sequence(1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+write ${kafka:randomBytes(10240)}
+write flush

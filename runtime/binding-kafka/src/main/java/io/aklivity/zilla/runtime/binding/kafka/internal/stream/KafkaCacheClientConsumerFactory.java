@@ -160,8 +160,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             if (fan == null)
             {
                 KafkaCacheClientConsumerFan newFan =
-                     new KafkaCacheClientConsumerFan(routedId, resolvedId, authorization, groupId,
-                         topic, consumerId, partitions, timeout);
+                     new KafkaCacheClientConsumerFan(routedId, resolvedId, authorization, fanKey,
+                         groupId, topic, consumerId, partitions, timeout);
                 fan = newFan;
                 clientConsumerFansByConsumer.put(fanKey, fan);
             }
@@ -386,6 +386,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final String fanKey;
         private final String groupId;
         private final String topic;
         private final String consumerId;
@@ -414,6 +415,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             long originId,
             long routedId,
             long authorization,
+            String fanKey,
             String groupId,
             String topic,
             String consumerId,
@@ -428,6 +430,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             this.consumerId = consumerId;
             this.partitions = partitions;
             this.timeout = timeout;
+            this.fanKey = fanKey;
             this.members = new ArrayList<>();
             this.assignedPartitions = new IntHashSet();
             this.assignments = new Object2ObjectHashMap<>();
@@ -483,9 +486,21 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             if (members.isEmpty())
             {
-                doConsumerFanInitialEndIfNecessary(traceId);
-                doConsumerFanReplyResetIfNecessary(traceId);
+                cleanup(traceId);
             }
+        }
+
+        private void cleanup(long traceId)
+        {
+            doConsumerFanInitialEndIfNecessary(traceId);
+            doConsumerFanReplyResetIfNecessary(traceId);
+        }
+
+        private void onConsumerFanClosed(
+            long traceId)
+        {
+            clientConsumerFansByConsumer.remove(this.fanKey);
+            cleanup(traceId);
         }
 
         private void doConsumerFanInitialBeginIfNecessary(
@@ -574,6 +589,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doConsumerFanReplyResetIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerInitialResetIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
         private void onConsumerFanInitialWindow(
@@ -693,6 +710,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doConsumerFanInitialEndIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerReplyEndIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
         private void onConsumerFanReplyAbort(
@@ -705,6 +724,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doConsumerFanInitialAbortIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerReplyAbortIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
         private void doConsumerFanReplyResetIfNecessary(

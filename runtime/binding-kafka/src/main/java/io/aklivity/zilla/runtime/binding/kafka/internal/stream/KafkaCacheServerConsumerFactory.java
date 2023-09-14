@@ -748,9 +748,11 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             assert this.initialAck <= this.initialSeq;
 
-            streams.forEach(m -> m.doConsumerInitialReset(traceId));
+            streams.forEach(m -> m.cleanup(traceId));
 
             doConsumerReplyReset(traceId);
+
+            onConsumerFanClosed(traceId);
         }
 
 
@@ -961,6 +963,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             streams.forEach(s -> s.doConsumerReplyEnd(traceId));
             doConsumerInitialEnd(traceId);
+
+            onConsumerFanClosed(traceId);
         }
 
         private void onConsumerReplyAbort(
@@ -981,6 +985,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             streams.forEach(s -> s.cleanup(traceId));
 
             doConsumerInitialAbort(traceId);
+
+            onConsumerFanClosed(traceId);
         }
 
         private void doConsumerReplyReset(
@@ -1078,6 +1084,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 doConsumerInitialData(traceId, authorization, initialBud, memberAssignmentRW.sizeof(), 3,
                     EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), EMPTY_OCTETS.sizeof(), EMPTY_OCTETS);
             }
+        }
+
+        private void onConsumerFanClosed(
+            long traceId)
+        {
+            clientConsumerFansByGroupId.remove(this.groupId);
         }
     }
 
