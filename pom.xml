@@ -366,6 +366,19 @@
           <version>3.1.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.0</version>
+          <executions>
+            <execution>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <groupId>org.moditect</groupId>
           <artifactId>moditect-maven-plugin</artifactId>
           <version>1.0.0.Final</version>
@@ -421,28 +434,6 @@
               <goals>
                 <goal>start</goal>
                 <goal>stop</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.0.0</version>
-          <configuration>
-            <filters>
-              <filter>
-                <artifact>*:*</artifact>
-                <excludes>
-                  <exclude>**/module-info.class</exclude>
-                </excludes>
-              </filter>
-            </filters>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>shade</goal>
               </goals>
             </execution>
           </executions>

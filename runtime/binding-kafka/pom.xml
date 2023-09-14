@@ -156,6 +156,33 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>org.apache.avro:avro</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>org.apache.avro</pattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.binding.kafka.internal.validator.avro</shadedPattern>
+                </relocation>
+              </relocations>
+              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
+              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
+              <minimizeJar>true</minimizeJar>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
