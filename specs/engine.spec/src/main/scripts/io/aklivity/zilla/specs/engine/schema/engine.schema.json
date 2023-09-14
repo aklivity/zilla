@@ -376,6 +376,14 @@
                             {
                                 "$ref": "#/$defs/validator/types"
                             },
+                            "encoding":
+                            {
+                                "type": "string",
+                                "enum":
+                                [
+                                    "utf_8"
+                                ]
+                            },
                             "catalog":
                             {
                                 "type": "object",
