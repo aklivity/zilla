@@ -30,8 +30,8 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.KafkaCatalogConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public final class AvroValidator implements Validator

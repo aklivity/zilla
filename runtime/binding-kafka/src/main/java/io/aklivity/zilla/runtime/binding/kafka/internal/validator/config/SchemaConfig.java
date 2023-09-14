@@ -13,26 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-public class KafkaCatalogConfig
+public class SchemaConfig
 {
-    public transient long id;
+    public String schema;
+    public String strategy;
+    public String version;
+    public int id;
 
-    public final String name;
-    public final String strategy;
-    public final String version;
-    public final int schemaId;
-
-    public KafkaCatalogConfig(
-        String name,
+    public SchemaConfig(
+        String schema,
         String strategy,
         String version,
-        int schemaId)
+        int id)
     {
-        this.name = name;
+        this.schema = schema;
         this.strategy = strategy;
         this.version = version;
-        this.schemaId = schemaId;
+        this.id = id;
     }
 }
