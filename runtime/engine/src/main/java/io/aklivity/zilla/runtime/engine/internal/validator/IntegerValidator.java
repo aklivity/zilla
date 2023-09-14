@@ -13,20 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.internal.validator;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.internal.validator.config.IntegerValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 
-public class KafkaTopicType
+public class IntegerValidator implements Validator
 {
-    public final Validator key;
-    public final Validator value;
-
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
+    public IntegerValidator(IntegerValidatorConfig config)
     {
-        this.key = key;
-        this.value = value;
+    }
+
+    @Override
+    public boolean validate(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return length == 4;
     }
 }

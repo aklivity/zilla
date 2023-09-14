@@ -409,10 +409,8 @@
                 "type": "string",
                 "enum": [
                     "string",
-                    "number",
                     "integer",
-                    "boolean",
-                    "json",
+                    "long",
                     "avro"
                 ]
             },

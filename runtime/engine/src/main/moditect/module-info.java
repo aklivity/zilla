@@ -27,6 +27,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
+    exports io.aklivity.zilla.runtime.engine.validator;
 
     exports io.aklivity.zilla.runtime.engine.ext;
 
@@ -46,6 +47,7 @@ module io.aklivity.zilla.runtime.engine
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
@@ -53,10 +55,24 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
 
     provides io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi
             with io.aklivity.zilla.runtime.engine.internal.expression.EnvironmentResolverSpi;
+
+    provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
+        with io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.engine.internal.validator.config.IntegerValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.engine.internal.validator.config.LongValidatorConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
+        with io.aklivity.zilla.runtime.engine.internal.validator.StringValidatorFactory,
+            io.aklivity.zilla.runtime.engine.internal.validator.IntegerValidatorFactory,
+            io.aklivity.zilla.runtime.engine.internal.validator.LongValidatorFactory,
+            io.aklivity.zilla.runtime.engine.internal.validator.AvroValidatorFactory;
+
 }

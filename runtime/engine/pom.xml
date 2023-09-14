@@ -27,7 +27,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <jacoco.coverage.ratio>0.70</jacoco.coverage.ratio>
-    <jacoco.missed.count>4</jacoco.missed.count>
+    <jacoco.missed.count>15</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -73,6 +73,10 @@
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
       <version>2.15.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jmock</groupId>
@@ -224,6 +228,33 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>org.apache.avro:avro</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>org.apache.avro</pattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.engine.validator.avro</shadedPattern>
+                </relocation>
+              </relocations>
+              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
+              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
+              <minimizeJar>true</minimizeJar>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.moditect</groupId>

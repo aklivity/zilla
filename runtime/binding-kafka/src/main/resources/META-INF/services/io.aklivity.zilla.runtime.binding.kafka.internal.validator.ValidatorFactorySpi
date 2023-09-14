@@ -1,4 +1,0 @@
-io.aklivity.zilla.runtime.binding.kafka.internal.validator.StringValidatorFactory
-io.aklivity.zilla.runtime.binding.kafka.internal.validator.AvroValidatorFactory
-io.aklivity.zilla.runtime.binding.kafka.internal.validator.IntegerValidatorFactory
-io.aklivity.zilla.runtime.binding.kafka.internal.validator.LongValidatorFactory
