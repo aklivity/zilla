@@ -501,8 +501,8 @@ public final class KafkaCachePartition
             if (type.key != null)
             {
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
-                if (key != null &&
-                    !type.key.validate(key.value(), key.offset(), key.sizeof()))
+                if (key == null ||
+                    !type.key.read(key.value(), key.offset(), key.sizeof()))
                 {
                     System.out.println("Key Validation failed");
                 }
@@ -511,8 +511,8 @@ public final class KafkaCachePartition
             if (type.value != null)
             {
                 OctetsFW value = headEntry.value();
-                if (value != null &&
-                    !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                if (value == null ||
+                    !type.value.read(value.value(), value.offset(), value.sizeof()))
                 {
                     System.out.println("Value Validation failed");
                 }
@@ -628,6 +628,29 @@ public final class KafkaCachePartition
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        Node head)
+    {
+        final KafkaCacheSegment segment = head.segment;
+        assert segment != null;
+
+        final KafkaCacheFile logFile = segment.logFile();
+
+        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
+        boolean status = true;
+
+        OctetsFW value = headEntry.value();
+        if (value == null ||
+            !type.value.write(value.value(), value.offset(), value.sizeof()))
+        {
+            status = false;
+            System.out.println("Value Validation failed");
+        }
+
+        return status;
     }
 
     public long retainAt(

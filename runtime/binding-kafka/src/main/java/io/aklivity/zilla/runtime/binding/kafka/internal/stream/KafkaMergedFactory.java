@@ -108,6 +108,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_UNKNOWN = -1;
+    private static final int ERROR_INVALID_RECORD = 87;
 
     private static final int FLAGS_NONE = 0x00;
     private static final int FLAGS_FIN = 0x01;
@@ -2069,6 +2070,14 @@ public final class KafkaMergedFactory implements BindingHandler
                 {
                     produceStreams.remove(leader);
                 }
+            }
+            else if (error == ERROR_INVALID_RECORD)
+            {
+                doMergedInitialReset(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .error(error)
+                        .build()
+                        .sizeof()));
             }
             else
             {

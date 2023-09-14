@@ -39,7 +39,9 @@ public final class AvroValidator implements Validator
     private static final byte MAGIC_BYTE = 0x0;
 
     private final List<KafkaCatalogConfig> catalogs;
+    private final KafkaCatalogConfig catalog;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
+    private final String topic;
     private final CatalogHandler handler;
     private final DecoderFactory decoder;
     private DatumReader reader;
@@ -60,10 +62,12 @@ public final class AvroValidator implements Validator
         }).collect(Collectors.toList());
         this.handler = handlersById.get(catalogs.get(0).id);
         this.parser = new Schema.Parser();
+        this.catalog = catalogs.get(0);
+        this.topic = config.topic;
     }
 
     @Override
-    public boolean validate(
+    public boolean read(
         DirectBuffer data,
         int index,
         int length)
@@ -89,6 +93,37 @@ public final class AvroValidator implements Validator
 
             reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
             reader.read(null, decoder.binaryDecoder(valBytes, null));
+            status = true;
+        }
+        catch (IOException e)
+        {
+        }
+        return status;
+    }
+
+    @Override
+    public boolean write(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        boolean status = false;
+        int schemaId = catalog.schemaId;
+
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
+
+        try
+        {
+            if (schemaId > 0)
+            {
+                reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
+            }
+            else if (catalog.strategy.equals("topic"))
+            {
+                reader = new GenericDatumReader(parser.parse(handler.resolve(topic, catalog.version)));
+            }
+            reader.read(null, decoder.binaryDecoder(payloadBytes, null));
             status = true;
         }
         catch (IOException e)

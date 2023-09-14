@@ -96,7 +96,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (key != null)
         {
-            keyConfig = validator.adaptFromJson(key);
+            JsonObjectBuilder keyObject = Json.createObjectBuilder();
+
+            key.forEach(keyObject::add);
+            keyObject.add(NAME_NAME, name);
+
+            keyConfig = validator.adaptFromJson(keyObject.build());
         }
 
         JsonObject value = object.containsKey(EVENT_VALUE)
@@ -107,7 +112,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (value != null)
         {
-            valueConfig = validator.adaptFromJson(value);
+            JsonObjectBuilder valueObject = Json.createObjectBuilder();
+
+            value.forEach(valueObject::add);
+            valueObject.add(NAME_NAME, name);
+
+            valueConfig = validator.adaptFromJson(valueObject.build());
         }
 
         return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);

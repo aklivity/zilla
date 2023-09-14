@@ -424,6 +424,16 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.client.options.value.type.avro.yaml")
+    @Specification({
+        "${app}/merged.produce.message.value.invalid/client",
+        "${app}/unmerged.produce.message.value.invalid/server"})
+    public void shouldProduceUnmergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.close/client",

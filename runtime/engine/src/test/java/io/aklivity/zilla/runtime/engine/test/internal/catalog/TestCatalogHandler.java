@@ -42,7 +42,7 @@ public class TestCatalogHandler implements CatalogHandler
         String subject,
         String version)
     {
-        return null;
+        return schema;
     }
 
     @Override

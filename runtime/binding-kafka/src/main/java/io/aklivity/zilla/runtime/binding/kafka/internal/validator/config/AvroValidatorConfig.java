@@ -22,11 +22,14 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfi
 public final class AvroValidatorConfig extends ValidatorConfig
 {
     public final List<KafkaCatalogConfig> catalogs;
+    public final String topic;
 
     public AvroValidatorConfig(
-        List<KafkaCatalogConfig> catalogs)
+        List<KafkaCatalogConfig> catalogs,
+        String name)
     {
         super("avro");
         this.catalogs = catalogs;
+        this.topic = name;
     }
 }
