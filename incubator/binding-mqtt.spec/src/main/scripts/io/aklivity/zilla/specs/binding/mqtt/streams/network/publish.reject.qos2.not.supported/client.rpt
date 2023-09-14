@@ -36,7 +36,7 @@ read  [0x20 0x0a]                    # CONNACK
       [0x27] 66560                   # maximum packet size = 66560
       [0x24 0x00]                    # maximum qos = at most once
 
-write [0x34 0x39]                    # PUBLISH, qos = exactly once
+write [0x34 0x3b]                    # PUBLISH, qos = exactly once
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00 0x01]                    # packet id = 1
       [0x25]                         # properties

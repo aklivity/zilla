@@ -25,6 +25,17 @@ write zilla:begin.ext ${mqtt:beginEx()
                                 .build()
                               .build()}
 
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .expiry(1)
+                                .qosMax(0)
+                                .packetSizeMax(9216)
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
+                                .clientId("client-1")
+                                .build()
+                              .build()}
+
 connected
 
 read zilla:data.empty

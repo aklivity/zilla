@@ -89,4 +89,31 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/connect.retain.not.supported/client",
+        "${app}/connect.retain.not.supported/server"})
+    public void shouldConnectWithRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.reject.will.retain.not.supported/client",
+        "${app}/connect.reject.will.retain.not.supported/server"})
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.maximum.qos.0/client",
+        "${app}/connect.maximum.qos.0/server"})
+    public void shouldConnectWithMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
 }

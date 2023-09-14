@@ -19,9 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CLIENT_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CONNECT_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.RETAIN_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -67,8 +64,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.successful/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldConnect() throws Exception
     {
         k3po.finish();
@@ -79,8 +74,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.username.authentication.successful/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAuthenticateUsernameAndConnect() throws Exception
     {
         k3po.finish();
@@ -90,8 +83,6 @@ public class ConnectionIT
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.failed/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFailUsernameAuthentication() throws Exception
     {
         k3po.finish();
@@ -102,8 +93,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.password.authentication.successful/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAuthenticatePasswordAndConnect() throws Exception
     {
         k3po.finish();
@@ -113,8 +102,6 @@ public class ConnectionIT
     @Configuration("server.credentials.password.yaml")
     @Specification({
         "${net}/connect.password.authentication.failed/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldFailPasswordAuthentication() throws Exception
     {
         k3po.finish();
@@ -125,8 +112,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.server.assigned.client.id/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = CLIENT_ID_NAME, value = "client")
     public void shouldConnectWithServerAssignedClientId() throws Exception
     {
@@ -137,8 +122,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.missing.client.id/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMissingClientId() throws Exception
     {
         k3po.finish();
@@ -149,8 +132,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldConnectThenDisconnect() throws Exception
     {
         k3po.finish();
@@ -161,8 +142,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect.after.subscribe.and.publish/client",
         "${app}/disconnect.after.subscribe.and.publish/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
     {
         k3po.finish();
@@ -173,8 +152,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.protocol.version/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectInvalidProtocolVersion() throws Exception
     {
         k3po.finish();
@@ -184,8 +161,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.flags/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedConnectPacket() throws Exception
     {
         k3po.finish();
@@ -195,8 +170,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.authentication.method/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectBadAuthenticationMethod() throws Exception
     {
         k3po.finish();
@@ -207,8 +180,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect.reject.invalid.fixed.header.flags/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedDisconnectPacket() throws Exception
     {
         k3po.finish();
@@ -220,8 +191,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.second.connect/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectSecondConnectPacket() throws Exception
     {
         k3po.finish();
@@ -232,8 +201,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.successful.fragmented/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldConnectFragmented() throws Exception
     {
         k3po.finish();
@@ -244,8 +211,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.other.packet.before.connect/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectOtherPacketBeforeConnect() throws Exception
     {
         k3po.finish();
@@ -255,8 +220,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.topic.alias.maximum.repeated/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWhenTopicAliasMaximumRepeated() throws Exception
     {
         k3po.finish();
@@ -267,8 +230,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.close/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentClose() throws Exception
     {
         k3po.finish();
@@ -279,8 +240,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.abort/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentAbort() throws Exception
     {
         k3po.finish();
@@ -291,8 +250,6 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.reset/client",
         "${app}/client.sent.abort/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldReceiveClientSentReset() throws Exception
     {
         k3po.finish();
@@ -303,8 +260,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect.after.keep.alive.timeout/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
     public void shouldDisconnectClientAfterKeepAliveTimeout() throws Exception
     {
@@ -325,8 +280,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.maximum.qos.0/client",
-        "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+        "${app}/connect.maximum.qos.0/server"})
     public void shouldConnectWithMaximumQos0() throws Exception
     {
         k3po.finish();
@@ -336,10 +290,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.retain.not.supported/client",
-        "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+        "${app}/connect.retain.not.supported/server"})
     public void shouldConnectWithRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -348,10 +299,8 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.reject.will.retain.not.supported/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+        "${net}/connect.reject.will.retain.not.supported/client",
+        "${app}/connect.reject.will.retain.not.supported/server"})
     public void shouldRejectConnectWillRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -361,8 +310,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.password.flag.no.password/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWithPasswordFlagSetNoPassword() throws Exception
     {
         k3po.finish();
@@ -373,8 +320,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.password.no.password.flag/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWithPasswordNoPasswordFlag() throws Exception
     {
         k3po.finish();
@@ -384,8 +329,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.username.flag.only/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWithUsernameFlagNoUsername() throws Exception
     {
         k3po.finish();
@@ -396,8 +339,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.username.flag.missing/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWithUsernameNoUsernameFlag() throws Exception
     {
         k3po.finish();
@@ -407,8 +348,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.will.payload.missing/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWillPayloadMissing() throws Exception
     {
         k3po.finish();
@@ -418,8 +357,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.will.properties.missing/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWillPropertiesMissing() throws Exception
     {
         k3po.finish();
@@ -429,8 +366,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.will.topic.missing/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectConnectWillTopicMissing() throws Exception
     {
         k3po.finish();
@@ -440,8 +375,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.invalid.will.qos/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectInvalidWillQos() throws Exception
     {
         k3po.finish();
@@ -451,8 +384,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.reject.will.qos.1.without.will.flag/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWillQos1WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -462,8 +393,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.reject.will.qos.2.without.will.flag/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWillQos2WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -473,8 +402,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.reject.will.retain.without.will.flag/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWillRetainWithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -485,8 +412,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.max.packet.size.exceeded/client",
         "${app}/connect.max.packet.size.exceeded/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldIgnorePublishPacketBiggerThanMaxPacketSize() throws Exception
     {
         k3po.finish();
@@ -497,8 +422,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.server.defined.keep.alive/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")
     public void shouldConnectWithServerDefinedKeepAlive() throws Exception
     {
@@ -513,9 +436,6 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.subscribe.unfragmented/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")
     public void shouldConnectAndSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
@@ -525,8 +445,6 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.packet.too.large/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldRejectPacketTooLarge() throws Exception
     {
@@ -538,8 +456,6 @@ public class ConnectionIT
     @Specification({
         "${net}/disconnect.invalid.session.expiry/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectInvalidSessionExpiryOnDisconnect() throws Exception
     {
         k3po.finish();

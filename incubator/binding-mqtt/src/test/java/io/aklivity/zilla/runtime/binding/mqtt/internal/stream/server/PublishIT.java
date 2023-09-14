@@ -16,10 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.RETAIN_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -66,8 +63,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.one.message/client",
         "${app}/publish.one.message/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishOneMessage() throws Exception
     {
         k3po.finish();
@@ -78,8 +73,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.retained/client",
         "${app}/publish.retained/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
@@ -90,8 +83,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldPublishMessageWithTopicAlias() throws Exception
     {
@@ -103,8 +94,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishMultipleMessages() throws Exception
     {
         k3po.finish();
@@ -115,8 +104,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages.unfragmented/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishMultipleMessagesUnfragmented() throws Exception
     {
         k3po.finish();
@@ -127,8 +114,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.one.message.subscribe.unfragmented/client",
         "${app}/publish.one.message.subscribe.unfragmented/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishOneMessageSubscribeUnfragmented() throws Exception
     {
         k3po.finish();
@@ -139,8 +124,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${app}/publish.multiple.messages/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = PUBLISH_TIMEOUT_NAME, value = "5")
     public void shouldPublishMultipleMessagesWithDelay() throws Exception
     {
@@ -156,8 +139,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldPublishMessagesWithTopicAliasDistinct() throws Exception
     {
@@ -169,8 +150,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.repeated/client",
         "${app}/publish.messages.with.topic.alias.repeated/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldPublishMessagesWithTopicAliasRepeated() throws Exception
     {
@@ -182,8 +161,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${app}/publish.messages.with.topic.alias.replaced/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
     public void shouldPublishMessagesWithTopicAliasReplaced() throws Exception
     {
@@ -195,8 +172,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.invalid.scope/client",
         "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
     public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
     {
@@ -208,8 +183,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.topic.not.routed/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectTopicNotRouted() throws Exception
     {
         k3po.finish();
@@ -220,8 +193,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.exceeds.maximum/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectPublishWhenTopicAliasExceedsMaximum() throws Exception
     {
         k3po.finish();
@@ -232,8 +203,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.repeated/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishWithMultipleTopicAliases() throws Exception
     {
@@ -245,8 +214,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.client.sent.subscription.id/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishClientSentSubscriptionId() throws Exception
     {
@@ -258,9 +225,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.invalid.payload.format/client",
         "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishInvalidPayloadFormat() throws Exception
     {
         k3po.finish();
@@ -270,11 +234,8 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos1.not.supported/client",
-        "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "0")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldRejectPublisQos1NotSupported() throws Exception
+        "${app}/publish.reject.qos.not.supported/server"})
+    public void shouldRejectPublishQos1NotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -283,11 +244,8 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos2.not.supported/client",
-        "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "0")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldRejectPublisQos2NotSupported() throws Exception
+        "${app}/publish.reject.qos.not.supported/server"})
+    public void shouldRejectPublishQos2NotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -297,9 +255,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos0.with.packet.id/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishQos0WithPacketId() throws Exception
     {
         k3po.finish();
@@ -310,9 +265,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos1.without.packet.id/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishQos1WithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -323,9 +275,6 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.qos2.without.packet.id/client"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldRejectPublishQos2WithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -335,11 +284,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.retain.not.supported/client",
-        "${app}/session.connect/server"})
-    @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
+        "${app}/publish.reject.retain.not.supported/server"})
     public void shouldRejectPublishRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -350,8 +295,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithUserProperty() throws Exception
     {
         k3po.finish();
@@ -362,8 +305,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.distinct/client",
         "${app}/publish.with.user.properties.distinct/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithDistinctUserProperties() throws Exception
     {
         k3po.finish();
@@ -374,8 +315,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.repeated/client",
         "${app}/publish.with.user.properties.repeated/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishWithRepeatedUserProperties() throws Exception
     {
         k3po.finish();
@@ -386,8 +325,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.retained.message/client",
         "${app}/publish.empty.retained.message/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
@@ -398,8 +335,6 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldPublishEmptyMessage() throws Exception
     {
         k3po.finish();
@@ -409,9 +344,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.packet.too.large/client",
-        "${app}/session.connect/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+        "${app}/publish.reject.packet.too.large/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldRejectPacketTooLarge() throws Exception
     {

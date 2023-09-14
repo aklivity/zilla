@@ -161,9 +161,9 @@ scope mqtt
         {
             uint8 flags = 0;
             int32 expiry = 0;
-            uint16 qosMax = 0; // This as well to mqtt-kafka, set to 0
+            uint16 qosMax = 0;
             uint32 packetSizeMax = 0;
-            uint8 capabilities = 0; // TODO: add this to mqtt-kafka, and create a constant without shared subscription
+            uint8 capabilities = 0;
             string16 clientId;
             string16 serverRef = null;
         }

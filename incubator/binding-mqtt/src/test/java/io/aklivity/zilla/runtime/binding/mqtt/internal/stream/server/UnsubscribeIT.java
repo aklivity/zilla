@@ -16,8 +16,6 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -32,7 +30,6 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class UnsubscribeIT
 {
@@ -61,8 +58,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${app}/unsubscribe.after.subscribe/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
@@ -73,8 +68,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.topic.filter.single/client",
         "${app}/unsubscribe.topic.filter.single/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
@@ -85,8 +78,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.publish.unfragmented/client",
         "${app}/unsubscribe.publish.unfragmented/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
     {
         k3po.finish();
@@ -97,8 +88,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -109,8 +98,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.no.matching.subscription/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
@@ -121,8 +108,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
@@ -133,8 +118,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.missing.packet.id/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectWithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -145,8 +128,6 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.no.topic.filter/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
