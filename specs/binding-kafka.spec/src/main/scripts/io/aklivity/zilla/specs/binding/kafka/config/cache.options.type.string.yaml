@@ -32,7 +32,7 @@ bindings:
         - name: test
           value:
             type: string
-            encoding: utf_8
+            #encoding: utf_8
     routes:
       - exit: app1
         when:

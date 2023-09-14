@@ -37,13 +37,13 @@ bindings:
         - name: test
           key:
             type: string
-            encoding: utf_8
+            #encoding: utf_8
           value:
             type: avro
             catalog:
-              - name: test0
-                strategy: topic
-                version: latest
+              test0:
+                - strategy: topic
+                  version: latest
     routes:
       - exit: app1
         when:
