@@ -319,4 +319,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.messages.topic.alias.repeated/client",
+        "${net}/subscribe.receive.messages.topic.alias.repeated/server"})
+    public void shouldReceiveMessagesTopicAliasRepeated() throws Exception
+    {
+        k3po.finish();
+    }
 }

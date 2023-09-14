@@ -146,6 +146,16 @@ public class SubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${net}/subscribe.receive.messages.topic.alias.repeated/server",
+        "${app}/subscribe.receive.messages.topic.alias.repeated/client"})
+    public void shouldReceiveMessagesTopicAliasRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${net}/subscribe.receive.message.overlapping.wildcard/server",
         "${app}/subscribe.receive.message.overlapping.wildcard/client"})
     public void shouldReceiveMessageOverlappingWildcard() throws Exception

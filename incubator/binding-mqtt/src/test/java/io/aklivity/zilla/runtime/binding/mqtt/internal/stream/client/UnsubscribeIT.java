@@ -66,9 +66,19 @@ public class UnsubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/subscribe.one.message/server",
-        "${app}/subscribe.one.message/client"})
-    public void shouldReceiveOneMessage() throws Exception
+        "${net}/unsubscribe.after.subscribe/server",
+        "${app}/unsubscribe.after.subscribe/client"})
+    public void shouldAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server",
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact/client"})
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }

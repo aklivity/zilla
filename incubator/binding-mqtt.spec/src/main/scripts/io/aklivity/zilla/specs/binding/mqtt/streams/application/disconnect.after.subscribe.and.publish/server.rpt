@@ -64,18 +64,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                 .topic("sensor/one")
-                                 .subscriptionId(1)
-                                 .format("TEXT")
-                                 .build()
-                             .build()}
-
-write "message"
-write flush
-
 read closed
 write close
 

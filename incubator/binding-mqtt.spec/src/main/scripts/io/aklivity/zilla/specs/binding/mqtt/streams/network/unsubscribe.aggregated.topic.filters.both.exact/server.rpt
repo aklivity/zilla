@@ -54,12 +54,12 @@ write  [0x90 0x05]                   # SUBACK
 
 
 read   [0xa2 0x1b]                   # UNSUBSCRIBE
-       [0x00 0x01]                   # packet id = 1
+       [0x00 0x02]                   # packet id = 2
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/one"      # topic filter
        [0x00 0x0a] "sensor/two"      # topic filter
 
 write  [0xb0 0x05]                   # UNSUBACK
-       [0x00 0x01]                   # packet id = 1
+       [0x00 0x02]                   # packet id = 2
        [0x00]                        # properties = none
        [0x00 0x00]                   # reason codes

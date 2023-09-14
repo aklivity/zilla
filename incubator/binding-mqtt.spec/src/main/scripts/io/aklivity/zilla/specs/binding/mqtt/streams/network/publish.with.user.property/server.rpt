@@ -37,7 +37,7 @@ write [0x20 0x08]                                             # CONNACK
       [0x05]                                                  # properties = none
       [0x27] 66560                                            # maximum packet size = 66560
 
-read  [0x31 0x3f]                                             # PUBLISH
+read  [0x30 0x3f]                                             # PUBLISH
       [0x00 0x0a] "/sensors/1"                                # topic name
       [0x09]                                                  # properties
       [0x26]                                                  # user property id

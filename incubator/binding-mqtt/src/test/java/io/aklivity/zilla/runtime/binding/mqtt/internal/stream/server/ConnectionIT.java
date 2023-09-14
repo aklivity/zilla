@@ -544,4 +544,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.non.successful.connack/client",
+        "${app}/connect.non.successful.connack/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

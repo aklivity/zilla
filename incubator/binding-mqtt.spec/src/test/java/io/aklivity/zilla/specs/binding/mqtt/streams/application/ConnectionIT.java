@@ -63,4 +63,30 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.connack/client",
+        "${app}/connect.non.successful.connack/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.disconnect/client",
+        "${app}/connect.non.successful.disconnect/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.delegate.connack.properties/client",
+        "${app}/connect.delegate.connack.properties/server"})
+    public void shouldDelegateConnackProperties() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -25,7 +25,7 @@ write [0x10 0x3f]                                      # CONNECT
       [0x00 0x04] "MQTT"                               # protocol name
       [0x05]                                           # protocol version
       [0x26]                                           # flags = will retain, will flag, clean start
-      [0x00 0x0a]                                      # keep alive = 10s
+      [0x00 0x3c]                                      # keep alive = 60s
       [0x05]                                           # properties
       [0x27] 66560                                     # maximum packet size = 66560
       [0x00 0x03] "one"                                # client id

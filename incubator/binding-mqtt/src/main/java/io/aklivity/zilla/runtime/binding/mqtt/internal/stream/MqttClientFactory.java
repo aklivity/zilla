@@ -16,9 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.BAD_AUTHENTICATION_METHOD;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.DISCONNECT_WITH_WILL_MESSAGE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.KEEP_ALIVE_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_TOO_LARGE;
@@ -26,8 +24,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PA
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QOS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.RETAIN_NOT_SUPPORTED;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SESSION_TAKEN_OVER;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
@@ -51,6 +49,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPr
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_SUBSCRIPTION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_SUBSCRIPTION_IDS_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_TOPIC_ALIAS;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_TOPIC_ALIAS_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_USER_PROPERTY;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_WILDCARD_SUBSCRIPTION_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.DataFW.FIELD_OFFSET_PAYLOAD;
@@ -61,6 +60,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
@@ -72,14 +72,11 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
@@ -93,7 +90,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
@@ -101,14 +97,15 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectFW;
@@ -142,6 +139,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishB
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
@@ -156,6 +154,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 
 public final class MqttClientFactory implements MqttStreamFactory
 {
@@ -163,15 +162,11 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
-    private static final int MAXIMUM_CLIENT_ID_LENGTH = 36;
     private static final int CONNACK_FIXED_HEADER = 0b0010_0000;
     private static final int SUBACK_FIXED_HEADER = 0b1001_0000;
     private static final int UNSUBACK_FIXED_HEADER = 0b1011_0000;
-    private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
-    private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
 
-    private static final int CONNECT_RESERVED_MASK = 0b0000_0001;
     private static final int NO_FLAGS = 0b0000_0000;
     private static final int RETAIN_MASK = 0b0000_0001;
     private static final int PUBLISH_QOS1_MASK = 0b0000_0010;
@@ -179,9 +174,11 @@ public final class MqttClientFactory implements MqttStreamFactory
     private static final int NO_LOCAL_FLAG_MASK = 0b0000_0100;
     private static final int RETAIN_AS_PUBLISHED_MASK = 0b0000_1000;
     private static final int RETAIN_HANDLING_MASK = 0b0011_0000;
-    private static final int BASIC_AUTHENTICATION_MASK = 0b1100_0000;
 
+    private static final int WILL_FLAG_MASK = 0b0000_0100;
     private static final int WILL_QOS_MASK = 0b0001_1000;
+    private static final int WILL_RETAIN_MASK = 0b0010_0000;
+
     private static final int CONNECT_SESSION_EXPIRY_INTERVAL_MASK = 0b0000_0010;
 
     private static final int CONNACK_SESSION_PRESENT_MASK = 0b0000_0001;
@@ -196,6 +193,9 @@ public final class MqttClientFactory implements MqttStreamFactory
     private static final int CONNACK_SUBSCRIPTION_IDENTIFIERS_MASK = 0b0000_0100_0000;
     private static final int CONNACK_SHARED_SUBSCRIPTION_AVAILABLE_MASK = 0b0000_1000_0000;
     private static final int CONNACK_KEEP_ALIVE_MASK = 0b0001_0000_0000;
+    private static final int CONNACK_TOPIC_ALIAS_MAXIMUM_MASK = 0b0010_0000_0000;
+
+
 
     private static final int RETAIN_HANDLING_SEND = 0;
 
@@ -207,16 +207,13 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final int PUBLISH_TYPE = 0x03;
 
-    private static final int DEFAULT_WILL_DELAY = 0;
-
     private static final int PUBLISH_EXPIRED_SIGNAL = 1;
     private static final int KEEP_ALIVE_TIMEOUT_SIGNAL = 2;
     private static final int CONNACK_TIMEOUT_SIGNAL = 3;
+    private static final int PINGRESP_TIMEOUT_SIGNAL = 4;
 
     private static final int PUBLISH_FRAMING = 255;
-    //TODO: should these come from config?
-    private static final short TOPIC_ALIAS_MAXIMUM = 0;
-    private static final int KEEP_ALIVE = 60;
+    private static final int KEEP_ALIVE = 60000;
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
@@ -244,6 +241,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttDataExFW mqttPublishDataExRO = new MqttDataExFW();
     private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
+    private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
 
     private final MqttBeginExFW.Builder mqttPublishBeginExRW = new MqttBeginExFW.Builder();
@@ -252,44 +250,34 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttDataExFW.Builder mqttPublishDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSubscribeDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSessionDataExRW = new MqttDataExFW.Builder();
-    private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
-    private final MqttWillMessageFW.Builder mqttWillMessageRW = new MqttWillMessageFW.Builder();
+    private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
+    private final MqttWillFW.Builder willMessageRW = new MqttWillFW.Builder();
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnackFW mqttConnackRO = new MqttConnackFW();
     private final MqttSubackFW mqttSubackRO = new MqttSubackFW();
     private final MqttUnsubackFW mqttUnsubackRO = new MqttUnsubackFW();
     private final MqttWillFW mqttWillRO = new MqttWillFW();
+    private final MqttWillMessageFW mqttWillMessageRO = new MqttWillMessageFW();
     private final MqttPublishFW mqttPublishRO = new MqttPublishFW();
     private final MqttSubackPayloadFW mqttSubackPayloadRO = new MqttSubackPayloadFW();
     private final MqttUnsubackPayloadFW mqttUnsubackPayloadRO = new MqttUnsubackPayloadFW();
     private final MqttSubscribePayloadFW.Builder mqttSubscribePayloadRW = new MqttSubscribePayloadFW.Builder();
     private final MqttUnsubscribePayloadFW.Builder mqttUnsubscribePayloadRW = new MqttUnsubscribePayloadFW.Builder();
-private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
+    private final MqttPingRespFW mqttPingRespRO = new MqttPingRespFW();
     private final MqttDisconnectFW mqttDisconnectRO = new MqttDisconnectFW();
 
     private final OctetsFW octetsRO = new OctetsFW();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final MqttPropertyFW mqttPropertyRO = new MqttPropertyFW();
     private final MqttPropertyFW.Builder mqttPropertyRW = new MqttPropertyFW.Builder();
+    private final MqttPropertyFW.Builder mqttWillPropertyRW = new MqttPropertyFW.Builder();
 
-    private final MqttPropertiesFW mqttPropertiesRO = new MqttPropertiesFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
 
-    private final String16FW.Builder clientIdRW = new String16FW.Builder(BIG_ENDIAN);
-
-    private final String16FW clientIdRO = new String16FW(BIG_ENDIAN);
     private final String16FW contentTypeRO = new String16FW(BIG_ENDIAN);
     private final String16FW responseTopicRO = new String16FW(BIG_ENDIAN);
-    private final String16FW willTopicRO = new String16FW(BIG_ENDIAN);
-    private final String16FW usernameRO = new String16FW(BIG_ENDIAN);
-
-    private final OctetsFW.Builder sessionPayloadRW = new OctetsFW.Builder();
-
-    private final BinaryFW willPayloadRO = new BinaryFW();
-    private final BinaryFW passwordRO = new BinaryFW();
 
     private final MqttPublishHeader mqttPublishHeaderRO = new MqttPublishHeader();
 
@@ -300,7 +288,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
     private final MqttSubackFW.Builder mqttSubackRW = new MqttSubackFW.Builder();
     private final MqttUnsubackFW.Builder mqttUnsubackRW = new MqttUnsubackFW.Builder();
     private final MqttUnsubackPayloadFW.Builder mqttUnsubackPayloadRW = new MqttUnsubackPayloadFW.Builder();
-    private final MqttPingRespFW.Builder mqttPingRespRW = new MqttPingRespFW.Builder();
+    private final MqttPingReqFW.Builder mqttPingReqRW = new MqttPingReqFW.Builder();
     private final MqttDisconnectFW.Builder mqttDisconnectRW = new MqttDisconnectFW.Builder();
     private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
@@ -308,16 +296,13 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
     private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> topicFiltersRW =
         new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
-    private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> willUserPropertiesRW =
-        new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
-
     private final MqttClientDecoder decodeInitialType = this::decodeInitialType;
     private final MqttClientDecoder decodePacketType = this::decodePacketType;
     private final MqttClientDecoder decodeConnack = this::decodeConnack;
     private final MqttClientDecoder decodeSuback = this::decodeSuback;
     private final MqttClientDecoder decodeUnsuback = this::decodeUnsuback;
     private final MqttClientDecoder decodePublish = this::decodePublish;
-    private final MqttClientDecoder decodePingreq = this::decodePingreq;
+    private final MqttClientDecoder decodePingresp = this::decodePingResp;
     private final MqttClientDecoder decodeDisconnect = this::decodeDisconnect;
     private final MqttClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final MqttClientDecoder decodeUnknownType = this::decodeUnknownType;
@@ -331,11 +316,12 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         final Map<MqttPacketType, MqttClientDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
         decodersByPacketType.put(MqttPacketType.CONNACK, decodeConnack);
         decodersByPacketType.put(MqttPacketType.SUBACK, decodeSuback);
+        decodersByPacketType.put(MqttPacketType.UNSUBACK, decodeUnsuback);
         decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
         // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
         // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
-        decodersByPacketType.put(MqttPacketType.PINGREQ, decodePingreq);
+        decodersByPacketType.put(MqttPacketType.PINGRESP, decodePingresp);
         decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnect);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
         this.decodersByPacketType = decodersByPacketType;
@@ -348,14 +334,10 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
     private final MutableDirectBuffer willDataExtBuffer;
     private final MutableDirectBuffer payloadBuffer;
     private final MutableDirectBuffer propertyBuffer;
-    private final MutableDirectBuffer sessionExtBuffer;
-    private final MutableDirectBuffer sessionStateBuffer;
     private final MutableDirectBuffer userPropertiesBuffer;
     private final MutableDirectBuffer subscriptionIdsBuffer;
     private final MutableDirectBuffer willMessageBuffer;
     private final MutableDirectBuffer willPropertyBuffer;
-    private final MutableDirectBuffer willUserPropertiesBuffer;
-    private final MutableDirectBuffer subscribePayloadBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
@@ -374,19 +356,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
     private final long connackTimeoutMillis;
     private final int encodeBudgetMax;
 
-    private final short keepAliveMinimum;
-    private final short keepAliveMaximum;
-    private final byte maximumQos;
-    private final byte retainedMessages;
-    private final short topicAliasMaximumLimit;
-    private final byte wildcardSubscriptions;
-    private final byte subscriptionIdentifiers;
-    private final byte sharedSubscriptions;
-    private final boolean noLocal;
-    private final int sessionExpiryGracePeriod;
-    private final Supplier<String16FW> supplyClientId;
-
-    private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
 
 
@@ -403,12 +372,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         this.userPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionStateBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.subscribePayloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willPropertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willUserPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();
@@ -424,23 +389,9 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connackTimeoutMillis = SECONDS.toMillis(config.connackTimeout());
-        this.keepAliveMinimum = config.keepAliveMinimum();
-        this.keepAliveMaximum = config.keepAliveMaximum();
-        this.maximumQos = config.maximumQos();
         this.maximumPacketSize = writeBuffer.capacity();
-        this.retainedMessages = config.retainAvailable() ? (byte) 1 : 0;
-        this.wildcardSubscriptions = config.wildcardSubscriptionAvailable() ? (byte) 1 : 0;
-        this.subscriptionIdentifiers = config.subscriptionIdentifierAvailable() ? (byte) 1 : 0;
-        this.sharedSubscriptions = config.sharedSubscriptionAvailable() ? (byte) 1 : 0;
-        this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
-        this.noLocal = config.noLocal();
-        this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
         this.encodeBudgetMax = bufferPool.slotCapacity();
-        this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
-
-        final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
-        this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
         this.clients = new Int2ObjectHashMap<>();
     }
 
@@ -887,15 +838,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     break decode;
                 }
 
-                if (connack.reasonCode() != SUCCESS)
-                {
-                    //TODO: add test for this
-                    //TODO: do mqtt reset with the same reasonCode, so the server can send the same CONNACK
-                    client.cleanupNetwork(traceId, authorization);
-                    client.decoder = decodeIgnoreAll;
-                    break decode;
-                }
-
                 progress = client.onDecodeConnack(traceId, authorization, buffer, progress, limit, connack);
                 client.decoder = decodePacketType;
             }
@@ -1090,8 +1032,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         return invalid;
     }
 
-    private int decodePingreq(
-        MqttClient server,
+    private int decodePingResp(
+        MqttClient client,
         final long traceId,
         final long authorization,
         final long budgetId,
@@ -1105,16 +1047,16 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
         if (length > 0)
         {
-            final MqttPingReqFW ping = mqttPingReqRO.tryWrap(buffer, offset, limit);
+            final MqttPingRespFW ping = mqttPingRespRO.tryWrap(buffer, offset, limit);
             if (ping == null)
             {
-                server.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
-                server.decoder = decodeIgnoreAll;
+                client.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                client.decoder = decodeIgnoreAll;
             }
             else
             {
-                server.onDecodePingReq(traceId, authorization, ping);
-                server.decoder = decodePacketType;
+                client.onDecodePingResp(traceId, authorization, ping);
+                client.decoder = decodePacketType;
                 progress = ping.limit();
             }
         }
@@ -1207,7 +1149,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
     private final class MqttClient
     {
         //TODO: organize final and non-final fields
-        private MessageConsumer network;
         private final long originId;
         private final long routedId;
         private final long replyId;
@@ -1227,9 +1168,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         private final Object2IntHashMap<String> unsubscribePacketIds;
         private final long encodeBudgetId;
 
+        private MessageConsumer network;
         private MqttSessionStream sessionStream;
-
-        private String16FW clientId;
 
         private long decodeSeq;
         private long decodeAck;
@@ -1252,28 +1192,28 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         private long encodeSlotTraceId;
 
         private MqttClientDecoder decoder;
-        private int decodePublisherKey;
         private int decodeablePacketBytes;
 
         private long connackTimeoutId = NO_CANCEL_ID;
+        private long pingRespTimeoutId = NO_CANCEL_ID;
         private long connackTimeoutAt;
+        private long pingRespTimeoutAt;
 
         private long keepAliveTimeoutId = NO_CANCEL_ID;
         private long keepAliveTimeoutAt;
 
-        private boolean serverDefinedKeepAlive = false;
-        private short keepAlive;
-        private long keepAliveTimeout;
-        private int connectFlags;
-        private boolean connected;
+        private long keepAliveMillis = KEEP_ALIVE;
+        private long pingRespTimeoutMillis = (long) (KEEP_ALIVE * 0.5);
 
-        private int sessionExpiry;
+        private boolean connected;
+        private short topicAliasMaximum = Short.MAX_VALUE;
+        private int flags = 0;
+        private int capabilities = 0;
+        private int sessionExpiry = 0;
+        private String clientId;
         private byte maximumQos = 2;
         private int maximumPacketSize;
-        private boolean retainAvailable = true;
-        private boolean wildcardSubscriptionsAvailable = true;
-        private boolean subscriptionIdsAvailable = true;
-        private boolean sharedSubscriptionsAvailable = true;
+
         private boolean assignedClientId = false;
         private int decodablePropertyMask = 0;
 
@@ -1344,14 +1284,12 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long affinity = begin.affinity();
 
             state = MqttState.openingInitial(state);
 
             assert encodeBudgetIndex == NO_CREDITOR_INDEX;
             this.encodeBudgetIndex = creditor.acquire(encodeBudgetId);
 
-            sessionStream.doSessionBegin(traceId, authorization, affinity);
             doNetworkWindow(traceId, authorization, 0, 0L, 0, bufferPool.slotCapacity());
         }
 
@@ -1481,7 +1419,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 assert encodeSharedCredit <= encodeBudgetMax
                     : String.format("%d <= %d", encodeSharedCredit, encodeBudgetMax);
             }
-            //TODO: is this correct? Discuss
             sessionStream.doSessionWindow(traceId, authorization, encodeSlotOffset, encodeBudgetMax);
         }
 
@@ -1504,6 +1441,9 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             case KEEP_ALIVE_TIMEOUT_SIGNAL:
                 onKeepAliveTimeoutSignal(signal);
                 break;
+            case PINGRESP_TIMEOUT_SIGNAL:
+                onPingRespTimeoutSignal(signal);
+                break;
             case CONNACK_TIMEOUT_SIGNAL:
                 onConnectTimeoutSignal(signal);
                 break;
@@ -1518,18 +1458,18 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
-            final long now = System.currentTimeMillis();
-            if (now >= keepAliveTimeoutAt)
-            {
-                sessionStream.doSessionAbort(traceId, authorization);
-                onDecodeError(traceId, authorization, KEEP_ALIVE_TIMEOUT);
-                decoder = decodeIgnoreAll;
-            }
-            else
-            {
-                keepAliveTimeoutId =
-                    signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
-            }
+            doEncodePingReq(traceId, authorization);
+            keepAliveTimeoutId = NO_CANCEL_ID;
+            doSignalKeepAliveTimeout();
+        }
+
+        private void onPingRespTimeoutSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+
+            cleanupNetwork(traceId, authorization);
         }
 
         private void onConnectTimeoutSignal(
@@ -1579,19 +1519,40 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 //TODO: delegate qos back to the server using replyBegin
                 reasonCode = decodeConnackProperties(properties);
 
-                if (reasonCode != SUCCESS)
+                //TODO: add other values to the reply begin. Adapt MqttSessionBeginEx?
+                if (reasonCode != SUCCESS || connack.reasonCode() != SUCCESS)
                 {
                     break decode;
                 }
 
-                sessionStream.doSessionData(traceId, authorization, 0, EMPTY_OCTETS, EMPTY_OCTETS);
                 doCancelConnackTimeout();
+                doSignalKeepAliveTimeout();
             }
 
             progress = connack.limit();
             if (reasonCode != SUCCESS)
             {
                 doCancelConnackTimeout();
+                cleanupNetwork(traceId, authorization);
+                decoder = decodeIgnoreAll;
+            }
+
+            final Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mqttTypeId)
+                .session(sessionBuilder -> sessionBuilder
+                    .flags(flags)
+                    .expiry(sessionExpiry)
+                    .qosMax(maximumQos)
+                    .packetSizeMax(maximumPacketSize)
+                    .capabilities(capabilities)
+                    .clientId(clientId))
+                .build();
+
+            sessionStream.doSessionBegin(traceId, authorization, 0, mqttBeginEx);
+
+            if (connack.reasonCode() != SUCCESS)
+            {
+                sessionStream.doSessionReset(traceId, authorization, connack.reasonCode());
                 cleanupNetwork(traceId, authorization);
                 decoder = decodeIgnoreAll;
             }
@@ -1626,6 +1587,16 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     this.decodablePropertyMask |= CONNACK_SESSION_EXPIRY_MASK;
                     this.sessionExpiry = (int) mqttProperty.sessionExpiry();
                     break;
+                case KIND_TOPIC_ALIAS_MAXIMUM:
+                    if (isSetTopicAliasMaximum(decodablePropertyMask))
+                    {
+                        topicAliasMaximum = 0;
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    this.decodablePropertyMask |= CONNACK_TOPIC_ALIAS_MAXIMUM_MASK;
+                    this.topicAliasMaximum = (short) (mqttProperty.topicAliasMaximum() & 0xFFFF);
+                    break;
                 case KIND_MAXIMUM_QO_S:
                     if (isSetMaximumQos(decodablePropertyMask))
                     {
@@ -1657,7 +1628,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_RETAIN_AVAILABLE_MASK;
-                    this.retainAvailable = mqttProperty.retainAvailable() == 1;
+                    this.capabilities |= mqttProperty.retainAvailable() << MqttServerCapabilities.RETAIN.value();
                     break;
                 case KIND_ASSIGNED_CLIENT_ID:
                     if (isSetAssignedClientId(decodablePropertyMask))
@@ -1666,7 +1637,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_ASSIGNED_CLIENT_IDENTIFIER_MASK;
-                    this.clientId = mqttProperty.assignedClientId();
+                    clientId = mqttProperty.assignedClientId().asString();
                     assignedClientId = true;
                     break;
                 case KIND_WILDCARD_SUBSCRIPTION_AVAILABLE:
@@ -1676,7 +1647,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_WILDCARD_SUBSCRIPTION_AVAILABLE_MASK;
-                    wildcardSubscriptionsAvailable = mqttProperty.wildcardSubscriptionAvailable() == 1;
+                    this.capabilities |= mqttProperty.wildcardSubscriptionAvailable() << MqttServerCapabilities.WILDCARD.value();
                     break;
                 case KIND_SUBSCRIPTION_IDS_AVAILABLE:
                     if (isSetSubscriptionIdentifiers(decodablePropertyMask))
@@ -1685,7 +1656,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_SUBSCRIPTION_IDENTIFIERS_MASK;
-                    subscriptionIdsAvailable = mqttProperty.subscriptionIdsAvailable() == 1;
+                    this.capabilities |= mqttProperty.subscriptionIdsAvailable()
+                        << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
                     break;
                 case KIND_SHARED_SUBSCRIPTION_AVAILABLE:
                     if (isSetSharedSubscriptions(decodablePropertyMask))
@@ -1694,7 +1666,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_SHARED_SUBSCRIPTION_AVAILABLE_MASK;
-                    sharedSubscriptionsAvailable = mqttProperty.sharedSubscriptionAvailable() == 1;
+                    this.capabilities |= mqttProperty.sharedSubscriptionAvailable()
+                        << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
                     break;
                 case KIND_SERVER_KEEP_ALIVE:
                     if (isSetServerKeepAlive(decodablePropertyMask))
@@ -1703,8 +1676,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_SHARED_SUBSCRIPTION_AVAILABLE_MASK;
-                    serverDefinedKeepAlive = true;
-                    keepAlive = (short) mqttProperty.serverKeepAlive();
+                    keepAliveMillis = SECONDS.toMillis(mqttProperty.serverKeepAlive());
+                    pingRespTimeoutMillis = (long) (keepAliveMillis * 0.5);
                     break;
                 case KIND_USER_PROPERTY:
                     // TODO
@@ -1724,6 +1697,14 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             }
 
             return reasonCode;
+        }
+
+        private void onDecodePingResp(
+            long traceId,
+            long authorization,
+            MqttPingRespFW ping)
+        {
+            doCancelPingRespTimeout();
         }
 
         private int onDecodeSuback(
@@ -1761,7 +1742,9 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     // so that the server can send the same suback (like for connack)
                     if (subackPayload.reasonCode() > GRANTED_QOS_2)
                     {
-                        reasonCode = PROTOCOL_ERROR;
+                        sessionStream.doSessionReset(traceId, authorization, subackPayload.reasonCode());
+                        cleanupNetwork(traceId, authorization);
+                        decoder = decodeIgnoreAll;
                         break decode;
                     }
                 }
@@ -1801,7 +1784,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     decodeProgress = unsubackPayload.limit();
 
                     //TODO: send reset to the subscribe stream with the exact same reasoncode,
-                    // so that the server can send the same suback (like for connack)
+                    // so that the server can send the same unsuback (like for connack)
                     if (unsubackPayload.reasonCode() > SUCCESS)
                     {
                         reasonCode = PROTOCOL_ERROR;
@@ -1845,16 +1828,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             {
                 stream.doSubscribeData(traceId, authorization, reserved, payload, dataEx);
             }
-            doSignalKeepAliveTimeout();
-        }
-
-        private void onDecodePingReq(
-            long traceId,
-            long authorization,
-            MqttPingReqFW ping)
-        {
-            doSignalKeepAliveTimeout();
-            doEncodePingResp(traceId, authorization);
         }
 
         private void onDecodeDisconnect(
@@ -1871,13 +1844,9 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             }
             else
             {
-                if (disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
+                if (disconnect.reasonCode() != SUCCESS)
                 {
-                    sessionStream.doSessionAbort(traceId, authorization);
-                }
-                else
-                {
-                    sessionStream.doSessionEnd(traceId, authorization);
+                    sessionStream.doSessionReset(traceId, authorization, disconnect.reasonCode());
                 }
             }
 
@@ -1903,22 +1872,10 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
-                    if (isSetSessionExpiryInterval(decodablePropertyMask))
-                    {
-                        reasonCode = PROTOCOL_ERROR;
-                        break decode;
-                    }
-                    this.decodablePropertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
-                    final int sessionExpiryInterval = (int) mqttProperty.sessionExpiry();
-                    if (sessionExpiryInterval > 0 && this.sessionExpiry == 0)
-                    {
-                        reasonCode = PROTOCOL_ERROR;
-                        break decode;
-                    }
-                    break;
-                default:
-                    reasonCode = MALFORMED_PACKET;
+                    reasonCode = PROTOCOL_ERROR;
                     break decode;
+                default:
+                    break;
                 }
 
                 decodeProgress = mqttProperty.limit();
@@ -1932,24 +1889,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             long authorization,
             int reasonCode)
         {
-            switch (reasonCode)
-            {
-            case SESSION_TAKEN_OVER:
-                closeStreams(traceId, authorization);
-                break;
-            default:
-                cleanupStreamsUsingAbort(traceId, authorization);
-                break;
-            }
-            if (connected)
-            {
-                doEncodeDisconnect(traceId, authorization, reasonCode, null);
-            }
-            else
-            {
-                //doEncodeConnack(traceId, authorization, reasonCode, false, false, null);
-            }
-
+            cleanupStreamsUsingAbort(traceId, authorization);
             doNetworkEnd(traceId, authorization);
         }
 
@@ -2010,7 +1950,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
-                doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
+                doEnd(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -2026,7 +1966,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 cleanupBudgetCreditor();
                 cleanupEncodeSlot();
 
-                doAbort(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
+                doAbort(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -2100,6 +2040,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 final String16FW contentType = mqttPublishDataEx.contentType();
                 final String16FW responseTopic = mqttPublishDataEx.responseTopic();
                 final MqttBinaryFW correlation = mqttPublishDataEx.correlation();
+                final MqttPayloadFormatFW format = mqttPublishDataEx.format();
                 final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
                     mqttPublishDataEx.properties();
 
@@ -2129,11 +2070,13 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     propertiesSize.set(mqttPropertyRW.limit());
                 }
 
-                // TODO: optional format
-                mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
-                    .payloadFormat((byte) mqttPublishDataEx.format().get().ordinal())
-                    .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                if (!format.get().equals(MqttPayloadFormat.NONE))
+                {
+                    mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                        .payloadFormat((byte) mqttPublishDataEx.format().get().ordinal())
+                        .build();
+                    propertiesSize.set(mqttPropertyRW.limit());
+                }
 
                 if (responseTopic.value() != null)
                 {
@@ -2201,9 +2144,10 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         private void doEncodeConnect(
             long traceId,
             long authorization,
-            String16FW clientId,
+            String clientId,
             int flags,
-            int sessionExpiry)
+            int sessionExpiry,
+            MqttWillMessageFW willMessage)
         {
             int propertiesSize = 0;
 
@@ -2222,31 +2166,95 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                     .build();
                 propertiesSize = mqttProperty.limit();
             }
-
-            if (TOPIC_ALIAS_MAXIMUM > 0)
+            MqttWillFW will = null;
+            if (willMessage != null)
             {
-                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                    .topicAliasMaximum(TOPIC_ALIAS_MAXIMUM)
+                final int expiryInterval = willMessage.expiryInterval();
+                final String16FW contentType = willMessage.contentType();
+                final String16FW responseTopic = willMessage.responseTopic();
+                final MqttBinaryFW correlation = willMessage.correlation();
+                final MqttPayloadFormatFW format = willMessage.format();
+                final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
+                    willMessage.properties();
+
+                AtomicInteger willPropertiesSize = new AtomicInteger();
+                if (expiryInterval != -1)
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .expiryInterval(expiryInterval)
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                }
+
+                if (contentType.value() != null)
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .contentType(contentType.asString())
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                }
+
+                if (!format.get().equals(MqttPayloadFormat.NONE))
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .payloadFormat((byte) format.get().ordinal())
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                }
+
+                if (responseTopic.value() != null)
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .responseTopic(responseTopic.asString())
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                }
+
+                if (correlation.length() != -1)
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .correlationData(a -> a.bytes(correlation.bytes()))
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                }
+
+                properties.forEach(p ->
+                {
+                    mqttWillPropertyRW.wrap(willPropertyBuffer, willPropertiesSize.get(), willPropertyBuffer.capacity())
+                        .userProperty(c -> c.key(p.key()).value(p.value()))
+                        .build();
+                    willPropertiesSize.set(mqttWillPropertyRW.limit());
+                });
+
+                will = willMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                    .properties(p -> p.length(willPropertiesSize.get())
+                        .value(willPropertyBuffer, 0, willPropertiesSize.get()))
+                    .topic(willMessage.topic())
+                    .payload(p -> p.bytes(willMessage.payload().bytes()))
                     .build();
-                propertiesSize = mqttProperty.limit();
             }
 
             final int propertiesSize0 = propertiesSize;
-            //TODO: add username, password once we support authentication
+            final int willSize = will != null ? will.sizeof() : 0;
+            flags |= will != null ? (WILL_FLAG_MASK | ((willMessage.flags() & RETAIN_MASK) != 0 ? WILL_RETAIN_MASK : 0)) : 0;
             final MqttConnectFW connect =
                 mqttConnectRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x10)
-                    .remainingLength(11 + propertiesSize0 + clientId.sizeof()) // TODO: create constant from fixed length?
+                    .remainingLength(11 + propertiesSize0 + clientId.length() + 2 + willSize)
                     .protocolName(MQTT_PROTOCOL_NAME)
                     .protocolVersion(MQTT_PROTOCOL_VERSION)
                     .flags(flags)
-                    .keepAlive(KEEP_ALIVE)
+                    .keepAlive((int) MILLISECONDS.toSeconds(keepAliveMillis))
                     .properties(p -> p.length(propertiesSize0)
                         .value(propertyBuffer, 0, propertiesSize0))
                     .clientId(clientId)
                     .build();
 
             doNetworkData(traceId, authorization, 0L, connect);
+            if (will != null)
+            {
+                doNetworkData(traceId, authorization, 0L, will);
+            }
         }
 
         //TODO: better way so we can avoid passing subscribeStream as a parameter?
@@ -2275,8 +2283,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
             for (Subscription s : subscriptions)
             {
-                //TODO: add validations for wildcard, retain, shared etc. If the we receive a subscribe with this and
-                // the server does not allow this, abort the stream.
                 final int flags = calculateSubscribeFlags(s.flags);
                 final MqttSubscribePayloadFW subscribePayload =
                     mqttSubscribePayloadRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -2386,35 +2392,26 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             doNetworkData(traceId, authorization, 0L, unsuback);
         }
 
-        private void doEncodePingResp(
+        private void doEncodePingReq(
             long traceId,
             long authorization)
         {
-            final MqttPingRespFW pingResp =
-                mqttPingRespRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                    .typeAndFlags(0xd0)
+            final MqttPingReqFW pingReq =
+                mqttPingReqRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    .typeAndFlags(0xc0)
                     .remainingLength(0x00)
                     .build();
 
-            doNetworkData(traceId, authorization, 0L, pingResp);
+            doNetworkData(traceId, authorization, 0L, pingReq);
+            doSignalPingRespTimeout();
         }
 
         private void doEncodeDisconnect(
             long traceId,
             long authorization,
-            int reasonCode,
-            String16FW serverReference)
+            int reasonCode)
         {
             int propertiesSize = 0;
-
-            MqttPropertyFW mqttProperty;
-            if (serverReference != null)
-            {
-                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                    .serverReference(serverReference)
-                    .build();
-                propertiesSize = mqttProperty.limit();
-            }
 
             final int propertySize0 = propertiesSize;
             final MqttDisconnectFW disconnect =
@@ -2623,14 +2620,14 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
         private void doSignalKeepAliveTimeout()
         {
-            if (keepAlive > 0)
+            if (keepAliveMillis > 0)
             {
-                keepAliveTimeoutAt = System.currentTimeMillis() + keepAliveTimeout;
+                keepAliveTimeoutAt = System.currentTimeMillis() + keepAliveMillis;
 
                 if (keepAliveTimeoutId == NO_CANCEL_ID)
                 {
                     keepAliveTimeoutId =
-                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
+                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, initialId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
                 }
             }
         }
@@ -2641,7 +2638,27 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
             if (connackTimeoutId == NO_CANCEL_ID)
             {
-                connackTimeoutId = signaler.signalAt(connackTimeoutAt, originId, routedId, replyId, CONNACK_TIMEOUT_SIGNAL, 0);
+                connackTimeoutId = signaler.signalAt(connackTimeoutAt, originId, routedId, initialId, CONNACK_TIMEOUT_SIGNAL, 0);
+            }
+        }
+
+        private void doSignalPingRespTimeout()
+        {
+            pingRespTimeoutAt = System.currentTimeMillis() + pingRespTimeoutMillis;
+
+            if (pingRespTimeoutId == NO_CANCEL_ID)
+            {
+                pingRespTimeoutId =
+                    signaler.signalAt(pingRespTimeoutAt, originId, routedId, initialId, PINGRESP_TIMEOUT_SIGNAL, 0);
+            }
+        }
+
+        private void doCancelPingRespTimeout()
+        {
+            if (pingRespTimeoutId != NO_CANCEL_ID)
+            {
+                signaler.cancel(pingRespTimeoutId);
+                pingRespTimeoutId = NO_CANCEL_ID;
             }
         }
 
@@ -2761,6 +2778,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             final long authorization = window.authorization();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
+            final boolean wasOpen = MqttState.replyOpened(state);
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
@@ -2784,6 +2802,11 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
             {
                 doSessionEnd(traceId, authorization);
+            }
+
+            if (!wasOpen)
+            {
+                doSessionData(traceId, authorization, 0, EMPTY_OCTETS, EMPTY_OCTETS);
             }
         }
 
@@ -2838,13 +2861,20 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SESSION;
             final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
 
-            final String16FW clientId = mqttSessionBeginEx.clientId();
-            final int flags = mqttSessionBeginEx.flags();
-            final int expiry = mqttSessionBeginEx.expiry();
+            client.clientId = mqttSessionBeginEx.clientId().asString();
+            client.flags = mqttSessionBeginEx.flags();
+            client.sessionExpiry = mqttSessionBeginEx.expiry();
 
-            client.doEncodeConnect(traceId, authorization, clientId, flags, expiry);
+            if (!isSetWillFlag(mqttSessionBeginEx.flags()))
+            {
+                client.doEncodeConnect(traceId, authorization, client.clientId, client.flags, client.sessionExpiry, null);
+                client.doSignalConnackTimeout();
+            }
+            else
+            {
+                doSessionBegin(traceId, authorization, affinity, EMPTY_OCTETS);
+            }
             doSessionWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
-            client.doSignalConnackTimeout();
         }
 
         private void onSessionData(
@@ -2856,6 +2886,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             final int reserved = data.reserved();
             final long authorization = data.authorization();
             final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -2873,15 +2904,31 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             }
             else
             {
+
+                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                final MqttDataExFW mqttDataEx =
+                    dataEx != null && dataEx.typeId() == mqttTypeId ? extension.get(mqttDataExRO::tryWrap) : null;
+                final MqttSessionDataExFW mqttSessionDataEx =
+                    mqttDataEx != null && mqttDataEx.kind() == MqttDataExFW.KIND_SESSION ? mqttDataEx.session() : null;
+
                 final DirectBuffer buffer = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
 
-                MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
+                switch (mqttSessionDataEx.kind().get())
+                {
+                case WILL:
+                    MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
+                    client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
+                        client.sessionExpiry, willMessage);
+                    client.doSignalConnackTimeout();
+                    break;
+                case STATE:
 
-                //TODO: do we just echo back this? We should not subscribe yet,
-                // as that should be done in reaction to onSubscribeBegin
-                doSessionData(traceId, authorization, reserved, EMPTY_OCTETS, sessionState);
+                    MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
+                    doSessionData(traceId, authorization, reserved, EMPTY_OCTETS, sessionState);
+                    break;
+                }
             }
         }
 
@@ -2901,7 +2948,10 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
             assert initialAck <= initialSeq;
 
+            client.doEncodeDisconnect(traceId, authorization, SUCCESS);
             client.doNetworkEnd(traceId, authorization);
+
+            doSessionEnd(traceId, authorization);
         }
 
         private void onSessionAbort(
@@ -3004,6 +3054,26 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
         private void doSessionReset(
             long traceId,
+            long authorization,
+            int reasonCode)
+        {
+            if (!MqttState.initialClosed(state))
+            {
+                Flyweight resetEx = mqttResetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .reasonCode(reasonCode)
+                    .build();
+
+                state = MqttState.closeInitial(state);
+
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, resetEx);
+            }
+        }
+
+        private void doSessionReset(
+            long traceId,
             long authorization)
         {
             if (!MqttState.initialClosed(state))
@@ -3015,28 +3085,16 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             }
         }
 
-        private void setInitialClosed()
-        {
-            assert !MqttState.initialClosed(state);
-
-            state = MqttState.closeInitial(state);
-
-            if (debitorIndex != NO_DEBITOR_INDEX)
-            {
-                debitor.release(debitorIndex, initialId);
-                debitorIndex = NO_DEBITOR_INDEX;
-            }
-        }
-
         public void doSessionBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            Flyweight extension)
         {
             state = MqttState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, EMPTY_OCTETS);
+                traceId, authorization, affinity, extension);
         }
 
         private void doSessionEnd(
@@ -3318,7 +3376,8 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
             assert initialAck <= initialSeq;
 
-            client.doNetworkEnd(traceId, authorization);
+            client.doEncodeUnsubscribe(traceId, authorization, subscriptions);
+            doSubscribeEnd(traceId, authorization);
         }
 
         private void onSubscribeAbort(
@@ -3582,7 +3641,7 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
             assert initialAck <= initialSeq;
 
-            client.doNetworkEnd(traceId, authorization);
+            doPublishEnd(traceId, authorization);
         }
 
         private void onPublishAbort(
@@ -3793,6 +3852,12 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         return (flags & CONNACK_SESSION_EXPIRY_MASK) != 0;
     }
 
+    private static boolean isSetTopicAliasMaximum(
+        int flags)
+    {
+        return (flags & CONNACK_TOPIC_ALIAS_MAXIMUM_MASK) != 0;
+    }
+
     private static boolean isSetMaximumQos(
         int flags)
     {
@@ -3841,6 +3906,11 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
         return (flags & CONNACK_KEEP_ALIVE_MASK) != 0;
     }
 
+    private static boolean isSetWillFlag(
+        int flags)
+    {
+        return (flags & MqttSessionFlags.WILL.value() << 1) != 0;
+    }
 
     private static int decodeConnectProtocol(
         MqttConnectFW connect)
@@ -3929,11 +3999,11 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                 qos = calculatePublishQos(typeAndFlags);
 
                 int alias = 0;
-                if (qos > maximumQos)
+                if (qos > client.maximumQos)
                 {
                     reasonCode = QOS_NOT_SUPPORTED;
                 }
-                else if (retained && retainedMessages == 0)
+                else if (retained && isRetainAvailable(client.capabilities))
                 {
                     reasonCode = RETAIN_NOT_SUPPORTED;
                 }
@@ -3959,7 +4029,6 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
                             }
                             break;
                         case KIND_TOPIC_ALIAS:
-                            //TODO: add test for this
                             if (alias != 0)
                             {
                                 reasonCode = PROTOCOL_ERROR;
@@ -3968,11 +4037,11 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
 
                             alias = mqttProperty.topicAlias() & 0xFFFF;
 
-                            //if (alias <= 0 || alias > client.topicAliasMaximum)
-                            //{
-                            //    reasonCode = TOPIC_ALIAS_INVALID;
-                            //    break decode;
-                            //}
+                            if (alias <= 0 || alias > client.topicAliasMaximum)
+                            {
+                                reasonCode = TOPIC_ALIAS_INVALID;
+                                break decode;
+                            }
 
                             if (topic.isEmpty())
                             {
@@ -4049,6 +4118,12 @@ private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
             }
             return flags;
         }
+    }
+
+    private boolean isRetainAvailable(
+        int capabilities)
+    {
+        return (capabilities & 1 << MqttServerCapabilities.RETAIN.value()) != 0;
     }
 
     private final class Subscription

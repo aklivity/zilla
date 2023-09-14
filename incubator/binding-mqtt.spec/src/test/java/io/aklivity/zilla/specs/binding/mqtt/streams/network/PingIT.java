@@ -47,6 +47,24 @@ public class PingIT
 
     @Test
     @Specification({
+        "${net}/ping.server.override.keep.alive/client",
+        "${net}/ping.server.override.keep.alive/server"})
+    public void shouldPingServerOverridesKeepAlive() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ping.no.pingresp/client",
+        "${net}/ping.no.pingresp/server"})
+    public void shouldCloseWhenPingRequestNoResponseInTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/ping.keep.alive/client",
         "${net}/ping.keep.alive/server"})
     public void shouldPingAtKeepAliveInterval() throws Exception

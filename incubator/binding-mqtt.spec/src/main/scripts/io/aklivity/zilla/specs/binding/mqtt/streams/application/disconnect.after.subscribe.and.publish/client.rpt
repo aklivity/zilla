@@ -47,8 +47,11 @@ read ${mqtt:session()
            .build()}
 read notify RECEIVED_SESSION_STATE
 
+write await RECEIVED_SUBSCRIBE_STREAM_OPEN
+write await SENT_PUBLISH_DATA
 write close
 read closed
+read notify RECEIVE_SUBSCRIBE_CLOSED
 
 
 connect await RECEIVED_SESSION_STATE
@@ -65,23 +68,14 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .build()}
 
 connected
+read notify RECEIVED_SUBSCRIBE_STREAM_OPEN
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                              .typeId(zilla:id("mqtt"))
-                              .subscribe()
-                                 .topic("sensor/one")
-                                 .subscriptionId(1)
-                                 .format("TEXT")
-                                 .build()
-                              .build()}
-read "message"
-
+write await RECEIVE_SUBSCRIBE_CLOSED
 write close
 read closed
 
-write notify SUBSCRIBE_CLOSED
 
-connect await SUBSCRIBE_CLOSED
+connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -104,6 +98,7 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "message"
 write flush
+write notify SENT_PUBLISH_DATA
 
 write close
 read closed

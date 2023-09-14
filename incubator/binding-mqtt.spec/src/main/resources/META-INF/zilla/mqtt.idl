@@ -51,7 +51,8 @@ scope mqtt
     enum MqttPayloadFormat
     {
         BINARY,
-        TEXT
+        TEXT,
+        NONE
     }
 
     enum MqttTime (int64)
@@ -123,7 +124,7 @@ scope mqtt
         uint8 flags = 0;
         int32 expiryInterval = -1;
         string16 contentType = null;
-        MqttPayloadFormat format = BINARY;
+        MqttPayloadFormat format = NONE;
         string16 responseTopic = null;
         string16 lifetimeId = null;
         string16 willId = null;
@@ -148,10 +149,21 @@ scope mqtt
             case 2: mqtt::stream::MqttSessionBeginEx session;
         }
 
+        enum MqttServerCapabilities (uint8)
+        {
+            RETAIN (0),
+            WILDCARD (1),
+            SUBSCRIPTION_IDS (2),
+            SHARED_SUBSCRIPTIONS (3)
+        }
+
         struct MqttSessionBeginEx
         {
             uint8 flags = 0;
             int32 expiry = 0;
+            uint16 qosMax = 0; // This as well to mqtt-kafka, set to 0
+            uint32 packetSizeMax = 0;
+            uint8 capabilities = 0; // TODO: add this to mqtt-kafka, and create a constant without shared subscription
             string16 clientId;
             string16 serverRef = null;
         }
@@ -185,7 +197,7 @@ scope mqtt
             varuint32[] subscriptionIds;
             int32 expiryInterval = -1;
             string16 contentType = null;
-            MqttPayloadFormat format = BINARY;
+            MqttPayloadFormat format = NONE;
             string16 responseTopic = null;
             MqttBinary correlation;
             MqttUserProperty[] properties;
@@ -198,7 +210,7 @@ scope mqtt
             uint8 flags = 0;
             int32 expiryInterval = -1;
             string16 contentType = null;
-            MqttPayloadFormat format = BINARY;
+            MqttPayloadFormat format = NONE;
             string16 responseTopic = null;
             MqttBinary correlation;
             MqttUserProperty[] properties;
@@ -218,6 +230,7 @@ scope mqtt
         struct MqttResetEx extends core::stream::Extension
         {
             string16 serverRef = null;
+            uint8 reasonCode = 0;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

@@ -225,4 +225,12 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.messages.topic.alias.repeated/client",
+        "${app}/subscribe.receive.messages.topic.alias.repeated/server"})
+    public void shouldReceiveMessagesTopicAliasRepeated() throws Exception
+    {
+        k3po.finish();
+    }
 }

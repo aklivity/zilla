@@ -113,6 +113,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
@@ -162,6 +163,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -183,7 +185,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int NO_LOCAL_FLAG_MASK = 0b0000_0100;
     private static final int RETAIN_AS_PUBLISHED_MASK = 0b0000_1000;
     private static final int RETAIN_HANDLING_MASK = 0b0011_0000;
-    private static final int BASIC_AUTHENTICATION_MASK = 0b1100_0000;
+    private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
+    private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
+    private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
+    private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
 
     private static final int WILL_FLAG_MASK = 0b0000_0100;
     private static final int CLEAN_START_FLAG_MASK = 0b0000_0010;
@@ -347,12 +352,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final short keepAliveMinimum;
     private final short keepAliveMaximum;
-    private final byte maximumQos;
-    private final byte retainedMessages;
     private final short topicAliasMaximumLimit;
-    private final byte wildcardSubscriptions;
-    private final byte subscriptionIdentifiers;
-    private final byte sharedSubscriptions;
     private final boolean noLocal;
     private final int sessionExpiryGracePeriod;
     private final Supplier<String16FW> supplyClientId;
@@ -392,12 +392,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
         this.keepAliveMinimum = config.keepAliveMinimum();
         this.keepAliveMaximum = config.keepAliveMaximum();
-        this.maximumQos = config.maximumQos();
         this.maximumPacketSize = writeBuffer.capacity();
-        this.retainedMessages = config.retainAvailable() ? (byte) 1 : 0;
-        this.wildcardSubscriptions = config.wildcardSubscriptionAvailable() ? (byte) 1 : 0;
-        this.subscriptionIdentifiers = config.subscriptionIdentifierAvailable() ? (byte) 1 : 0;
-        this.sharedSubscriptions = config.sharedSubscriptionAvailable() ? (byte) 1 : 0;
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.noLocal = config.noLocal();
         this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
@@ -1232,6 +1227,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutId = NO_CANCEL_ID;
         private long keepAliveTimeoutAt;
 
+        private int maximumQos;
+        private long packetSizeMax;
+        private int capabilities;
         private boolean serverDefinedKeepAlive = false;
         private short keepAlive;
         private long keepAliveTimeout;
@@ -1682,6 +1680,24 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final MqttConnectPayload payload = mqttConnectPayloadRO.reset();
                 int connectPayloadLimit = payload.decode(buffer, progress, limit, connectFlags);
+
+
+                if (isSetWillRetain(connectFlags))
+                {
+                    if (retainAvailable(capabilities))
+                    {
+                        reasonCode = RETAIN_NOT_SUPPORTED;
+                        break decode;
+                    }
+                    payload.willRetain = (byte) RETAIN_FLAG;
+                }
+
+                if (payload.willQos > maximumQos)
+                {
+                    reasonCode = QOS_NOT_SUPPORTED;
+                    break decode;
+                }
+
                 reasonCode = payload.reasonCode;
 
                 if (reasonCode != SUCCESS)
@@ -1849,6 +1865,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reserved,
             OctetsFW payload)
         {
+            if (qos > maximumQos)
+            {
+                reasonCode = QOS_NOT_SUPPORTED;
+            }
+            else if (retained && retainedMessages == 0)
+            {
+                reasonCode = RETAIN_NOT_SUPPORTED;
+            }
+
             final int topicKey = topicKey(mqttPublishHeaderRO.topic);
             MqttPublishStream stream = publishStreams.get(topicKey);
 
@@ -1950,21 +1975,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                             decoder = decodeIgnoreAll;
                             break;
                         }
-                        if (wildcardSubscriptions == 0 && (filter.contains("+") || filter.contains("#")))
+                        if (!wildcardAvailable(capabilities) && (filter.contains("+") || filter.contains("#")))
                         {
                             onDecodeError(traceId, authorization, WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED);
                             decoder = decodeIgnoreAll;
                             break;
                         }
 
-                        if (sharedSubscriptions == 0 && filter.contains(SHARED_SUBSCRIPTION_LITERAL))
+                        if (!sharedSubscriptionAvailable(capabilities) && filter.contains(SHARED_SUBSCRIPTION_LITERAL))
                         {
                             onDecodeError(traceId, authorization, SHARED_SUBSCRIPTION_NOT_SUPPORTED);
                             decoder = decodeIgnoreAll;
                             break;
                         }
 
-                        if (subscriptionIdentifiers == 0 && containsSubscriptionId)
+                        if (!subscriptionIdsAvailable(capabilities) && containsSubscriptionId)
                         {
                             onDecodeError(traceId, authorization, SUBSCRIPTION_IDS_NOT_SUPPORTED);
                             decoder = decodeIgnoreAll;
@@ -1987,6 +2012,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscription.flags = flags;
                         //TODO: what if we don't have a subscriptionId
                         subscribePacketIds.put(subscriptionId, packetId);
+
                         newSubscriptions.add(subscription);
                     }
 
@@ -2113,15 +2139,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionStream.deferredUnsubscribes.put(packetId, topicFilters);
                     return;
                 }
-                if (topicFilters.stream().anyMatch(tf ->
-                    sessionStream.subscriptions.stream().noneMatch(s -> s.filter.equals(tf))))
-                {
-                    sendUnsuback(packetId, traceId, authorization, topicFilters, false);
-                }
-                else
+                boolean matchingSubscription = topicFilters.stream().anyMatch(tf ->
+                    sessionStream.subscriptions.stream().anyMatch(s -> s.filter.equals(tf)));
+                if (matchingSubscription)
                 {
                     topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
                     doSendSessionState(traceId, topicFilters);
+                }
+                else
+                {
+                    sendUnsuback(packetId, traceId, authorization, topicFilters, false);
                 }
                 doSignalKeepAliveTimeout();
             }
@@ -2441,6 +2468,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int expiryInterval = subscribeDataEx.subscribe().expiryInterval();
                 final String16FW contentType = subscribeDataEx.subscribe().contentType();
                 final String16FW responseTopic = subscribeDataEx.subscribe().responseTopic();
+                final MqttPayloadFormatFW format = subscribeDataEx.subscribe().format();
                 final MqttBinaryFW correlation = subscribeDataEx.subscribe().correlation();
                 final Array32FW<Varuint32FW> subscriptionIds = subscribeDataEx.subscribe().subscriptionIds();
                 final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
@@ -2491,11 +2519,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize.set(mqttPropertyRW.limit());
                 }
 
-                // TODO: optional format
-                mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
-                    .payloadFormat((byte) subscribeDataEx.subscribe().format().get().ordinal())
-                    .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                if (!format.get().equals(MqttPayloadFormat.NONE))
+                {
+                    mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                        .payloadFormat((byte) subscribeDataEx.subscribe().format().get().ordinal())
+                        .build();
+                    propertiesSize.set(mqttPropertyRW.limit());
+                }
 
                 if (responseTopic.value() != null)
                 {
@@ -2590,15 +2620,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (0 <= maximumQos && maximumQos < 2)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .maximumQoS(maximumQos)
+                        .maximumQoS((byte) maximumQos)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (retainedMessages == 0)
+                if (!retainAvailable(capabilities))
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .retainAvailable(retainedMessages)
+                        .retainAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -2611,26 +2641,26 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (wildcardSubscriptions == 0)
+                if (!retainAvailable(capabilities))
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .wildcardSubscriptionAvailable(wildcardSubscriptions)
+                        .wildcardSubscriptionAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (subscriptionIdentifiers == 0)
+                if (!sharedSubscriptionAvailable(capabilities))
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .subscriptionIdsAvailable(subscriptionIdentifiers)
+                        .subscriptionIdsAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (sharedSubscriptions == 0)
+                if (!sharedSubscriptionAvailable(capabilities))
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .sharedSubscriptionAvailable(sharedSubscriptions)
+                        .sharedSubscriptionAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -3187,15 +3217,19 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (mqttResetEx != null)
                 {
                     String16FW serverRef = mqttResetEx.serverRef();
-                    boolean serverRefExists = serverRef != null;
+                    byte reasonCode = (byte) mqttResetEx.reasonCode();
+                    boolean serverRefExists = serverRef != null && serverRef.asString() != null;
 
-                    byte reasonCode = serverRefExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
+                    if (reasonCode == SUCCESS)
+                    {
+                        reasonCode = serverRefExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
+                    }
 
                     if (!connected)
                     {
                         doCancelConnectTimeout();
                         doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
-                            false, serverRef);
+                            false, serverRefExists ? serverRef : null);
                     }
                     else
                     {
@@ -3236,6 +3270,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
+                    capabilities = mqttSessionBeginEx.capabilities();
+                    maximumQos = mqttSessionBeginEx.qosMax();
+                    packetSizeMax = mqttSessionBeginEx.packetSizeMax();
                 }
 
                 doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);
@@ -3296,6 +3333,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     subscription.flags = filter.flags();
                                     subscriptions.add(subscription);
                                 });
+                                int packetId = subscribePacketIds.get(subscriptions.get(0).id);
+                                subscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
                                 openSubscribeStreams(packetId, traceId, authorization, subscriptions, true);
                                 sessionPresent = true;
                             }
@@ -3593,7 +3632,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             publishBuilder.clientId(clientId);
                             publishBuilder.topic(topic);
-                            publishBuilder.flags(retainedMessages);
+                            publishBuilder.flags(retainAvailable(capabilities) ? 1 : 0);
                         })
                         .build();
 
@@ -4400,6 +4439,30 @@ public final class MqttServerFactory implements MqttStreamFactory
         return (flags & WILL_QOS_MASK) == WILL_QOS_MASK;
     }
 
+    private static boolean retainAvailable(
+        int capabilities)
+    {
+        return (capabilities & RETAIN_AVAILABLE_MASK) != 0;
+    }
+
+    private static boolean wildcardAvailable(
+        int capabilities)
+    {
+        return (capabilities & WILDCARD_AVAILABLE_MASK) != 0;
+    }
+
+    private static boolean subscriptionIdsAvailable(
+        int capabilities)
+    {
+        return (capabilities & SUBSCRIPTION_IDS_AVAILABLE_MASK) != 0;
+    }
+
+    private static boolean sharedSubscriptionAvailable(
+        int capabilities)
+    {
+        return (capabilities & SHARED_SUBSCRIPTIONS_AVAILABLE_MASK) != 0;
+    }
+
     private static boolean isSetWillQos(
         int flags)
     {
@@ -4591,19 +4654,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     final byte qos = (byte) ((flags & WILL_QOS_MASK) >>> 3);
-                    if (qos != 0 && qos <= maximumQos)
+                    if (qos != 0)
                     {
                         willQos = (byte) (qos << 1);
-                    }
-
-                    if (isSetWillRetain(flags))
-                    {
-                        if (retainedMessages == 0)
-                        {
-                            reasonCode = RETAIN_NOT_SUPPORTED;
-                            break decode;
-                        }
-                        willRetain = (byte) RETAIN_FLAG;
                     }
 
                     willProperties = mqttWill.properties();
@@ -4763,90 +4816,80 @@ public final class MqttServerFactory implements MqttStreamFactory
                 qos = calculatePublishApplicationQos(typeAndFlags);
 
                 int alias = 0;
-                if (qos > maximumQos)
-                {
-                    reasonCode = QOS_NOT_SUPPORTED;
-                }
-                else if (retained && retainedMessages == 0)
-                {
-                    reasonCode = RETAIN_NOT_SUPPORTED;
-                }
-                else
-                {
-                    decode:
-                    for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
-                    {
-                        final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap(decodeBuffer, decodeProgress, decodeLimit);
-                        switch (mqttProperty.kind())
-                        {
-                        case KIND_EXPIRY_INTERVAL:
-                            expiryInterval = mqttProperty.expiryInterval();
-                            break;
-                        case KIND_CONTENT_TYPE:
-                            final String16FW mContentType = mqttProperty.contentType();
-                            if (mContentType.value() != null)
-                            {
-                                final int offset = mContentType.offset();
-                                final int limit = mContentType.limit();
 
-                                contentType = contentTypeRO.wrap(mContentType.buffer(), offset, limit);
-                            }
-                            break;
-                        case KIND_TOPIC_ALIAS:
-                            if (alias != 0)
+                decode:
+                for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
+                {
+                    final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap(decodeBuffer, decodeProgress, decodeLimit);
+                    switch (mqttProperty.kind())
+                    {
+                    case KIND_EXPIRY_INTERVAL:
+                        expiryInterval = mqttProperty.expiryInterval();
+                        break;
+                    case KIND_CONTENT_TYPE:
+                        final String16FW mContentType = mqttProperty.contentType();
+                        if (mContentType.value() != null)
+                        {
+                            final int offset = mContentType.offset();
+                            final int limit = mContentType.limit();
+
+                            contentType = contentTypeRO.wrap(mContentType.buffer(), offset, limit);
+                        }
+                        break;
+                    case KIND_TOPIC_ALIAS:
+                        if (alias != 0)
+                        {
+                            reasonCode = PROTOCOL_ERROR;
+                            break decode;
+                        }
+
+                        alias = mqttProperty.topicAlias() & 0xFFFF;
+
+                        if (alias <= 0 || alias > server.topicAliasMaximum)
+                        {
+                            reasonCode = TOPIC_ALIAS_INVALID;
+                            break decode;
+                        }
+
+                        if (topic.isEmpty())
+                        {
+                            if (!server.topicAliases.containsKey(alias))
                             {
                                 reasonCode = PROTOCOL_ERROR;
                                 break decode;
                             }
-
-                            alias = mqttProperty.topicAlias() & 0xFFFF;
-
-                            if (alias <= 0 || alias > server.topicAliasMaximum)
-                            {
-                                reasonCode = TOPIC_ALIAS_INVALID;
-                                break decode;
-                            }
-
-                            if (topic.isEmpty())
-                            {
-                                if (!server.topicAliases.containsKey(alias))
-                                {
-                                    reasonCode = PROTOCOL_ERROR;
-                                    break decode;
-                                }
-                                topic = server.topicAliases.get(alias);
-                            }
-                            else
-                            {
-                                server.topicAliases.put(alias, topic);
-                            }
-                            break;
-                        case KIND_PAYLOAD_FORMAT:
-                            payloadFormat = MqttPayloadFormat.valueOf(mqttProperty.payloadFormat());
-                            break;
-                        case KIND_RESPONSE_TOPIC:
-                            final String16FW mResponseTopic = mqttProperty.responseTopic();
-                            if (mResponseTopic.value() != null)
-                            {
-                                final int offset = mResponseTopic.offset();
-                                final int limit = mResponseTopic.limit();
-
-                                responseTopic = responseTopicRO.wrap(mResponseTopic.buffer(), offset, limit);
-                            }
-                            break;
-                        case KIND_CORRELATION_DATA:
-                            correlationData = mqttProperty.correlationData().bytes();
-                            break;
-                        case KIND_USER_PROPERTY:
-                            final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
-                            userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
-                            break;
-                        default:
-                            reasonCode = MALFORMED_PACKET;
-                            break decode;
+                            topic = server.topicAliases.get(alias);
                         }
-                        decodeProgress = mqttProperty.limit();
+                        else
+                        {
+                            server.topicAliases.put(alias, topic);
+                        }
+                        break;
+                    case KIND_PAYLOAD_FORMAT:
+                        payloadFormat = MqttPayloadFormat.valueOf(mqttProperty.payloadFormat());
+                        break;
+                    case KIND_RESPONSE_TOPIC:
+                        final String16FW mResponseTopic = mqttProperty.responseTopic();
+                        if (mResponseTopic.value() != null)
+                        {
+                            final int offset = mResponseTopic.offset();
+                            final int limit = mResponseTopic.limit();
+
+                            responseTopic = responseTopicRO.wrap(mResponseTopic.buffer(), offset, limit);
+                        }
+                        break;
+                    case KIND_CORRELATION_DATA:
+                        correlationData = mqttProperty.correlationData().bytes();
+                        break;
+                    case KIND_USER_PROPERTY:
+                        final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
+                        userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
+                        break;
+                    default:
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
                     }
+                    decodeProgress = mqttProperty.limit();
                 }
             }
 

@@ -56,6 +56,6 @@ write [0x82 0x10]                   # SUBSCRIBE
       [0x20]                        # options = at-most-once
 
 read  [0x90 0x04]                   # SUBACK
-      [0x00 0x01]                   # packet id = 1
+      [0x00 0x02]                   # packet id = 2
       [0x00]                        # properties = none
       [0x00]                        # reason code      
