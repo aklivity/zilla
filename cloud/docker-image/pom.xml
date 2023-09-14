@@ -298,8 +298,6 @@
                             <include>com/fasterxml/jackson/**</include>
                             <include>org/yaml/snakeyaml/**</include>
                             <include>org/junit/**</include>
-                            <include>org/apache/commons/**</include>
-                            <include>org/apache/avro/**</include>
                           </includes>
                         </fileSet>
                       </fileSets>
