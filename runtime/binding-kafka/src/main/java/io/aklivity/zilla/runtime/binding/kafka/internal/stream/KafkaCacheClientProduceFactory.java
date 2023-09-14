@@ -731,12 +731,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if ((flags & FLAGS_FIN) != 0x00 &&
                 type != null &&
-                type.value != null)
+                type.value != null &&
+                !partition.validProduceEntry(type, stream.segment))
             {
-                if (!partition.validProduceEntry(type, stream.segment))
-                {
-                    error = ERROR_INVALID_RECORD;
-                }
+                error = ERROR_INVALID_RECORD;
             }
 
             if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)
