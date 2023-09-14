@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PA
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QOS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.RETAIN_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SHARED_SUBSCRIPTION_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
@@ -55,6 +56,9 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPr
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.DataFW.FIELD_OFFSET_PAYLOAD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_EXPIRY_INTERVAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_FORMAT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities.SHARED_SUBSCRIPTIONS;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities.SUBSCRIPTION_IDS;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities.WILDCARD;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -72,6 +76,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -195,7 +200,10 @@ public final class MqttClientFactory implements MqttStreamFactory
     private static final int CONNACK_KEEP_ALIVE_MASK = 0b0001_0000_0000;
     private static final int CONNACK_TOPIC_ALIAS_MAXIMUM_MASK = 0b0010_0000_0000;
 
-
+    private final int SHARED_SUBSCRIPTION_AVAILABLE_MASK = 1 << SHARED_SUBSCRIPTIONS.value();
+    private final int WILDCARD_AVAILABLE_MASK = 1 << WILDCARD.value();
+    private final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << SUBSCRIPTION_IDS.value();
+    private final int RETAIN_AVAILABLE_MASK = 1 << RETAIN.value();
 
     private static final int RETAIN_HANDLING_SEND = 0;
 
@@ -1208,7 +1216,9 @@ public final class MqttClientFactory implements MqttStreamFactory
         private boolean connected;
         private short topicAliasMaximum = Short.MAX_VALUE;
         private int flags = 0;
-        private int capabilities = 0;
+
+        private int capabilities = SHARED_SUBSCRIPTION_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
+            SUBSCRIPTION_IDS_AVAILABLE_MASK | RETAIN_AVAILABLE_MASK;
         private int sessionExpiry = 0;
         private String clientId;
         private byte maximumQos = 2;
@@ -1525,6 +1535,20 @@ public final class MqttClientFactory implements MqttStreamFactory
                     break decode;
                 }
 
+
+                Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .session(sessionBuilder -> sessionBuilder
+                        .flags(flags)
+                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiry))
+                        .qosMax(maximumQos)
+                        .packetSizeMax(maximumPacketSize)
+                        .capabilities(capabilities)
+                        .clientId(clientId))
+                    .build();
+
+                sessionStream.doSessionBegin(traceId, authorization, 0, mqttBeginEx);
+
                 doCancelConnackTimeout();
                 doSignalKeepAliveTimeout();
             }
@@ -1628,7 +1652,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_RETAIN_AVAILABLE_MASK;
-                    this.capabilities |= mqttProperty.retainAvailable() << MqttServerCapabilities.RETAIN.value();
+                    this.capabilities &= mqttProperty.retainAvailable() << MqttServerCapabilities.RETAIN.value();
                     break;
                 case KIND_ASSIGNED_CLIENT_ID:
                     if (isSetAssignedClientId(decodablePropertyMask))
@@ -1647,7 +1671,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_WILDCARD_SUBSCRIPTION_AVAILABLE_MASK;
-                    this.capabilities |= mqttProperty.wildcardSubscriptionAvailable() << MqttServerCapabilities.WILDCARD.value();
+                    this.capabilities &= mqttProperty.wildcardSubscriptionAvailable() << MqttServerCapabilities.WILDCARD.value();
                     break;
                 case KIND_SUBSCRIPTION_IDS_AVAILABLE:
                     if (isSetSubscriptionIdentifiers(decodablePropertyMask))
@@ -1656,7 +1680,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_SUBSCRIPTION_IDENTIFIERS_MASK;
-                    this.capabilities |= mqttProperty.subscriptionIdsAvailable()
+                    this.capabilities &= mqttProperty.subscriptionIdsAvailable()
                         << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
                     break;
                 case KIND_SHARED_SUBSCRIPTION_AVAILABLE:
@@ -1666,7 +1690,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_SHARED_SUBSCRIPTION_AVAILABLE_MASK;
-                    this.capabilities |= mqttProperty.sharedSubscriptionAvailable()
+                    this.capabilities &= mqttProperty.sharedSubscriptionAvailable()
                         << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
                     break;
                 case KIND_SERVER_KEEP_ALIVE:

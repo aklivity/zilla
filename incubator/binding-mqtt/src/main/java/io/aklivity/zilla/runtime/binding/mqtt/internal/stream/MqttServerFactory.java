@@ -2087,6 +2087,17 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
 
+            if (!adminSubscribe)
+            {
+                final byte[] subscriptionPayload = new byte[subscriptions.size()];
+                for (int i = 0; i < subscriptionPayload.length; i++)
+                {
+                    subscriptionPayload[i] = (byte) subscriptions.get(i).reasonCode;
+                }
+
+                doEncodeSuback(traceId, sessionId, packetId, subscriptionPayload);
+            }
+
             for (Subscription subscription : subscriptions)
             {
                 final MqttBindingConfig binding = bindings.get(routedId);
@@ -2236,7 +2247,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 Optional<Subscription> subscription = stream.getSubscriptionByFilter(topicFilter);
 
-                int encodeReasonCode = subscription.isPresent() ? SUCCESS : NO_SUBSCRIPTION_EXISTED;
+                int encodeReasonCode = subscription.isPresent() ? subscription.get().reasonCode : NO_SUBSCRIPTION_EXISTED;
                 final MqttUnsubackPayloadFW mqttUnsubackPayload =
                     mqttUnsubackPayloadRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .reasonCode(encodeReasonCode)
@@ -3063,6 +3074,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private String filter;
             private int qos;
             private int flags;
+            private int reasonCode;
 
             private boolean retainAsPublished()
             {
@@ -3082,13 +3094,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 Subscription other = (Subscription) obj;
                 return this.id == other.id && Objects.equals(this.filter, other.filter) &&
-                    this.qos == other.qos && this.flags == other.flags;
+                    this.qos == other.qos && this.flags == other.flags && this.reasonCode == other.reasonCode;
             }
 
             @Override
             public int hashCode()
             {
-                return Objects.hash(this.id, this.filter, this.qos, this.flags);
+                return Objects.hash(this.id, this.filter, this.qos, this.flags, this.reasonCode);
             }
         }
 
@@ -3375,6 +3387,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 subscription.id = (int) filter.subscriptionId();
                                 subscription.filter = filter.pattern().asString();
                                 subscription.flags = filter.flags();
+                                subscription.reasonCode = filter.reasonCode();
                                 newState.add(subscription);
                             });
                             List<Subscription> currentSubscriptions = sessionStream.subscriptions();
@@ -4109,19 +4122,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .build()
                         .sizeof()));
 
-                if (newSubscriptions != null && !newSubscriptions.isEmpty())
-                {
-                    // TODO: do we get back anything after we send a flush?
-                    //  Should we say it's a success right after we sent the flush?
-                    final byte[] subscriptionPayload = new byte[newSubscriptions.size()];
-                    for (int i = 0; i < subscriptionPayload.length; i++)
-                    {
-                        subscriptionPayload[i] = SUCCESS;
-                    }
-
-                    doEncodeSuback(traceId, sessionId, packetId, subscriptionPayload);
-                }
-
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
             }
@@ -4305,18 +4305,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!subscriptions.isEmpty() && !adminSubscribe)
                 {
-                    final byte[] subscriptionPayload = new byte[subscriptions.size()];
-                    //TODO: if we get back the window, can it be anything else than success? I think yes, and we only need to
-                    // recognize reject scenarios when doing the decodeSubscribe
-                    for (int i = 0; i < subscriptionPayload.length; i++)
-                    {
-                        subscriptionPayload[i] = SUCCESS;
-                    }
-
-                    if (!MqttState.initialOpened(state))
-                    {
-                        doEncodeSuback(traceId, authorization, packetId, subscriptionPayload);
-                    }
                     if (!sessionStream.deferredUnsubscribes.isEmpty())
                     {
                         Iterator<Map.Entry<Integer, List<String>>> iterator =
