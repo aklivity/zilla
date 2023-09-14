@@ -15,7 +15,6 @@
  */
 module io.aklivity.zilla.runtime.binding.kafka
 {
-    requires org.apache.avro;
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.kafka.config;
