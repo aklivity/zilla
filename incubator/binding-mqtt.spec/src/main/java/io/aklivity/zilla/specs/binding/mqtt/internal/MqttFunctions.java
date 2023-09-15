@@ -221,13 +221,6 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder serverRef(
-                String serverRef)
-            {
-                sessionBeginExRW.serverRef(serverRef);
-                return this;
-            }
-
             public MqttSessionBeginExBuilder flags(
                 String... flagNames)
             {
@@ -1279,7 +1272,6 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
-            private String16FW serverRef;
             private Integer expiry;
             private Integer flags;
 
@@ -1298,13 +1290,6 @@ public final class MqttFunctions
                 int expiry)
             {
                 this.expiry = expiry;
-                return this;
-            }
-
-            public MqttSessionBeginExMatcherBuilder serverRef(
-                String serverRef)
-            {
-                this.serverRef = new String16FW(serverRef);
                 return this;
             }
 
@@ -1328,8 +1313,7 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
-                    matchFlags(sessionBeginEx) &&
-                    matchserverRef(sessionBeginEx);
+                    matchFlags(sessionBeginEx);
             }
 
             private boolean matchClientId(
@@ -1348,12 +1332,6 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return flags == null || flags == sessionBeginEx.flags();
-            }
-
-            private boolean matchserverRef(
-                final MqttSessionBeginExFW sessionBeginEx)
-            {
-                return serverRef == null || serverRef.equals(sessionBeginEx.serverRef());
             }
         }
     }

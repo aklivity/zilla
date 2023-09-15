@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String TOPICS_NAME = "topics";
+    private static final String SERVER_NAME = "server";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
@@ -52,8 +53,13 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        String serverRef = mqttKafkaOptions.serverRef;
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
 
+        if (serverRef != null)
+        {
+            object.add(SERVER_NAME, serverRef);
+        }
         if (topics != null)
         {
             JsonObjectBuilder newTopics = Json.createObjectBuilder();
@@ -86,6 +92,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         JsonObject object)
     {
         JsonObject topics = object.getJsonObject(TOPICS_NAME);
+        String server = object.getString(SERVER_NAME, null);
 
         String16FW newSessions = new String16FW(topics.getString(SESSIONS_NAME));
         String16FW newMessages = new String16FW(topics.getString(MESSAGES_NAME));
@@ -93,6 +100,6 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         MqttKafkaTopicsConfig newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
 
-        return new MqttKafkaOptionsConfig(newTopics);
+        return new MqttKafkaOptionsConfig(newTopics, server);
     }
 }
