@@ -4175,13 +4175,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     EMPTY_OCTETS.sizeof());
             }
 
-            if (heartbeatRequestId == NO_CANCEL_ID)
+            if (heartbeatRequestId != NO_CANCEL_ID)
             {
-                encoder = encodeHeartbeatRequest;
-
-                heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                    originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
+                signaler.cancel(heartbeatRequestId);
+                heartbeatRequestId = NO_CANCEL_ID;
             }
+
+            encoder = encodeHeartbeatRequest;
+
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+                originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onHeartbeatResponse(
