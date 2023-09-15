@@ -32,15 +32,6 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
 
-    private static final String16FW SESSIONS_DEFAULT = new String16FW("mqtt_sessions");
-    private static final String16FW MESSAGES_DEFAULT = new String16FW("mqtt_messages");
-    private static final String16FW RETAINED_DEFAULT = new String16FW("mqtt_retained");
-    private static final MqttKafkaTopicsConfig TOPICS_DEFAULT =
-        new MqttKafkaTopicsConfig(SESSIONS_DEFAULT, MESSAGES_DEFAULT, RETAINED_DEFAULT);
-
-    public static final MqttKafkaOptionsConfig DEFAULT =
-        new MqttKafkaOptionsConfig(TOPICS_DEFAULT);
-
     @Override
     public Kind kind()
     {
@@ -63,27 +54,23 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
 
-        if (topics != null &&
-            !TOPICS_DEFAULT.equals(topics))
+        if (topics != null)
         {
             JsonObjectBuilder newTopics = Json.createObjectBuilder();
             String16FW sessions = topics.sessions;
-            if (sessions != null &&
-                !(SESSIONS_DEFAULT.equals(sessions)))
+            if (sessions != null)
             {
                 newTopics.add(SESSIONS_NAME, sessions.asString());
             }
 
             String16FW messages = topics.messages;
-            if (messages != null &&
-                !MESSAGES_DEFAULT.equals(messages))
+            if (messages != null)
             {
                 newTopics.add(MESSAGES_NAME, messages.asString());
             }
 
             String16FW retained = topics.retained;
-            if (retained != null &&
-                !RETAINED_DEFAULT.equals(retained))
+            if (retained != null)
             {
                 newTopics.add(RETAINED_NAME, retained.asString());
             }
@@ -98,34 +85,13 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        MqttKafkaTopicsConfig newTopics = TOPICS_DEFAULT;
+        JsonObject topics = object.getJsonObject(TOPICS_NAME);
 
-        if (object.containsKey(TOPICS_NAME))
-        {
-            JsonObject topics = object.getJsonObject(TOPICS_NAME);
-            String16FW newSessions = SESSIONS_DEFAULT;
+        String16FW newSessions = new String16FW(topics.getString(SESSIONS_NAME));
+        String16FW newMessages = new String16FW(topics.getString(MESSAGES_NAME));
+        String16FW newRetained = new String16FW(topics.getString(RETAINED_NAME));
 
-            if (topics.containsKey(SESSIONS_NAME))
-            {
-                newSessions = new String16FW(topics.getString(SESSIONS_NAME));
-            }
-
-            String16FW newMessages = MESSAGES_DEFAULT;
-
-            if (topics.containsKey(MESSAGES_NAME))
-            {
-                newMessages = new String16FW(topics.getString(MESSAGES_NAME));
-            }
-
-            String16FW newRetained = RETAINED_DEFAULT;
-
-            if (topics.containsKey(RETAINED_NAME))
-            {
-                newRetained = new String16FW(topics.getString(RETAINED_NAME));
-            }
-
-            newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
-        }
+        MqttKafkaTopicsConfig newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
 
         return new MqttKafkaOptionsConfig(newTopics);
     }

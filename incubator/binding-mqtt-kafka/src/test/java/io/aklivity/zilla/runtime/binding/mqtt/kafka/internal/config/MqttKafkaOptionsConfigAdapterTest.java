@@ -41,20 +41,6 @@ public class MqttKafkaOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithDefaults()
-    {
-        String text = "{ }";
-
-        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.topics, not(nullValue()));
-        assertThat(options.topics.sessions.asString(), equalTo("mqtt_sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("mqtt_messages"));
-        assertThat(options.topics.retained.asString(), equalTo("mqtt_retained"));
-    }
-
-    @Test
     public void shouldReadOptions()
     {
         String text =

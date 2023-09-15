@@ -29,7 +29,6 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttKafkaConfiguration extends Configuration
 {
-    public static final String MQTT_CLIENTS_GROUP_ID = "mqtt-clients";
     private static final ConfigurationDef MQTT_KAFKA_CONFIG;
 
     public static final PropertyDef<String> MESSAGES_TOPIC;
@@ -46,9 +45,9 @@ public class MqttKafkaConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt.kafka");
-        MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
-        RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic", "mqtt_retained");
-        SESSIONS_TOPIC = config.property("sessions.topic", "mqtt_sessions");
+        MESSAGES_TOPIC = config.property("messages.topic");
+        RETAINED_MESSAGES_TOPIC = config.property("retained.messages.topic");
+        SESSIONS_TOPIC = config.property("sessions.topic");
         SESSION_ID = config.property(StringSupplier.class, "session.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultSessionId);
         WILL_ID = config.property(StringSupplier.class, "will.id",

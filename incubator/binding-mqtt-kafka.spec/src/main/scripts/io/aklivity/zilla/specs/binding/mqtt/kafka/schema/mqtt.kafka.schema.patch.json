@@ -59,11 +59,22 @@
                                         "title": "Kafka Retained Topic",
                                         "type": "string",
                                         "default": "mqtt_retained"
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 },
+                                "required":
+                                [
+                                    "sessions",
+                                    "retained",
+                                    "messages"
+                                ],
                                 "additionalProperties": false
                             }
                         },
+                        "required":
+                        [
+                            "topics"
+                        ],
                         "additionalProperties": false
                     },
                     "routes": false
@@ -73,7 +84,8 @@
                     {
                         "required":
                         [
-                            "exit"
+                            "exit",
+                            "options"
                         ]
                     }
                 ]

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -38,9 +37,7 @@ public class MqttKafkaBindingConfig
     {
         this.id = binding.id;
         this.kind = binding.kind;
-        this.options = Optional.ofNullable(binding.options)
-            .map(MqttKafkaOptionsConfig.class::cast)
-            .orElse(MqttKafkaOptionsConfigAdapter.DEFAULT);
+        this.options = (MqttKafkaOptionsConfig) binding.options;
         this.routes = binding.routes.stream().map(MqttKafkaRouteConfig::new).collect(toList());
     }
 

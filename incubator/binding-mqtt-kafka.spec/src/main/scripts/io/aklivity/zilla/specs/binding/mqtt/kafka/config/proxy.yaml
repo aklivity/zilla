@@ -19,4 +19,9 @@ bindings:
   mqtt0:
     type: mqtt-kafka
     kind: proxy
+    options:
+      topics:
+        sessions: mqtt-sessions
+        messages: mqtt-messages
+        retained: mqtt-retained
     exit: kafka0
