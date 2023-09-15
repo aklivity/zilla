@@ -55,9 +55,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.Descr
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataTopicFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerUserdataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerPartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerSubscriptionMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerSubscriptionUserdataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerTopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.AssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
@@ -72,8 +76,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.Member
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -171,9 +177,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
     private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
-    private final ConsumerMetadataFW.Builder groupMemberMetadataRW = new ConsumerMetadataFW.Builder();
-    private final ConsumerMetadataTopicFW.Builder groupMetadataTopicRW = new ConsumerMetadataTopicFW.Builder();
-    private final ConsumerUserdataFW.Builder groupUserdataRW = new ConsumerUserdataFW.Builder();
+    private final ConsumerSubscriptionMetadataFW.Builder groupSubscriptionMetadataRW =
+        new ConsumerSubscriptionMetadataFW.Builder();
+    private final ConsumerAssignmentMetadataFW.Builder assignmentMetadataRW = new ConsumerAssignmentMetadataFW.Builder();
+    private final ConsumerMetadataTopicFW.Builder metadataTopicRW = new ConsumerMetadataTopicFW.Builder();
+    private final ConsumerTopicPartitionFW.Builder topicPartitionRW = new ConsumerTopicPartitionFW.Builder();
+    private final ConsumerPartitionFW.Builder partitionRW = new ConsumerPartitionFW.Builder();
+    private final ConsumerSubscriptionUserdataFW.Builder subscriptionUserdataRW =
+        new ConsumerSubscriptionUserdataFW.Builder();
+    private final ConsumerAssignmentUserdataFW.Builder assignmentUserdataRW =
+        new ConsumerAssignmentUserdataFW.Builder();
+    private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
+        new Array32FW<>(new MemberAssignmentFW());
 
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
@@ -186,11 +201,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final LeaveGroupResponseFW leaveGroupResponseRO = new LeaveGroupResponseFW();
     private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
-    private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
-        new Array32FW<>(new MemberAssignmentFW());
-    private final ConsumerMetadataFW groupMemberMetadataRO = new ConsumerMetadataFW();
-    private final ConsumerMetadataTopicFW groupMetadataTopicRO = new ConsumerMetadataTopicFW();
-    private final ConsumerUserdataFW groupUserdataRO = new ConsumerUserdataFW();
+    private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicPartitionsRW =
+        new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+    private final ConsumerSubscriptionMetadataFW subscriptionMetadataRO = new ConsumerSubscriptionMetadataFW();
+    private final ConsumerAssignmentMetadataFW assignmentMetadataRO = new ConsumerAssignmentMetadataFW();
+    private final ConsumerMetadataTopicFW metadataTopicRO = new ConsumerMetadataTopicFW();
+    private final ConsumerSubscriptionUserdataFW subscriptionUserdataRO = new ConsumerSubscriptionUserdataFW();
+    private final ConsumerAssignmentUserdataFW assignmentUserdataRO = new ConsumerAssignmentUserdataFW();
+    private final ConsumerTopicPartitionFW topicPartitionRO = new ConsumerTopicPartitionFW();
+    private final ConsumerPartitionFW partitionRO = new ConsumerPartitionFW();
+    private final Array32FW<ConsumerAssignmentFW> assignmentConsumersRO = new Array32FW<>(new ConsumerAssignmentFW());
 
     private final KafkaGroupMemberMetadataFW kafkaMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
@@ -1509,15 +1529,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationData(
             long traceId,
             long authorization,
-            OctetsFW payload)
+            DirectBuffer buffer,
+            int offset,
+            int length)
         {
             final int reserved = replyPad;
 
-            if (payload.sizeof() > 0)
+            if (length > 0)
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved,
-                    payload.value(), 0, payload.sizeof(), EMPTY_EXTENSION);
+                    traceId, authorization, replyBudgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
             }
             else
             {
@@ -3437,8 +3458,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = joinGroupRequest.limit();
 
-            final int metadataLimit = delegate.topicMetadataLimit > 0 ? doGenerateMembersMetadata() :
-                doGenerateEmptyMetadata();
+            final int metadataLimit = delegate.topicMetadataLimit > 0 ? doGenerateSubscriptionMetadata() :
+                doGenerateEmptySubscriptionMetadata();
 
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -3466,7 +3487,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doApplicationBeginIfNecessary(traceId, authorization);
         }
 
-        private int doGenerateMembersMetadata()
+        private int doGenerateSubscriptionMetadata()
         {
             final MutableDirectBuffer encodeBuffer = extBuffer;
             final int encodeOffset = 0;
@@ -3477,7 +3498,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             KafkaGroupMemberMetadataFW memberMetadata = kafkaMemberMetadataRO
                 .wrap(delegate.metadataBuffer, 0, delegate.topicMetadataLimit);
 
-            ConsumerMetadataFW metadata = groupMemberMetadataRW
+            ConsumerSubscriptionMetadataFW metadata = groupSubscriptionMetadataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .version(METADATA_LOWEST_VERSION)
                 .metadataTopicCount(memberMetadata.topics().fieldCount())
@@ -3487,7 +3508,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             memberMetadata.topics().forEach(t ->
             {
-                ConsumerMetadataTopicFW metadataTopic = groupMetadataTopicRW
+                ConsumerMetadataTopicFW metadataTopic = metadataTopicRW
                     .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                     .name(t.topic())
                     .build();
@@ -3496,7 +3517,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             memberMetadata.topics().forEach(t ->
             {
-                final ConsumerUserdataFW userdata = groupUserdataRW
+                final ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRW
                     .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                     .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                     .ownedPartitions(0)
@@ -3508,7 +3529,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             return encodeProgress.get();
         }
 
-        private int doGenerateEmptyMetadata()
+        private int doGenerateEmptySubscriptionMetadata()
         {
             final MutableDirectBuffer encodeBuffer = extBuffer;
             final int encodeOffset = 0;
@@ -3516,7 +3537,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
 
-            ConsumerMetadataFW metadata = groupMemberMetadataRW
+            ConsumerSubscriptionMetadataFW metadata = groupSubscriptionMetadataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .version(METADATA_LOWEST_VERSION)
                 .metadataTopicCount(0)
@@ -3524,13 +3545,63 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress.set(metadata.limit());
 
-            final ConsumerUserdataFW userdata = groupUserdataRW
+            final ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRW
                 .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                 .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
                 .ownedPartitions(0)
                 .build();
 
             encodeProgress.set(userdata.limit());
+
+            return encodeProgress.get();
+        }
+
+        private int doGenerateAssignmentMetadata(
+            Array32FW<TopicAssignmentFW> topicPartitions,
+            int progressOffset)
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = progressOffset;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            ConsumerAssignmentMetadataFW metadata = assignmentMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(topicPartitions.fieldCount())
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            topicPartitions.forEach(t ->
+            {
+                final Array32FW<TopicPartitionFW> partitions = t.partitions();
+
+                ConsumerTopicPartitionFW topicPartition = topicPartitionRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .topic(t.topic())
+                    .partitionCount(partitions.fieldCount())
+                    .build();
+                encodeProgress.set(topicPartition.limit());
+
+                partitions.forEach(p ->
+                {
+                    ConsumerPartitionFW partition = partitionRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                        .partitionId(p.partitionId())
+                        .build();
+                    encodeProgress.set(partition.limit());
+                });
+
+                Array32FW<ConsumerAssignmentFW> assignmentUserdata = t.userdata();
+                final ConsumerAssignmentUserdataFW userdata = assignmentUserdataRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .userdata(assignmentUserdata.buffer(), assignmentUserdata.offset(), assignmentUserdata.sizeof())
+                    .build();
+
+                encodeProgress.set(userdata.limit());
+
+            });
 
             return encodeProgress.get();
         }
@@ -3573,16 +3644,20 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 Array32FW<MemberAssignmentFW> assignments = memberAssignmentRO
                     .wrap(assignment.buffer(), assignment.offset(), assignment.limit());
 
+                MutableInteger progressOffset = new MutableInteger();
                 assignments.forEach(a ->
                 {
                     Array32FW<TopicAssignmentFW> topicPartitions = a.assignments();
-                    final AssignmentFW groupAssignment =
+
+                    int newProgressOffset = doGenerateAssignmentMetadata(topicPartitions, progressOffset.get());
+                    final AssignmentFW memberAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                             .memberId(a.memberId())
-                            .value(topicPartitions.buffer(), topicPartitions.offset(), topicPartitions.sizeof())
+                            .value(extBuffer, progressOffset.get(), newProgressOffset)
                             .build();
 
-                    encodeProgress.set(groupAssignment.limit());
+                    encodeProgress.set(memberAssignment.limit());
+                    progressOffset.set(newProgressOffset);
                 });
             }
             else
@@ -4000,17 +4075,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                             int progress = 0;
 
-                            ConsumerMetadataFW newGroupMetadata = groupMemberMetadataRO
+                            ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
                                 .wrap(buffer, 0, metadata.sizeof());
                             progress = newGroupMetadata.limit();
 
                             for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
                             {
-                                ConsumerMetadataTopicFW topic = groupMetadataTopicRO.wrap(buffer, progress, limit);
+                                ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
                                 progress = topic.limit();
                             }
 
-                            ConsumerUserdataFW userdata = groupUserdataRO.wrap(buffer, progress, limit);
+                            ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
 
                             gm.item(i ->
                             {
@@ -4041,19 +4116,75 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onSyncGroupResponse(
             long traceId,
             long authorization,
-            OctetsFW assignment)
+            OctetsFW newAssignment)
         {
             nextResponseId++;
 
-            delegate.doApplicationData(traceId, authorization, assignment);
-
-            if (heartbeatRequestId == NO_CANCEL_ID)
+            if (newAssignment.sizeof() > 0)
             {
-                encoder = encodeHeartbeatRequest;
+                Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentBuilder =
+                    topicPartitionsRW.wrap(extBuffer, 0, extBuffer.capacity());
 
-                heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                    originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
+                final DirectBuffer buffer = newAssignment.value();
+                final int limit = newAssignment.sizeof();
+
+                MutableInteger progress = new MutableInteger();
+
+                final ConsumerAssignmentMetadataFW assignment = assignmentMetadataRO.wrap(buffer, progress.get(), limit);
+                progress.set(assignment.limit());
+
+                for (int i = 0; i < assignment.metadataTopicCount(); i++)
+                {
+                    ConsumerTopicPartitionFW topicPartition = topicPartitionRO
+                        .wrap(buffer, progress.get(), limit);
+
+                    progress.set(topicPartition.limit());
+
+                    topicAssignmentBuilder.item(ta ->
+                    {
+                        ta.topic(topicPartition.topic());
+                        int partitionCount = topicPartition.partitionCount();
+                        for (int t = 0; t < partitionCount; t++)
+                        {
+                            ConsumerPartitionFW partition = partitionRO.wrap(buffer, progress.get(), limit);
+                            progress.set(partition.limit());
+
+                            ta.partitionsItem(p -> p.partitionId(partition.partitionId()));
+                        }
+
+                        ConsumerAssignmentUserdataFW assignmentUserdata =
+                            assignmentUserdataRO.wrap(buffer, progress.get(), limit);
+                        OctetsFW userdata = assignmentUserdata.userdata();
+
+                        progress.set(assignmentUserdata.limit());
+
+                        assignmentConsumersRO.wrap(userdata.value(), 0, userdata.sizeof());
+                        ta.userdata(assignmentConsumersRO);
+                    });
+
+                }
+
+                Array32FW<TopicAssignmentFW> topicAssignment = topicAssignmentBuilder.build();
+
+                delegate.doApplicationData(traceId, authorization, topicAssignment.buffer(), topicAssignment.offset(),
+                    topicAssignment.sizeof());
             }
+            else
+            {
+                delegate.doApplicationData(traceId, authorization, EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(),
+                    EMPTY_OCTETS.sizeof());
+            }
+
+            if (heartbeatRequestId != NO_CANCEL_ID)
+            {
+                signaler.cancel(heartbeatRequestId);
+                heartbeatRequestId = NO_CANCEL_ID;
+            }
+
+            encoder = encodeHeartbeatRequest;
+
+            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+                originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onHeartbeatResponse(

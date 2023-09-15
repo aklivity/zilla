@@ -30,6 +30,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .timeout(45000)
                                 .topic("test")
                                 .partition(0)
+                                .partition(1)
                                 .build()
                               .build()}
 
@@ -43,8 +44,12 @@ write zilla:data.ext ${kafka:dataEx()
                                  .consumer()
                                      .id("consumer-1")
                                      .partition(0)
-                                     .build()
                                  .build()
+                                 .consumer()
+                                     .id("consumer-2")
+                                     .partition(1)
+                                 .build()
+                              .build()
                              .build()}
 
 write zilla:data.empty

@@ -540,22 +540,28 @@ scope protocol
 
         scope consumer
         {
-            struct ConsumerTopicPartition
+            struct ConsumerPartition
             {
                 int32 partitionId;
             }
 
-            struct ConsumerTopic
+            struct ConsumerTopicPartition
             {
                 string16 topic;
                 int32 partitionCount;
             }
 
-            struct ConsumerUserdata
+            struct ConsumerSubscriptionUserdata
             {
                 uint32 userdataLength;
                 octets[userdataLength] userdata;
                 int32 ownedPartitions;
+            }
+
+            struct ConsumerAssignmentUserdata
+            {
+                uint32 userdataLength;
+                octets[userdataLength] userdata;
             }
 
             struct ConsumerMetadataTopic
@@ -563,7 +569,13 @@ scope protocol
                 string16 name;
             }
 
-            struct ConsumerMetadata
+            struct ConsumerSubscriptionMetadata
+            {
+                int16 version;
+                int32 metadataTopicCount;
+            }
+
+            struct ConsumerAssignmentMetadata
             {
                 int16 version;
                 int32 metadataTopicCount;

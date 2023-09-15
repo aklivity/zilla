@@ -1031,6 +1031,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     int partitionIndex = 0;
                     int newPartitionPerTopic = numberOfPartitionsPerMember + extraPartition;
 
+                    IntHashSet.IntIterator iterator = p.iterator();
+
                     for (String member : members.keySet())
                     {
                         String consumerId = members.get(member);
@@ -1038,10 +1040,10 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                             member, tp -> new ArrayList<>());
                         IntHashSet partitions = new IntHashSet();
 
-                        IntHashSet.IntIterator iterator = p.iterator();
                         for (; partitionIndex < newPartitionPerTopic; partitionIndex++)
                         {
-                            partitions.add(iterator.next());
+                            final int partitionId = iterator.nextValue();
+                            partitions.add(partitionId);
                         }
                         topicPartitions.add(new TopicPartition(consumerId, t, partitions));
 
@@ -1059,24 +1061,29 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         {
             if (!consumers.isEmpty())
             {
-                Array32FW<MemberAssignmentFW> assignment = memberAssignmentRW
-                    .wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                    .item(ma -> this.consumers.forEach((k, v) ->
-                        ma.memberId(k)
-                            .assignments(ta -> v.forEach(tp -> ta.item(i ->
-                                i.topic(tp.topic)
-                                .partitions(p -> tp.partitions.forEach(t -> p.item(tpa -> tpa.partitionId(t))))
-                                .userdata(u ->
-                                    this.consumers.forEach((ak, av) ->
-                                        av.stream().filter(atp -> atp.topic.equals(tp.topic)).forEach(at ->
-                                            u.item(ud -> ud
-                                                .consumerId(at.consumerId)
-                                                .partitions(pt -> at.partitions.forEach(up ->
-                                                    pt.item(pi -> pi.partitionId(up))))))))
-                            )))))
-                    .build();
+                Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> assignmentBuilder = memberAssignmentRW
+                    .wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity());
 
-                doConsumerInitialData(traceId, authorization, initialBud, memberAssignmentRW.sizeof(), 3,
+                this.consumers.forEach((k, v) ->
+                {
+                    assignmentBuilder.item(ma -> ma
+                        .memberId(k)
+                        .assignments(ta -> v.forEach(tp -> ta.item(i -> i
+                            .topic(tp.topic)
+                            .partitions(p -> tp.partitions.forEach(t -> p.item(tpa -> tpa.partitionId(t))))
+                            .userdata(u ->
+                                this.consumers.forEach((ak, av) -> av
+                                    .stream().filter(atp -> atp.topic.equals(tp.topic)).forEach(at ->
+                                        u.item(ud -> ud
+                                            .consumerId(at.consumerId)
+                                            .partitions(pt -> at.partitions.forEach(up ->
+                                                pt.item(pi -> pi.partitionId(up))))))))
+                        ))));
+                });
+
+                Array32FW<MemberAssignmentFW> assignment = assignmentBuilder.build();
+
+                doConsumerInitialData(traceId, authorization, initialBud, assignment.sizeof(), 3,
                     assignment.buffer(), assignment.offset(), assignment.sizeof(), EMPTY_OCTETS);
             }
             else
