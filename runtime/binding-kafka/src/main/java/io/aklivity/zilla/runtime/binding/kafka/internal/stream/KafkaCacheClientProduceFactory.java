@@ -76,7 +76,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -688,20 +687,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                if (type != null && type.key != null)
+                if (type != null &&
+                    !partition.validProduceEntry(type, true, key.value()))
                 {
-                    Validator keyValidator = type.key;
-                    if (keyValidator != null && key != null)
-                    {
-                        OctetsFW entryKey = key.value();
-                        if (entryKey != null ||
-                            !keyValidator.write(entryKey.value(), entryKey.offset(), entryKey.sizeof()))
-                        {
-                            System.out.println("Key Validation failed");
-                            error = ERROR_INVALID_RECORD;
-                            break init;
-                        }
-                    }
+                    error = ERROR_INVALID_RECORD;
                 }
 
                 stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
@@ -731,8 +720,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if ((flags & FLAGS_FIN) != 0x00 &&
                 type != null &&
-                type.value != null &&
-                !partition.validProduceEntry(type, stream.segment))
+                !partition.validProduceEntry(type, false, stream.segment))
             {
                 error = ERROR_INVALID_RECORD;
             }

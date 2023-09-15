@@ -64,6 +64,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.Validator;
 
 public final class KafkaCachePartition
 {
@@ -501,7 +502,7 @@ public final class KafkaCachePartition
             if (type.key != null)
             {
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
-                if (key == null ||
+                if (key != null &&
                     !type.key.read(key.value(), key.offset(), key.sizeof()))
                 {
                     System.out.println("Key Validation failed");
@@ -511,7 +512,7 @@ public final class KafkaCachePartition
             if (type.value != null)
             {
                 OctetsFW value = headEntry.value();
-                if (value == null ||
+                if (value != null &&
                     !type.value.read(value.value(), value.offset(), value.sizeof()))
                 {
                     System.out.println("Value Validation failed");
@@ -632,6 +633,26 @@ public final class KafkaCachePartition
 
     public boolean validProduceEntry(
         KafkaTopicType type,
+        boolean isKey,
+        OctetsFW data)
+    {
+        boolean status = true;
+
+        Validator validator = isKey ? type.key : type.value;
+        if (data != null &&
+            validator != null &&
+            !validator.write(data.value(), data.offset(), data.sizeof()))
+        {
+            status = false;
+            System.out.println("Validation failed");
+        }
+
+        return status;
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        boolean isKey,
         Node head)
     {
         final KafkaCacheSegment segment = head.segment;
@@ -643,11 +664,13 @@ public final class KafkaCachePartition
         boolean status = true;
 
         OctetsFW value = headEntry.value();
-        if (value == null ||
-            !type.value.write(value.value(), value.offset(), value.sizeof()))
+        Validator validator = isKey ? type.key : type.value;
+        if (value != null &&
+            validator != null &&
+            !validator.write(value.value(), value.offset(), value.sizeof()))
         {
             status = false;
-            System.out.println("Value Validation failed");
+            System.out.println("Validation failed");
         }
 
         return status;

@@ -41,7 +41,7 @@ public final class AvroValidator implements Validator
     private final List<KafkaCatalogConfig> catalogs;
     private final KafkaCatalogConfig catalog;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final String topic;
+    private final String name;
     private final CatalogHandler handler;
     private final DecoderFactory decoder;
     private DatumReader reader;
@@ -63,7 +63,7 @@ public final class AvroValidator implements Validator
         this.handler = handlersById.get(catalogs.get(0).id);
         this.parser = new Schema.Parser();
         this.catalog = catalogs.get(0);
-        this.topic = config.topic;
+        this.name = config.name;
     }
 
     @Override
@@ -121,7 +121,7 @@ public final class AvroValidator implements Validator
             }
             else if (catalog.strategy.equals("topic"))
             {
-                reader = new GenericDatumReader(parser.parse(handler.resolve(topic, catalog.version)));
+                reader = new GenericDatumReader(parser.parse(handler.resolve(name, catalog.version)));
             }
             reader.read(null, decoder.binaryDecoder(payloadBytes, null));
             status = true;
