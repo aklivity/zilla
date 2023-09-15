@@ -14,13 +14,18 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
                                    .capabilities("PRODUCE_ONLY")
                                    .topic("test")
                                    .groupId("client-1")
@@ -31,20 +36,12 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .timestamp(newTimestamp)
-                                  .key("message-key!")
+                                  .key("message-key")
                                   .build()
                               .build()}
-write "Hello, world #A1"
-write flush
-
-
-read zilla:reset.ext ${kafka:resetEx()
-                           .typeId(zilla:id("kafka"))
-                           .error(0)
-                           .consumerId("consumer-2")
-                           .build()}
+read "Hello, world #A1"
 

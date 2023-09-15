@@ -1263,7 +1263,7 @@ public final class KafkaMergedFactory implements BindingHandler
             KafkaKeyFW hashKey,
             KafkaKeyFW key)
         {
-            final int partitionCount = leadersByAssignedId.size();
+            final int partitionCount = leadersByPartitionId.size();
             final int keyHash = hashKey.length() != -1 ? defaultKeyHash(hashKey) :
                 key.length() != -1 ? defaultKeyHash(key) :
                     nextNullKeyHashData++;
@@ -1275,7 +1275,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private int nextPartitionFlush(
             KafkaKeyFW key)
         {
-            final int partitionCount = leadersByAssignedId.size();
+            final int partitionCount = leadersByPartitionId.size();
             final int keyHash = key.length() != -1 ? defaultKeyHash(key) : nextNullKeyHashFlush++;
             final int partitionId = partitionCount > 0 ? (0x7fff_ffff & keyHash) % partitionCount : 0;
 
