@@ -4106,14 +4106,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    if (subscriptions.isEmpty())
-                    {
-                        doSubscribeAppEnd(traceId);
-                    }
-                    else
-                    {
-                        doSubscribeFlush(traceId, 0, null);
-                    }
+                    doSubscribeFlush(traceId, 0, null);
                 }
             }
 
