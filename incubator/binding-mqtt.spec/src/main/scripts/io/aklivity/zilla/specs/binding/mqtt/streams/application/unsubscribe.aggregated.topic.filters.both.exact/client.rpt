@@ -29,5 +29,8 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write close
-read closed
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                    .build()
+                                 .build()}
