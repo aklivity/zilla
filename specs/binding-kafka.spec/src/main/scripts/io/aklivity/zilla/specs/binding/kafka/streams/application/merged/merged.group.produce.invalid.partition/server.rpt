@@ -40,7 +40,7 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .timestamp(newTimestamp)
-                                  .partition(1, 1)
+                                  .key("message-key!")
                                   .build()
                               .build()}
 read "Hello, world #A1"

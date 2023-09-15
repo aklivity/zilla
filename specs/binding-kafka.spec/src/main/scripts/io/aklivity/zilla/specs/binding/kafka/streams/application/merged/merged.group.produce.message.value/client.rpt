@@ -35,16 +35,9 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .timestamp(newTimestamp)
-                                  .key("message-key!")
+                                  .key("message-key")
                                   .build()
                               .build()}
 write "Hello, world #A1"
 write flush
-
-
-read zilla:reset.ext ${kafka:resetEx()
-                           .typeId(zilla:id("kafka"))
-                           .error(0)
-                           .consumerId("consumer-2")
-                           .build()}
 
