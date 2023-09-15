@@ -17,10 +17,10 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
 public class SchemaConfig
 {
-    public String schema;
-    public String strategy;
-    public String version;
-    public int id;
+    public final String schema;
+    public final String strategy;
+    public final String version;
+    public final int id;
 
     public SchemaConfig(
         String schema,
