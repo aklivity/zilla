@@ -120,6 +120,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final int DATA_FLAG_COMPLETE = 0x03;
     public static final String MQTT_CLIENTS_GROUP_ID = "mqtt-clients";
+    public static final String MQTT_ZILLA_GROUP_ID = "mqtt-zilla";
     private static final int SIGNAL_DELIVER_WILL_MESSAGE = 1;
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
@@ -3700,7 +3701,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .merged(m ->
                     m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_AND_FETCH))
                         .topic(sessionsTopicName)
-                        .groupId(MQTT_CLIENTS_GROUP_ID)
+                        .groupId(MQTT_ZILLA_GROUP_ID)
                         .filtersItem(f ->
                             f.conditionsItem(c -> c.header(h ->
                                 h.nameLen(TYPE_HEADER_NAME_OCTETS.sizeof())
