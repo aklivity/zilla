@@ -1042,7 +1042,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
                         for (; partitionIndex < newPartitionPerTopic; partitionIndex++)
                         {
-                            final Integer partitionId = iterator.next();
+                            final int partitionId = iterator.nextValue();
                             partitions.add(partitionId);
                         }
                         topicPartitions.add(new TopicPartition(consumerId, t, partitions));
