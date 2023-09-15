@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
 public final class StringValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
+    private static final String TYPE_NAME = "type";
     private static final String ENCODING_NAME = "encoding";
 
     @Override
@@ -34,6 +35,7 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
         StringValidatorConfig validatorConfig = (StringValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
 
+        validator.add(TYPE_NAME, type());
         if (validatorConfig.encoding != null &&
             !validatorConfig.encoding.isEmpty())
         {

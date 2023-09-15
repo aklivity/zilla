@@ -53,6 +53,7 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
         validator.add(TYPE_NAME, AVRO);
         if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
         {
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
             for (CatalogedConfig catalog : validatorConfig.catalogs)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
@@ -60,8 +61,9 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
                 {
                     array.add(schema.adaptToJson(schemaItem));
                 }
-                validator.add(catalog.name, array);
+                catalogs.add(catalog.name, array);
             }
+            validator.add(CATALOG_NAME, catalogs);
         }
         return validator.build();
     }

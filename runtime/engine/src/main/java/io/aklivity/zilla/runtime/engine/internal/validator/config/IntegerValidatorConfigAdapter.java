@@ -15,13 +15,18 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
-public class IntegerValidatorConfigAdapter implements ValidatorConfigAdapterSpi
+public class IntegerValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
+    private static final String TYPE_NAME = "type";
+
     @Override
     public String type()
     {
@@ -32,7 +37,9 @@ public class IntegerValidatorConfigAdapter implements ValidatorConfigAdapterSpi
     public JsonObject adaptToJson(
         ValidatorConfig options)
     {
-        return null;
+        JsonObjectBuilder validator = Json.createObjectBuilder();
+        validator.add(TYPE_NAME, type());
+        return validator.build();
     }
 
     @Override

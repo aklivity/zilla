@@ -98,7 +98,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":{\"encoding\":\"utf_8\"}}]," +
+                "\"value\":{\"type\":\"string\",\"encoding\":\"utf_8\"}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 
@@ -170,7 +170,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":{\"type\":\"avro\",\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}]," +
+                "\"value\":{\"type\":\"avro\",\"catalog\":{\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }
