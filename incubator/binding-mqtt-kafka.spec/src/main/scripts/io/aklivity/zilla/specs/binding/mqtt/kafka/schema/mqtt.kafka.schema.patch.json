@@ -45,25 +45,33 @@
                                     "sessions":
                                     {
                                         "title": "Kafka Sessions Topic",
-                                        "type": "string",
-                                        "default": "mqtt_sessions"
+                                        "type": "string"
                                     },
                                     "messages":
                                     {
                                         "title": "Kafka Messages Topic",
-                                        "type": "string",
-                                        "default": "mqtt_messages"
+                                        "type": "string"
                                     },
                                     "retained":
                                     {
                                         "title": "Kafka Retained Topic",
-                                        "type": "string",
-                                        "default": "mqtt_retained"
-                                    }
+                                        "type": "string"
+                                    },
+                                    "additionalProperties": false
                                 },
+                                "required":
+                                [
+                                    "sessions",
+                                    "retained",
+                                    "messages"
+                                ],
                                 "additionalProperties": false
                             }
                         },
+                        "required":
+                        [
+                            "topics"
+                        ],
                         "additionalProperties": false
                     },
                     "routes": false
@@ -73,7 +81,8 @@
                     {
                         "required":
                         [
-                            "exit"
+                            "exit",
+                            "options"
                         ]
                     }
                 ]
