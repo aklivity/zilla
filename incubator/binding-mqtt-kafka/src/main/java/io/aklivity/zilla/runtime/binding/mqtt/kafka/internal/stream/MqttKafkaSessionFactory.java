@@ -914,8 +914,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private long replyAck;
         private int replyMax;
         private long reconnectAt;
-        private int sessionSignalDecodeSlot = NO_SLOT;
-        private int sessionSignalDecodeSlotOffset;
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
 
         private KafkaSignalStream(
             long originId,
@@ -1155,25 +1155,25 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                     if ((flags & DATA_FLAG_FIN) == 0x00)
                     {
-                        if (sessionSignalDecodeSlot == NO_SLOT)
+                        if (decodeSlot == NO_SLOT)
                         {
-                            sessionSignalDecodeSlot = bufferPool.acquire(replyId);
-                            assert sessionSignalDecodeSlotOffset == 0;
+                            decodeSlot = bufferPool.acquire(replyId);
+                            assert decodeSlotOffset == 0;
                         }
 
-                        final MutableDirectBuffer slotBuffer = bufferPool.buffer(sessionSignalDecodeSlot);
-                        slotBuffer.putBytes(sessionSignalDecodeSlotOffset, buffer, offset, length);
-                        sessionSignalDecodeSlotOffset += length;
+                        final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                        slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
+                        decodeSlotOffset += length;
                     }
                     else
                     {
-                        if (sessionSignalDecodeSlot != NO_SLOT)
+                        if (decodeSlot != NO_SLOT)
                         {
-                            final MutableDirectBuffer slotBuffer = bufferPool.buffer(sessionSignalDecodeSlot);
-                            slotBuffer.putBytes(sessionSignalDecodeSlotOffset, buffer, offset, length);
+                            final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                            slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
                             buffer = slotBuffer;
                             offset = 0;
-                            limit = sessionSignalDecodeSlotOffset + length;
+                            limit = decodeSlotOffset + length;
                         }
 
                         final MqttSessionSignalFW sessionSignal =
@@ -1225,11 +1225,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             break;
                         }
 
-                        if (sessionSignalDecodeSlot != NO_SLOT)
+                        if (decodeSlot != NO_SLOT)
                         {
-                            bufferPool.release(sessionSignalDecodeSlot);
-                            sessionSignalDecodeSlot = NO_SLOT;
-                            sessionSignalDecodeSlotOffset = 0;
+                            bufferPool.release(decodeSlot);
+                            decodeSlot = NO_SLOT;
+                            decodeSlotOffset = 0;
                         }
                     }
                 }
