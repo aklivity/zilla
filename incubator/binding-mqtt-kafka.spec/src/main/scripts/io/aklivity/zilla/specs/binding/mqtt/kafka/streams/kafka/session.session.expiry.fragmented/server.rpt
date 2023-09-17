@@ -40,6 +40,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -49,14 +50,11 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-write ${mqtt:sessionSignal()
-            .expiry()
-                .instanceId("zilla-1")
-                .clientId("client-1")
-                .delay(2000)
-                .expireAt(expireAt)
-                .build()
-            .build()}
+write [0x01 0x07 0x00 0x7a 0x69 0x6c 0x6c 0x61 0x2d 0x31 0x08 0x00 0x63 0x6c 0x69 0x65 0x6e 0x74 0x2d]
+write flush
+
+write option zilla:flags "fin"
+write [0x31 0xd0 0x07 0x00 0x00 0xbe 0x35 0x1a 0xa5 0x8a 0x01 0x00 0x00]
 write flush
 
 write zilla:data.ext ${kafka:dataEx()

@@ -248,6 +248,15 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${kafka}/session.session.expiry.fragmented/server"})
+    public void shouldDecodeSessionExpirySignalFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mqtt}/session.will.message.normal.disconnect/client",
         "${kafka}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
