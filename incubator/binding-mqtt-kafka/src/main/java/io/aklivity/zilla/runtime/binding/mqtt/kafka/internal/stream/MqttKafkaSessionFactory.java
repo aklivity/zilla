@@ -197,6 +197,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final boolean willAvailable;
     private final int reconnectDelay;
 
+    private String serverRef;
     private int reconnectAttempt;
 
     public MqttKafkaSessionFactory(
@@ -273,6 +274,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long bindingId)
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
+        this.serverRef = binding.options.serverRef;
         if (willAvailable && coreIndex == 0)
         {
             Optional<MqttKafkaRouteConfig> route = binding.routes.stream().findFirst();
@@ -324,7 +326,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private String16FW clientId;
         private String16FW clientIdMigrate;
-        private String serverRef;
         private int sessionExpiryMillis;
         private int sessionFlags;
         private int sessionPadding;
@@ -416,7 +417,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
-            serverRef = mqttSessionBeginEx.serverRef().asString();
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -2618,7 +2618,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, null, delegate.clientIdMigrate,
-                delegate.sessionId, delegate.serverRef, KafkaCapabilities.PRODUCE_AND_FETCH);
+                delegate.sessionId, serverRef, KafkaCapabilities.PRODUCE_AND_FETCH);
         }
 
         @Override
@@ -2703,7 +2703,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 KafkaCapabilities.PRODUCE_ONLY : KafkaCapabilities.PRODUCE_AND_FETCH;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
-                delegate.sessionId, delegate.serverRef, capabilities);
+                delegate.sessionId, serverRef, capabilities);
         }
 
         @Override
@@ -2879,7 +2879,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 state = MqttKafkaState.openingInitial(state);
 
                 kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.serverRef);
+                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, serverRef);
             }
         }
 
@@ -3701,6 +3701,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_AND_FETCH))
                         .topic(sessionsTopicName)
                         .groupId(MQTT_CLIENTS_GROUP_ID)
+                        .consumerId(serverRef)
                         .filtersItem(f ->
                             f.conditionsItem(c -> c.header(h ->
                                 h.nameLen(TYPE_HEADER_NAME_OCTETS.sizeof())

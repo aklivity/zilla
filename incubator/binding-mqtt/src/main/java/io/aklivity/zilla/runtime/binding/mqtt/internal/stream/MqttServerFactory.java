@@ -1838,7 +1838,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .flags(flags)
                     .expiry(sessionExpiry)
                     .clientId(clientId)
-                    .serverRef(serverRef)
                 );
 
             if (sessionStream == null)

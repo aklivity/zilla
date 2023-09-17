@@ -19,10 +19,13 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public class MqttKafkaOptionsConfig extends OptionsConfig
 {
     public final MqttKafkaTopicsConfig topics;
+    public final String serverRef;
 
     public MqttKafkaOptionsConfig(
-        MqttKafkaTopicsConfig topics)
+        MqttKafkaTopicsConfig topics,
+        String serverRef)
     {
         this.topics = topics;
+        this.serverRef = serverRef;
     }
 }

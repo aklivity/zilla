@@ -22,7 +22,6 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .clientId("client")
-                                .serverRef("mqtt-1.example.com:1883")
                                 .build()
                               .build()}
 

@@ -1351,10 +1351,9 @@ public final class LoggableStream implements AutoCloseable
     {
         final String clientId = session.clientId().asString();
         final int expiry = session.expiry();
-        final String serverRef = session.serverRef().asString();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[session] %s %d %s", clientId, expiry, serverRef));
+            format("[session] %s %d", clientId, expiry));
     }
 
     private void onMqttDataEx(
