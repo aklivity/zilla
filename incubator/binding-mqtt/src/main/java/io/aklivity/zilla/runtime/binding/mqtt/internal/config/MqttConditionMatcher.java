@@ -15,57 +15,120 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 
 public final class MqttConditionMatcher
 {
-    private final Matcher topicMatch;
-    private final MqttCapabilities capabilitiesMatch;
+    private final List<Matcher> sessionMatchers;
+    private final List<Matcher> subscribeMatchers;
+    private final List<Matcher> publishMatchers;
 
     public MqttConditionMatcher(
         MqttConditionConfig condition)
     {
-        this.topicMatch = condition.topic != null ? asMatcher(condition.topic) : null;
-        this.capabilitiesMatch = condition.capabilities;
+        this.sessionMatchers =
+            condition.sessions != null ?
+                asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList())) : null;
+        this.subscribeMatchers =
+            condition.subscribes != null ?
+                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+        this.publishMatchers =
+            condition.publishes != null ?
+                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
     }
 
-    public boolean matches(
-        MqttCapabilities capabilities)
+    public boolean matchesSession(
+        String clientId)
     {
-        return matchesCapabilities(capabilities);
+        boolean match = false;
+        if (sessionMatchers != null)
+        {
+            for (Matcher matcher : sessionMatchers)
+            {
+                match = matcher.reset(clientId).matches();
+                if (match)
+                {
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    public boolean matches(
-        String topic,
-        MqttCapabilities capabilities)
-    {
-        return matchesTopic(topic) &&
-            matchesCapabilities(capabilities);
-    }
-
-    private boolean matchesTopic(
+    public boolean matchesSubscribe(
         String topic)
     {
-        return this.topicMatch == null || this.topicMatch.reset(topic).matches();
+        boolean match = false;
+        if (subscribeMatchers != null)
+        {
+            for (Matcher matcher : subscribeMatchers)
+            {
+                match = matcher.reset(topic).matches();
+                if (match)
+                {
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    private boolean matchesCapabilities(
-        MqttCapabilities capabilities)
+    public boolean matchesPublish(
+        String topic)
     {
-        return this.capabilitiesMatch == null || (this.capabilitiesMatch.value() & capabilities.value()) != 0;
+        boolean match = false;
+        if (publishMatchers != null)
+        {
+            for (Matcher matcher : publishMatchers)
+            {
+                match = matcher.reset(topic).matches();
+                if (match)
+                {
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    private static Matcher asMatcher(
-        String wildcard)
+    private static List<Matcher> asWildcardMatcher(
+        List<String> wildcards)
     {
-        return Pattern.compile(wildcard
-            .replace(".", "\\.")
-            .replace("$", "\\$")
-            .replace("+", "[^/]*")
-            .replace("#", ".*")).matcher("");
+        List<Matcher> matchers = new ArrayList<>();
+        for (String wildcard : wildcards)
+        {
+            String pattern = wildcard.replace(".", "\\.").replace("*", ".*");
+
+            if (!pattern.endsWith(".*"))
+            {
+                pattern = pattern + "(\\?.*)?";
+            }
+            matchers.add(Pattern.compile(pattern).matcher(""));
+
+        }
+
+        return matchers;
+    }
+
+    private static List<Matcher> asTopicMatcher(
+        List<String> wildcards)
+    {
+        List<Matcher> matchers = new ArrayList<>();
+        for (String wildcard : wildcards)
+        {
+            matchers.add(Pattern.compile(wildcard
+                .replace(".", "\\.")
+                .replace("$", "\\$")
+                .replace("+", "[^/]*")
+                .replace("#", ".*")).matcher(""));
+
+        }
+        return matchers;
     }
 }

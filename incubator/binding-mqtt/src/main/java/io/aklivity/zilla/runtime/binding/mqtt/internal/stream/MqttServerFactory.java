@@ -111,7 +111,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
@@ -1672,10 +1671,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                final MqttBindingConfig binding = bindings.get(routedId);
-
-                final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
-
                 keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
                 serverDefinedKeepAlive = keepAlive != connect.keepAlive();
                 keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
@@ -1684,7 +1679,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (session)
                 {
-                    resolveSession(traceId, authorization, resolved.id, connectFlags);
+                    resolveSession(traceId, authorization, connectFlags);
                 }
 
                 doCancelConnectTimeout();
@@ -1829,9 +1824,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void resolveSession(
             long traceId,
             long authorization,
-            long resolvedId,
             int flags)
         {
+            final MqttBindingConfig binding = bindings.get(routedId);
+
+            final MqttRouteConfig resolved = binding != null ? binding.resolveSession(authorization, clientId.asString()) : null;
+
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .session(s -> s
@@ -1842,7 +1840,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (sessionStream == null)
             {
-                sessionStream = new MqttSessionStream(originId, resolvedId, 0);
+                sessionStream = new MqttSessionStream(originId, resolved.id, 0);
             }
 
             sessionStream.doSessionBegin(traceId, affinity, builder.build());
@@ -1857,7 +1855,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttBindingConfig binding = bindings.get(routedId);
             final MqttRouteConfig resolved = binding != null ?
-                binding.resolve(sessionId, topic, MqttCapabilities.PUBLISH_ONLY) : null;
+                binding.resolvePublish(sessionId, topic) : null;
 
             if (resolved != null)
             {
@@ -1923,7 +1921,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             int subscriptionId = 0;
             boolean containsSubscriptionId = false;
-            int unrouteableMask = 0;
 
             MqttPropertiesFW properties = subscribe.properties();
             final OctetsFW propertiesValue = properties.value();
@@ -2071,7 +2068,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final MqttBindingConfig binding = bindings.get(routedId);
                 final MqttRouteConfig resolved =
-                    binding != null ? binding.resolve(sessionId, subscription.filter, MqttCapabilities.SUBSCRIBE_ONLY) : null;
+                    binding != null ? binding.resolveSubscribe(sessionId, subscription.filter) : null;
 
                 if (resolved != null)
                 {
@@ -2205,7 +2202,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final MqttBindingConfig binding = bindings.get(routedId);
                 final MqttRouteConfig resolved =
-                    binding != null ? binding.resolve(sessionId, topicFilter, MqttCapabilities.SUBSCRIBE_ONLY) : null;
+                    binding != null ? binding.resolveSubscribe(sessionId, topicFilter) : null;
                 final int subscribeKey = subscribeKey(clientId.asString(), resolved.id);
                 final MqttSubscribeStream stream = subscribeStreams.get(subscribeKey);
 
