@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.PUBLISH_ONLY;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.SUBSCRIBE_ONLY;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -31,6 +29,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPublishConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSessionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSubscribeConfig;
 
 public class MqttConditionConfigAdapterTest
 {
@@ -49,15 +50,43 @@ public class MqttConditionConfigAdapterTest
     {
         String text =
             "{" +
-                "\"topic\": \"test\"," +
-                "\"capabilities\": \"publish_only\"" +
+                "\"session\":" +
+                "[" +
+                    "{" +
+                        "\"client-id\": \"*\"" +
+                    "}" +
+                "]," +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"reply/one\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"reply/two\"" +
+                    "}," +
+                "]," +
+                "\"publish\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"command/one\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"command/two\"" +
+                    "}" +
+                "]" +
             "}";
 
         MqttConditionConfig condition = jsonb.fromJson(text, MqttConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topic, equalTo("test"));
-        assertThat(condition.capabilities, equalTo(PUBLISH_ONLY));
+        assertThat(condition.sessions, not(nullValue()));
+        assertThat(condition.sessions.get(0).clientId, equalTo("*"));
+        assertThat(condition.subscribes, not(nullValue()));
+        assertThat(condition.subscribes.get(0).topic, equalTo("reply/one"));
+        assertThat(condition.subscribes.get(1).topic, equalTo("reply/two"));
+        assertThat(condition.publishes, not(nullValue()));
+        assertThat(condition.publishes.get(0).topic, equalTo("command/one"));
+        assertThat(condition.publishes.get(1).topic, equalTo("command/two"));
     }
 
     @Test
@@ -65,13 +94,17 @@ public class MqttConditionConfigAdapterTest
     {
         MqttConditionConfig condition = MqttConditionConfig.builder()
             .inject(identity())
-            .topic("test")
-            .capabilities(SUBSCRIBE_ONLY)
+            .session(new MqttSessionConfig("*"))
+            .subscribe(new MqttSubscribeConfig("reply/one"))
+            .subscribe(new MqttSubscribeConfig("reply/two"))
+            .publish(new MqttPublishConfig("command/one"))
+            .publish(new MqttPublishConfig("command/two"))
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\",\"capabilities\":\"subscribe_only\"}"));
+        assertThat(text, equalTo("{\"session\":[{\"client-id\":\"*\"}],\"subscribe\":[{\"topic\":\"reply/one\"}," +
+            "{\"topic\":\"reply/two\"}],\"publish\":[{\"topic\":\"command/one\"},{\"topic\":\"command/two\"}]}"));
     }
 }

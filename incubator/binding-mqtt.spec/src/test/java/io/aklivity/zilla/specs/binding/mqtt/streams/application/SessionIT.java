@@ -181,4 +181,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.publish.routing/client",
+        "${app}/session.subscribe.publish.routing/server"})
+    public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
+    {
+        k3po.finish();
+    }
 }

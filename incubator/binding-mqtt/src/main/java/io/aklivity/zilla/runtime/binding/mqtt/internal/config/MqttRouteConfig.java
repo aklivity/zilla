@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -49,16 +48,21 @@ public final class MqttRouteConfig extends OptionsConfig
         return authorized.test(authorization);
     }
 
-    boolean matches(
-        MqttCapabilities capabilities)
+    boolean matchesSession(
+        String clientId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(capabilities));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSession(clientId));
     }
 
-    boolean matches(
-        String topic,
-        MqttCapabilities capabilities)
+    boolean matchesSubscribe(
+        String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, capabilities));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic));
+    }
+
+    boolean matchesPublish(
+        String topic)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic));
     }
 }
