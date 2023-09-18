@@ -1481,7 +1481,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             if (fetchStreams.isEmpty())
             {
-                doMergedInitialResetIfNecessary(traceId);
+                doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             }
         }
 
@@ -1754,7 +1754,8 @@ public final class KafkaMergedFactory implements BindingHandler
         }
 
         private void doMergedInitialResetIfNecessary(
-            long traceId)
+            long traceId,
+            Consumer<OctetsFW.Builder> extension)
         {
             if (KafkaState.initialOpening(state) &&
                 !KafkaState.initialClosed(state))
@@ -1770,7 +1771,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 cleanupBudgetCreditorIfNecessary();
                 if (fetchStreams.isEmpty())
                 {
-                    doMergedInitialReset(traceId, EMPTY_EXTENSION);
+                    doMergedInitialReset(traceId, extension);
                 }
             }
         }
@@ -1778,7 +1779,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedCleanup(
             long traceId)
         {
-            doMergedInitialResetIfNecessary(traceId);
+            doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             doMergedReplyAbortIfNecessary(traceId);
         }
 
@@ -1963,7 +1964,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                         if (KafkaState.initialClosing(state))
                         {
-                            doMergedInitialResetIfNecessary(traceId);
+                            doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
                         }
                         if (KafkaState.replyClosing(state))
                         {
@@ -1975,7 +1976,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             else
             {
-                doMergedInitialResetIfNecessary(traceId);
+                doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             }
         }
 
@@ -2073,7 +2074,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             else if (error == ERROR_INVALID_RECORD)
             {
-                doMergedInitialReset(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
+                doMergedInitialResetIfNecessary(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .error(error)
                         .build()
@@ -2081,7 +2082,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             else
             {
-                doMergedInitialResetIfNecessary(traceId);
+                doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             }
         }
 
@@ -2302,7 +2303,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId);
+            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
             doDescribeReplyResetIfNecessary(traceId);
         }
@@ -2558,7 +2559,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId);
+            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
             doMetaReplyResetIfNecessary(traceId);
         }
@@ -2822,7 +2823,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId);
+            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
             doConsumerReplyResetIfNecessary(traceId);
         }

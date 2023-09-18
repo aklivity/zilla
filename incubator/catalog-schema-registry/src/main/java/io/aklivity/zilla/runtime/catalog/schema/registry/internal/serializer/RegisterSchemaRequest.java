@@ -24,6 +24,8 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.stream.JsonParsingException;
 
+import io.aklivity.zilla.runtime.engine.catalog.ParsedSchema;
+
 public class RegisterSchemaRequest
 {
     private static final String SCHEMA = "schema";
@@ -62,6 +64,45 @@ public class RegisterSchemaRequest
         catch (JsonParsingException ex)
         {
             return NO_SCHEMA_ID;
+        }
+    }
+
+    public ParsedSchema resolveSchemaResponse(
+        String response)
+    {
+        try
+        {
+            JsonReader reader = Json.createReader(new StringReader(response));
+            JsonObject object = reader.readObject();
+
+            int id = object.containsKey(ID) ? object.getInt(ID) : NO_SCHEMA_ID;
+
+            String schema = object.containsKey(SCHEMA) ? object.getString(SCHEMA) : null;
+
+            return new ParsedSchema(id, schema);
+        }
+        catch (JsonParsingException ex)
+        {
+            return null;
+        }
+    }
+
+    public ParsedSchema resolveSchemaResponse(
+        int id,
+        String response)
+    {
+        try
+        {
+            JsonReader reader = Json.createReader(new StringReader(response));
+            JsonObject object = reader.readObject();
+
+            String schema = object.containsKey(SCHEMA) ? object.getString(SCHEMA) : null;
+
+            return new ParsedSchema(id, schema);
+        }
+        catch (JsonParsingException ex)
+        {
+            return null;
         }
     }
 }

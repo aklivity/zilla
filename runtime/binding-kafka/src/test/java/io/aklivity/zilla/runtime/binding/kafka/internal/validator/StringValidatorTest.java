@@ -51,7 +51,7 @@ public class StringValidatorTest
 
         byte[] bytes = {(byte) 0xc0};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), false));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class StringValidatorTest
 
         byte[] bytes = {0x48};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), false));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class StringValidatorTest
 
         byte[] bytes = {(byte) 0xDC, (byte) 0x01};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), true));
     }
 
     @Test
@@ -130,6 +130,6 @@ public class StringValidatorTest
 
         byte[] bytes = {0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 65, 66, 67};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), false));
     }
 }

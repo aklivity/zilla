@@ -27,5 +27,6 @@ public interface Validator
     boolean write(
         DirectBuffer data,
         int index,
-        int length);
+        int length,
+        boolean isKey);
 }

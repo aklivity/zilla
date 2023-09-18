@@ -31,6 +31,7 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.catalog.ParsedSchema;
 
 public class SchemaRegistryIT
 {
@@ -61,7 +62,7 @@ public class SchemaRegistryIT
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        String schema = catalog.resolve(9);
+        String schema = catalog.resolve(9).schema;
 
         k3po.finish();
 
@@ -80,11 +81,14 @@ public class SchemaRegistryIT
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        String schema = catalog.resolve("items-snapshots", "latest");
+        ParsedSchema parsedSchema = catalog.resolve("items-snapshots-value", "latest");
+        String schema = parsedSchema.schema;
+        int id = parsedSchema.id;
 
         k3po.finish();
 
         assertThat(schema, not(nullValue()));
+        assertEquals(9, id);
         assertEquals(expected, schema);
     }
 
@@ -98,7 +102,7 @@ public class SchemaRegistryIT
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        int schemaId = catalog.register("items-snapshots", "avro", schema);
+        int schemaId = catalog.register("items-snapshots-value", "avro", schema);
 
         k3po.finish();
 

@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.LongFunction;
@@ -33,6 +32,7 @@ import org.apache.avro.io.DecoderFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.catalog.ParsedSchema;
 
 public final class AvroValidator implements Validator
 {
@@ -41,7 +41,8 @@ public final class AvroValidator implements Validator
     private final List<KafkaCatalogConfig> catalogs;
     private final KafkaCatalogConfig catalog;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final String name;
+    private final String keySubject;
+    private final String valueSubject;
     private final CatalogHandler handler;
     private final DecoderFactory decoder;
     private DatumReader reader;
@@ -63,7 +64,8 @@ public final class AvroValidator implements Validator
         this.handler = handlersById.get(catalogs.get(0).id);
         this.parser = new Schema.Parser();
         this.catalog = catalogs.get(0);
-        this.name = config.name;
+        this.keySubject = config.name + "-key";
+        this.valueSubject = config.name + "-value";
     }
 
     @Override
@@ -77,26 +79,22 @@ public final class AvroValidator implements Validator
         data.getBytes(0, payloadBytes);
         ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
 
-        tryValidate:
-        try
+        if (byteBuf.get() != MAGIC_BYTE)
         {
-            if (byteBuf.get() != MAGIC_BYTE)
-            {
-                System.out.println("Unknown magic byte!");
-                break tryValidate;
-            }
-
-            int schemaId = byteBuf.getInt();
-            int valLength = length - 1 - 4;
-            byte[] valBytes = new byte[valLength];
-            data.getBytes(length - valLength, valBytes);
-
-            reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
-            reader.read(null, decoder.binaryDecoder(valBytes, null));
-            status = true;
+            System.out.println("Unknown magic byte!");
+            return false;
         }
-        catch (IOException e)
+
+        int schemaId = byteBuf.getInt();
+        int valLength = length - 1 - 4;
+        byte[] valBytes = new byte[valLength];
+        data.getBytes(length - valLength, valBytes);
+
+        ParsedSchema parsedSchema = handler.resolve(schemaId);
+
+        if (parsedSchema != null && validate(valBytes, parsedSchema.schema))
         {
+            status = true;
         }
         return status;
     }
@@ -105,7 +103,8 @@ public final class AvroValidator implements Validator
     public boolean write(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        boolean isKey)
     {
         boolean status = false;
         int schemaId = catalog.schemaId;
@@ -115,18 +114,42 @@ public final class AvroValidator implements Validator
 
         try
         {
+            ParsedSchema parsedSchema = null;
             if (schemaId > 0)
             {
-                reader = new GenericDatumReader(parser.parse(handler.resolve(schemaId)));
+                parsedSchema = handler.resolve(schemaId);
+
             }
             else if (catalog.strategy.equals("topic"))
             {
-                reader = new GenericDatumReader(parser.parse(handler.resolve(name, catalog.version)));
+                parsedSchema = handler.resolve(isKey ? keySubject : valueSubject, catalog.version);
             }
+
+            if (parsedSchema != null &&
+                parsedSchema.schema != null &&
+                validate(payloadBytes, parsedSchema.schema))
+            {
+                status = true;
+            }
+        }
+        catch (Exception e)
+        {
+        }
+        return status;
+    }
+
+    private boolean validate(
+        byte[] payloadBytes,
+        String schema)
+    {
+        boolean status = false;
+        try
+        {
+            reader = new GenericDatumReader(parser.parse(schema));
             reader.read(null, decoder.binaryDecoder(payloadBytes, null));
             status = true;
         }
-        catch (IOException e)
+        catch (Exception e)
         {
         }
         return status;

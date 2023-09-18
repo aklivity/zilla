@@ -15,19 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-public interface CatalogHandler
+public class ParsedSchema
 {
-    int NO_SCHEMA_ID = 0;
+    public final int id;
+    public final String schema;
 
-    int register(
-        String subject,
-        String type,
-        String schema);
-
-    ParsedSchema resolve(
-        int schemaId);
-
-    ParsedSchema resolve(
-        String subject,
-        String version);
+    public ParsedSchema(
+        int id,
+        String schema)
+    {
+        this.id = id;
+        this.schema = schema;
+    }
 }

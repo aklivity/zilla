@@ -38,7 +38,8 @@ public class IntegerValidator implements Validator
     public boolean write(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        boolean isKey)
     {
         return validate(data, index, length);
     }

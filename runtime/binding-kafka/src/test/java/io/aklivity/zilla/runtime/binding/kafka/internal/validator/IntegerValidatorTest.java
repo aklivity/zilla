@@ -46,6 +46,6 @@ public class IntegerValidatorTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), false));
     }
 }

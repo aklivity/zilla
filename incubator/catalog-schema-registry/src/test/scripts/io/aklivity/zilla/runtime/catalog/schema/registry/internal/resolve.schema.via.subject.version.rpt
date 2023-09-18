@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "http://localhost:8081/subjects/items-snapshots/versions/latest/schema"
+accept "http://localhost:8081/subjects/items-snapshots-value/versions/latest"
 
 accepted
 connected
@@ -27,19 +27,25 @@ write http:header "content-type" "application/vnd.schemaregistry.v1+json"
 write http:content-length
 
 write '{'
-  '"fields":['
-    '{'
-      '"name":"id",'
-      '"type":"string"'
-    '},'
-    '{'
-      '"name":"status",'
-      '"type":"string"'
-    '}'
-  '],'
-  '"name":"Event",'
-  '"namespace":"io.aklivity.example",'
-  '"type":"record"'
-'}'
+         '"subject":"items-snapshots-value",'
+         '"id":9,'
+         '"version":"latest",'
+         '"schema":"'
+         '{'
+          '\\"fields\\":['
+            '{'
+              '\\"name\\":\\"id\\",'
+              '\\"type\\":\\"string\\"'
+            '},'
+            '{'
+              '\\"name\\":\\"status\\",'
+              '\\"type\\":\\"string\\"'
+            '}'
+          '],'
+          '\\"name\\":\\"Event\\",'
+          '\\"namespace\\":\\"io.aklivity.example\\",'
+          '\\"type\\":\\"record\\"'
+        '}"'
+       '}'
 
 write close

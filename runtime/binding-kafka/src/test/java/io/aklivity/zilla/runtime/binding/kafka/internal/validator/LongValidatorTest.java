@@ -46,6 +46,6 @@ public class LongValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity(), true));
     }
 }

@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 
 public class CatalogFactoryTest
 {
@@ -33,5 +36,12 @@ public class CatalogFactoryTest
         Catalog catalog = factory.create("test", config);
 
         assertThat(catalog, instanceOf(TestCatalog.class));
+
+        TestCatalogHandler handler = new TestCatalogHandler(
+                new TestCatalogOptionsConfig("{\"type\": \"string\"}"));
+        ParsedSchema schema = handler.resolve(1);
+
+        assertEquals("{\"type\": \"string\"}", schema.schema);
+        assertEquals(1, schema.id);
     }
 }
