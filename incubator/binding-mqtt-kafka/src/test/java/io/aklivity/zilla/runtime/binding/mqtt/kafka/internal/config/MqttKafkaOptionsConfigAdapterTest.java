@@ -41,24 +41,11 @@ public class MqttKafkaOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithDefaults()
-    {
-        String text = "{ }";
-
-        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.topics, not(nullValue()));
-        assertThat(options.topics.sessions.asString(), equalTo("mqtt_sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("mqtt_messages"));
-        assertThat(options.topics.retained.asString(), equalTo("mqtt_retained"));
-    }
-
-    @Test
     public void shouldReadOptions()
     {
         String text =
             "{" +
+                "\"server\":\"mqtt-1.example.com:1883\"," +
                 "\"topics\":" +
                 "{" +
                 "\"sessions\":\"sessions\"," +
@@ -74,6 +61,7 @@ public class MqttKafkaOptionsConfigAdapterTest
         assertThat(options.topics.sessions.asString(), equalTo("sessions"));
         assertThat(options.topics.messages.asString(), equalTo("messages"));
         assertThat(options.topics.retained.asString(), equalTo("retained"));
+        assertThat(options.serverRef, equalTo("mqtt-1.example.com:1883"));
     }
 
     @Test
@@ -83,13 +71,14 @@ public class MqttKafkaOptionsConfigAdapterTest
             new MqttKafkaTopicsConfig(
                 new String16FW("sessions"),
                 new String16FW("messages"),
-                new String16FW("retained")));
+                new String16FW("retained")), "mqtt-1.example.com:1883");
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
+                "\"server\":\"mqtt-1.example.com:1883\"," +
                 "\"topics\":" +
                 "{" +
                 "\"sessions\":\"sessions\"," +

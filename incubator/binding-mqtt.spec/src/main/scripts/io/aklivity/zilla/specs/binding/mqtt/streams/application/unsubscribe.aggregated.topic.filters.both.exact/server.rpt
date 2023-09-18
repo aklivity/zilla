@@ -90,5 +90,8 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read closed
-write close
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                    .build()
+                                 .build()}

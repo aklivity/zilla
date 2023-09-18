@@ -166,7 +166,6 @@ scope mqtt
             uint32 packetSizeMax = 0;
             uint8 capabilities = 0;
             string16 clientId;
-            string16 serverRef = null;
         }
 
         struct MqttSubscribeBeginEx

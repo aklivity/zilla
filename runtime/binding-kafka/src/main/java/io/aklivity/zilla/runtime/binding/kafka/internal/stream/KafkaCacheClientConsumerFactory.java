@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheConsumerFactory implements BindingHandler
+public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -93,9 +93,9 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
-    private final Object2ObjectHashMap<String, KafkaCacheConsumerFanout> clientConsumerFansByGroupId;
+    private final Object2ObjectHashMap<String, KafkaCacheClientConsumerFan> clientConsumerFansByConsumer;
 
-    public KafkaCacheConsumerFactory(
+    public KafkaCacheClientConsumerFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
@@ -112,7 +112,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
-        this.clientConsumerFansByGroupId = new Object2ObjectHashMap<>();
+        this.clientConsumerFansByConsumer = new Object2ObjectHashMap<>();
     }
 
     @Override
@@ -154,19 +154,20 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            KafkaCacheConsumerFanout fanout = clientConsumerFansByGroupId.get(groupId);
+            String fanKey = String.format("%s-%s-%s-%d", groupId, topic, consumerId, resolvedId);
+            KafkaCacheClientConsumerFan fan = clientConsumerFansByConsumer.get(fanKey);
 
-            if (fanout == null)
+            if (fan == null)
             {
-                KafkaCacheConsumerFanout newFanout =
-                     new KafkaCacheConsumerFanout(routedId, resolvedId, authorization, groupId,
-                         topic, consumerId, partitions, timeout);
-                fanout = newFanout;
-                clientConsumerFansByGroupId.put(groupId, fanout);
+                KafkaCacheClientConsumerFan newFan =
+                     new KafkaCacheClientConsumerFan(routedId, resolvedId, authorization, fanKey,
+                         groupId, topic, consumerId, partitions, timeout);
+                fan = newFan;
+                clientConsumerFansByConsumer.put(fanKey, fan);
             }
 
-            newStream = new KafkaCacheConsumerStream(
-                fanout,
+            newStream = new KafkaCacheClientConsumerStream(
+                fan,
                 sender,
                 originId,
                 routedId,
@@ -266,7 +267,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.limit())
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
@@ -380,16 +381,17 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheConsumerFanout
+    final class KafkaCacheClientConsumerFan
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final String fanKey;
         private final String groupId;
         private final String topic;
         private final String consumerId;
         private final int timeout;
-        private final List<KafkaCacheConsumerStream> members;
+        private final List<KafkaCacheClientConsumerStream> members;
         private final IntHashSet partitions;
         private final IntHashSet assignedPartitions;
         private final Object2ObjectHashMap<String, IntHashSet> assignments;
@@ -409,10 +411,11 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         private int replyMax;
 
 
-        private KafkaCacheConsumerFanout(
+        private KafkaCacheClientConsumerFan(
             long originId,
             long routedId,
             long authorization,
+            String fanKey,
             String groupId,
             String topic,
             String consumerId,
@@ -427,20 +430,21 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             this.consumerId = consumerId;
             this.partitions = partitions;
             this.timeout = timeout;
+            this.fanKey = fanKey;
             this.members = new ArrayList<>();
             this.assignedPartitions = new IntHashSet();
             this.assignments = new Object2ObjectHashMap<>();
         }
 
-        private void onConsumerFanoutMemberOpening(
+        private void onConsumerFanMemberOpening(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             members.add(member);
 
             assert !members.isEmpty();
 
-            doConsumerFanoutInitialBeginIfNecessary(traceId);
+            doConsumerFanInitialBeginIfNecessary(traceId);
 
             if (KafkaState.initialOpened(state))
             {
@@ -453,9 +457,9 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             }
         }
 
-        private void onConsumerFanoutMemberOpened(
+        private void onConsumerFanMemberOpened(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             if (!assignedPartitions.isEmpty())
             {
@@ -474,20 +478,32 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             }
         }
 
-        private void onConsumerFanoutMemberClosed(
+        private void onConsumerFanMemberClosed(
             long traceId,
-            KafkaCacheConsumerStream member)
+            KafkaCacheClientConsumerStream member)
         {
             members.remove(member);
 
             if (members.isEmpty())
             {
-                doConsumerFanoutInitialEndIfNecessary(traceId);
-                doConsumerFanoutReplyResetIfNecessary(traceId);
+                cleanup(traceId);
             }
         }
 
-        private void doConsumerFanoutInitialBeginIfNecessary(
+        private void cleanup(long traceId)
+        {
+            doConsumerFanInitialEndIfNecessary(traceId);
+            doConsumerFanReplyResetIfNecessary(traceId);
+        }
+
+        private void onConsumerFanClosed(
+            long traceId)
+        {
+            clientConsumerFansByConsumer.remove(this.fanKey);
+            cleanup(traceId);
+        }
+
+        private void doConsumerFanInitialBeginIfNecessary(
             long traceId)
         {
             if (KafkaState.closed(state))
@@ -497,18 +513,18 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             if (!KafkaState.initialOpening(state))
             {
-                doConsumerFanoutInitialBegin(traceId);
+                doConsumerFanInitialBegin(traceId);
             }
         }
 
-        private void doConsumerFanoutInitialBegin(
+        private void doConsumerFanInitialBegin(
             long traceId)
         {
             assert state == 0;
 
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.receiver = newStream(this::onConsumerFanoutMessage,
+            this.receiver = newStream(this::onConsumerFanMessage,
                 originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
@@ -523,16 +539,16 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             state = KafkaState.openingInitial(state);
         }
 
-        private void doConsumerFanoutInitialEndIfNecessary(
+        private void doConsumerFanInitialEndIfNecessary(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
             {
-                doConsumerFanoutInitialEnd(traceId);
+                doConsumerFanInitialEnd(traceId);
             }
         }
 
-        private void doConsumerFanoutInitialEnd(
+        private void doConsumerFanInitialEnd(
             long traceId)
         {
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -541,16 +557,16 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
         }
 
-        private void doConsumerFanoutInitialAbortIfNecessary(
+        private void doConsumerFanInitialAbortIfNecessary(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
             {
-                doConsumerFanoutInitialAbort(traceId);
+                doConsumerFanInitialAbort(traceId);
             }
         }
 
-        private void doConsumerFanoutInitialAbort(
+        private void doConsumerFanInitialAbort(
             long traceId)
         {
             doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -559,7 +575,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
         }
 
-        private void onConsumerFanoutInitialReset(
+        private void onConsumerFanInitialReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
@@ -570,12 +586,14 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            doConsumerFanoutReplyResetIfNecessary(traceId);
+            doConsumerFanReplyResetIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerInitialResetIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
-        private void onConsumerFanoutInitialWindow(
+        private void onConsumerFanInitialWindow(
             WindowFW window)
         {
             if (!KafkaState.initialOpened(state))
@@ -589,7 +607,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             }
         }
 
-        private void onConsumerFanoutMessage(
+        private void onConsumerFanMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -599,34 +617,34 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onConsumerFanoutReplyBegin(begin);
+                onConsumerFanReplyBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onConsumerFanoutReplyData(data);
+                onConsumerFanReplyData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onConsumerFanoutReplyEnd(end);
+                onConsumerFanReplyEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onConsumerFanoutReplyAbort(abort);
+                onConsumerFanReplyAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onConsumerFanoutInitialReset(reset);
+                onConsumerFanInitialReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onConsumerFanoutInitialWindow(window);
+                onConsumerFanInitialWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onConsumerFanoutReplyBegin(
+        private void onConsumerFanReplyBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -635,10 +653,10 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             members.forEach(s -> s.doConsumerReplyBeginIfNecessary(traceId));
 
-            doConsumerFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
+            doConsumerFanReplyWindow(traceId, 0, bufferPool.slotCapacity());
         }
 
-        private void onConsumerFanoutReplyData(
+        private void onConsumerFanReplyData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -679,43 +697,47 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
                 members.forEach(s -> s.doConsumerReplyDataIfNecessary(traceId, kafkaDataEx));
             }
 
-            doConsumerFanoutReplyWindow(traceId, 0, replyMax);
+            doConsumerFanReplyWindow(traceId, 0, replyMax);
         }
 
-        private void onConsumerFanoutReplyEnd(
+        private void onConsumerFanReplyEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
 
             state = KafkaState.closedReply(state);
 
-            doConsumerFanoutInitialEndIfNecessary(traceId);
+            doConsumerFanInitialEndIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerReplyEndIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
-        private void onConsumerFanoutReplyAbort(
+        private void onConsumerFanReplyAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
 
             state = KafkaState.closedReply(state);
 
-            doConsumerFanoutInitialAbortIfNecessary(traceId);
+            doConsumerFanInitialAbortIfNecessary(traceId);
 
             members.forEach(s -> s.doConsumerReplyAbortIfNecessary(traceId));
+
+            onConsumerFanClosed(traceId);
         }
 
-        private void doConsumerFanoutReplyResetIfNecessary(
+        private void doConsumerFanReplyResetIfNecessary(
             long traceId)
         {
             if (!KafkaState.replyClosed(state))
             {
-                doConsumerFanoutReplyReset(traceId);
+                doConsumerFanReplyReset(traceId);
             }
         }
 
-        private void doConsumerFanoutReplyReset(
+        private void doConsumerFanReplyReset(
             long traceId)
         {
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -724,7 +746,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void doConsumerFanoutReplyWindow(
+        private void doConsumerFanReplyWindow(
             long traceId,
             int minReplyNoAck,
             int minReplyMax)
@@ -746,9 +768,9 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheConsumerStream
+    private final class KafkaCacheClientConsumerStream
     {
-        private final KafkaCacheConsumerFanout group;
+        private final KafkaCacheClientConsumerFan fan;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -770,8 +792,8 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
         private long replyBudgetId;
 
-        KafkaCacheConsumerStream(
-            KafkaCacheConsumerFanout group,
+        KafkaCacheClientConsumerStream(
+            KafkaCacheClientConsumerFan fan,
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -779,7 +801,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
             long affinity,
             long authorization)
         {
-            this.group = group;
+            this.fan = fan;
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -829,7 +851,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             state = KafkaState.openingInitial(state);
 
-            group.onConsumerFanoutMemberOpening(traceId, this);
+            fan.onConsumerFanMemberOpening(traceId, this);
         }
 
         private void onConsumerInitialEnd(
@@ -839,7 +861,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fan.onConsumerFanMemberClosed(traceId, this);
 
             doConsumerReplyEndIfNecessary(traceId);
         }
@@ -851,7 +873,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fan.onConsumerFanMemberClosed(traceId, this);
 
             doConsumerReplyAbortIfNecessary(traceId);
         }
@@ -984,7 +1006,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            group.onConsumerFanoutMemberClosed(traceId, this);
+            fan.onConsumerFanMemberClosed(traceId, this);
 
             doConsumerInitialResetIfNecessary(traceId);
         }
@@ -1015,7 +1037,7 @@ public final class KafkaCacheConsumerFactory implements BindingHandler
                 state = KafkaState.openedReply(state);
 
                 final long traceId = window.traceId();
-                group.onConsumerFanoutMemberOpened(traceId, this);
+                fan.onConsumerFanMemberOpened(traceId, this);
             }
         }
     }

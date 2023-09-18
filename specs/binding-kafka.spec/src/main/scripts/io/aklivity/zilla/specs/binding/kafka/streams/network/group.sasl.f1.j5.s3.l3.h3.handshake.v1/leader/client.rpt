@@ -123,7 +123,7 @@ write 82                                                 # size
       ${newRequestId}
       -1s                                                # no client id
       1                                                  # resources
-        [0x01]                                           # broker resource
+        [0x04]                                           # broker resource
         1s "0"                                           # "node" topic
         2                                                # configs
           28s "group.min.session.timeout.ms"             # name
@@ -135,7 +135,7 @@ read 103                                                # size
       1                                                  # resources
         0s                                               # no error
         -1s                                              # error message
-        [0x01]                                           # broker resource
+        [0x04]                                           # broker resource
         1s "0"                                           # "0" nodeId
         2                                                # configs
           28s "group.min.session.timeout.ms"             # name
@@ -188,7 +188,7 @@ read 20                                 # size
      -1s                                # authentication bytes
      0L                                 # session lifetime
 
-write 105                                # size
+write 119                                # size
       11s                               # join group
       5s                                # v5
       ${newRequestId}
@@ -200,10 +200,11 @@ write 105                                # size
       42s ${instanceId}                 # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
-        10s "highlander"                    # protocol name
-        0                               # metadata
+        10s "highlander"                     # protocol name
+        14                                   # metadata size
+        ${kafka:randomBytes(14)}             # metadata
 
-read  112                                               # size
+read  126                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -214,7 +215,11 @@ read  112                                               # size
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
-         0                                                 # metadata
+         14                                                # metadata size
+         2s                                                # version
+         0                                                 # topics
+         0                                                 # userdata
+         0                                                 # partitions
 
 write 101                                           # size
       14s                                           # sync group

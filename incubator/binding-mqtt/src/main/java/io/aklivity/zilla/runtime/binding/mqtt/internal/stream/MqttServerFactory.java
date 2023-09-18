@@ -1827,7 +1827,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .flags(flags)
                     .expiry(sessionExpiry)
                     .clientId(clientId)
-                    .serverRef(serverRef)
                 );
 
             if (sessionStream == null)
@@ -4137,14 +4136,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    if (subscriptions.isEmpty())
-                    {
-                        doSubscribeAppEnd(traceId);
-                    }
-                    else
-                    {
-                        doSubscribeFlush(traceId, 0, null);
-                    }
+                    doSubscribeFlush(traceId, 0, null);
                 }
             }
 

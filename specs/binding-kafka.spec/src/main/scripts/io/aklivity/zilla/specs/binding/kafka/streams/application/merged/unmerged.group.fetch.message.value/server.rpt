@@ -111,28 +111,74 @@ write flush
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .consumer()
-                                .groupId("client-1")
-                                .consumerId("localhost:9092")
-                                .timeout(45000)
-                                .topic("test")
-                                .partition(0)
-                                .partition(1)
-                                .build()
-                              .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(45000)
+                                   .metadata(kafka:memberMetadata()
+                                        .consumerId("consumer-1")
+                                        .topic("test")
+                                           .partitionId(0)
+                                           .partitionId(1)
+                                           .build()
+                                        .build())
+                                   .build()
+                               .build()}
 
 connected
 
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+write flush
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
-                             .consumer()
-                                 .partition(0)
-                                 .assignment("localhost:9092", 0)
-                                 .build()
+                             .group()
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1", kafka:memberMetadata()
+                                     .consumerId("consumer-1")
+                                     .topic("test")
+                                        .partitionId(0)
+                                        .partitionId(1)
+                                        .build()
+                                     .build())
+                                .build()
                              .build()}
+
+read ${kafka:memberAssignment()
+          .member("memberId-1")
+            .assignment()
+              .topic("test")
+              .partitionId(0)
+              .partitionId(1)
+              .consumer()
+                 .id("consumer-1")
+                 .partitionId(0)
+                 .partitionId(1)
+                 .build()
+              .build()
+            .build()
+           .build()}
+
+write ${kafka:topicAssignment()
+                .topic()
+                  .id("test")
+                  .partitionId(0)
+                  .consumer()
+                    .id("consumer-1")
+                    .partitionId(0)
+                    .build()
+                  .build()
+              .build()}
 write flush
 
 accepted

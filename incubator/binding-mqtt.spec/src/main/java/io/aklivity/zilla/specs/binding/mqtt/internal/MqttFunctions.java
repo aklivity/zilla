@@ -246,13 +246,6 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder serverRef(
-                String serverRef)
-            {
-                sessionBeginExRW.serverRef(serverRef);
-                return this;
-            }
-
             public MqttSessionBeginExBuilder flags(
                 String... flagNames)
             {
@@ -1311,7 +1304,6 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
-            private String16FW serverRef;
             private Integer expiry;
             private Integer flags;
             private Integer capabilities;
@@ -1359,13 +1351,6 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExMatcherBuilder serverRef(
-                String serverRef)
-            {
-                this.serverRef = new String16FW(serverRef);
-                return this;
-            }
-
             public MqttSessionBeginExMatcherBuilder flags(
                 String... flagNames)
             {
@@ -1389,8 +1374,7 @@ public final class MqttFunctions
                     matchExpiry(sessionBeginEx) &&
                     matchQosMax(sessionBeginEx) &&
                     matchPacketSizeMax(sessionBeginEx) &&
-                    matchCapabilities(sessionBeginEx) &&
-                    matchserverRef(sessionBeginEx);
+                    matchCapabilities(sessionBeginEx);
             }
 
             private boolean matchClientId(
@@ -1427,12 +1411,6 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return flags == null || flags == sessionBeginEx.flags();
-            }
-
-            private boolean matchserverRef(
-                final MqttSessionBeginExFW sessionBeginEx)
-            {
-                return serverRef == null || serverRef.equals(sessionBeginEx.serverRef());
             }
         }
     }

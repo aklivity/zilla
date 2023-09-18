@@ -68,7 +68,6 @@ public class MqttFunctionsTest
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
-                .serverRef("mqtt-1.example.com:1883")
                 .build()
             .build();
 
@@ -77,7 +76,6 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("mqtt-1.example.com:1883", mqttBeginEx.session().serverRef().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
         assertEquals(1, mqttBeginEx.session().qosMax());
         assertEquals(100, mqttBeginEx.session().packetSizeMax());
@@ -296,7 +294,6 @@ public class MqttFunctionsTest
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
-                .serverRef("mqtt-1.example.com:1883")
                 .build()
             .build();
 
@@ -311,8 +308,7 @@ public class MqttFunctionsTest
                 .qosMax(1)
                 .packetSizeMax(100)
                 .capabilities(7)
-                .clientId("client")
-                .serverRef("mqtt-1.example.com:1883"))
+                .clientId("client"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

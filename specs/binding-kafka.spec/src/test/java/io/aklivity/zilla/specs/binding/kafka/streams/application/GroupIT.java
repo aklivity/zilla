@@ -107,4 +107,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/reassign.new.topic/client",
+        "${app}/reassign.new.topic/server"})
+    public void shouldReassignOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
 }

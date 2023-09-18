@@ -69,6 +69,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private static final String KAFKA_TYPE_NAME = "kafka";
 
     private static final int SIGNAL_INITIATE_KAFKA_STREAM = 1;
+    private static final int GRPC_QUEUE_MESSAGE_PADDING = 3 * 256 + 33;
 
     private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int DATA_FLAG_INIT = 0x02;
@@ -260,7 +261,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             this.replyAck = 0;
             this.replyMax = bufferPool.slotCapacity();
             this.replyBud = 0;
-            this.replyPad = 0;
+            this.replyPad = GRPC_QUEUE_MESSAGE_PADDING;
             this.replyCap = 0;
             this.errorProducer = new KafkaErrorProducer(originId, routedId, condition, this);
             this.grpcClients = new Object2ObjectHashMap<>();
@@ -494,7 +495,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
                 final int queuedMessageSize = queueMessage.sizeof();
                 final int oldProgressOffset = progressOffset;
-                progressOffset += queuedMessageSize;
+                progressOffset = queueMessage.limit();
 
                 if (correlationId.equals(messageCorrelationId))
                 {
@@ -510,7 +511,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                         final int remaining = grpcQueueSlotOffset - progressOffset;
                         grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remaining);
 
-                        grpcQueueSlotOffset = grpcQueueSlotOffset - progressOffset;
+                        grpcQueueSlotOffset = oldProgressOffset + remaining;
                         progressOffset = oldProgressOffset;
                     }
                     else if (progress > 0)

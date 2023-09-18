@@ -95,5 +95,8 @@ write advise zilla:flush ${mqtt:flushEx()
                                     .build()
                                 .build()}
 
-write close
-read closed
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                    .build()
+                                 .build()}
