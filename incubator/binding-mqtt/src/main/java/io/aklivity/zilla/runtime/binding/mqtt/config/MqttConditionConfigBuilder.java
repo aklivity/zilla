@@ -15,9 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
@@ -25,13 +26,17 @@ public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttCo
 {
     private final Function<ConditionConfig, T> mapper;
 
-    private String topic;
-    private MqttCapabilities capabilities;
+    private final List<MqttSessionConfig> session;
+    private final List<MqttSubscribeConfig> subscribe;
+    private final List<MqttPublishConfig> publish;
 
     MqttConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
+        this.session = new ArrayList<>();
+        this.subscribe = new ArrayList<>();
+        this.publish = new ArrayList<>();
     }
 
     @Override
@@ -41,23 +46,30 @@ public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttCo
         return (Class<MqttConditionConfigBuilder<T>>) getClass();
     }
 
-    public MqttConditionConfigBuilder<T> topic(
-        String topic)
+    public MqttConditionConfigBuilder<T> session(
+        MqttSessionConfig session)
     {
-        this.topic = topic;
+        this.session.add(session);
         return this;
     }
 
-    public MqttConditionConfigBuilder<T> capabilities(
-        MqttCapabilities capabilities)
+    public MqttConditionConfigBuilder<T> subscribe(
+        MqttSubscribeConfig subscribe)
     {
-        this.capabilities = capabilities;
+        this.subscribe.add(subscribe);
+        return this;
+    }
+
+    public MqttConditionConfigBuilder<T> publish(
+        MqttPublishConfig publish)
+    {
+        this.publish.add(publish);
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new MqttConditionConfig(topic, capabilities));
+        return mapper.apply(new MqttConditionConfig(session, subscribe, publish));
     }
 }

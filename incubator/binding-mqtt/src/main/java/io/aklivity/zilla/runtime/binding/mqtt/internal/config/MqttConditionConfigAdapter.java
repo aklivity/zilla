@@ -16,21 +16,29 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPublishConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSessionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSubscribeConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class MqttConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
+    private static final String SESSION_NAME = "session";
+    private static final String SUBSCRIBE_NAME = "subscribe";
+    private static final String PUBLISH_NAME = "publish";
+    private static final String CLIENT_ID_NAME = "client-id";
     private static final String TOPIC_NAME = "topic";
-    private static final String CAPABILITIES_NAME = "capabilities";
+    public static final String CLIENT_ID_DEFAULT = "*";
 
     @Override
     public String type()
@@ -46,14 +54,43 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mqttCondition.topic != null)
+        if (!mqttCondition.sessions.isEmpty())
         {
-            object.add(TOPIC_NAME, mqttCondition.topic);
+            JsonArrayBuilder sessions = Json.createArrayBuilder();
+
+            mqttCondition.sessions.forEach(p ->
+            {
+                JsonObjectBuilder sessionJson = Json.createObjectBuilder();
+                sessionJson.add(CLIENT_ID_NAME, p.clientId);
+                sessions.add(sessionJson);
+            });
+            object.add(SESSION_NAME, sessions);
         }
 
-        if (mqttCondition.capabilities != null)
+        if (!mqttCondition.subscribes.isEmpty())
         {
-            object.add(CAPABILITIES_NAME, mqttCondition.capabilities.toString().toLowerCase());
+            JsonArrayBuilder subscribes = Json.createArrayBuilder();
+
+            mqttCondition.subscribes.forEach(s ->
+            {
+                JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
+                subscribeJson.add(TOPIC_NAME, s.topic);
+                subscribes.add(subscribeJson);
+            });
+            object.add(SUBSCRIBE_NAME, subscribes);
+        }
+
+        if (!mqttCondition.publishes.isEmpty())
+        {
+            JsonArrayBuilder publishes = Json.createArrayBuilder();
+
+            mqttCondition.publishes.forEach(p ->
+            {
+                JsonObjectBuilder publishJson = Json.createObjectBuilder();
+                publishJson.add(TOPIC_NAME, p.topic);
+                publishes.add(publishJson);
+            });
+            object.add(PUBLISH_NAME, publishes);
         }
 
         return object.build();
@@ -65,14 +102,37 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
     {
         MqttConditionConfigBuilder<MqttConditionConfig> mqttConfig = MqttConditionConfig.builder();
 
-        if (object.containsKey(TOPIC_NAME))
+        if (object.containsKey(SESSION_NAME))
         {
-            mqttConfig.topic(object.getString(TOPIC_NAME));
+            JsonArray sessionsJson = object.getJsonArray(SESSION_NAME);
+            sessionsJson.forEach(s ->
+            {
+                String clientId = s.asJsonObject().getString(CLIENT_ID_NAME, CLIENT_ID_DEFAULT);
+                MqttSessionConfig session = new MqttSessionConfig(clientId);
+                mqttConfig.session(session);
+            });
         }
 
-        if (object.containsKey(CAPABILITIES_NAME))
+        if (object.containsKey(SUBSCRIBE_NAME))
         {
-            mqttConfig.capabilities(MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase()));
+            JsonArray subscribesJson = object.getJsonArray(SUBSCRIBE_NAME);
+            subscribesJson.forEach(s ->
+            {
+                String topic = s.asJsonObject().getString(TOPIC_NAME);
+                MqttSubscribeConfig subscribe = new MqttSubscribeConfig(topic);
+                mqttConfig.subscribe(subscribe);
+            });
+        }
+
+        if (object.containsKey(PUBLISH_NAME))
+        {
+            JsonArray publishesJson = object.getJsonArray(PUBLISH_NAME);
+            publishesJson.forEach(p ->
+            {
+                String topic = p.asJsonObject().getString(TOPIC_NAME);
+                MqttPublishConfig publish = new MqttPublishConfig(topic);
+                mqttConfig.publish(publish);
+            });
         }
 
         return mqttConfig.build();

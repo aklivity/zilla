@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -64,23 +63,32 @@ public final class MqttBindingConfig
             .orElse(null);
     }
 
-    public MqttRouteConfig resolve(
+    public MqttRouteConfig resolveSession(
         long authorization,
-        MqttCapabilities capabilities)
+        String clientId)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(capabilities))
+            .filter(r -> r.authorized(authorization) && r.matchesSession(clientId))
             .findFirst()
             .orElse(null);
     }
 
-    public MqttRouteConfig resolve(
+    public MqttRouteConfig resolveSubscribe(
         long authorization,
-        String topic,
-        MqttCapabilities capabilities)
+        String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic, capabilities))
+            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(topic))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public MqttRouteConfig resolvePublish(
+        long authorization,
+        String topic)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matchesPublish(topic))
             .findFirst()
             .orElse(null);
     }

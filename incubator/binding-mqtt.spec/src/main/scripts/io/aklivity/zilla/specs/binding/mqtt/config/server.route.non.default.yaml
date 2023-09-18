@@ -21,6 +21,13 @@ bindings:
     type: mqtt
     kind: server
     routes:
-      - exit: app0
-        when:
-          - capabilities: session
+      - when:
+          - session:
+              - client-id: "*"
+          - publish:
+              - topic: command/one
+              - topic: command/two
+          - subscribe:
+              - topic: reply
+        exit: app1
+    exit: app0
