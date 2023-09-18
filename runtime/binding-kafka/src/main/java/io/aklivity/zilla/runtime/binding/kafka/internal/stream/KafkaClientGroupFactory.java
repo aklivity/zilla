@@ -266,6 +266,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
+    private final KafkaClientConnectionPoolFactory connectionPool;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
@@ -276,7 +277,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
-        LongFunction<BudgetDebitor> supplyDebitor)
+        LongFunction<BudgetDebitor> supplyDebitor,
+        KafkaClientConnectionPoolFactory connectionPool)
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
@@ -291,6 +293,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
         this.clientId = config.clientId();
         this.supplyInstanceId = config.clientInstanceIdSupplier();
+        this.connectionPool = connectionPool;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
     }
@@ -407,7 +410,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .build();
 
         final MessageConsumer receiver =
-                streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+                connectionPool.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 

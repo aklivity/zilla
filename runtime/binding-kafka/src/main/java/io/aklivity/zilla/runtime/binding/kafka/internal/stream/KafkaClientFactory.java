@@ -43,6 +43,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
+    private final KafkaClientConnectionPoolFactory connectionPool;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -52,6 +53,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
+        this.connectionPool = new KafkaClientConnectionPoolFactory(config, context, bindings::get);
+
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
 
@@ -59,7 +62,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor);
+            config, context, bindings::get, accountant::supplyDebitor, connectionPool);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
