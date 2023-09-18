@@ -3351,7 +3351,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpened(state) && !KafkaState.initialClosed(state))
             {
                 state = KafkaState.closedInitial(state);
 
@@ -3380,7 +3380,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doNetworkReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (KafkaState.replyOpened(state) && !KafkaState.replyClosed(state))
             {
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
