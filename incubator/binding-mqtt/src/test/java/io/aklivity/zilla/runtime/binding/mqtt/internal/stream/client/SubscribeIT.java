@@ -302,4 +302,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.reconnect.publish.no.subscription/server",
+        "${app}/subscribe.reconnect.publish.no.subscription/client"})
+    public void shouldReceiveReconnectNoSubscription() throws Exception
+    {
+        k3po.finish();
+    }
 }

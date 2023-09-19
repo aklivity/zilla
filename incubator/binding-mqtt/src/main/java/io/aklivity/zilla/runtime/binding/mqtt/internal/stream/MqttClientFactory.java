@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.BAD_AUTHENTICATION_METHOD;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_TOO_LARGE;
@@ -81,6 +80,7 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
@@ -985,6 +985,35 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final int qos = mqttPublishHeader.qos;
                 MqttSubscribeStream subscriber = client.subscribeStreams.get(qos);
 
+                if (!client.existStreamForTopic(mqttPublishHeader.topic))
+                {
+                    MqttSessionStateFW.Builder sessionStateBuilder =
+                        mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
+                    client.sessionStream.subscriptions.forEach(s ->
+                        sessionStateBuilder.subscriptionsItem(si ->
+                            si.subscriptionId(s.id)
+                                .qos(s.qos)
+                                .flags(s.flags)
+                                .pattern(s.filter)));
+                    final Varuint32FW firstSubscriptionId = subscriptionIdsRW.build().matchFirst(s -> true);
+                    final int subscriptionId = firstSubscriptionId != null ? firstSubscriptionId.value() : 0;
+                    final Subscription adminSubscription = new Subscription();
+                    adminSubscription.id = subscriptionId;
+                    adminSubscription.qos = mqttPublishHeader.qos;
+                    adminSubscription.filter = mqttPublishHeader.topic;
+                    client.sessionStream.subscriptions.add(adminSubscription);
+
+                    sessionStateBuilder.subscriptionsItem(si ->
+                        si.subscriptionId(adminSubscription.id)
+                            .qos(adminSubscription.qos)
+                            .pattern(adminSubscription.filter));
+
+                    MqttSessionStateFW sessionState = sessionStateBuilder.build();
+                    client.sessionStream.doSessionData(traceId, authorization, sessionState.sizeof(), EMPTY_OCTETS, sessionState);
+
+                    break decode;
+                }
+
                 if (subscriber == null)
                 {
                     break decode;
@@ -999,7 +1028,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                     client.onDecodeError(traceId, authorization, reasonCode);
                     client.decoder = decodeIgnoreAll;
                 }
-
 
                 boolean canPublish = MqttState.replyOpened(subscriber.state);
 
@@ -1750,17 +1778,17 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int decodeOffset = decodePayload.offset();
             final int decodeLimit = decodePayload.limit();
 
+            final List<Subscription> unackedSubscriptions = sessionStream.unAckedSubscriptionsByPacketId.remove(packetId);
             MqttSessionStateFW.Builder sessionStateBuilder =
                 mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
-            sessionStream.subscriptions.forEach(s ->
+
+            sessionStream.subscriptions.stream().filter(s -> !unackedSubscriptions.contains(s)).forEach(s ->
                 sessionStateBuilder.subscriptionsItem(si ->
                     si.subscriptionId(s.id)
                         .qos(s.qos)
                         .flags(s.flags)
                         .pattern(s.filter)));
 
-
-            final List<Subscription> unackedSubscriptions = sessionStream.unAckedSubscriptionsByPacketId.remove(packetId);
             int i = 0;
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
@@ -2682,6 +2710,27 @@ public final class MqttClientFactory implements MqttStreamFactory
             return flags;
         }
 
+        private boolean existStreamForTopic(
+            String topic)
+        {
+            boolean match = sessionStream.subscriptions.stream().anyMatch(s ->
+            {
+                String regex = s.filter.replace("#", ".*").replace("+", "[^/]+");
+                return Pattern.matches(regex, topic);
+            });
+
+            if (!match)
+            {
+                match = sessionStream.unAckedSubscriptionsByPacketId.values().stream().anyMatch(ss ->
+                    ss.stream().anyMatch(s ->
+                    {
+                        String regex = s.filter.replace("#", ".*").replace("+", "[^/]+");
+                        return Pattern.matches(regex, topic);
+                    }));
+            }
+
+            return match;
+        }
 
         private int getNextPacketId()
         {
@@ -2956,6 +3005,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                         .filter(s -> !newSubscribeState.contains(s))
                         .collect(Collectors.toList());
                     final int packetId = client.getNextPacketId();
+
                     if (newSubscriptions.size() > 0)
                     {
                         client.doEncodeSubscribe(traceId, authorization, newSubscriptions, packetId);
@@ -2964,6 +3014,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                     {
                         client.doEncodeUnsubscribe(traceId, authorization, oldSubscriptions, packetId);
                     }
+                    client.sessionStream.subscriptions.addAll(newSubscriptions);
+                    client.sessionStream.subscriptions.removeAll(oldSubscriptions);
                     break;
                 }
             }
@@ -3263,7 +3315,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             });
             final int qos = subscriptions.get(0).qos;
             client.subscribeStreams.put(qos, this);
-            client.sessionStream.subscriptions.addAll(subscriptions);
 
             doSubscribeBegin(traceId, authorization, affinity);
             doSubscribeWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
