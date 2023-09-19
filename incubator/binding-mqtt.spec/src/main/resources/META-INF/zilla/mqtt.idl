@@ -41,13 +41,6 @@ scope mqtt
         RETAIN(0)
     }
 
-    enum MqttCapabilities (uint8)
-    {
-        PUBLISH_ONLY(1),
-        SUBSCRIBE_ONLY(2),
-        SESSION(3)
-    }
-
     enum MqttPayloadFormat
     {
         BINARY,
