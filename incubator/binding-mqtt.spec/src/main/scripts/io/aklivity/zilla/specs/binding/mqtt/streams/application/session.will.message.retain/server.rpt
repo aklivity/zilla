@@ -16,13 +16,13 @@
 
 accept "zilla://streams/app0"
         option zilla:window 8192
-        option zilla:transmission "duplex"
-
+        option zilla:transmission "half-duplex"
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
+                               .flags("CLEAN_START", "WILL")
                                .clientId("one")
                                .build()
                             .build()}
@@ -43,6 +43,17 @@ read ${mqtt:will()
                .format("TEXT")
                .payload("client one session expired")
                .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("WILL", "CLEAN_START")
+                                .qosMax(0)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
+                                .clientId("one")
+                                .build()
+                              .build()}
 
 write zilla:data.empty
 write flush

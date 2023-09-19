@@ -18,6 +18,32 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                             .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
 
 accepted
 
@@ -47,3 +73,30 @@ read zilla:data.ext ${mqtt:matchDataEx()
 
 read "message2"
 
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("client2")
+                                .build()
+                             .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client2")
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
+read aborted

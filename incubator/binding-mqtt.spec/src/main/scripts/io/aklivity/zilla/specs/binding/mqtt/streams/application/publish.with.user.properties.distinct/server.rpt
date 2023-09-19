@@ -22,6 +22,33 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
+                                .build()
+                             .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("755452d5-e2ef-4113-b9c6-2f53de96fd76")
                                 .topic("/sensors/1")

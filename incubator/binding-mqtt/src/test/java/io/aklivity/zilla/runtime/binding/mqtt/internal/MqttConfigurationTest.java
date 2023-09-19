@@ -24,12 +24,11 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.RETAIN_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SERVER_REFERENCE;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSIONS_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_EXPIRY_GRACE_PERIOD;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION_AVAILABLE;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS_AVAILABLE;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.TOPIC_ALIAS_MAXIMUM;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION_AVAILABLE;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -46,14 +45,13 @@ public class MqttConfigurationTest
     public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";
     public static final String SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME = "zilla.binding.mqtt.subscription.identifiers.available";
     public static final String SHARED_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.shared.subscription.available";
-    public static final String SESSION_AVAILABLE_NAME = "zilla.binding.mqtt.sessions.available";
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
     public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
     public static final String SERVER_REFERENCE_NAME = "zilla.binding.mqtt.server.reference";
 
     @Test
-    public void shouldVerifyConstants() throws Exception
+    public void shouldVerifyConstants()
     {
         assertEquals(PUBLISH_TIMEOUT.name(), PUBLISH_TIMEOUT_NAME);
         assertEquals(CONNECT_TIMEOUT.name(), CONNECT_TIMEOUT_NAME);
@@ -62,10 +60,9 @@ public class MqttConfigurationTest
         assertEquals(MAXIMUM_QOS.name(), MAXIMUM_QOS_NAME);
         assertEquals(RETAIN_AVAILABLE.name(), RETAIN_AVAILABLE_NAME);
         assertEquals(TOPIC_ALIAS_MAXIMUM.name(), TOPIC_ALIAS_MAXIMUM_NAME);
-        assertEquals(WILDCARD_SUBSCRIPTION_AVAILABLE.name(), WILDCARD_SUBSCRIPTION_AVAILABLE_NAME);
-        assertEquals(SUBSCRIPTION_IDENTIFIERS_AVAILABLE.name(), SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME);
-        assertEquals(SHARED_SUBSCRIPTION_AVAILABLE.name(), SHARED_SUBSCRIPTION_AVAILABLE_NAME);
-        assertEquals(SESSIONS_AVAILABLE.name(), SESSION_AVAILABLE_NAME);
+        assertEquals(WILDCARD_SUBSCRIPTION.name(), WILDCARD_SUBSCRIPTION_AVAILABLE_NAME);
+        assertEquals(SUBSCRIPTION_IDENTIFIERS.name(), SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME);
+        assertEquals(SHARED_SUBSCRIPTION.name(), SHARED_SUBSCRIPTION_AVAILABLE_NAME);
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
         assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);

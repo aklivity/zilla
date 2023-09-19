@@ -319,4 +319,31 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.messages.topic.alias.repeated/client",
+        "${net}/subscribe.receive.messages.topic.alias.repeated/server"})
+    public void shouldReceiveMessagesTopicAliasRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful/client",
+        "${net}/subscribe.topic.filters.non.successful/server"})
+    public void shouldFilterNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.publish.no.subscription/client",
+        "${net}/subscribe.reconnect.publish.no.subscription/server"})
+    public void shouldReceiveReconnectNoSubscription() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -22,7 +22,7 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x23]             # CONNECT
+read  [0x10 0x27]             # CONNECT
       [0x00 0x04] "MQTT"      # protocol name
       [0x05]                  # protocol version
       [0x82]                  # flags = username, clean start

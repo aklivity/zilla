@@ -55,6 +55,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataKind;
@@ -218,6 +219,30 @@ public final class MqttFunctions
                 int expiry)
             {
                 sessionBeginExRW.expiry(expiry);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder qosMax(
+                int qosMax)
+            {
+                sessionBeginExRW.qosMax(qosMax);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder packetSizeMax(
+                int packetSizeMax)
+            {
+                sessionBeginExRW.packetSizeMax(packetSizeMax);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder capabilities(
+                String... capabilityNames)
+            {
+                int capabilities = Arrays.stream(capabilityNames)
+                    .mapToInt(flag -> 1 << MqttServerCapabilities.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                sessionBeginExRW.capabilities(capabilities);
                 return this;
             }
 
@@ -690,6 +715,13 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttResetExBuilder reasonCode(
+            int reasonCode)
+        {
+            resetExRW.reasonCode(reasonCode);
+            return this;
+        }
+
         public byte[] build()
         {
             final MqttResetExFW resetEx = resetExRW.build();
@@ -721,6 +753,15 @@ public final class MqttFunctions
             int id)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).pattern(pattern));
+            return this;
+        }
+
+        public MqttSessionStateBuilder subscription(
+            String pattern,
+            int id,
+            int reasonCode)
+        {
+            sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 
@@ -1274,6 +1315,9 @@ public final class MqttFunctions
             private String16FW clientId;
             private Integer expiry;
             private Integer flags;
+            private Integer capabilities;
+            private Integer qosMax;
+            private Integer packetSizeMax;
 
             private MqttSessionBeginExMatcherBuilder()
             {
@@ -1290,6 +1334,29 @@ public final class MqttFunctions
                 int expiry)
             {
                 this.expiry = expiry;
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder qosMax(
+                int qosMax)
+            {
+                this.qosMax = qosMax;
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder capabilities(
+                String... capabilityNames)
+            {
+                this.capabilities = Arrays.stream(capabilityNames)
+                    .mapToInt(flag -> 1 << MqttServerCapabilities.valueOf(flag).value())
+                    .reduce(0, (a, b) -> a | b);
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder packetSizeMax(
+                int packetSizeMax)
+            {
+                this.packetSizeMax = packetSizeMax;
                 return this;
             }
 
@@ -1311,15 +1378,36 @@ public final class MqttFunctions
                 MqttBeginExFW beginEx)
             {
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
-                return matchClientId(sessionBeginEx) &&
+                return matchFlags(sessionBeginEx) &&
+                    matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
-                    matchFlags(sessionBeginEx);
+                    matchQosMax(sessionBeginEx) &&
+                    matchPacketSizeMax(sessionBeginEx) &&
+                    matchCapabilities(sessionBeginEx);
             }
 
             private boolean matchClientId(
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return clientId == null || clientId.equals(sessionBeginEx.clientId());
+            }
+
+            private boolean matchQosMax(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return qosMax == null || qosMax == sessionBeginEx.qosMax();
+            }
+
+            private boolean matchPacketSizeMax(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return packetSizeMax == null || packetSizeMax == sessionBeginEx.packetSizeMax();
+            }
+
+            private boolean matchCapabilities(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return capabilities == null || capabilities == sessionBeginEx.capabilities();
             }
 
             private boolean matchExpiry(

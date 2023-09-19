@@ -47,15 +47,6 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${app}/client.sent.close/client",
-        "${app}/client.sent.close/server"})
-    public void shouldReceiveClientSentClose() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/connect.max.packet.size.exceeded/client",
         "${app}/connect.max.packet.size.exceeded/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
@@ -72,4 +63,57 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.connack/client",
+        "${app}/connect.non.successful.connack/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.disconnect/client",
+        "${app}/connect.non.successful.disconnect/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.delegate.connack.properties/client",
+        "${app}/connect.delegate.connack.properties/server"})
+    public void shouldDelegateConnackProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.retain.not.supported/client",
+        "${app}/connect.retain.not.supported/server"})
+    public void shouldConnectWithRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.reject.will.retain.not.supported/client",
+        "${app}/connect.reject.will.retain.not.supported/server"})
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.maximum.qos.0/client",
+        "${app}/connect.maximum.qos.0/server"})
+    public void shouldConnectWithMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
 }

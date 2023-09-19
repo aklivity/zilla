@@ -27,6 +27,17 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .build()
                              .build()}
 
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
 connected
 
 write zilla:data.empty
@@ -77,6 +88,17 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .clientId("client")
                                 .build()
                              .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
 
 connected
 

@@ -28,6 +28,17 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .build()
                              .build()}
 
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
 connected
 
 write zilla:data.empty
@@ -49,7 +60,7 @@ write ${mqtt:session()
                .build()}
 write flush
 
-read await SUBSCRIBED
+write await RECEIVED_SUBSCRIBE_OPEN
 write ${mqtt:session()
                .build()}
 write flush
@@ -65,6 +76,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .build()}
 
 connected
+read notify RECEIVED_SUBSCRIBE_OPEN
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))

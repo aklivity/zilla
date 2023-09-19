@@ -22,6 +22,49 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                             .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
+read ${mqtt:session()
+               .subscription("sensor/+/1/#", 1)
+               .build()}
+
+write ${mqtt:session()
+               .subscription("sensor/+/1/#", 1)
+               .build()}
+write flush
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
                                 .filter("sensor/+/1/#", 1)

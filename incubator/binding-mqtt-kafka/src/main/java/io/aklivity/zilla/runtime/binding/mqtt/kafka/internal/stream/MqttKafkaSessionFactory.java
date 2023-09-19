@@ -84,6 +84,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaR
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSessionDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
@@ -127,6 +128,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIZE_OF_UUID = 38;
     private static final AtomicInteger CONTEXT_COUNTER = new AtomicInteger(0);
+    private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
+    private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
+    private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
+    private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
+    private static final byte MQTT_KAFKA_MAX_QOS = 0;
+    private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
+        SUBSCRIPTION_IDS_AVAILABLE_MASK;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -177,6 +185,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MutableDirectBuffer willKeyBuffer;
     private final MutableDirectBuffer sessionSignalKeyBuffer;
     private final MutableDirectBuffer sessionExtBuffer;
+    private final int packetSizeMax;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -219,6 +228,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.willKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.sessionSignalKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.sessionExtBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.packetSizeMax = writeBuffer.capacity();
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
@@ -2469,7 +2479,18 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (isSetWillFlag(delegate.sessionFlags))
             {
-                delegate.doMqttBegin(traceId, authorization, affinity, EMPTY_OCTETS);
+                Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .session(sessionBuilder -> sessionBuilder
+                        .flags(delegate.sessionFlags)
+                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
+                        .qosMax(MQTT_KAFKA_MAX_QOS)
+                        .packetSizeMax(packetSizeMax)
+                        .capabilities(MQTT_KAFKA_CAPABILITIES)
+                        .clientId(delegate.clientId))
+                    .build();
+
+                delegate.doMqttBegin(traceId, authorization, affinity, mqttBeginEx);
             }
             doKafkaWindow(traceId, authorization, 0, 0);
         }
@@ -3178,18 +3199,21 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 sessionExpiryMillisInRange = kafkaGroupBeginEx.timeout();
             }
 
-            Flyweight mqttBeginEx = EMPTY_OCTETS;
             if (delegate.sessionExpiryMillis != sessionExpiryMillisInRange)
             {
                 delegate.sessionExpiryMillis = sessionExpiryMillisInRange;
-                mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                    .typeId(mqttTypeId)
-                    .session(sessionBuilder -> sessionBuilder
-                        .flags(delegate.sessionFlags)
-                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
-                        .clientId(delegate.clientId))
-                    .build();
             }
+
+            Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                .typeId(mqttTypeId)
+                .session(sessionBuilder -> sessionBuilder
+                    .flags(delegate.sessionFlags)
+                    .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
+                    .qosMax(MQTT_KAFKA_MAX_QOS)
+                    .packetSizeMax(packetSizeMax)
+                    .capabilities(MQTT_KAFKA_CAPABILITIES)
+                    .clientId(delegate.clientId))
+                .build();
 
             delegate.doMqttBegin(traceId, authorization, affinity, mqttBeginEx);
             doKafkaWindow(traceId, authorization, 0, 0, 0);

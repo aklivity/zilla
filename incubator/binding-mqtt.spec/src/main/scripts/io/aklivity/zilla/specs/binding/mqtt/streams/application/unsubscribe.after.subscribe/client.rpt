@@ -19,6 +19,66 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .kind("STATE")
+                              .build()
+                           .build()}
+
+write ${mqtt:session()
+            .subscription("sensor/one", 1)
+            .build()}
+write flush
+
+read ${mqtt:session()
+           .subscription("sensor/one", 1)
+           .build()}
+read notify RECEIVED_SESSION_STATE
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .kind("STATE")
+                              .build()
+                           .build()}
+
+write ${mqtt:session()
+            .build()}
+write flush
+
+read ${mqtt:session()
+           .build()}
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")

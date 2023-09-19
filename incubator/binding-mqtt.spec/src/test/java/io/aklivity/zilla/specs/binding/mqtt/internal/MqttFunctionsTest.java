@@ -64,6 +64,9 @@ public class MqttFunctionsTest
                 .session()
                 .flags("WILL", "CLEAN_START")
                 .expiry(30)
+                .qosMax(1)
+                .packetSizeMax(100)
+                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
                 .build()
             .build();
@@ -74,6 +77,9 @@ public class MqttFunctionsTest
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
+        assertEquals(1, mqttBeginEx.session().qosMax());
+        assertEquals(100, mqttBeginEx.session().packetSizeMax());
+        assertEquals(7, mqttBeginEx.session().capabilities());
         assertEquals(6, mqttBeginEx.session().flags());
     }
 
@@ -284,6 +290,9 @@ public class MqttFunctionsTest
             .session()
                 .flags("CLEAN_START")
                 .expiry(10)
+                .qosMax(1)
+                .packetSizeMax(100)
+                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
                 .build()
             .build();
@@ -296,6 +305,9 @@ public class MqttFunctionsTest
             .session(s -> s
                 .flags(2)
                 .expiry(10)
+                .qosMax(1)
+                .packetSizeMax(100)
+                .capabilities(7)
                 .clientId("client"))
             .build();
 
@@ -1172,12 +1184,14 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.resetEx()
             .typeId(0)
             .serverRef("mqtt-1.example.com:1883")
+            .reasonCode(0)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0, mqttResetEx.typeId());
         assertEquals("mqtt-1.example.com:1883", mqttResetEx.serverRef().asString());
+        assertEquals(0, mqttResetEx.reasonCode());
     }
 
     @Test
@@ -1185,7 +1199,7 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.session()
             .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-            .subscription("sensor/two")
+            .subscription("sensor/two", 1, 0)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1201,7 +1215,9 @@ public class MqttFunctionsTest
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
                     0 == f.qos() &&
+                    0 == f.reasonCode() &&
                     0b0000 == f.flags()));
     }
 
@@ -1261,7 +1277,7 @@ public class MqttFunctionsTest
         assertEquals("will.client", willMessage.topic().asString());
         assertEquals(1, willMessage.flags());
         assertEquals(0b0001, willMessage.flags());
-        assertEquals("BINARY", willMessage.format().toString());
+        assertEquals("NONE", willMessage.format().toString());
         assertEquals("response_topic", willMessage.responseTopic().asString());
         assertEquals("request-id-1", willMessage.correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));

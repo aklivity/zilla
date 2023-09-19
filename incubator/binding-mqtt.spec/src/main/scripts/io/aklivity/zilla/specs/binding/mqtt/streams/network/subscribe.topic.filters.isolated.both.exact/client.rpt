@@ -21,12 +21,13 @@ connect "zilla://streams/net0"
 
 connected
 
-write [0x10 0x13]                   # CONNECT
+write [0x10 0x18]                   # CONNECT
       [0x00 0x04] "MQTT"            # protocol name
       [0x05]                        # protocol version
       [0x02]                        # flags = clean start
       [0x00 0x3c]                   # keep alive = 60s
-      [0x00]                        # properties = none
+      [0x05]                        # properties
+      [0x27] 66560                  # maximum packet size = 66560
       [0x00 0x06] "client"          # client id
 
 read  [0x20 0x08]                   # CONNACK
@@ -48,13 +49,13 @@ read  [0x90 0x04]                   # SUBACK
       [0x00]                        # reason code
 
 write [0x82 0x12]                   # SUBSCRIBE
-      [0x00 0x01]                   # packet id = 1
+      [0x00 0x02]                   # packet id = 2
       [0x02]                        # properties
       [0x0b 0x02]                   # subscription id = 2
       [0x00 0x0a] "sensor/two"      # topic filter
       [0x20]                        # options = at-most-once
 
 read  [0x90 0x04]                   # SUBACK
-      [0x00 0x01]                   # packet id = 1
+      [0x00 0x02]                   # packet id = 2
       [0x00]                        # properties = none
       [0x00]                        # reason code      

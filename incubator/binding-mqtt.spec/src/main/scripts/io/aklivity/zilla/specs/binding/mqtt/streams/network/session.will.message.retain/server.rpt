@@ -22,20 +22,23 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x3a]                                      # CONNECT
+read  [0x10 0x3f]                                      # CONNECT
       [0x00 0x04] "MQTT"                               # protocol name
       [0x05]                                           # protocol version
       [0x26]                                           # flags = will retain, will flag, clean start
-      [0x00 0x0a]                                      # keep alive = 10s
-      [0x00]                                           # properties
+      [0x00 0x3c]                                      # keep alive = 10s
+      [0x05]                                           # properties
+      [0x27] 66560                                     # maximum packet size = 66560
       [0x00 0x03] "one"                                # client id
       [0x02]                                           # will properties
       [0x01 0x01]                                      # format = utf-8
       [0x00 0x09] "wills/one"                          # will topic
       [0x00 0x1a] "client one session expired"         # will payload
 
-write [0x20 0x08]                                      # CONNACK
+write [0x20 0x0c]                                      # CONNACK
       [0x00]                                           # flags = none
       [0x00]                                           # reason code
-      [0x05]                                           # properties = none
+      [0x09]                                           # properties = none
       [0x27] 66560                                     # maximum packet size = 66560
+      [0x24 0x00]                                      # maximum qos = at most once
+      [0x2a 0x00]                                      # shared subscription unavailable

@@ -19,6 +19,37 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .clientId("client1")
+                                .build()
+                              .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client1")
+                                .build()
+                              .build()}
+
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client1")
@@ -32,14 +63,61 @@ write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .flags("RETAIN")
+                                .format("TEXT")
                                 .build()
                             .build()}
 
 write "message"
 write flush
-write notify RETAIN_PUBLISHED
+write notify SENT_RETAIN_DATA
 
-connect await RETAIN_PUBLISHED
+connect await SENT_RETAIN_DATA
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .clientId("client2")
+                                .build()
+                              .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client2")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
+write ${mqtt:session()
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .build()}
+write flush
+
+read ${mqtt:session()
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .build()}
+read notify RECEIVED_SESSION_STATE2
+
+
+connect await RECEIVED_SESSION_STATE2
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -58,7 +136,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .flags("RETAIN")
                                  .subscriptionId(1)
                                  .format("TEXT")
                                  .build()
