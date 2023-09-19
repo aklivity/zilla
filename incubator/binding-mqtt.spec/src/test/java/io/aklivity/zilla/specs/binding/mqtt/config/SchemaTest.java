@@ -97,33 +97,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerWhenTopic()
+    public void shouldValidateServerWhenRouteToNonDefault()
     {
-        JsonObject config = schema.validate("server.when.topic.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateServerWhenTopicOrSessions()
-    {
-        JsonObject config = schema.validate("server.when.sessions.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateServerWhenTopicPublishOnly()
-    {
-        JsonObject config = schema.validate("server.when.topic.publish.only.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateServerWhenTopicSubscribeOnly()
-    {
-        JsonObject config = schema.validate("server.when.topic.subscribe.only.yaml");
+        JsonObject config = schema.validate("server.route.non.default.yaml");
 
         assertThat(config, not(nullValue()));
     }

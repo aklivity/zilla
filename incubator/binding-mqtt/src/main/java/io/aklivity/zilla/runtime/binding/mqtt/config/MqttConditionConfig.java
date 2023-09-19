@@ -15,15 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class MqttConditionConfig extends ConditionConfig
 {
-    public final String topic;
-    public final MqttCapabilities capabilities;
+    public final List<MqttSessionConfig> sessions;
+    public final List<MqttSubscribeConfig> subscribes;
+    public final List<MqttPublishConfig> publishes;
 
     public static MqttConditionConfigBuilder<MqttConditionConfig> builder()
     {
@@ -37,11 +38,13 @@ public final class MqttConditionConfig extends ConditionConfig
     }
 
     MqttConditionConfig(
-        String topic,
-        MqttCapabilities capabilities)
+        List<MqttSessionConfig> sessions,
+        List<MqttSubscribeConfig> subscribes,
+        List<MqttPublishConfig> publishes)
     {
-        this.topic = topic;
-        this.capabilities = capabilities;
+        this.sessions = sessions;
+        this.subscribes = subscribes;
+        this.publishes = publishes;
     }
 }
 

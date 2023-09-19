@@ -338,15 +338,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final GroupMembership groupMembership = instanceIds.get(binding.id);
                 assert groupMembership != null;
 
-                KafkaGroupStream stream = groupStreams.get(groupId);
-                if (stream == null || HIGHLANDER_PROTOCOL.equals(protocol))
-                {
-                    if (stream != null)
-                    {
-                        stream.streamCleanup(traceId, traceId);
-                    }
+                KafkaGroupStream group = groupStreams.get(groupId);
 
-                    KafkaGroupStream group = new KafkaGroupStream(
+                if (group == null)
+                {
+                    KafkaGroupStream newGroup = new KafkaGroupStream(
                         application,
                         originId,
                         routedId,
@@ -358,9 +354,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         timeout,
                         groupMembership,
                         sasl);
-                    newStream = group::onApplication;
+                    newStream = newGroup::onApplication;
 
-                    groupStreams.put(groupId, group);
+                    groupStreams.put(groupId, newGroup);
+                }
+                else if (HIGHLANDER_PROTOCOL.equals(protocol))
+                {
+                    group.onApplicationMigrate(begin, application);
+                    newStream = group::onApplication;
                 }
             }
         }
@@ -1244,27 +1245,28 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private final class KafkaGroupStream
     {
-        private final MessageConsumer application;
         private final ClusterClient clusterClient;
         private final DescribeClient describeClient;
         private final CoordinatorClient coordinatorClient;
         private final GroupMembership groupMembership;
         private final String groupId;
         private final String protocol;
-        private int timeout;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long affinity;
         private final long resolvedId;
-        private final KafkaSaslConfig sasl;
-        public String host;
-        public int port;
+
+        private MessageConsumer application;
+        private String host;
         private String nodeId;
+        private int port;
+        private int timeout;
         private MutableDirectBuffer metadataBuffer;
 
         private int state;
+
+        private long originId;
+        private long routedId;
+        private long initialId;
+        private long replyId;
+        private long affinity;
 
         private long initialSeq;
         private long initialAck;
@@ -1302,7 +1304,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.timeout = timeout;
             this.resolvedId = resolvedId;
             this.groupMembership = groupMembership;
-            this.sasl = sasl;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
             this.describeClient = new DescribeClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
@@ -1374,7 +1375,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
-            clusterClient.doNetworkBeginIfNecessary(traceId, authorization, affinity);
+            if (coordinatorClient.nextJoinGroupRequestId == 0)
+            {
+                clusterClient.doNetworkBeginIfNecessary(traceId, authorization, affinity);
+            }
+
             doApplicationWindow(traceId, 0L, 0, 0, 0);
         }
 
@@ -1623,7 +1628,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (!KafkaState.replyClosed(state))
             {
                 doApplicationAbort(traceId);
             }
@@ -1633,7 +1638,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             Flyweight extension)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (!KafkaState.initialClosed(state))
             {
                 doApplicationReset(traceId, extension);
             }
@@ -1669,13 +1674,36 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             groupStreams.remove(groupId);
         }
 
-        private void streamCleanup(
-            long traceId,
-            long authorizationId)
+        private void onApplicationMigrate(
+            BeginFW begin,
+            MessageConsumer application)
         {
-            cleanupApplication(traceId, EMPTY_OCTETS);
-            clusterClient.cleanupNetwork(traceId, authorizationId);
-            coordinatorClient.cleanupNetwork(traceId, authorizationId);
+            final long originId = begin.originId();
+            final long routedId = begin.routedId();
+            final long initialId = begin.streamId();
+            final long affinity = begin.affinity();
+            final long traceId = begin.traceId();
+
+            doApplicationResetIfNecessary(traceId, EMPTY_OCTETS);
+            doApplicationAbortIfNecessary(traceId);
+
+            this.application = application;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+
+            if (KafkaState.closed(state))
+            {
+                initialSeq = 0;
+                initialAck = 0;
+                replyAck = 0;
+                replySeq = 0;
+                state = 0;
+            }
+
+            coordinatorClient.doJoinGroupRequest(traceId);
         }
     }
 
@@ -3073,9 +3101,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int nextResponseId;
         private long heartbeatRequestId = NO_CANCEL_ID;
 
-        private String leader;
 
         private int generationId;
+        private int nextJoinGroupRequestId;
+        private int nextJoinGroupResponseId;
         private KafkaGroupCoordinatorClientDecoder decoder;
         private LongLongConsumer encoder;
         private OctetsFW assignment = EMPTY_OCTETS;
@@ -3292,6 +3321,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 replyAck = 0;
                 replySeq = 0;
                 state = 0;
+                nextJoinGroupRequestId = 0;
+                nextJoinGroupResponseId = 0;
+                nextRequestId = 0;
+                nextResponseId = 0;
             }
 
             if (!KafkaState.initialOpening(state))
@@ -3307,6 +3340,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+
+            nextJoinGroupRequestId++;
 
             state = KafkaState.openingInitial(state);
 
@@ -3351,7 +3386,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
                 state = KafkaState.closedInitial(state);
 
@@ -3380,7 +3415,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doNetworkReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3798,7 +3833,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             OctetsFW assignment)
         {
             this.assignment = assignment;
-            doEncodeSyncGroupRequest(traceId, budgetId);
+
+            encoder = encodeSyncGroupRequest;
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void doJoinGroupRequest(
@@ -3810,7 +3847,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            doEncodeJoinGroupRequest(traceId, 0);
+            if (nextJoinGroupRequestId != 0 &&
+                nextJoinGroupRequestId == nextJoinGroupResponseId)
+            {
+                encoder = encodeJoinGroupRequest;
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
+
+            nextJoinGroupRequestId++;
         }
 
         private void doHeartbeat(
@@ -4057,50 +4101,57 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             String memberId)
         {
             nextResponseId++;
-
-            this.leader = leaderId;
+            nextJoinGroupResponseId++;
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
-            delegate.doApplicationFlush(traceId, authorization,
-                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                    .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leaderId)
-                        .memberId(memberId)
-                        .members(gm -> members.forEach(m ->
-                        {
-                            OctetsFW metadata = m.metadata;
-                            DirectBuffer buffer = metadata.value();
-                            final int limit = metadata.sizeof();
-
-                            int progress = 0;
-
-                            ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
-                                .wrap(buffer, 0, metadata.sizeof());
-                            progress = newGroupMetadata.limit();
-
-                            for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
+            if (nextJoinGroupRequestId == nextJoinGroupResponseId)
+            {
+                delegate.doApplicationFlush(traceId, authorization,
+                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .group(g -> g.leaderId(leaderId)
+                            .memberId(memberId)
+                            .members(gm -> members.forEach(m ->
                             {
-                                ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
-                                progress = topic.limit();
-                            }
+                                OctetsFW metadata = m.metadata;
+                                DirectBuffer buffer = metadata.value();
+                                final int limit = metadata.sizeof();
 
-                            ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
+                                int progress = 0;
 
-                            gm.item(i ->
-                            {
-                                KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
-                                OctetsFW newUserdata = userdata.userdata();
-                                if (newUserdata.sizeof() > 0)
+                                ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
+                                    .wrap(buffer, 0, metadata.sizeof());
+                                progress = newGroupMetadata.limit();
+
+                                for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
                                 {
-                                    builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
+                                    ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
+                                    progress = topic.limit();
                                 }
-                            });
-                        })))
-                    .build()
-                    .sizeof()));
 
-            encoder = encodeSyncGroupRequest;
+                                ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
+
+                                gm.item(i ->
+                                {
+                                    KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
+                                    OctetsFW newUserdata = userdata.userdata();
+                                    if (newUserdata.sizeof() > 0)
+                                    {
+                                        builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
+                                    }
+                                });
+                            })))
+                        .build()
+                        .sizeof()));
+
+                encoder = encodeSyncGroupRequest;
+            }
+            else
+            {
+                encoder = encodeJoinGroupRequest;
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void onSynGroupRebalance(
@@ -4108,6 +4159,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization)
         {
             nextResponseId++;
+
+            nextJoinGroupRequestId++;
 
             encoder = encodeJoinGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
@@ -4200,7 +4253,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             encoder = encodeHeartbeatRequest;
-
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
                 originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
         }
@@ -4223,6 +4275,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization)
         {
             nextResponseId++;
+
+            nextJoinGroupRequestId++;
 
             encoder = encodeJoinGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);

@@ -125,17 +125,44 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "topic":
+                                            "session":
                                             {
-                                                "title": "Topic",
-                                                "type": "string"
+                                                "title": "Session",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "client-id":
+                                                    {
+                                                        "title": "Client Id",
+                                                        "type": "string"
+                                                    }
+                                                }
                                             },
-                                            "capabilities":
+                                            "subscribe":
                                             {
-                                                "title": "Capabilities",
-                                                "type": "string",
-                                                "enum": [ "session", "publish", "subscribe", "publish_and_subscribe" ],
-                                                "default": "publish_and_subscribe"
+                                                "title": "Subscribe",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "topic":
+                                                    {
+                                                        "title": "Topic",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "publish":
+                                            {
+                                                "title": "Subscribe",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "topic":
+                                                    {
+                                                        "title": "Topic",
+                                                        "type": "string"
+                                                    }
+                                                }
                                             }
                                         }
                                     }

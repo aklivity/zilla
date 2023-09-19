@@ -51,6 +51,7 @@ public class SessionIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -236,6 +237,18 @@ public class SessionIT
         "${app}/session.server.redirect.before.connack/server"})
     @Configure(name = SERVER_REFERENCE_NAME, value = "mqtt-1.example.com:1883")
     public void shouldRedirectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/session.subscribe.publish.routing/client",
+        "${app}/session.subscribe.publish.routing/server"})
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
     {
         k3po.finish();
     }
