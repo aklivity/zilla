@@ -759,6 +759,15 @@ public final class MqttFunctions
         public MqttSessionStateBuilder subscription(
             String pattern,
             int id,
+            int reasonCode)
+        {
+            sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
+            return this;
+        }
+
+        public MqttSessionStateBuilder subscription(
+            String pattern,
+            int id,
             String qosName,
             String... flagNames)
         {

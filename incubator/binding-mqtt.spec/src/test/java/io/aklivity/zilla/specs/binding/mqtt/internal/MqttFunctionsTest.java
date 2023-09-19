@@ -1199,7 +1199,7 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.session()
             .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-            .subscription("sensor/two")
+            .subscription("sensor/two", 1, 0)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1215,7 +1215,9 @@ public class MqttFunctionsTest
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
                     0 == f.qos() &&
+                    0 == f.reasonCode() &&
                     0b0000 == f.flags()));
     }
 

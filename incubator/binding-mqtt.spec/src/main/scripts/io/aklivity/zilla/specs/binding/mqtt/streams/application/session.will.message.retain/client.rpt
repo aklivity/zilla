@@ -26,17 +26,6 @@ write zilla:begin.ext ${mqtt:beginEx()
                                       .build()
                                    .build()}
 
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("WILL", "CLEAN_START")
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("one")
-                                .build()
-                              .build()}
-
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
@@ -53,5 +42,16 @@ write ${mqtt:will()
                .payload("client one session expired")
                .build()}
 write flush
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("WILL", "CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("one")
+                                .build()
+                              .build()}
 
 read zilla:data.empty

@@ -328,4 +328,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful/client",
+        "${net}/subscribe.topic.filters.non.successful/server"})
+    public void shouldFilterNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
 }
