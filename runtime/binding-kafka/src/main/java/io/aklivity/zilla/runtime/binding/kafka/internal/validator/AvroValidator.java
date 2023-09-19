@@ -113,7 +113,7 @@ public final class AvroValidator implements Validator
         }
         else if (catalog.strategy.equals("topic"))
         {
-            schemaId = handler.resolve("pending", catalog.version);
+            schemaId = handler.resolve(subject, catalog.version);
             if (schemaId > 0)
             {
                 schema = handler.resolve(schemaId);

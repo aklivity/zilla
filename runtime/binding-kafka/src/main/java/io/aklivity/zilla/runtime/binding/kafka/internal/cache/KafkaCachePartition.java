@@ -640,8 +640,8 @@ public final class KafkaCachePartition
 
         Validator validator = isKey ? type.key : type.value;
         if (data != null &&
-                validator != null &&
-                !validator.write(data.value(), data.offset(), data.sizeof()))
+            validator != null &&
+            !validator.write(data.value(), data.offset(), data.sizeof()))
         {
             status = false;
             System.out.println("Validation failed");
@@ -666,8 +666,8 @@ public final class KafkaCachePartition
         OctetsFW value = headEntry.value();
         Validator validator = isKey ? type.key : type.value;
         if (value != null &&
-                validator != null &&
-                !validator.write(value.value(), value.offset(), value.sizeof()))
+            validator != null &&
+            !validator.write(value.value(), value.offset(), value.sizeof()))
         {
             status = false;
             System.out.println("Validation failed");
