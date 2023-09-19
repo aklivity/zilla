@@ -40,3 +40,5 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
+
+write abort

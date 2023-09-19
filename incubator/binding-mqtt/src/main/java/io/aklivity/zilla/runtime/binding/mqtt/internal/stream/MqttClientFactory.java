@@ -79,7 +79,6 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
@@ -234,7 +233,6 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
-
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttDataExFW mqttPublishDataExRO = new MqttDataExFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -325,6 +323,8 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBuffer subscriptionIdsBuffer;
     private final MutableDirectBuffer willMessageBuffer;
     private final MutableDirectBuffer willPropertyBuffer;
+
+    private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
@@ -344,7 +344,6 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private final CharsetDecoder utf8Decoder;
 
-
     public MqttClientFactory(
         MqttConfiguration config,
         EngineContext context)
@@ -357,6 +356,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.userPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
         this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willPropertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -424,7 +424,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int typeId = beginEx.typeId();
             assert typeId == mqttTypeId;
 
-
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
             String16FW clientId;
             MqttClient client;
@@ -470,7 +469,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private int clientKey(
         String client)
     {
-        return Math.abs(client.intern().hashCode());
+        return Math.abs(client.hashCode());
     }
 
     private MessageConsumer newStream(
@@ -955,7 +954,11 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final int qos = mqttPublishHeader.qos;
                 MqttSubscribeStream subscriber = client.subscribeStreams.get(qos);
 
-                if (!client.existStreamForTopic(mqttPublishHeader.topic))
+
+                final Varuint32FW firstSubscriptionId = subscriptionIdsRW.build().matchFirst(s -> true);
+                final int subscriptionId = firstSubscriptionId != null ? firstSubscriptionId.value() : 0;
+
+                if (!client.existStreamForId(subscriptionId))
                 {
                     MqttSessionStateFW.Builder sessionStateBuilder =
                         mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
@@ -965,8 +968,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                                 .qos(s.qos)
                                 .flags(s.flags)
                                 .pattern(s.filter)));
-                    final Varuint32FW firstSubscriptionId = subscriptionIdsRW.build().matchFirst(s -> true);
-                    final int subscriptionId = firstSubscriptionId != null ? firstSubscriptionId.value() : 0;
                     final Subscription adminSubscription = new Subscription();
                     adminSubscription.id = subscriptionId;
                     adminSubscription.qos = mqttPublishHeader.qos;
@@ -1028,14 +1029,17 @@ public final class MqttClientFactory implements MqttStreamFactory
         return progress;
     }
 
-    private boolean invalidUtf8(OctetsFW payload)
+    private boolean invalidUtf8(
+        OctetsFW payload)
     {
         boolean invalid = false;
-        byte[] payloadBytes = new byte[payload.sizeof()];
-        payload.value().getBytes(0, payloadBytes);
+        byte[] payloadBytes = charsetBuffer.array();
+        final int payloadSize = payload.sizeof();
+        payload.value().getBytes(0, payloadBytes, 0, payloadSize);
         try
         {
-            utf8Decoder.decode(ByteBuffer.wrap(payloadBytes));
+            charsetBuffer.position(0).limit(payloadSize);
+            utf8Decoder.decode(charsetBuffer);
         }
         catch (CharacterCodingException ex)
         {
@@ -1160,12 +1164,16 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private final class MqttClient
     {
-        //TODO: organize final and non-final fields
         private final AtomicInteger packetIdCounter;
         private final long originId;
         private final long routedId;
         private final long replyId;
         private final long initialId;
+        private final ObjectHashSet<MqttPublishStream> publishStreams;
+        private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
+        private final Int2ObjectHashMap<String> topicAliases;
+        private final long encodeBudgetId;
+
         private long budgetId;
         private int state;
 
@@ -1173,10 +1181,6 @@ public final class MqttClientFactory implements MqttStreamFactory
         private long initialAck;
         private int initialMax;
         private int initialPad;
-        private final ObjectHashSet<MqttPublishStream> publishStreams;
-        private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
-        private final Int2ObjectHashMap<String> topicAliases;
-        private final long encodeBudgetId;
 
         private MessageConsumer network;
         private MqttSessionStream sessionStream;
@@ -2687,17 +2691,13 @@ public final class MqttClientFactory implements MqttStreamFactory
             return flags;
         }
 
-        private boolean existStreamForTopic(
-            String topic)
+        private boolean existStreamForId(
+            int subscriptionId)
         {
-            return sessionStream.subscriptions.stream().anyMatch(s ->
-            {
-                String regex = s.filter.replace("#", ".*").replace("+", "[^/]+");
-                return Pattern.matches(regex, topic);
-            });
+            return sessionStream.subscriptions.stream().anyMatch(s -> s.id == subscriptionId);
         }
 
-        private int getNextPacketId()
+        private int nextPacketId()
         {
             final int packetId = packetIdCounter.incrementAndGet();
             if (packetId == Integer.MAX_VALUE)
@@ -2949,7 +2949,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     final List<Subscription>  oldSubscriptions = subscriptions.stream()
                         .filter(s -> !newSubscribeState.contains(s))
                         .collect(Collectors.toList());
-                    final int packetId = client.getNextPacketId();
+                    final int packetId = client.nextPacketId();
 
                     if (newSubscriptions.size() > 0)
                     {
@@ -3385,7 +3385,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final int packetId = client.getNextPacketId();
+            final int packetId = client.nextPacketId();
             client.doEncodeUnsubscribe(traceId, authorization, subscriptions, packetId);
             doSubscribeEnd(traceId, authorization);
         }

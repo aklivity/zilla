@@ -30,9 +30,9 @@ public class MqttConfiguration extends Configuration
     public static final BytePropertyDef MAXIMUM_QOS;
     public static final BooleanPropertyDef RETAIN_AVAILABLE;
     public static final ShortPropertyDef TOPIC_ALIAS_MAXIMUM;
-    public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION_AVAILABLE;
-    public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS_AVAILABLE;
-    public static final BooleanPropertyDef SHARED_SUBSCRIPTION_AVAILABLE;
+    public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION;
+    public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS;
+    public static final BooleanPropertyDef SHARED_SUBSCRIPTION;
     public static final BooleanPropertyDef NO_LOCAL;
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
@@ -50,9 +50,9 @@ public class MqttConfiguration extends Configuration
         MAXIMUM_QOS = config.property("maximum.qos", (byte) 0);
         RETAIN_AVAILABLE = config.property("retain.available", true);
         TOPIC_ALIAS_MAXIMUM = config.property("topic.alias.maximum", (short) 0);
-        WILDCARD_SUBSCRIPTION_AVAILABLE = config.property("wildcard.subscription.available", true);
-        SUBSCRIPTION_IDENTIFIERS_AVAILABLE = config.property("subscription.identifiers.available", true);
-        SHARED_SUBSCRIPTION_AVAILABLE = config.property("shared.subscription.available", false);
+        WILDCARD_SUBSCRIPTION = config.property("wildcard.subscription.available", true);
+        SUBSCRIPTION_IDENTIFIERS = config.property("subscription.identifiers.available", true);
+        SHARED_SUBSCRIPTION = config.property("shared.subscription.available", false);
         NO_LOCAL = config.property("no.local", true);
         SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");
@@ -104,21 +104,6 @@ public class MqttConfiguration extends Configuration
     public short topicAliasMaximum()
     {
         return TOPIC_ALIAS_MAXIMUM.get(this);
-    }
-
-    public boolean wildcardSubscriptionAvailable()
-    {
-        return WILDCARD_SUBSCRIPTION_AVAILABLE.get(this);
-    }
-
-    public boolean subscriptionIdentifierAvailable()
-    {
-        return SUBSCRIPTION_IDENTIFIERS_AVAILABLE.get(this);
-    }
-
-    public boolean sharedSubscriptionAvailable()
-    {
-        return SHARED_SUBSCRIPTION_AVAILABLE.get(this);
     }
 
     public boolean noLocal()

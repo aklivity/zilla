@@ -41,3 +41,4 @@ connected
 
 read zilla:data.empty
 
+write abort

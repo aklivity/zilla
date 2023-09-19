@@ -332,6 +332,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBuffer userPropertiesBuffer;
     private final MutableDirectBuffer willMessageBuffer;
     private final MutableDirectBuffer willUserPropertiesBuffer;
+
+    private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
@@ -370,6 +372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.dataExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.propertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.sessionExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.sessionStateBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -953,14 +956,17 @@ public final class MqttServerFactory implements MqttStreamFactory
         return progress;
     }
 
-    private boolean invalidUtf8(OctetsFW payload)
+    private boolean invalidUtf8(
+        OctetsFW payload)
     {
         boolean invalid = false;
-        byte[] payloadBytes = new byte[payload.sizeof()];
-        payload.value().getBytes(0, payloadBytes);
+        byte[] payloadBytes = charsetBuffer.array();
+        final int payloadSize = payload.sizeof();
+        payload.value().getBytes(0, payloadBytes, 0, payloadSize);
         try
         {
-            utf8Decoder.decode(ByteBuffer.wrap(payloadBytes));
+            charsetBuffer.position(0).limit(payloadSize);
+            utf8Decoder.decode(charsetBuffer);
         }
         catch (CharacterCodingException ex)
         {
@@ -982,6 +988,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         int progress = offset;
 
+        decode:
         if (length > 0)
         {
             int reasonCode = SUCCESS;
@@ -995,16 +1002,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = MALFORMED_PACKET;
             }
-            server.decodableRemainingBytes = subscribe.sizeof();
 
             if (reasonCode == 0)
             {
-                progress = server.onDecodeSubscribe(traceId, authorization, progress, subscribe);
-                server.decodableRemainingBytes -= progress - offset;
-                if (server.decodableRemainingBytes == 0)
+                if (!MqttState.replyOpened(server.sessionStream.state))
                 {
-                    server.decoder = decodePacketType;
+                    //We don't know the server capabilities yet
+                    break decode;
                 }
+                server.onDecodeSubscribe(traceId, authorization, subscribe);
+                server.decoder = decodePacketType;
+                progress = subscribe.limit();
             }
             else
             {
@@ -1239,7 +1247,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int maximumQos;
         private int packetSizeMax;
-        private int capabilities = 7;
+        private int capabilities = RETAIN_AVAILABLE_MASK | SUBSCRIPTION_IDS_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK;
         private boolean serverDefinedKeepAlive = false;
         private short keepAlive;
         private long keepAliveTimeout;
@@ -1901,17 +1909,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final MqttDataExFW.Builder builder = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                     .typeId(mqttTypeId)
-                    .publish(publishBuilder ->
+                    .publish(p ->
                     {
-                        publishBuilder.qos(mqttPublishHeaderRO.qos);
-                        publishBuilder.flags(mqttPublishHeaderRO.flags);
-                        publishBuilder.expiryInterval(mqttPublishHeaderRO.expiryInterval);
-                        publishBuilder.contentType(mqttPublishHeaderRO.contentType);
-                        publishBuilder.format(f -> f.set(mqttPublishHeaderRO.payloadFormat));
-                        publishBuilder.responseTopic(mqttPublishHeaderRO.responseTopic);
-                        publishBuilder.correlation(c -> c.bytes(mqttPublishHeaderRO.correlationData));
+                        p.qos(mqttPublishHeaderRO.qos)
+                            .flags(mqttPublishHeaderRO.flags)
+                            .expiryInterval(mqttPublishHeaderRO.expiryInterval)
+                            .contentType(mqttPublishHeaderRO.contentType)
+                            .format(f -> f.set(mqttPublishHeaderRO.payloadFormat))
+                            .responseTopic(mqttPublishHeaderRO.responseTopic)
+                            .correlation(c -> c.bytes(mqttPublishHeaderRO.correlationData));
                         final Array32FW<MqttUserPropertyFW> userProperties = userPropertiesRW.build();
-                        userProperties.forEach(c -> publishBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
+                        userProperties.forEach(c -> p.propertiesItem(pi -> pi.key(c.key()).value(c.value())));
                     });
 
 
@@ -1924,10 +1932,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private int onDecodeSubscribe(
+        private void onDecodeSubscribe(
             long traceId,
             long authorization,
-            int progress,
             MqttSubscribeFW subscribe)
         {
             final int packetId = subscribe.packetId();
@@ -1964,7 +1971,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 onDecodeError(traceId, authorization, PROTOCOL_ERROR);
                 decoder = decodeIgnoreAll;
-                progress = subscribe.limit();
             }
             else
             {
@@ -1972,11 +1978,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decode:
                 {
-                    //We don't know the server capabilities yet
-                    if (!MqttState.replyOpened(sessionStream.state))
-                    {
-                        break decode;
-                    }
 
                     for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                     {
@@ -2077,11 +2078,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
-                    progress = subscribe.limit();
                 }
             }
             doSignalKeepAliveTimeout();
-            return progress;
         }
 
         private void openSubscribeStreams(
@@ -2089,11 +2088,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             List<Subscription> subscriptions,
-            boolean adminSubscribe)
+            boolean implicitSubscribe)
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
 
-            if (!adminSubscribe)
+            if (!implicitSubscribe)
             {
                 final byte[] subscriptionPayload = new byte[subscriptions.size()];
                 for (int i = 0; i < subscriptionPayload.length; i++)
@@ -2121,7 +2120,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 int subscribeKey = subscribeKey(clientId.asString(), key);
                 MqttSubscribeStream stream = subscribeStreams.computeIfAbsent(subscribeKey, s ->
-                    new MqttSubscribeStream(routedId, key, adminSubscribe));
+                    new MqttSubscribeStream(routedId, key, implicitSubscribe));
                 stream.packetId = packetId;
                 value.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscribeKey, value);
@@ -2212,13 +2211,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 mqttSessionStateFW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
             newState.forEach(subscription ->
-                sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
-                {
-                    subscriptionBuilder.subscriptionId(subscription.id);
-                    subscriptionBuilder.qos(subscription.qos);
-                    subscriptionBuilder.flags(subscription.flags);
-                    subscriptionBuilder.pattern(subscription.filter);
-                })
+                sessionStateBuilder.subscriptionsItem(s ->
+                    s.subscriptionId(subscription.id)
+                        .qos(subscription.qos)
+                        .flags(subscription.flags)
+                        .pattern(subscription.filter))
             );
 
             final MqttSessionStateFW sessionState = sessionStateBuilder.build();
@@ -3654,12 +3651,10 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     final MqttBeginExFW beginEx = mqttPublishBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(mqttTypeId)
-                        .publish(publishBuilder ->
-                        {
-                            publishBuilder.clientId(clientId);
-                            publishBuilder.topic(topic);
-                            publishBuilder.flags(retainAvailable(capabilities) ? 1 : 0);
-                        })
+                        .publish(p ->
+                            p.clientId(clientId)
+                                .topic(topic)
+                                .flags(retainAvailable(capabilities) ? 1 : 0))
                         .build();
 
                     application = newStream(this::onPublish, originId, routedId, initialId, initialSeq, initialAck, initialMax,

@@ -22,7 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .flags("CLEAN_START")
-                                .clientId("client1")
+                                .clientId("client-1")
                                 .build()
                               .build()}
 
@@ -33,7 +33,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .qosMax(2)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client1")
+                                .clientId("client-1")
                                 .build()
                               .build()}
 
@@ -51,7 +51,7 @@ connect await RECEIVED_SESSION_STATE
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
-                                .clientId("client1")
+                                .clientId("client-1")
                                 .topic("sensor/one")
                                 .build()
                              .build()}
@@ -80,7 +80,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .flags("CLEAN_START")
-                                .clientId("client2")
+                                .clientId("client-2")
                                 .build()
                               .build()}
 
@@ -91,7 +91,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .qosMax(2)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client2")
+                                .clientId("client-2")
                                 .build()
                               .build()}
 
@@ -125,7 +125,7 @@ connect await RECEIVED_SESSION_STATE2
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client2")
+                                .clientId("client-2")
                                 .filter("sensor/one", 1, "AT_MOST_ONCE")
                                 .build()
                              .build()}

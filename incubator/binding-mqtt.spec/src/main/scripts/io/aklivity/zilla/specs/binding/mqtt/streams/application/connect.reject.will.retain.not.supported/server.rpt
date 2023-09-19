@@ -43,3 +43,6 @@ connected
 
 write zilla:data.empty
 write flush
+
+read closed
+write close
