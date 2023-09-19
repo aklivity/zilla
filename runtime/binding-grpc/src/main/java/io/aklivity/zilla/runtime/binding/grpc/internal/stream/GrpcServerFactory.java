@@ -537,7 +537,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                             .deferred(messageDeferred)
                             .build() : EMPTY_OCTETS;
 
-                    flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                    flags = messageDeferred > 0 ? DATA_FLAG_INIT : flags;
                     delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                         buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
                 }
