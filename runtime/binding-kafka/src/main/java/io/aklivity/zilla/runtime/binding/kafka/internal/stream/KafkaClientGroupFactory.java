@@ -339,32 +339,29 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert groupMembership != null;
 
                 KafkaGroupStream group = groupStreams.get(groupId);
-                if (group == null || HIGHLANDER_PROTOCOL.equals(protocol))
-                {
-                    if (group != null)
-                    {
-                        group.streamTakeover(traceId, traceId, application, originId, routedId,
-                            initialId, affinity);
-                        newStream = group::onApplication;
-                    }
-                    else
-                    {
-                        KafkaGroupStream newGroup = new KafkaGroupStream(
-                            application,
-                            originId,
-                            routedId,
-                            initialId,
-                            affinity,
-                            resolvedId,
-                            groupId,
-                            protocol,
-                            timeout,
-                            groupMembership,
-                            sasl);
-                        newStream = newGroup::onApplication;
 
-                        groupStreams.put(groupId, newGroup);
-                    }
+                if (group == null)
+                {
+                    KafkaGroupStream newGroup = new KafkaGroupStream(
+                        application,
+                        originId,
+                        routedId,
+                        initialId,
+                        affinity,
+                        resolvedId,
+                        groupId,
+                        protocol,
+                        timeout,
+                        groupMembership,
+                        sasl);
+                    newStream = newGroup::onApplication;
+
+                    groupStreams.put(groupId, newGroup);
+                }
+                else if (HIGHLANDER_PROTOCOL.equals(protocol))
+                {
+                    group.onApplicationMigrate(begin, application);
+                    newStream = group::onApplication;
                 }
             }
         }
@@ -1376,8 +1373,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 topicMetadataLimit += metadataSize;
             }
 
-            initiateStream();
-
             state = KafkaState.openingInitial(state);
 
             if (coordinatorClient.nextJoinGroupRequestId == 0)
@@ -1679,15 +1674,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             groupStreams.remove(groupId);
         }
 
-        private void streamTakeover(
-            long traceId,
-            long authorizationId,
-            MessageConsumer application,
-            long originId,
-            long routedId,
-            long initialId,
-            long affinity)
+        private void onApplicationMigrate(
+            BeginFW begin,
+            MessageConsumer application)
         {
+            final long originId = begin.originId();
+            final long routedId = begin.routedId();
+            final long initialId = begin.streamId();
+            final long affinity = begin.affinity();
+            final long traceId = begin.traceId();
+
             doApplicationResetIfNecessary(traceId, EMPTY_OCTETS);
             doApplicationAbortIfNecessary(traceId);
 
@@ -1698,13 +1694,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
 
-            initiateStream();
-
-            coordinatorClient.doJoinGroupRequest(traceId);
-        }
-
-        private void initiateStream()
-        {
             if (KafkaState.closed(state))
             {
                 initialSeq = 0;
@@ -1713,6 +1702,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 replySeq = 0;
                 state = 0;
             }
+
+            coordinatorClient.doJoinGroupRequest(traceId);
         }
     }
 
