@@ -150,6 +150,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExF
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
@@ -164,7 +165,6 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -1106,9 +1106,19 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         int progress = offset;
 
+        decode:
         if (length > 0)
         {
             int reasonCode = NORMAL_DISCONNECT;
+
+
+            if (limit - offset == 2)
+            {
+                server.onDecodeDisconnect(traceId, authorization, null);
+                progress = limit;
+                server.decoder = decodePacketType;
+                break decode;
+            }
 
             final MqttDisconnectFW disconnect = mqttDisconnectRO.tryWrap(buffer, offset, limit);
             if (disconnect == null)
@@ -1230,7 +1240,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int maximumQos;
         private int packetSizeMax;
-        private int capabilities;
+        private int capabilities = 7;
         private boolean serverDefinedKeepAlive = false;
         private short keepAlive;
         private long keepAliveTimeout;
@@ -1727,8 +1737,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     resolveSession(traceId, authorization, resolved.id);
                 }
 
-                // stop decoding, as we haven't received capabilities yet
-                if (willFlagSet && !MqttState.replyOpened(sessionStream.state))
+                if (willFlagSet && !MqttState.initialOpened(sessionStream.state))
                 {
                     break decode;
                 }
@@ -2182,7 +2191,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    sendUnsuback(packetId, traceId, authorization, topicFilters, null,false);
+                    sendUnsuback(packetId, traceId, authorization, topicFilters, null, false);
                 }
                 doSignalKeepAliveTimeout();
             }
@@ -2280,7 +2289,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             MqttDisconnectFW disconnect)
         {
-            byte reasonCode = decodeDisconnectProperties(disconnect.properties());
+            byte reasonCode = disconnect != null ? decodeDisconnectProperties(disconnect.properties()) : SUCCESS;
 
             if (reasonCode != SUCCESS)
             {
@@ -2289,7 +2298,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                if (disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
+                if (disconnect != null && disconnect.reasonCode() == DISCONNECT_WITH_WILL_MESSAGE)
                 {
                     sessionStream.doSessionAbort(traceId);
                 }
@@ -3184,10 +3193,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                     onSessionReset(reset);
                     break;
-                case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-                    onSessionSignal(signal);
-                    break;
                 }
             }
 
@@ -3273,21 +3278,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
                 setInitialClosed();
-
                 decodeNetwork(traceId);
                 cleanupAbort(traceId);
-            }
-
-            private void onSessionSignal(
-                SignalFW signal)
-            {
-                final int signalId = signal.signalId();
-
-                switch (signalId)
-                {
-                default:
-                    break;
-                }
             }
 
             private void onSessionBegin(

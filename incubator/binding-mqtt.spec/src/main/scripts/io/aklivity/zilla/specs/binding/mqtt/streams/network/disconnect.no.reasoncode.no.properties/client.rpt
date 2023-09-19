@@ -35,9 +35,7 @@ read  [0x20 0x08]           # CONNACK
       [0x05]                # properties
       [0x27] 66560          # maximum packet size = 66560
 
-write [0xe0 0x02]           # DISCONNECT
-      [0x00]                # normal disconnect
-      [0x00]                # properties = none
+write [0xe0 0x00]           # DISCONNECT
 
 write close
 read closed

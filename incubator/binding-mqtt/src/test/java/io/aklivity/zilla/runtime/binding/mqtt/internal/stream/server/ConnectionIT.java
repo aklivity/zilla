@@ -140,6 +140,16 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/disconnect.no.reasoncode.no.properties/client",
+        "${app}/session.connect/server"})
+    public void shouldConnectThenDisconnectWithNoReasonCodeNoProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/disconnect.after.subscribe.and.publish/client",
         "${app}/disconnect.after.subscribe.and.publish/server"})
     public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
@@ -467,6 +477,16 @@ public class ConnectionIT
         "${net}/connect.non.successful.connack/client",
         "${app}/connect.non.successful.connack/server"})
     public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.non.successful.disconnect/client",
+        "${app}/connect.non.successful.disconnect/server"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
     {
         k3po.finish();
     }

@@ -28,13 +28,24 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .build()
                              .build()}
 
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
 connected
 
 write zilla:data.empty
 
 write zilla:reset.ext ${mqtt:resetEx()
                              .typeId(zilla:id("mqtt"))
-                             .reasonCode(142)
+                             .reasonCode(129)
                              .build()}
 write flush
 

@@ -463,4 +463,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.no.reasoncode.no.properties/client",
+        "${net}/disconnect.no.reasoncode.no.properties/server"})
+    public void shouldConnectThenDisconnectWithNoReasonCodeNoProperties() throws Exception
+    {
+        k3po.finish();
+    }
 }

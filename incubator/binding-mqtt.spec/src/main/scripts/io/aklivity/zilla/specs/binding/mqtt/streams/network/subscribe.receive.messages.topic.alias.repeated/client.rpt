@@ -56,10 +56,10 @@ read  [0x30 0x1b]                    # PUBLISH
       [0x01 0x01]                    # format = utf-8
       "message"                      # payload
 
-read  [0x30 0x11]                    # PUBLISH
+read  [0x30 0x12]                    # PUBLISH
       [0x00 0x00]                    # topic name
       [0x07]                         # properties
       [0x23 0x00 0x01]               # topic alias = 1
       [0x0b 0x01]                    # subscription id = 1
       [0x01 0x01]                    # format = utf-8
-      "message"                      # payload
+      "message2"                     # payload

@@ -242,4 +242,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.publish.no.subscription/client",
+        "${app}/subscribe.reconnect.publish.no.subscription/server"})
+    public void shouldReceiveReconnectNoSubscription() throws Exception
+    {
+        k3po.finish();
+    }
 }

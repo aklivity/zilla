@@ -60,6 +60,10 @@ write ${mqtt:session()
                .build()}
 write flush
 
+write ${mqtt:session()
+           .subscription("sensor/one", 1)
+           .subscription("sensor/two", 2)
+           .build()}
 
 accepted
 
@@ -82,5 +86,24 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 
+write "message"
+write flush
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .filter("sensor/one", 1)
+                                     .filter("sensor/two", 2)
+                                     .build()
+                                 .build()}
+
+write zilla:data.ext ${mqtt:dataEx()
+                              .typeId(zilla:id("mqtt"))
+                              .subscribe()
+                                 .topic("sensor/two")
+                                 .subscriptionId(2)
+                                 .format("TEXT")
+                                 .build()
+                              .build()}
 write "message"
 write flush
