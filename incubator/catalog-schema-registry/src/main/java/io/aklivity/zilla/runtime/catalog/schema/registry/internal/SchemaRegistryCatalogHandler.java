@@ -70,15 +70,17 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public String resolve(
         int schemaId)
     {
-        return sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+        return response != null ? request.resolveSchemaResponse(response) : null;
     }
 
     @Override
-    public String resolve(
+    public int resolve(
         String subject,
         String version)
     {
-        return sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+        String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+        return response != null ? request.resolveResponse(response) : NO_SCHEMA_ID;
     }
 
     private String sendHttpRequest(

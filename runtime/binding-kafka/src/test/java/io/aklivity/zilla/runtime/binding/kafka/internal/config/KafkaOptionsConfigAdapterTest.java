@@ -162,7 +162,7 @@ public class KafkaOptionsConfigAdapterTest
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new AvroValidatorConfig(
                     singletonList(new KafkaCatalogConfig("test0",
                         singletonList(new SchemaConfig(null, "topic", "latest", 0))
-                ))))),
+                )), "test-value"))),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);

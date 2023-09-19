@@ -20,11 +20,14 @@ import java.util.List;
 public final class AvroValidatorConfig extends ValidatorConfig
 {
     public final List<KafkaCatalogConfig> catalogs;
+    public final String subject;
 
     public AvroValidatorConfig(
-        List<KafkaCatalogConfig> catalogs)
+        List<KafkaCatalogConfig> catalogs,
+        String subject)
     {
         super("avro");
         this.catalogs = catalogs;
+        this.subject = subject;
     }
 }

@@ -33,6 +33,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String DELTA_TYPE_NAME = "deltaType";
     private static final String EVENT_KEY = "key";
     private static final String EVENT_VALUE = "value";
+    private static final String SUBJECT = "subject";
 
     private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
 
@@ -96,7 +97,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (key != null)
         {
-            keyConfig = validator.adaptFromJson(key);
+            JsonObjectBuilder keyObject = Json.createObjectBuilder();
+
+            key.forEach(keyObject::add);
+            keyObject.add(SUBJECT, name + "-key");
+
+            keyConfig = validator.adaptFromJson(keyObject.build());
         }
 
         JsonObject value = object.containsKey(EVENT_VALUE)
@@ -107,7 +113,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (value != null)
         {
-            valueConfig = validator.adaptFromJson(value);
+            JsonObjectBuilder valueObject = Json.createObjectBuilder();
+
+            value.forEach(valueObject::add);
+            valueObject.add(SUBJECT, name + "-value");
+
+            valueConfig = validator.adaptFromJson(valueObject.build());
         }
 
         return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);

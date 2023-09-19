@@ -62,7 +62,7 @@ public class AvroValidatorTest
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
                 new KafkaCatalogConfig("test0",
-                    List.of(new SchemaConfig(null, "topic", "latest", 0)))));
+                    List.of(new SchemaConfig(null, "topic", "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -70,7 +70,7 @@ public class AvroValidatorTest
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.validate(data, 0, data.capacity()));
+        assertTrue(validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -81,14 +81,14 @@ public class AvroValidatorTest
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
             new KafkaCatalogConfig("test0",
-                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.validate(data, 0, data.capacity()));
+        assertFalse(validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -99,14 +99,14 @@ public class AvroValidatorTest
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
             new KafkaCatalogConfig("test0",
-                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Invalid Event".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.validate(data, 0, data.capacity()));
+        assertFalse(validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -117,13 +117,13 @@ public class AvroValidatorTest
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
             new KafkaCatalogConfig("test0",
-                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.validate(data, 0, data.capacity()));
+        assertFalse(validator.read(data, 0, data.capacity()));
     }
 }
