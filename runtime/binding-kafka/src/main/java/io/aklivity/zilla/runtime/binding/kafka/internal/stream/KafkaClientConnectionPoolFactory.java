@@ -433,6 +433,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             this.affinity = affinity;
             this.host = host;
             this.port = port;
+            new KafkaClientConnectionNet(this, originId, routedId, initialId, authorization);
         }
 
         private void doConnectionInitialBeginIfNecessary(
@@ -734,12 +735,14 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             KafkaClientConnectionApp delegate,
             long originId,
             long routedId,
+            long initialId,
             long authorization)
         {
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
-            this.receiver = MessageConsumer.NOOP;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
         }
 
