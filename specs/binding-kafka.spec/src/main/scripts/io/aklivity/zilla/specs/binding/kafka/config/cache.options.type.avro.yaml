@@ -41,9 +41,9 @@ bindings:
           value:
             type: avro
             catalog:
-              - name: test0
-                strategy: topic
-                version: latest
+              test0:
+                - strategy: topic
+                  version: latest
     routes:
       - exit: app1
         when:

@@ -17,14 +17,18 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
 import java.util.List;
 
-public final class AvroValidatorConfig extends ValidatorConfig
+public class KafkaCatalogConfig
 {
-    public final List<KafkaCatalogConfig> catalogs;
+    public transient long id;
 
-    public AvroValidatorConfig(
-        List<KafkaCatalogConfig> catalogs)
+    public final String name;
+    public final List<SchemaConfig> schemas;
+
+    public KafkaCatalogConfig(
+        String name,
+        List<SchemaConfig> schemas)
     {
-        super("avro");
-        this.catalogs = catalogs;
+        this.name = name;
+        this.schemas = schemas;
     }
 }

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.validator.config;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import jakarta.json.Json;
@@ -23,21 +23,21 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfigAdapter;
 
 public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
 {
+    private static final String AVRO = "avro";
+    private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
 
-    private final KafkaCatalogConfigAdapter catalog = new KafkaCatalogConfigAdapter();
+    private final SchemaAdapter schema = new SchemaAdapter();
 
     @Override
     public String type()
     {
-        return "avro";
+        return AVRO;
     }
 
     @Override
@@ -46,16 +46,19 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     {
         AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
-
-        if (validatorConfig.catalogs != null &&
-                !validatorConfig.catalogs.isEmpty())
+        validator.add(TYPE_NAME, AVRO);
+        if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
         {
-            JsonArrayBuilder entries = Json.createArrayBuilder();
-            validatorConfig.catalogs.forEach(c -> entries.add(this.catalog.adaptToJson(c)));
-
-            validator.add(CATALOG_NAME, entries);
+            for (KafkaCatalogConfig catalog : validatorConfig.catalogs)
+            {
+                JsonArrayBuilder array = Json.createArrayBuilder();
+                for (SchemaConfig schemaItem: catalog.schemas)
+                {
+                    array.add(schema.adaptToJson(schemaItem));
+                }
+                validator.add(catalog.name, array);
+            }
         }
-
         return validator.build();
     }
 
@@ -63,18 +66,25 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     public ValidatorConfig adaptFromJson(
         JsonObject object)
     {
-        JsonArray catalogArray = object.containsKey(CATALOG_NAME)
-                ? object.getJsonArray(CATALOG_NAME)
-                : null;
-
-        List<KafkaCatalogConfig> catalogs = null;
-
-        if (catalogArray != null)
+        ValidatorConfig result = null;
+        if (object.containsKey(CATALOG_NAME))
         {
-            List<KafkaCatalogConfig> catalog0 = new ArrayList<>();
-            catalogArray.forEach(v -> catalog0.add(catalog.adaptFromJson(v.asJsonObject())));
-            catalogs = catalog0;
+            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+            List<KafkaCatalogConfig> catalogs = new LinkedList<>();
+            for (String catalogName: catalogsJson.keySet())
+            {
+                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+                List<SchemaConfig> schemas = new LinkedList<>();
+                for (JsonValue item : schemasJson)
+                {
+                    JsonObject schemaJson = (JsonObject) item;
+                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                    schemas.add(schemaElement);
+                }
+                catalogs.add(new KafkaCatalogConfig(catalogName, schemas));
+            }
+            result = new AvroValidatorConfig(catalogs);
         }
-        return new AvroValidatorConfig(catalogs);
+        return result;
     }
 }

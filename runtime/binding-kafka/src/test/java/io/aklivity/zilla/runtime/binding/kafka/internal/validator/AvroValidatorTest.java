@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -27,8 +28,9 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaCatalogConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.KafkaCatalogConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -59,7 +61,8 @@ public class AvroValidatorTest
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-                new KafkaCatalogConfig("test0", "topic", "latest", 0)));
+                new KafkaCatalogConfig("test0",
+                    List.of(new SchemaConfig(null, "topic", "latest", 0)))));
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -77,7 +80,8 @@ public class AvroValidatorTest
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-                new KafkaCatalogConfig("test0", "topic", "latest", 0)));
+            new KafkaCatalogConfig("test0",
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -94,7 +98,8 @@ public class AvroValidatorTest
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-                new KafkaCatalogConfig("test0", "topic", "latest", 0)));
+            new KafkaCatalogConfig("test0",
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -111,7 +116,8 @@ public class AvroValidatorTest
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
         AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-                new KafkaCatalogConfig("test0", "topic", "latest", 0)));
+            new KafkaCatalogConfig("test0",
+                List.of(new SchemaConfig(null, "topic", "latest", 0)))));
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
