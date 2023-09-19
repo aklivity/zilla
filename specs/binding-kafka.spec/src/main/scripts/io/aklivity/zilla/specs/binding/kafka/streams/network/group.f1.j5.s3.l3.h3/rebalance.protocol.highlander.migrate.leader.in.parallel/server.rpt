@@ -118,26 +118,6 @@ write 126                                               # size
          0                                                 # userdata
          0                                                 # partitions
 
-read 101                                            # size
-     14s                                           # sync group
-     3s                                            # v3
-     (int:newRequestId)
-     5s "zilla"                                    # no client id
-     4s "test"                                     # consumer group
-     3                                             # generation id
-     10s "memberId-1"                              # consumer member group id
-     42s [0..42]                                   # group instance id
-     1                                             # assignments
-       10s "memberId-1"                             # consumer member group id
-       0                                            # metadata
-
-write 14                                                # size
-      ${newRequestId}
-      0                                                 # throttle time
-      0s                                                # no error
-      0                                                 # assignment
-
-
 read  129                               # size
       11s                               # join group
       5s                                # v5

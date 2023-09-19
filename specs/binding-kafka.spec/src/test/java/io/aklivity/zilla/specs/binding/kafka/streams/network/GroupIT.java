@@ -92,6 +92,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/rebalance.protocol.highlander.migrate.leader.in.parallel/client",
+        "${net}/rebalance.protocol.highlander.migrate.leader.in.parallel/server"})
+    public void shouldRebalanceProtocolHighlanderMigrateLeaderInParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/rebalance.protocol.unknown/client",
         "${net}/rebalance.protocol.unknown/server"})
     public void shouldRejectSecondStreamOnUnknownProtocol() throws Exception
