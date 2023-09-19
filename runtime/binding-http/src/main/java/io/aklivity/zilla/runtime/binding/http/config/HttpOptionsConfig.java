@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.Function;
@@ -29,6 +30,7 @@ public final class HttpOptionsConfig extends OptionsConfig
     public final Map<String8FW, String16FW>  overrides;
     public final HttpAccessControlConfig access;
     public final HttpAuthorizationConfig authorization;
+    public final List<HttpRequest> requests;
 
     public static HttpOptionsConfigBuilder<HttpOptionsConfig> builder()
     {
@@ -45,11 +47,13 @@ public final class HttpOptionsConfig extends OptionsConfig
         SortedSet<HttpVersion>  versions,
         Map<String8FW, String16FW> overrides,
         HttpAccessControlConfig access,
-        HttpAuthorizationConfig authorization)
+        HttpAuthorizationConfig authorization,
+        List<HttpRequest> requests)
     {
         this.versions = versions;
         this.overrides = overrides;
         this.access = access;
         this.authorization = authorization;
+        this.requests = requests;
     }
 }

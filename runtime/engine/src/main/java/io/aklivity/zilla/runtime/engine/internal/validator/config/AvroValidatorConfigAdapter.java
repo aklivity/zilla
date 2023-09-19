@@ -27,6 +27,7 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 

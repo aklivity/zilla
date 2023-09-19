@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -34,6 +36,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     private Map<String8FW, String16FW>  overrides;
     private HttpAccessControlConfig access;
     private HttpAuthorizationConfig authorization;
+    private List<HttpRequest> requests;
 
     HttpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -71,6 +74,17 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return this;
     }
 
+    public HttpOptionsConfigBuilder<T> requests(
+        List<HttpRequest> requests)
+    {
+        if (requests == null)
+        {
+            requests = new LinkedList<>();
+        }
+        this.requests = requests;
+        return this;
+    }
+
     public HttpAccessControlConfigBuilder<HttpOptionsConfigBuilder<T>> access()
     {
         return new HttpAccessControlConfigBuilder<>(this::access);
@@ -84,7 +98,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     @Override
     public T build()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization));
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
     }
 
     private HttpOptionsConfigBuilder<T> authorization(

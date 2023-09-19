@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.EnumSet;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -37,9 +38,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequest;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.config.ValidatorTypeConfig;
 
 public class HttpOptionsConfigAdapterTest
 {
@@ -95,7 +98,18 @@ public class HttpOptionsConfigAdapterTest
                     "\"overrides\":" +
                     "{" +
                         "\":authority\": \"example.com:443\"" +
-                    "}" +
+                    "}," +
+                    "\"requests\":" +
+                    "[" +
+                        "{" +
+                            "\"path\": \"/hello\"," +
+                            "\"method\": \"GET\"," +
+                            "\"content-type\": " +
+                            "[" +
+                                "\"application/json\"" +
+                            "]" +
+                        "}" +
+                    "]" +
                 "}";
 
         HttpOptionsConfig options = jsonb.fromJson(text, HttpOptionsConfig.class);
@@ -120,11 +134,16 @@ public class HttpOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.parameters, nullValue());
         assertThat(options.authorization.credentials.cookies, nullValue());
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
+        assertThat(options.requests.get(0).path, equalTo("/hello"));
+        assertThat(options.requests.get(0).method, equalTo(HttpRequest.Method.GET));
+        assertThat(options.requests.get(0).contentType.get(0), equalTo("application/json"));
     }
 
     @Test
     public void shouldWriteOptions()
     {
+        HttpRequest request = new HttpRequest("/hello", HttpRequest.Method.GET, List.of("application/json"),
+            ValidatorTypeConfig.STRING);
         HttpOptionsConfig options = HttpOptionsConfig.builder()
             .inject(identity())
             .version(HttpVersion.HTTP_1_1)
@@ -157,6 +176,7 @@ public class HttpOptionsConfigAdapterTest
                         .build()
                     .build()
                 .build()
+            .requests(List.of(request))
             .build();
 
         String text = jsonb.toJson(options);
@@ -201,7 +221,18 @@ public class HttpOptionsConfigAdapterTest
                         "\"overrides\":" +
                         "{" +
                             "\":authority\":\"example.com:443\"" +
-                        "}" +
+                        "}," +
+                        "\"requests\":" +
+                        "[" +
+                            "{" +
+                                "\"path\":\"/hello\"," +
+                                "\"method\":\"GET\"," +
+                                "\"content-type\":" +
+                                "[" +
+                                    "\"application/json\"" +
+                                "]" +
+                            "}" +
+                        "]" +
                     "}"));
     }
 }
