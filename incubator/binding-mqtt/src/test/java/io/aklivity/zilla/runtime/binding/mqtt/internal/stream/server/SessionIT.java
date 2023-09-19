@@ -246,8 +246,6 @@ public class SessionIT
     @Specification({
         "${net}/session.subscribe.publish.routing/client",
         "${app}/session.subscribe.publish.routing/server"})
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
     {
         k3po.finish();

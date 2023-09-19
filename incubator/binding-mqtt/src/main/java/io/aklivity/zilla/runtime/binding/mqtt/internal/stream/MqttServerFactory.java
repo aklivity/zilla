@@ -1662,9 +1662,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
                 connectFlags = connect.flags();
                 doSignalKeepAliveTimeout();
-
-                resolveSession(traceId, authorization, connectFlags);
-
                 doCancelConnectTimeout();
             }
 
@@ -1726,7 +1723,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final MqttBindingConfig binding = bindings.get(routedId);
 
-                final MqttRouteConfig resolved = binding != null ? binding.resolve(sessionAuth) : null;
+                final MqttRouteConfig resolved = binding != null ?
+                    binding.resolveSession(sessionAuth, clientId.asString()) : null;
 
                 if (resolved == null)
                 {
@@ -1735,7 +1733,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    resolveSession(traceId, authorization, resolved.id);
+                    resolveSession(traceId, resolved.id);
                 }
 
                 if (willFlagSet && !MqttState.initialOpened(sessionStream.state))
@@ -1827,12 +1825,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private void resolveSession(
             long traceId,
-            long authorization,
-            int flags)
+            long resolvedId)
         {
-            final MqttBindingConfig binding = bindings.get(routedId);
-
-            final MqttRouteConfig resolved = binding != null ? binding.resolveSession(authorization, clientId.asString()) : null;
+            final int flags = connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK);
 
             final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
@@ -1844,7 +1839,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (sessionStream == null)
             {
-                sessionStream = new MqttSessionStream(originId, resolved.id, 0);
+                sessionStream = new MqttSessionStream(originId, resolvedId, 0);
             }
 
             sessionStream.doSessionBegin(traceId, affinity, builder.build());
