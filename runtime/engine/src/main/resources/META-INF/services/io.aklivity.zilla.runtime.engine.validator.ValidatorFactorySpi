@@ -1,0 +1,4 @@
+io.aklivity.zilla.runtime.engine.internal.validator.StringValidatorFactory
+io.aklivity.zilla.runtime.engine.internal.validator.AvroValidatorFactory
+io.aklivity.zilla.runtime.engine.internal.validator.IntegerValidatorFactory
+io.aklivity.zilla.runtime.engine.internal.validator.LongValidatorFactory

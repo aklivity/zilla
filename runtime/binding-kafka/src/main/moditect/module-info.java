@@ -19,9 +19,6 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     exports io.aklivity.zilla.runtime.binding.kafka.config;
 
-    uses io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfigAdapterSpi;
-    uses io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactorySpi;
-
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBindingFactorySpi;
 
@@ -30,16 +27,4 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfigAdapter,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfigAdapter,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.IntegerValidatorConfigAdapter,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.LongValidatorConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.binding.kafka.internal.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.binding.kafka.internal.validator.StringValidatorFactory,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.IntegerValidatorFactory,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.LongValidatorFactory,
-             io.aklivity.zilla.runtime.binding.kafka.internal.validator.AvroValidatorFactory;
 }

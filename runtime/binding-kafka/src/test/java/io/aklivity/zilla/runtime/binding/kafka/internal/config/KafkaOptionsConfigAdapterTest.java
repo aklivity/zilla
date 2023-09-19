@@ -33,10 +33,10 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.AvroValidatorConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.KafkaCatalogConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.SchemaConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.validator.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 
 public class KafkaOptionsConfigAdapterTest
 {
@@ -98,7 +98,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":{\"encoding\":\"utf_8\"}}]," +
+                "\"value\":{\"type\":\"string\",\"encoding\":\"utf_8\"}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 
@@ -160,7 +160,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new AvroValidatorConfig(
-                    singletonList(new KafkaCatalogConfig("test0",
+                    singletonList(new CatalogedConfig("test0",
                         singletonList(new SchemaConfig(null, "topic", "latest", 0))
                 ))))),
                 new KafkaSaslConfig("plain", "username", "password"));
@@ -170,7 +170,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":{\"type\":\"avro\",\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}]," +
+                "\"value\":{\"type\":\"avro\",\"catalog\":{\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }

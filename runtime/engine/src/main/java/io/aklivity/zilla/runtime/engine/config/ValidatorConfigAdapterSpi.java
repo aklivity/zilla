@@ -13,20 +13,21 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.config;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class KafkaTopicType
+public interface ValidatorConfigAdapterSpi extends JsonbAdapter<ValidatorConfig, JsonObject>
 {
-    public final Validator key;
-    public final Validator value;
+    String type();
 
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
-    {
-        this.key = key;
-        this.value = value;
-    }
+    @Override
+    JsonObject adaptToJson(
+        ValidatorConfig options);
+
+    @Override
+    ValidatorConfig adaptFromJson(
+        JsonObject object);
+
 }

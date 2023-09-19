@@ -13,20 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.config;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
-
-public class KafkaTopicType
+public class SchemaConfig
 {
-    public final Validator key;
-    public final Validator value;
+    public final String schema;
+    public final String strategy;
+    public final String version;
+    public final int id;
 
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
+    public SchemaConfig(
+        String schema,
+        String strategy,
+        String version,
+        int id)
     {
-        this.key = key;
-        this.value = value;
+        this.schema = schema;
+        this.strategy = strategy;
+        this.version = version;
+        this.id = id;
     }
 }

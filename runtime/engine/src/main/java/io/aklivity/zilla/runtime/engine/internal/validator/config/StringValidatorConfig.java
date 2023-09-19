@@ -13,20 +13,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
-public class KafkaTopicType
+public final class StringValidatorConfig extends ValidatorConfig
 {
-    public final Validator key;
-    public final Validator value;
+    public final String encoding;
 
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
+    public StringValidatorConfig(
+        String encoding)
     {
-        this.key = key;
-        this.value = value;
+        super("string");
+        this.encoding = encoding != null ? encoding : "utf_8";
     }
 }

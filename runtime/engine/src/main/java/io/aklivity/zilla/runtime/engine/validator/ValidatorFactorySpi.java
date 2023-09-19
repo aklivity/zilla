@@ -13,20 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.validator;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 
-public class KafkaTopicType
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+
+public interface ValidatorFactorySpi
 {
-    public final Validator key;
-    public final Validator value;
+    String type();
 
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
-    {
-        this.key = key;
-        this.value = value;
-    }
+    Validator create(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog);
 }
