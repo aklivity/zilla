@@ -665,7 +665,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private void doSignalConnectionCleanup()
         {
             this.reconnectAt = signaler.signalAt(
-                currentTimeMillis(),
+                currentTimeMillis() + 4000,
                 SIGNAL_CONNECTION_CLEANUP,
                 this::onConnectionCleanupSignal);
         }
@@ -711,6 +711,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             senders.clear();
 
             connectionPool.remove(this);
+            doSignalConnectionCleanup();
         }
 
         private void connectionCleanup(
@@ -725,6 +726,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             senders.clear();
 
             connectionPool.remove(this);
+
+            doSignalConnectionCleanup();
         }
     }
 
