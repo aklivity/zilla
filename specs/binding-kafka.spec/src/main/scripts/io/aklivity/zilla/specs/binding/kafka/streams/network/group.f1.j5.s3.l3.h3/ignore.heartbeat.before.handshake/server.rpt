@@ -20,7 +20,7 @@ accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
-  option zilla:affinity 0xb1
+  option zilla:budgetId 2
 
 accepted
 

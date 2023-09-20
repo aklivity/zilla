@@ -25,8 +25,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderV0FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -35,11 +33,13 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderV0FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -91,6 +91,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     private final int proxyTypeId;
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -106,6 +107,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -134,8 +136,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         assert (initialId & 0x0000_0000_0000_0001L) != 0L;
 
         final OctetsFW extension = begin.extension();
-        final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
-        assert beginEx != null && beginEx.typeId() == proxyTypeId;
         final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
 
         MessageConsumer newStream = null;
@@ -489,25 +489,13 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private void onConnectionInitialBegin(
             BeginFW begin)
         {
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long initialId = begin.streamId();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
-
-            initialSeq = sequence;
-            initialAck = acknowledge;
-
-            assert initialAck <= initialSeq;
 
             connection.doNetworkInitialBegin(traceId);
 
             final MessageConsumer messageConsumer = senders.get(initialId);
 
-            doConnectionInitialWindow(messageConsumer, initialId, traceId, authorization, initialBud, initialPad);
             doConnectionReplyBegin(messageConsumer, initialId, traceId, begin.extension());
         }
 
@@ -551,8 +539,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             MessageConsumer sender = senders.remove(initialId);
 
-            doReset(sender, originId, routedId, initialId, 0, 0, 0,
-                traceId, authorization);
+            //doReset(sender, originId, routedId, initialId, 0, 0, 0,
+            //    traceId, authorization);
         }
 
         private void doConnectionInitialWindow(
@@ -612,8 +600,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            doEnd(sender, originId, routedId, replyId, 0, 0, 0,
-                traceId, authorization, EMPTY_EXTENSION);
+            //doEnd(sender, originId, routedId, replyId, 0, 0, 0,
+            //    traceId, authorization, EMPTY_EXTENSION);
         }
 
         private void doConnectionReplyAbort(
@@ -624,8 +612,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            doAbort(sender, originId, routedId, replyId, 0, 0, 0,
-                traceId, authorization, EMPTY_EXTENSION);
+            //doAbort(sender, originId, routedId, replyId, 0, 0, 0,
+            //    traceId, authorization, EMPTY_EXTENSION);
         }
 
         private void onConnectionReplyReset(
@@ -640,26 +628,15 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private void onConnectionReplyWindow(
             WindowFW window)
         {
-            final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
-
-            assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
-
-            replyAck = acknowledge;
-            replyMax = maximum;
-            replyBud = budgetId;
-            replyPad = padding;
+            final int replyMax = window.maximum();
 
             assert replyAck <= replySeq;
 
-            connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding);
+            connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding, replyMax);
         }
 
         private void doSignalConnectionCleanup()
@@ -759,7 +736,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
         private int nextRequestId;
         private int nextResponseId;
-        private long connectionInitialBudgetId;
+        private long connectionInitialBudgetId = NO_CREDITOR_INDEX;
 
         private KafkaClientConnectionNet(
             KafkaClientConnectionApp delegate,
@@ -815,7 +792,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         }
 
         private void doNetworkInitialData(
-            long initialId,
+            long connectionInitialId,
             long traceId,
             long authorization,
             long budgetId,
@@ -827,27 +804,30 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             if ((flags & FLAG_INIT) != 0x00)
             {
                 int requestId = nextRequestId++;
-                correlations.put(requestId, (Long) initialId);
+                correlations.put(requestId, (Long) connectionInitialId);
 
                 final DirectBuffer buffer = payload.buffer();
                 final int offset = payload.offset();
-                final int limit = payload.sizeof();
+                final int limit = payload.limit();
 
                 RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
 
-                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                int progress = 0;
+                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .length(requestHeader.length())
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
                     .correlationId(requestId)
                     .clientId(requestHeader.clientId())
                     .build();
+                progress = newRequestHeader.limit();
 
-                writeBuffer.putBytes(newRequestHeader.limit(), buffer, requestHeader.limit(),
-                    limit - requestHeader.limit());
+                final int remaining = payload.sizeof() - progress;
+                extBuffer.putBytes(progress, buffer, requestHeader.limit(), remaining);
 
+                final int length = progress + remaining;
                 doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, flags, budgetId, reserved, writeBuffer, 0, limit, extension);
+                    traceId, authorization, flags, budgetId, reserved, extBuffer, 0, length, extension);
             }
             else
             {
@@ -907,11 +887,11 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final int minimum = window.minimum();
 
             assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert sequence <= initialSeq;
+            assert acknowledge >= initialAck;
+            assert maximum >= initialMax;
 
-            final int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
+            final int credit = (int)(acknowledge - initialAck) + (maximum - initialMax);
             assert credit >= 0;
 
             this.initialAck = acknowledge;
@@ -927,7 +907,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 state = KafkaState.openedReply(state);
                 if (connectionInitialBudgetId == NO_CREDITOR_INDEX)
                 {
-                    connectionInitialBudgetId = creditor.acquire(replyId, budgetId);
+                    connectionInitialBudgetId = creditor.acquire(initialId, budgetId);
                 }
             }
 
@@ -936,7 +916,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 creditor.credit(traceId, connectionInitialBudgetId, credit);
             }
 
-            delegate.onNetworkWindow(authorization, traceId, initialBud, initialPad);
+            delegate.onNetworkWindow(authorization, traceId, connectionInitialBudgetId, initialPad);
         }
 
         private void onNetworkMessage(
@@ -1006,7 +986,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             if ((flags & FLAG_INIT) != 0x00)
             {
                 final DirectBuffer buffer = payload.buffer();
-                final int limit = payload.sizeof();
+                final int limit = payload.limit();
                 int progress = payload.offset();
 
                 ResponseHeaderV0FW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
@@ -1065,12 +1045,13 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             long traceId,
             long authorization,
             long budgetId,
-            int padding)
+            int padding,
+            int replyMax)
         {
             replyAck = Math.max(delegate.replyAck - replyPad, 0);
-            replyMax = delegate.replyMax;
+            this.replyMax = replyMax;
 
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, this.replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
         }
 

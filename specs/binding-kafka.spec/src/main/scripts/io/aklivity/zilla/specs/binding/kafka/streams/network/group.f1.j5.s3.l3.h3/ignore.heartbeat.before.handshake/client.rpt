@@ -26,7 +26,7 @@ connect "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
-  option zilla:affinity 0xb1
+  option zilla:budgetId 2
 
 connected
 

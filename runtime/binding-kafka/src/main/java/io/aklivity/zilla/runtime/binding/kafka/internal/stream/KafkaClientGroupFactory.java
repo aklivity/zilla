@@ -1731,11 +1731,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int initialMin;
         private int initialMax;
         private int initialPad;
-        private long initialBudgetId;
-        private long initialDebIndex;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_DEBITOR_INDEX;
 
         private long replySeq;
         private long replyAck;
+        private long replyBud;
         private int replyMax;
 
         private int encodeSlot = NO_SLOT;
@@ -1813,8 +1814,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             authorization = begin.authorization();
             state = KafkaState.openingReply(state);
-
-            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
 
         private void onNetworkData(
@@ -1830,6 +1829,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             replySeq = sequence + data.reserved();
             authorization = data.authorization();
+            replyBud = budgetId;
 
             assert replyAck <= replySeq;
 
@@ -1934,7 +1934,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             this.authorization = window.authorization();
 
-
             if (!KafkaState.initialOpened(state))
             {
                 state = KafkaState.openedInitial(state);
@@ -1942,7 +1941,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
                 {
                     initialDeb = supplyDebitor.apply(initialBudgetId);
-                    initialDebIndex = initialDeb.acquire(initialBudgetId, replyId, this::doNetworkDataIfNecessary);
+                    initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
                     assert initialDebIndex != NO_DEBITOR_INDEX;
                 }
             }
@@ -2008,6 +2007,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, EMPTY_EXTENSION);
+
+            doNetworkWindow(traceId, replyBud, 0, 0, decodePool.slotCapacity());
         }
 
         @Override
@@ -2160,7 +2161,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int limit)
         {
             final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
             final int length = maxLength - encodeSlotOffset;
             assert length >= 0;
             final int lengthMin = Math.min(length, 1024);
@@ -2181,7 +2181,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     final int lengthMax = Math.min(reserved - initialPad, length);
                     final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, initialWin, maxLength, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, maxLength, maxLength, deferredMax);
                     claimed = reserved > 0;
                 }
 
@@ -2198,7 +2198,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert initialAck <= initialSeq;
             }
 
-            final int remaining = Math.min(reserved - initialPad, length);
+            final int remaining = maxLength - Math.min(reserved - initialPad, length);
             if (remaining > 0)
             {
                 if (encodeSlot == NO_SLOT)
@@ -2384,6 +2384,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.port = port;
 
             delegate.describeClient.doNetworkBegin(traceId, authorization, 0);
+
+            doNetworkWindow(traceId, replyBud, 0, 0, replyMax);
 
             cleanupNetwork(traceId, authorization);
         }
@@ -2717,6 +2719,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, EMPTY_EXTENSION);
+
+            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
 
         @Override
@@ -2797,9 +2801,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 replyMax = minReplyMax;
 
                 state = KafkaState.openedReply(state);
-
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, minReplyPad);
             }
         }
 
