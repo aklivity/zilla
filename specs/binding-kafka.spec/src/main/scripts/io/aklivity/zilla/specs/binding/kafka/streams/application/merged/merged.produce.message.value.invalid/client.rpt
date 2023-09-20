@@ -47,4 +47,4 @@ read zilla:reset.ext ${kafka:resetEx()
                            .error(87)
                            .build()}
 write aborted
-read abort
+read aborted
