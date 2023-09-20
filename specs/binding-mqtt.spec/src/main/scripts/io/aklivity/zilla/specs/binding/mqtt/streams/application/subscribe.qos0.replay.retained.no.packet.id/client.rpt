@@ -17,7 +17,7 @@
 connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
-         option zilla:affinity 0xa1
+         option zilla:affinity 0xc1
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
@@ -49,7 +49,7 @@ connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
-         option zilla:affinity 0xa1
+         option zilla:affinity 0xc1
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
@@ -77,7 +77,7 @@ connect await SENT_RETAIN_DATA
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
-         option zilla:affinity 0xb1
+         option zilla:affinity 0xc2
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
@@ -124,7 +124,7 @@ connect await RECEIVED_SESSION_STATE2
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
-         option zilla:affinity 0xb1
+         option zilla:affinity 0xc2
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))

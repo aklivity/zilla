@@ -33,21 +33,21 @@ public final class MqttConditionMatcher
         MqttConditionConfig condition)
     {
         this.sessionMatchers =
-            condition.sessions != null ?
+            condition.sessions != null && !condition.sessions.isEmpty() ?
                 asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList())) : null;
         this.subscribeMatchers =
-            condition.subscribes != null ?
+            condition.subscribes != null && !condition.subscribes.isEmpty() ?
                 asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
         this.publishMatchers =
-            condition.publishes != null ?
+            condition.publishes != null && !condition.publishes.isEmpty() ?
                 asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
     }
 
     public boolean matchesSession(
         String clientId)
     {
-        boolean match = false;
-        if (sessionMatchers != null)
+        boolean match = sessionMatchers == null;
+        if (!match)
         {
             for (Matcher matcher : sessionMatchers)
             {
@@ -64,8 +64,8 @@ public final class MqttConditionMatcher
     public boolean matchesSubscribe(
         String topic)
     {
-        boolean match = false;
-        if (subscribeMatchers != null)
+        boolean match = subscribeMatchers == null;
+        if (!match)
         {
             for (Matcher matcher : subscribeMatchers)
             {
@@ -82,8 +82,8 @@ public final class MqttConditionMatcher
     public boolean matchesPublish(
         String topic)
     {
-        boolean match = false;
-        if (publishMatchers != null)
+        boolean match = publishMatchers == null;
+        if (!match)
         {
             for (Matcher matcher : publishMatchers)
             {

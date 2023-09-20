@@ -426,9 +426,10 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert typeId == mqttTypeId;
 
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity);
+            final int kind = mqttBeginEx.kind();
 
-            switch (mqttBeginEx.kind())
+            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity, kind);
+            switch (kind)
             {
             case MqttBeginExFW.KIND_SESSION:
                 client.sessionStream = new MqttSessionStream(client, sender, originId, routedId, initialId);
@@ -452,10 +453,11 @@ public final class MqttClientFactory implements MqttStreamFactory
         long routedId,
         long resolvedId,
         long initialId,
-        long affinity)
+        long affinity,
+        int kind)
     {
-        return clients.computeIfAbsent(affinity,
-            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize));
+        return kind == MqttBeginExFW.KIND_SESSION ? clients.computeIfAbsent(affinity,
+            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize)) : clients.get(affinity);
     }
 
     private MessageConsumer newStream(
@@ -3213,36 +3215,45 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
-
-            initialSeq = sequence;
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttState.openingInitial(state);
-
-            final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-
-            assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
-            final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
-
-            final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
-
-            filters.forEach(filter ->
+            onSubscribeBegin:
             {
-                Subscription subscription = new Subscription();
-                subscription.id = (int) filter.subscriptionId();
-                subscription.filter = filter.pattern().asString();
-                subscription.flags = filter.flags();
-                subscription.qos = filter.qos();
-                subscriptions.add(subscription);
-            });
-            final int qos = subscriptions.get(0).qos;
-            client.subscribeStreams.put(qos, this);
+                if (client == null)
+                {
+                    doSubscribeReset(traceId, authorization);
+                    break onSubscribeBegin;
+                }
 
-            doSubscribeBegin(traceId, authorization, affinity);
-            doSubscribeWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+                assert acknowledge <= sequence;
+                assert sequence >= initialSeq;
+                assert acknowledge >= initialAck;
+
+                initialSeq = sequence;
+                initialAck = acknowledge;
+                initialMax = maximum;
+                state = MqttState.openingInitial(state);
+
+                final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+                assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
+                final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
+
+                final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
+
+                filters.forEach(filter ->
+                {
+                    Subscription subscription = new Subscription();
+                    subscription.id = (int) filter.subscriptionId();
+                    subscription.filter = filter.pattern().asString();
+                    subscription.flags = filter.flags();
+                    subscription.qos = filter.qos();
+                    subscriptions.add(subscription);
+                });
+                final int qos = subscriptions.get(0).qos;
+                client.subscribeStreams.put(qos, this);
+
+                doSubscribeBegin(traceId, authorization, affinity);
+                doSubscribeWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+            }
         }
 
         private void onSubscribeFlush(
@@ -3552,6 +3563,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private void onPublishBegin(
             BeginFW begin)
         {
+
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final int maximum = begin.maximum();
@@ -3560,25 +3572,34 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
+            onPublishBegin:
+            {
+                if (client == null)
+                {
+                    doPublishReset(traceId, authorization);
+                    break onPublishBegin;
+                }
 
-            initialSeq = sequence;
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttState.openingInitial(state);
+                assert acknowledge <= sequence;
+                assert sequence >= initialSeq;
+                assert acknowledge >= initialAck;
 
-            final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+                initialSeq = sequence;
+                initialAck = acknowledge;
+                initialMax = maximum;
+                state = MqttState.openingInitial(state);
 
-            assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
-            final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
+                final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
 
-            this.topic = mqttPublishBeginEx.topic().asString();
-            client.publishStreams.add(this);
+                assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
+                final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
 
-            doPublishBegin(traceId, authorization, affinity);
-            doPublishWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+                this.topic = mqttPublishBeginEx.topic().asString();
+                client.publishStreams.add(this);
+
+                doPublishBegin(traceId, authorization, affinity);
+                doPublishWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+            }
         }
 
         private void onPublishData(
