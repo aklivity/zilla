@@ -1,0 +1,18 @@
+image:
+  tag: develop-SNAPSHOT
+
+args: ["start", "-v", "-e"]
+
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 1883
+readinessProbePort: 1883
+
+service:
+  ports:
+    - port: 1883
+      name: mqtt
+    - port: 8883
+      name: mqtts

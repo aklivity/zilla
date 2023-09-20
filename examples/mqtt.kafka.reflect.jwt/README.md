@@ -1,4 +1,4 @@
-# mqtt.kafka.reflect-jwt (incubator)
+# mqtt.kafka.reflect-jwt
 
 Listens on mqtt port `1883` and will forward mqtt publish messages from an authorized mqtt client to Kafka, broadcasting to all subscribed and authorized mqtt clients.
 Listens on mqtts port `8883` and will forward mqtt publish messages from an authorized mqtt client to Kafka, broadcasting to all subscribed and authorized mqtt clients.
@@ -56,8 +56,8 @@ REVISION: 1
 TEST SUITE: None
 ++ kubectl get pods --namespace zilla-mqtt-kafka --selector app.kubernetes.io/instance=kafka -o name
 + KAFKA_POD=pod/kafka-74675fbb8-g56l9
-+ kubectl exec --namespace zilla-mqtt-kafka pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt_messages --if-not-exists
-Created topic mqtt_messages.
++ kubectl exec --namespace zilla-mqtt-kafka pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-messages --if-not-exists
+Created topic mqtt-messages.
 + kubectl port-forward --namespace zilla-mqtt-kafka service/zilla-mqtt-kafka-reflect-jwt 1883 8883
 + nc -z localhost 1883
 + kubectl port-forward --namespace zilla-mqtt-kafka service/kafka 9092 29092

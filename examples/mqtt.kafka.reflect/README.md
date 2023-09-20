@@ -1,4 +1,4 @@
-# mqtt.kafka.reflect (incubator)
+# mqtt.kafka.reflect
 
 Listens on mqtt port `1883` and will forward mqtt publish messages to Kafka, broadcasting to all subscribed mqtt clients.
 Listens on mqtts port `8883` and will forward mqtt publish messages to Kafka, broadcasting to all subscribed mqtt clients.
@@ -41,12 +41,12 @@ REVISION: 1
 TEST SUITE: None
 ++ kubectl get pods --namespace zilla-mqtt-kafka-reflect --selector app.kubernetes.io/instance=kafka -o name
 + KAFKA_POD=pod/kafka-74675fbb8-g56l9
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt_messages --if-not-exists
-Created topic mqtt_messages.
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt_retained --config cleanup.policy=compact --if-not-exists
-Created topic mqtt_retained.
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt_sessions --config cleanup.policy=compact --if-not-exists
-Created topic mqtt_sessions.
++ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-messages --if-not-exists
+Created topic mqtt-messages.
++ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-retained --config cleanup.policy=compact --if-not-exists
+Created topic mqtt-retained.
++ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-sessions --config cleanup.policy=compact --if-not-exists
+Created topic mqtt-sessions.
 + kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/zilla-mqtt-kafka-reflect 1883 8883
 + nc -z localhost 1883
 + kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/kafka 9092 29092
@@ -122,11 +122,11 @@ Client 44181407-f1bc-4a6b-b94d-9f37d37ea395 sending PUBLISH (d0, q0, r0, m1, 'zi
 Client 44181407-f1bc-4a6b-b94d-9f37d37ea395 sending DISCONNECT
 ```
 
-Check the internal mqtt_messages topic in Kafka
+Check the internal mqtt-messages topic in Kafka
 ```bash
-kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
+kcat -C -b localhost:9092 -t mqtt-messages -J -u | jq .
 {
-  "topic": "mqtt_messages",
+  "topic": "mqtt-messages",
   "partition": 0,
   "offset": 0,
   "tstype": "create",
@@ -148,7 +148,7 @@ kcat -C -b localhost:9092 -t mqtt_messages -J -u | jq .
 output:
 
 ```text
-% Reached end of topic mqtt_messages [0] at offset 1
+% Reached end of topic mqtt-messages [0] at offset 1
 ```
 
 Verify retained messages

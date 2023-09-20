@@ -36,39 +36,15 @@ bindings:
   mqtt_server0:
     type: mqtt
     kind: server
-    exit: mqtt_kafka_proxy0
-  mqtt_kafka_proxy0:
-    type: mqtt-kafka
-    kind: proxy
-    options:
-      server: localhost:1883
-      topics:
-        sessions: mqtt-sessions
-        messages: mqtt-messages
-        retained: mqtt-retained
-    exit: kafka_cache_client0
-  kafka_cache_client0:
-    type: kafka
-    kind: cache_client
-    exit: kafka_cache_server0
-  kafka_cache_server0:
-    type: kafka
-    kind: cache_server
-    options:
-      bootstrap:
-        - mqtt-retained
-    exit: kafka_client0
-  kafka_client0:
-    type: kafka
+    exit: mqtt_client0
+  mqtt_client0:
+    type: mqtt
     kind: client
     exit: tcp_client0
   tcp_client0:
     type: tcp
     kind: client
     options:
-      host: kafka
-      port: 29092
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
+      host: mosquitto
+      port: 1884
 

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto
+          ports:
+            - containerPort: 1884
+            - containerPort: 9001
+          volumeMounts:
+            - mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: mosquitto-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+data:
+  mosquitto.conf: |
+    # DO NOT USE IN PRODUCTION
+    allow_anonymous true
+
+    listener 1884
+    protocol mqtt
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+spec:
+  type: ClusterIP
+  selector:
+    app: mosquitto
+  ports:
+    - port: 1884
