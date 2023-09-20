@@ -659,20 +659,48 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
-        public void addReceiver(
+        private void addReceiver(
             long initialId,
             MessageConsumer sender)
         {
             senders.put(initialId, sender);
         }
 
-        public void onNetworkWindow(
+        private void onNetworkWindow(
             long authorization,
             long traceId,
             long budgetId,
             int padding)
         {
             senders.forEach((k, v) -> doConnectionInitialWindow(v, k, authorization, traceId, budgetId, padding));
+        }
+
+        private void onNetworkEnd(
+            long traceId)
+        {
+            senders.forEach((k, v) ->
+            {
+                doConnectionInitialReset(k, traceId);
+                doConnectionReplyEnd(k, traceId);
+            });
+
+            senders.clear();
+
+            connectionPool.remove(this);
+        }
+
+        private void cleanupSenders(
+            long traceId)
+        {
+            senders.forEach((k, v) ->
+            {
+                doConnectionInitialReset(k, traceId);
+                doConnectionReplyAbort(k, traceId);
+            });
+
+            senders.clear();
+
+            connectionPool.remove(this);
         }
     }
 
@@ -829,19 +857,11 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private void onNetworkInitialReset(
             ResetFW reset)
         {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
 
-            assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-
-            delegate.initialAck = acknowledge;
-            state = KafkaState.closedInitial(state);
-
-            assert delegate.initialAck <= delegate.initialSeq;
-
             doNetworkReplyReset(traceId);
+
+            delegate.cleanupSenders(traceId);
         }
 
 
@@ -855,7 +875,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
-            final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -965,22 +984,20 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             state = KafkaState.closedReply(state);
 
             assert replyAck <= replySeq;
+
+            doNetworkInitialEnd(traceId);
+
+            delegate.onNetworkEnd(traceId);
         }
 
         private void onNetworkReplyAbort(
             AbortFW abort)
         {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
             final long traceId = abort.traceId();
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            doNetworkInitialAbort(traceId);
 
-            replySeq = sequence;
-            state = KafkaState.closedReply(state);
-
-            assert replyAck <= replySeq;
+            delegate.cleanupSenders(traceId);
         }
 
         private void doNetworkReplyReset(
