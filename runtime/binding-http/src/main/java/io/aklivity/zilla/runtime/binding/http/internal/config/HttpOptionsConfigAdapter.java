@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequest;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
@@ -72,7 +72,7 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String EXPOSE_HEADERS_NAME = "headers";
     private static final String REQUESTS_NAME = "requests";
 
-    private final HttpRequestAdapter httpRequest = new HttpRequestAdapter();
+    private final HttpRequestConfigAdapter httpRequest = new HttpRequestConfigAdapter();
 
     @Override
     public Kind kind()
@@ -388,7 +388,7 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
         if (object.containsKey(REQUESTS_NAME))
         {
-            List<HttpRequest> requests = object.getJsonArray(REQUESTS_NAME).stream()
+            List<HttpRequestConfig> requests = object.getJsonArray(REQUESTS_NAME).stream()
                 .map(item -> httpRequest.adaptFromJson((JsonObject) item))
                 .collect(Collectors.toList());
             httpOptions.requests(requests);

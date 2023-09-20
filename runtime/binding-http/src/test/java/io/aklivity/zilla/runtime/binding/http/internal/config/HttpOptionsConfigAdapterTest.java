@@ -22,6 +22,7 @@ import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertTrue;
@@ -38,11 +39,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequest;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ValidatorTypeConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfigBuilder;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
 
 public class HttpOptionsConfigAdapterTest
 {
@@ -59,61 +62,80 @@ public class HttpOptionsConfigAdapterTest
     @Test
     public void shouldReadOptions()
     {
+        // GIVEN
         String text =
+            "{" +
+                "\"versions\":" +
+                "[" +
+                    "\"http/1.1\"," +
+                    "\"h2\"" +
+                "]," +
+                "\"access-control\":" +
                 "{" +
-                    "\"versions\":" +
-                    "[" +
-                        "\"http/1.1\"," +
-                        "\"h2\"" +
-                    "]," +
-                    "\"access-control\":" +
+                    "\"policy\": \"cross-origin\"," +
+                    "\"allow\":" +
                     "{" +
-                        "\"policy\": \"cross-origin\"," +
-                        "\"allow\":" +
-                        "{" +
-                            "\"origins\": [ \"https://example.com:9090\" ]," +
-                            "\"methods\": [ \"DELETE\" ]," +
-                            "\"headers\": [ \"x-api-key\" ]," +
-                            "\"credentials\": true" +
-                        "}," +
-                        "\"max-age\": 10," +
-                        "\"expose\":" +
-                        "{" +
-                            "\"headers\": [ \"x-custom-header\" ]" +
-                        "}" +
+                        "\"origins\": [ \"https://example.com:9090\" ]," +
+                        "\"methods\": [ \"DELETE\" ]," +
+                        "\"headers\": [ \"x-api-key\" ]," +
+                        "\"credentials\": true" +
                     "}," +
-                    "\"authorization\":" +
+                    "\"max-age\": 10," +
+                    "\"expose\":" +
                     "{" +
-                        "\"test0\":" +
+                        "\"headers\": [ \"x-custom-header\" ]" +
+                    "}" +
+                "}," +
+                "\"authorization\":" +
+                "{" +
+                    "\"test0\":" +
+                    "{" +
+                        "\"credentials\":" +
                         "{" +
-                            "\"credentials\":" +
+                            "\"headers\":" +
                             "{" +
-                                "\"headers\":" +
-                                "{" +
-                                    "\"authorization\":\"Bearer {credentials}\"" +
-                                "}" +
+                                "\"authorization\":\"Bearer {credentials}\"" +
                             "}" +
                         "}" +
-                    "}," +
-                    "\"overrides\":" +
+                    "}" +
+                "}," +
+                "\"overrides\":" +
+                "{" +
+                    "\":authority\": \"example.com:443\"" +
+                "}," +
+                "\"requests\":" +
+                "[" +
                     "{" +
-                        "\":authority\": \"example.com:443\"" +
-                    "}," +
-                    "\"requests\":" +
-                    "[" +
+                        "\"path\": \"/hello\"," +
+                        "\"method\": \"GET\"," +
+                        "\"content-type\": " +
+                        "[" +
+                            "\"application/json\"" +
+                        "]," +
+                        "\"content\":" +
                         "{" +
-                            "\"path\": \"/hello\"," +
-                            "\"method\": \"GET\"," +
-                            "\"content-type\": " +
-                            "[" +
-                                "\"application/json\"" +
-                            "]" +
+                            "\"type\": \"avro\"," +
+                            "\"catalog\": " +
+                            "{" +
+                                "test0:" +
+                                "[" +
+                                    "{" +
+                                        "\"schema\": \"cat\"" +
+                                    "}," +
+                                    "{" +
+                                        "\"schema\": \"tiger\"" +
+                                    "}" +
+                                "]" +
+                            "}" +
                         "}" +
-                    "]" +
-                "}";
+                     "}" +
+                "]" +
+            "}";
 
+        // WHEN
         HttpOptionsConfig options = jsonb.fromJson(text, HttpOptionsConfig.class);
 
+        // THEN
         assertThat(options, not(nullValue()));
         assertThat(options.versions, equalTo(EnumSet.allOf(HttpVersion.class)));
         assertThat(options.access, not(nullValue()));
@@ -135,15 +157,103 @@ public class HttpOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.cookies, nullValue());
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
         assertThat(options.requests.get(0).path, equalTo("/hello"));
-        assertThat(options.requests.get(0).method, equalTo(HttpRequest.Method.GET));
+        assertThat(options.requests.get(0).method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(options.requests.get(0).contentType.get(0), equalTo("application/json"));
+        assertThat(options.requests.get(0).content.type, equalTo("avro"));
+        assertThat(options.requests.get(0).content, instanceOf(AvroValidatorConfig.class));
+        CatalogedConfig test0 = ((AvroValidatorConfig) options.requests.get(0).content).catalogs.get(0);
+        assertThat(test0.name, equalTo("test0"));
+        assertThat(test0.schemas.get(0).schema, equalTo("cat"));
+        assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
+        // TODO: Ati - header, param
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        HttpRequest request = new HttpRequest("/hello", HttpRequest.Method.GET, List.of("application/json"),
-            ValidatorTypeConfig.STRING);
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"versions\":" +
+                "[" +
+                    "\"http/1.1\"," +
+                    "\"h2\"" +
+                "]," +
+                "\"access-control\":" +
+                "{" +
+                    "\"policy\":\"cross-origin\"," +
+                    "\"allow\":" +
+                    "{" +
+                        "\"origins\":[\"https://example.com:9090\"]," +
+                        "\"methods\":[\"DELETE\"]," +
+                        "\"headers\":[\"x-api-key\"]," +
+                        "\"credentials\":true" +
+                    "}," +
+                    "\"max-age\":10," +
+                    "\"expose\":" +
+                    "{" +
+                        "\"headers\":[\"x-custom-header\"]" +
+                    "}" +
+                "}," +
+                "\"authorization\":" +
+                "{" +
+                    "\"test0\":" +
+                    "{" +
+                        "\"credentials\":" +
+                        "{" +
+                            "\"headers\":" +
+                            "{" +
+                                "\"authorization\":\"Bearer {credentials}\"" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}," +
+                "\"overrides\":" +
+                "{" +
+                    "\":authority\":\"example.com:443\"" +
+                "}," +
+                "\"requests\":" +
+                "[" +
+                    "{" +
+                        "\"path\":\"/hello\"," +
+                        "\"method\":\"GET\"," +
+                        "\"content-type\":" +
+                        "[" +
+                            "\"application/json\"" +
+                        "]," +
+                        "\"content\":" +
+                        "{" +
+                            "\"type\":\"avro\"," +
+                            "\"catalog\":" +
+                            "{" +
+                                "\"test0\":" +
+                                "[" +
+                                    "{" +
+                                        "\"schema\":\"cat\"" +
+                                    "}," +
+                                    "{" +
+                                        "\"schema\":\"tiger\"" +
+                                    "}" +
+                                "]" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "]" +
+            "}";
+        HttpRequestConfig request = new HttpRequestConfig(
+            "/hello",
+            HttpRequestConfig.Method.GET, List.of("application/json"),
+            new AvroValidatorConfigBuilder<>(identity())
+                .catalog()
+                    .name("test0")
+                        .schema()
+                            .schema("cat")
+                            .build()
+                        .schema()
+                            .schema("tiger")
+                            .build()
+                    .build()
+                .build());
         HttpOptionsConfig options = HttpOptionsConfig.builder()
             .inject(identity())
             .version(HttpVersion.HTTP_1_1)
@@ -179,60 +289,11 @@ public class HttpOptionsConfigAdapterTest
             .requests(List.of(request))
             .build();
 
-        String text = jsonb.toJson(options);
+        // WHEN
+        String json = jsonb.toJson(options);
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-                    "{" +
-                        "\"versions\":" +
-                        "[" +
-                            "\"http/1.1\"," +
-                            "\"h2\"" +
-                        "]," +
-                        "\"access-control\":" +
-                        "{" +
-                            "\"policy\":\"cross-origin\"," +
-                            "\"allow\":" +
-                            "{" +
-                                "\"origins\":[\"https://example.com:9090\"]," +
-                                "\"methods\":[\"DELETE\"]," +
-                                "\"headers\":[\"x-api-key\"]," +
-                                "\"credentials\":true" +
-                            "}," +
-                            "\"max-age\":10," +
-                            "\"expose\":" +
-                            "{" +
-                                "\"headers\":[\"x-custom-header\"]" +
-                            "}" +
-                        "}," +
-                        "\"authorization\":" +
-                        "{" +
-                            "\"test0\":" +
-                            "{" +
-                                "\"credentials\":" +
-                                "{" +
-                                    "\"headers\":" +
-                                    "{" +
-                                        "\"authorization\":\"Bearer {credentials}\"" +
-                                    "}" +
-                                "}" +
-                            "}" +
-                        "}," +
-                        "\"overrides\":" +
-                        "{" +
-                            "\":authority\":\"example.com:443\"" +
-                        "}," +
-                        "\"requests\":" +
-                        "[" +
-                            "{" +
-                                "\"path\":\"/hello\"," +
-                                "\"method\":\"GET\"," +
-                                "\"content-type\":" +
-                                "[" +
-                                    "\"application/json\"" +
-                                "]" +
-                            "}" +
-                        "]" +
-                    "}"));
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
     }
 }

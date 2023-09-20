@@ -19,6 +19,8 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public final class StringValidatorConfig extends ValidatorConfig
 {
+    public static final StringValidatorConfig UTF_8 = new StringValidatorConfig("utf_8");
+
     public final String encoding;
 
     public StringValidatorConfig(

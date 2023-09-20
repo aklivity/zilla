@@ -23,24 +23,25 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequest;
-import io.aklivity.zilla.runtime.engine.config.ValidatorTypeConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorTypeConfigAdapter;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
-public class HttpRequestAdapter implements JsonbAdapter<HttpRequest, JsonObject>
+public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
     private static final String METHOD_NAME = "method";
     private static final String CONTENT_TYPE_NAME = "content-type";
     private static final String CONTENT_NAME = "content";
 
-    private final ValidatorTypeConfigAdapter validatorType = new ValidatorTypeConfigAdapter();
+    private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
-        HttpRequest request)
+        HttpRequestConfig request)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         if (request.path != null)
@@ -57,11 +58,17 @@ public class HttpRequestAdapter implements JsonbAdapter<HttpRequest, JsonObject>
             request.contentType.forEach(contentType::add);
             object.add(CONTENT_TYPE_NAME, contentType);
         }
+        if (request.content != null)
+        {
+            validator.adaptType(request.content.type);
+            JsonObject content = validator.adaptToJson(request.content);
+            object.add(CONTENT_NAME, content);
+        }
         return object.build();
     }
 
     @Override
-    public HttpRequest adaptFromJson(
+    public HttpRequestConfig adaptFromJson(
         JsonObject object)
     {
         String path = null;
@@ -69,10 +76,10 @@ public class HttpRequestAdapter implements JsonbAdapter<HttpRequest, JsonObject>
         {
             path = object.getString(PATH_NAME);
         }
-        HttpRequest.Method method = null;
+        HttpRequestConfig.Method method = null;
         if (object.containsKey(METHOD_NAME))
         {
-            method = HttpRequest.Method.valueOf(object.getString(METHOD_NAME));
+            method = HttpRequestConfig.Method.valueOf(object.getString(METHOD_NAME));
         }
         List<String> contentType = null;
         if (object.containsKey(CONTENT_TYPE_NAME))
@@ -81,11 +88,26 @@ public class HttpRequestAdapter implements JsonbAdapter<HttpRequest, JsonObject>
                 .map(i -> ((JsonString) i).getString())
                 .collect(Collectors.toList());
         }
-        ValidatorTypeConfig content = null;
-        if (object.containsKey(CONTENT_NAME))
+        ValidatorConfig content = null;
+        JsonValue contentJson = object.getOrDefault(CONTENT_NAME, null);
+        if (contentJson != null)
         {
-            content = validatorType.adaptFromJson(object.get(CONTENT_NAME));
+            if (contentJson instanceof JsonString)
+            {
+                JsonObject contentJsonObject = Json.createObjectBuilder()
+                    .add("type", ((JsonString) contentJson).getString())
+                    .build();
+                content = validator.adaptFromJson(contentJsonObject);
+            }
+            else if (contentJson instanceof JsonObject)
+            {
+                content = validator.adaptFromJson((JsonObject) contentJson);
+            }
+            else
+            {
+                assert false;
+            }
         }
-        return new HttpRequest(path, method, contentType, content);
+        return new HttpRequestConfig(path, method, contentType, content);
     }
 }

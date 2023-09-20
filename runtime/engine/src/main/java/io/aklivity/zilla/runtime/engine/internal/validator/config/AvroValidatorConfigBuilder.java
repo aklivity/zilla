@@ -27,7 +27,7 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
 
     private List<CatalogedConfig> catalogs;
 
-    AvroValidatorConfigBuilder(
+    public AvroValidatorConfigBuilder(
         Function<AvroValidatorConfig, T> mapper)
     {
         this.mapper = mapper;

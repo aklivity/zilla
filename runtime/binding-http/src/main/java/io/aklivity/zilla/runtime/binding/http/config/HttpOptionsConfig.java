@@ -30,7 +30,7 @@ public final class HttpOptionsConfig extends OptionsConfig
     public final Map<String8FW, String16FW>  overrides;
     public final HttpAccessControlConfig access;
     public final HttpAuthorizationConfig authorization;
-    public final List<HttpRequest> requests;
+    public final List<HttpRequestConfig> requests;
 
     public static HttpOptionsConfigBuilder<HttpOptionsConfig> builder()
     {
@@ -48,7 +48,7 @@ public final class HttpOptionsConfig extends OptionsConfig
         Map<String8FW, String16FW> overrides,
         HttpAccessControlConfig access,
         HttpAuthorizationConfig authorization,
-        List<HttpRequest> requests)
+        List<HttpRequestConfig> requests)
     {
         this.versions = versions;
         this.overrides = overrides;

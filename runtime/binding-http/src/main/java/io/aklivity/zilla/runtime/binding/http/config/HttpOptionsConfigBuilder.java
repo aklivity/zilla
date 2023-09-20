@@ -36,7 +36,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     private Map<String8FW, String16FW>  overrides;
     private HttpAccessControlConfig access;
     private HttpAuthorizationConfig authorization;
-    private List<HttpRequest> requests;
+    private List<HttpRequestConfig> requests;
 
     HttpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -75,7 +75,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     }
 
     public HttpOptionsConfigBuilder<T> requests(
-        List<HttpRequest> requests)
+        List<HttpRequestConfig> requests)
     {
         if (requests == null)
         {

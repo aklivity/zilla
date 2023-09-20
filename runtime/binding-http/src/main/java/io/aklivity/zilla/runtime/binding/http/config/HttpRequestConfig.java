@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.config.ValidatorTypeConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
-public class HttpRequest
+public class HttpRequestConfig
 {
     public enum Method
     {
@@ -37,13 +37,13 @@ public class HttpRequest
     public Method method;
     public List<String> contentType;
     // TODO: Ati - headers, params
-    public ValidatorTypeConfig content;
+    public ValidatorConfig content;
 
-    public HttpRequest(
+    public HttpRequestConfig(
         String path,
         Method method,
         List<String> contentType,
-        ValidatorTypeConfig content)
+        ValidatorConfig content)
     {
         this.path = path;
         this.method = method;
