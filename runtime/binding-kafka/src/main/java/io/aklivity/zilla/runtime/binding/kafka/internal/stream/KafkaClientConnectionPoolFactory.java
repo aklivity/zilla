@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
@@ -24,7 +25,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-
+import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderV0FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -86,6 +87,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     private final RequestHeaderFW requestHeaderRO = new RequestHeaderFW();
     private final ResponseHeaderV0FW responseHeaderRO = new ResponseHeaderV0FW();
 
+    private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
@@ -99,7 +101,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     public KafkaClientConnectionPoolFactory(
         KafkaConfiguration config,
         EngineContext context,
-        LongFunction<KafkaBindingConfig> supplyBinding)
+        LongFunction<KafkaBindingConfig> supplyBinding,
+        MergedBudgetCreditor creditor)
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -109,6 +112,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
+        this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
     }
 
@@ -425,7 +429,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private long replyBud;
 
         private long reconnectAt = NO_CANCEL_ID;
-        private int reconnectAttempt;
 
         private KafkaClientConnectionApp(
             long originId,
@@ -742,6 +745,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialMin;
         private long initialBud;
 
         private long replySeq;
@@ -751,6 +755,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
         private int nextRequestId;
         private int nextResponseId;
+        private long connectionInitialBudgetId;
 
         private KafkaClientConnectionNet(
             KafkaClientConnectionApp delegate,
@@ -892,23 +897,40 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
-            final long authorization = window.authorization();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
+            final int minimum = window.minimum();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
 
-            initialAck = acknowledge;
-            initialMax = maximum;
-            initialBud = budgetId;
-            state = KafkaState.openedInitial(state);
+            final int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
+            assert credit >= 0;
 
-            assert initialAck <= initialSeq;
+            this.initialAck = acknowledge;
+            this.initialMax = maximum;
+            this.initialMin = minimum;
+            this.replyPad = padding;
+            this.initialBud = budgetId;
 
-            delegate.onNetworkWindow(traceId, authorization, budgetId, padding);
+            assert replyAck <= replySeq;
+
+            if (KafkaState.replyOpening(state))
+            {
+                state = KafkaState.openedReply(state);
+                if (connectionInitialBudgetId == NO_CREDITOR_INDEX)
+                {
+                    connectionInitialBudgetId = creditor.acquire(replyId, budgetId);
+                }
+            }
+
+            if (connectionInitialBudgetId != NO_CREDITOR_INDEX)
+            {
+                creditor.credit(traceId, connectionInitialBudgetId, credit);
+            }
         }
 
         private void onNetworkMessage(
@@ -1051,6 +1073,17 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             doNetworkInitialAbort(traceId);
             doNetworkReplyReset(traceId);
+
+            cleanupBudgetCreditorIfNecessary();
+        }
+
+        private void cleanupBudgetCreditorIfNecessary()
+        {
+            if (connectionInitialBudgetId != NO_CREDITOR_INDEX)
+            {
+                creditor.release(connectionInitialBudgetId);
+                connectionInitialBudgetId = NO_CREDITOR_INDEX;
+            }
         }
     }
 }
