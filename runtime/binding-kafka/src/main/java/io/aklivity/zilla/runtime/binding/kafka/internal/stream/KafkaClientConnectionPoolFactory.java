@@ -97,7 +97,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private Object2ObjectHashMap<String, KafkaClientConnectionApp> connectionPool;
+    private Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
 
     public KafkaClientConnectionPoolFactory(
         KafkaConfiguration config,
@@ -156,10 +156,10 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             port = 0;
         }
 
-        final KafkaClientConnectionApp kafkaClientConnectionApp = connectionPool.computeIfAbsent(address, s ->
-            new KafkaClientConnectionApp(originId, routedId, initialId, authorization, affinity, host, port));
-        kafkaClientConnectionApp.doAddReceiver(initialId, sender);
-        newStream = kafkaClientConnectionApp::onConnectionMessage;
+        final KafkaClientConnection connection = connectionPool.computeIfAbsent(address, s ->
+            new KafkaClientConnection(originId, routedId, initialId, authorization, affinity, host, port));
+        connection.onNewStream(begin, sender);
+        newStream = connection::onConnectionMessage;
 
         return newStream;
     }
@@ -406,7 +406,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaClientConnectionApp
+    final class KafkaClientConnection
     {
         private final long originId;
         private final long routedId;
@@ -430,7 +430,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
         private long reconnectAt = NO_CANCEL_ID;
 
-        private KafkaClientConnectionApp(
+        private KafkaClientConnection(
             long originId,
             long routedId,
             long initialId,
@@ -459,23 +459,23 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onConnectionInitialBegin(begin);
+                onConnectionBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onConnectionInitialData(data);
+                onConnectionData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onConnectionInitialEnd(end);
+                onConnectionEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onConnectionInitialAbort(abort);
+                onConnectionAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onConnectionReplyWindow(window);
+                onConnectionWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
@@ -486,20 +486,20 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             }
         }
 
-        private void onConnectionInitialBegin(
+        private void onConnectionBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
             final long initialId = begin.streamId();
 
-            connection.doNetworkInitialBegin(traceId);
+            connection.doNetworkBegin(traceId);
 
             final MessageConsumer messageConsumer = senders.get(initialId);
 
-            doConnectionReplyBegin(messageConsumer, initialId, traceId, begin.extension());
+            doConnectionBegin(messageConsumer, initialId, traceId, begin.extension());
         }
 
-        private void onConnectionInitialData(
+        private void onConnectionData(
             DataFW data)
         {
             final long initialId = data.streamId();
@@ -511,29 +511,29 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            connection.doNetworkInitialData(initialId, traceId, authorization, budgetId,
+            connection.doNetworkData(initialId, traceId, authorization, budgetId,
                 flags, reserved, payload, extension);
         }
 
-        private void onConnectionInitialEnd(
+        private void onConnectionEnd(
             EndFW end)
         {
             long initialId = end.traceId();
             long traceId = end.traceId();
 
-            doConnectionReplyEnd(initialId, traceId);
+            doConnectionEnd(initialId, traceId);
         }
 
-        private void onConnectionInitialAbort(
+        private void onConnectionAbort(
             AbortFW abort)
         {
             final long initialId = abort.streamId();
             final long traceId = abort.traceId();
 
-            doConnectionReplyAbort(initialId, traceId);
+            doConnectionAbort(initialId, traceId);
         }
 
-        private void doConnectionInitialReset(
+        private void doConnectionReset(
             long initialId,
             long traceId)
         {
@@ -543,7 +543,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             //    traceId, authorization);
         }
 
-        private void doConnectionInitialWindow(
+        private void doConnectionWindow(
             MessageConsumer sender,
             long initialId,
             long authorization,
@@ -559,7 +559,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 traceId, authorization, budgetId, padding);
         }
 
-        private void doConnectionReplyBegin(
+        private void doConnectionBegin(
             MessageConsumer sender,
             long initialId,
             long traceId,
@@ -571,7 +571,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 traceId, authorization, initialBud, extension);
         }
 
-        private void doConnectionReplyData(
+        private void doConnectionData(
             long initialId,
             long traceId,
             int flags,
@@ -592,7 +592,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 traceId, authorization, flags, replyBud, reserved, payload, extension);
         }
 
-        private void doConnectionReplyEnd(
+        private void doConnectionEnd(
             long initialId,
             long traceId)
         {
@@ -604,7 +604,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             //    traceId, authorization, EMPTY_EXTENSION);
         }
 
-        private void doConnectionReplyAbort(
+        private void doConnectionAbort(
             long initialId,
             long traceId)
         {
@@ -622,10 +622,10 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final long initialId = reset.streamId();
             final long traceId = reset.traceId();
 
-            doConnectionInitialReset(initialId, traceId);
+            doConnectionReset(initialId, traceId);
         }
 
-        private void onConnectionReplyWindow(
+        private void onConnectionWindow(
             WindowFW window)
         {
             final long acknowledge = window.acknowledge();
@@ -636,7 +636,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding, replyMax);
+            connection.doNetworkWindow(traceId, acknowledge, budgetId, padding, replyMax);
         }
 
         private void doSignalConnectionCleanup()
@@ -647,10 +647,11 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 this::onConnectionCleanupSignal);
         }
 
-        private void doAddReceiver(
-            long initialId,
+        private void onNewStream(
+            BeginFW begin,
             MessageConsumer sender)
         {
+            final long initialId = begin.streamId();
             senders.put(initialId, sender);
         }
 
@@ -673,7 +674,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            senders.forEach((k, v) -> doConnectionInitialWindow(v, k, authorization, traceId, budgetId, padding));
+            senders.forEach((k, v) -> doConnectionWindow(v, k, authorization, traceId, budgetId, padding));
         }
 
         private void onNetworkEnd(
@@ -681,8 +682,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             senders.forEach((k, v) ->
             {
-                doConnectionInitialReset(k, traceId);
-                doConnectionReplyEnd(k, traceId);
+                doConnectionReset(k, traceId);
+                doConnectionEnd(k, traceId);
             });
 
             senders.clear();
@@ -696,8 +697,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             senders.forEach((k, v) ->
             {
-                doConnectionInitialReset(k, traceId);
-                doConnectionReplyAbort(k, traceId);
+                doConnectionReset(k, traceId);
+                doConnectionAbort(k, traceId);
             });
 
             senders.clear();
@@ -713,7 +714,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaClientConnectionApp delegate;
+        private final KafkaClientConnection delegate;
         private final Int2ObjectHashMap<Long> correlations;
 
         private long initialId;
@@ -739,7 +740,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private long connectionInitialBudgetId = NO_CREDITOR_INDEX;
 
         private KafkaClientConnectionNet(
-            KafkaClientConnectionApp delegate,
+            KafkaClientConnection delegate,
             long originId,
             long routedId,
             long initialId,
@@ -754,7 +755,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             this.correlations = new Int2ObjectHashMap<>();
         }
 
-        private void doNetworkInitialBegin(
+        private void doNetworkBegin(
             long traceId)
         {
             if (KafkaState.closed(state))
@@ -791,7 +792,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             }
         }
 
-        private void doNetworkInitialData(
+        private void doNetworkData(
             long connectionInitialId,
             long traceId,
             long authorization,
@@ -840,7 +841,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doNetworkInitialEnd(
+        private void doNetworkEnd(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -852,7 +853,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             }
         }
 
-        private void doNetworkInitialAbort(
+        private void doNetworkAbort(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -864,18 +865,18 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             }
         }
 
-        private void onNetworkInitialReset(
+        private void onNetworkReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
 
-            doNetworkReplyReset(traceId);
+            doNetworkReset(traceId);
 
             delegate.connectionCleanup(traceId);
         }
 
 
-        private void onNetworkInitialWindow(
+        private void onNetworkWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -929,7 +930,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onNetworkReplyBegin(begin);
+                onNetworkBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
@@ -945,18 +946,18 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onNetworkInitialReset(reset);
+                onNetworkReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onNetworkInitialWindow(window);
+                onNetworkWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onNetworkReplyBegin(
+        private void onNetworkBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -994,7 +995,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 int correlationId = responseHeader.correlationId();
                 Long initialId = correlations.remove(correlationId);
 
-                delegate.doConnectionReplyData(initialId, traceId, flags, sequence, acknowledge,
+                delegate.doConnectionData(initialId, traceId, flags, sequence, acknowledge,
                     reserved, payload, extension);
             }
         }
@@ -1014,7 +1015,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            doNetworkInitialEnd(traceId);
+            doNetworkEnd(traceId);
 
             delegate.onNetworkEnd(traceId);
         }
@@ -1024,12 +1025,12 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            doNetworkInitialAbort(traceId);
+            doNetworkAbort(traceId);
 
             delegate.connectionCleanup(traceId);
         }
 
-        private void doNetworkReplyReset(
+        private void doNetworkReset(
             long traceId)
         {
             if (!KafkaState.replyClosed(state))
@@ -1041,7 +1042,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             }
         }
 
-        private void doNetworkReplyWindow(
+        private void doNetworkWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -1058,8 +1059,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private void networkCleanup(
             long traceId)
         {
-            doNetworkInitialAbort(traceId);
-            doNetworkReplyReset(traceId);
+            doNetworkAbort(traceId);
+            doNetworkReset(traceId);
 
             cleanupBudgetCreditorIfNecessary();
         }
