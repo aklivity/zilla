@@ -31,8 +31,6 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPublishConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSubscribeConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -240,10 +238,14 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
             binding
                 .route()
                     .when(MqttConditionConfig::builder)
-                        .publish(new MqttPublishConfig(topic))
+                        .publish()
+                            .topic(topic)
+                            .build()
                         .build()
                     .when(MqttConditionConfig::builder)
-                        .subscribe(new MqttSubscribeConfig(topic))
+                        .subscribe()
+                            .topic(topic)
+                            .build()
                         .build()
                     .exit("mqtt_client0")
                 .build();

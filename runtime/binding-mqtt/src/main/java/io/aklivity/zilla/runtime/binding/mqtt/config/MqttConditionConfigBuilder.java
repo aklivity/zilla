@@ -60,11 +60,21 @@ public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttCo
         return this;
     }
 
+    public MqttSubscribeConfigBuilder<MqttConditionConfigBuilder<T>> subscribe()
+    {
+        return new MqttSubscribeConfigBuilder<>(this::subscribe);
+    }
+
     public MqttConditionConfigBuilder<T> publish(
         MqttPublishConfig publish)
     {
         this.publish.add(publish);
         return this;
+    }
+
+    public MqttPublishConfigBuilder<MqttConditionConfigBuilder<T>> publish()
+    {
+        return new MqttPublishConfigBuilder<>(this::publish);
     }
 
     @Override
