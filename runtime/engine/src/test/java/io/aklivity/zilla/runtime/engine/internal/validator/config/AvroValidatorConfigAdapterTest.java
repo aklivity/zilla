@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+
 public class AvroValidatorConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -113,7 +115,7 @@ public class AvroValidatorConfigAdapterTest
                     "]" +
                 "}" +
             "}";
-        AvroValidatorConfig avroValidator = new AvroValidatorConfigBuilder<>(identity())
+        ValidatorConfig avroValidator = new AvroValidatorConfigBuilder<>(identity())
             .catalog()
                 .name("test0")
                     .schema()

@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -44,7 +43,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfigBuilder;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
 
 public class HttpOptionsConfigAdapterTest
@@ -63,7 +61,7 @@ public class HttpOptionsConfigAdapterTest
     public void shouldReadOptions()
     {
         // GIVEN
-        String text =
+        String json =
             "{" +
                 "\"versions\":" +
                 "[" +
@@ -133,7 +131,7 @@ public class HttpOptionsConfigAdapterTest
             "}";
 
         // WHEN
-        HttpOptionsConfig options = jsonb.fromJson(text, HttpOptionsConfig.class);
+        HttpOptionsConfig options = jsonb.fromJson(json, HttpOptionsConfig.class);
 
         // THEN
         assertThat(options, not(nullValue()));
@@ -240,20 +238,6 @@ public class HttpOptionsConfigAdapterTest
                     "}" +
                 "]" +
             "}";
-        HttpRequestConfig request = new HttpRequestConfig(
-            "/hello",
-            HttpRequestConfig.Method.GET, List.of("application/json"),
-            new AvroValidatorConfigBuilder<>(identity())
-                .catalog()
-                    .name("test0")
-                        .schema()
-                            .schema("cat")
-                            .build()
-                        .schema()
-                            .schema("tiger")
-                            .build()
-                    .build()
-                .build());
         HttpOptionsConfig options = HttpOptionsConfig.builder()
             .inject(identity())
             .version(HttpVersion.HTTP_1_1)
@@ -286,7 +270,22 @@ public class HttpOptionsConfigAdapterTest
                         .build()
                     .build()
                 .build()
-            .requests(List.of(request))
+            .request()
+                .path("/hello")
+                .method(HttpRequestConfig.Method.GET)
+                .contentType("application/json")
+                .content(AvroValidatorConfig::builder)
+                    .catalog()
+                        .name("test0")
+                            .schema()
+                                .schema("cat")
+                                .build()
+                            .schema()
+                                .schema("tiger")
+                                .build()
+                        .build()
+                    .build()
+                .build()
             .build();
 
         // WHEN

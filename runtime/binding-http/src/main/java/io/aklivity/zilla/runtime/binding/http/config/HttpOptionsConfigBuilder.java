@@ -85,20 +85,20 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return this;
     }
 
-    public HttpAccessControlConfigBuilder<HttpOptionsConfigBuilder<T>> access()
+    public HttpOptionsConfigBuilder<T> request(
+        HttpRequestConfig request)
     {
-        return new HttpAccessControlConfigBuilder<>(this::access);
+        if (this.requests == null)
+        {
+            this.requests = new LinkedList<>();
+        }
+        this.requests.add(request);
+        return this;
     }
 
-    public HttpAuthorizationConfigBuilder<HttpOptionsConfigBuilder<T>> authorization()
+    public HttpRequestConfigBuilder<HttpOptionsConfigBuilder<T>> request()
     {
-        return new HttpAuthorizationConfigBuilder<>(this::authorization);
-    }
-
-    @Override
-    public T build()
-    {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
+        return new HttpRequestConfigBuilder<>(this::request);
     }
 
     private HttpOptionsConfigBuilder<T> authorization(
@@ -108,10 +108,26 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return this;
     }
 
+    public HttpAuthorizationConfigBuilder<HttpOptionsConfigBuilder<T>> authorization()
+    {
+        return new HttpAuthorizationConfigBuilder<>(this::authorization);
+    }
+
     private HttpOptionsConfigBuilder<T> access(
         HttpAccessControlConfig access)
     {
         this.access = access;
         return this;
+    }
+
+    public HttpAccessControlConfigBuilder<HttpOptionsConfigBuilder<T>> access()
+    {
+        return new HttpAccessControlConfigBuilder<>(this::access);
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
     }
 }
