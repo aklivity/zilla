@@ -64,4 +64,20 @@ public class RegisterSchemaRequest
             return NO_SCHEMA_ID;
         }
     }
+
+    public String resolveSchemaResponse(
+        String response)
+    {
+        try
+        {
+            JsonReader reader = Json.createReader(new StringReader(response));
+            JsonObject object = reader.readObject();
+
+            return object.containsKey(SCHEMA) ? object.getString(SCHEMA) : null;
+        }
+        catch (JsonParsingException ex)
+        {
+            return null;
+        }
+    }
 }

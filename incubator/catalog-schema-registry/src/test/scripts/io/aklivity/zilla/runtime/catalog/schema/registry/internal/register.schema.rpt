@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "http://localhost:8081/subjects/items-snapshots/versions"
+accept "http://localhost:8081/subjects/items-snapshots-value/versions"
 
 accepted
 connected

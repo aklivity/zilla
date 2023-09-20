@@ -38,11 +38,11 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public String resolve(
+    public int resolve(
         String subject,
         String version)
     {
-        return null;
+        return 1;
     }
 
     @Override

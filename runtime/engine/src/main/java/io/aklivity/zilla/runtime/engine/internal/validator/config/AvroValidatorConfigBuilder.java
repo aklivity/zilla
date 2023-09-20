@@ -26,6 +26,7 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
     private final Function<AvroValidatorConfig, T> mapper;
 
     private List<CatalogedConfig> catalogs;
+    private String subject;
 
     AvroValidatorConfigBuilder(
         Function<AvroValidatorConfig, T> mapper)
@@ -38,6 +39,13 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
     protected Class<AvroValidatorConfigBuilder<T>> thisType()
     {
         return (Class<AvroValidatorConfigBuilder<T>>) getClass();
+    }
+
+    public AvroValidatorConfigBuilder<T> subject(
+        String subject)
+    {
+        this.subject = subject;
+        return this;
     }
 
     public CatalogedConfigBuilder<AvroValidatorConfigBuilder<T>> catalog()
@@ -58,6 +66,6 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
     @Override
     public T build()
     {
-        return mapper.apply(new AvroValidatorConfig(catalogs));
+        return mapper.apply(new AvroValidatorConfig(catalogs, subject));
     }
 }

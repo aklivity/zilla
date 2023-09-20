@@ -38,7 +38,7 @@ public class AvroValidatorFactoryTest
     public void shouldCreate()
     {
         // GIVEN
-        ValidatorConfig validator = new AvroValidatorConfig(List.of(new CatalogedConfig("test0", List.of())));
+        ValidatorConfig validator = new AvroValidatorConfig(List.of(new CatalogedConfig("test0", List.of())), "test-value");
         ToLongFunction<String> resolveId = i -> 0L;
         LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
         AvroValidatorFactory factory = new AvroValidatorFactory();

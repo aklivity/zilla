@@ -44,6 +44,10 @@ module io.aklivity.zilla.runtime.engine
     requires com.fasterxml.jackson.databind;
     requires jdk.unsupported;
     requires java.net.http;
+    requires org.slf4j;
+
+    uses io.aklivity.zilla.runtime.engine.validator.avro.Conversion;
+    uses io.aklivity.zilla.runtime.engine.validator.avro.LogicalTypes$LogicalTypeFactory;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

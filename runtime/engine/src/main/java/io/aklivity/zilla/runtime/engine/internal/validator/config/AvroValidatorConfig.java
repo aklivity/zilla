@@ -22,11 +22,14 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 public final class AvroValidatorConfig extends ValidatorConfig
 {
     public final List<CatalogedConfig> catalogs;
+    public final String subject;
 
     public AvroValidatorConfig(
-        List<CatalogedConfig> catalogs)
+        List<CatalogedConfig> catalogs,
+        String subject)
     {
         super("avro");
         this.catalogs = catalogs;
+        this.subject = subject;
     }
 }
