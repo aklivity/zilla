@@ -23,27 +23,27 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
+
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderV0FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -54,7 +54,12 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaClientConnectionPoolFactory implements BindingHandler
 {
+    private static final int FLAG_FIN = 0x01;
+    private static final int FLAG_INIT = 0x02;
+    private static final int FLAG_SKIP = 0x08;
+    private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final byte[] CORRELATION_ID = new byte[4];
 
     private static final int SIGNAL_RECONNECT = 1;
     private static final String CLUSTER = "";
@@ -71,17 +76,19 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
-    private final int kafkaTypeId;
+    private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
+
+    private final RequestHeaderFW requestHeaderRO = new RequestHeaderFW();
+    private final ResponseHeaderV0FW responseHeaderRO = new ResponseHeaderV0FW();
+
     private final int proxyTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
+    private final MutableDirectBuffer writeBuffer;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -94,10 +101,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -199,7 +204,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         long traceId,
         long authorization,
         long affinity,
-        Consumer<OctetsFW.Builder> extension)
+        Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -211,7 +216,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
-                .extension(extension)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
@@ -227,8 +232,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
-        long budgetId,
         int flags,
+        long budgetId,
         int reserved,
         OctetsFW payload,
         Flyweight extension)
@@ -252,7 +257,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
     }
 
-    private void doFlush(
+    private void doData(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -262,11 +267,15 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         int maximum,
         long traceId,
         long authorization,
+        int flags,
         long budgetId,
         int reserved,
-        OctetsFW extension)
+        DirectBuffer payload,
+        int offset,
+        int length,
+        Flyweight extension)
     {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
@@ -275,12 +284,14 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .flags(flags)
             .budgetId(budgetId)
             .reserved(reserved)
-            .extension(extension)
+            .payload(payload, offset, length)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
     private void doEnd(
@@ -396,23 +407,22 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final long affinity;
         private final String host;
         private final int port;
-
-        private long initialId;
-        private long replyId;
-        private MessageConsumer receiver;
-
-        private int state;
+        private final KafkaClientConnectionNet connection;
+        private final Long2ObjectHashMap<MessageConsumer> senders;
 
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
+        private long initialBud;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
+        private long replyBud;
 
         private long reconnectAt = NO_CANCEL_ID;
         private int reconnectAttempt;
@@ -422,117 +432,18 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             long routedId,
             long initialId,
             long authorization,
-            long affinity,
+            long initialBud,
             String host,
             int port)
         {
             this.originId = originId;
             this.routedId = routedId;
-            this.initialId = initialId;
             this.authorization = authorization;
-            this.affinity = affinity;
+            this.initialBud = initialBud;
             this.host = host;
             this.port = port;
-            new KafkaClientConnectionNet(this, originId, routedId, initialId, authorization);
-        }
-
-        private void doConnectionInitialBeginIfNecessary(
-            long traceId)
-        {
-            if (KafkaState.closed(state))
-            {
-                state = 0;
-            }
-
-            if (!KafkaState.initialOpening(state))
-            {
-
-                doConnectionInitialBegin(traceId);
-            }
-        }
-
-        private void doConnectionInitialBegin(
-            long traceId)
-        {
-            assert state == 0;
-
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-
-            this.receiver = newStream(this::onConnectionMessage,
-                originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0L,
-                ex -> ex.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .meta(m -> m.topic(topic.name()))
-                        .build()
-                        .sizeof()));
-            state = KafkaState.openingInitial(state);
-        }
-
-        private void doConnectionInitialEndIfNecessary(
-            long traceId)
-        {
-            if (!KafkaState.initialClosed(state))
-            {
-                doConnectionInitialEnd(traceId);
-            }
-        }
-
-        private void doConnectionInitialEnd(
-            long traceId)
-        {
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_EXTENSION);
-
-            state = KafkaState.closedInitial(state);
-        }
-
-        private void doConnectionInitialAbortIfNecessary(
-            long traceId)
-        {
-            if (!KafkaState.initialClosed(state))
-            {
-                doConnectionInitialAbort(traceId);
-            }
-        }
-
-        private void doConnectionInitialAbort(
-            long traceId)
-        {
-            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_EXTENSION);
-
-            state = KafkaState.closedInitial(state);
-        }
-
-        private void onConnectionInitialReset(
-            ResetFW reset)
-        {
-            final long traceId = reset.traceId();
-            final OctetsFW extension = reset.extension();
-
-            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
-            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
-
-            state = KafkaState.closedInitial(state);
-
-            doConnectionReplyResetIfNecessary(traceId);
-
-
-        }
-
-        private void onConnectionInitialWindow(
-            WindowFW window)
-        {
-            if (!KafkaState.initialOpened(state))
-            {
-                this.reconnectAttempt = 0;
-
-                final long traceId = window.traceId();
-
-                state = KafkaState.openedInitial(state);
-            }
+            this.senders = new Long2ObjectHashMap();
+            this.connection = new KafkaClientConnectionNet(this, originId, routedId, initialId, authorization);
         }
 
         private void onConnectionMessage(
@@ -545,166 +456,223 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onConnectionReplyBegin(begin);
+                onConnectionInitialBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onConnectionReplyData(data);
+                onConnectionInitialData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onConnectionReplyEnd(end);
+                onConnectionInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onConnectionReplyAbort(abort);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onConnectionInitialReset(reset);
+                onConnectionInitialAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onConnectionInitialWindow(window);
+                onConnectionReplyWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onConnectionReplyReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onConnectionReplyBegin(
+        private void onConnectionInitialBegin(
             BeginFW begin)
         {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-
-            state = KafkaState.openingReply(state);
-
-            doConnectionReplyWindow(traceId, 0, bufferPool.slotCapacity());
-        }
-
-        private void onConnectionReplyData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final int reserved = data.reserved();
-            final OctetsFW extension = data.extension();
+            final long initialId = begin.streamId();
 
             assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
 
-            replySeq = sequence + reserved;
+            initialSeq = sequence;
+            initialAck = acknowledge;
 
-            assert replyAck <= replySeq;
-            assert replySeq <= replyAck + replyMax;
+            assert initialAck <= initialSeq;
 
-            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-            final KafkaDataExFW kafkaDataEx = dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-            assert kafkaDataEx == null || kafkaDataEx.kind() == KafkaBeginExFW.KIND_META;
+            connection.doNetworkInitialBegin(traceId);
 
-            doConnectionReplyWindow(traceId, 0, replyMax);
+            final MessageConsumer messageConsumer = senders.get(initialId);
+
+            doConnectionInitialWindow(messageConsumer, initialId, traceId, authorization, initialBud, initialPad);
+            doConnectionReplyBegin(messageConsumer, initialId, traceId, begin.extension());
         }
 
-        private void onConnectionReplyEnd(
+        private void onConnectionInitialData(
+            DataFW data)
+        {
+            final long initialId = data.streamId();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            connection.doNetworkInitialData(initialId, traceId, authorization, budgetId,
+                flags, reserved, payload, extension);
+        }
+
+        private void onConnectionInitialEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
+            long initialId = end.traceId();
+            long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
-
-            doConnectionInitialEndIfNecessary(traceId);
+            doConnectionReplyEnd(initialId, traceId);
         }
 
-        private void onConnectionReplyAbort(
+        private void onConnectionInitialAbort(
             AbortFW abort)
         {
+            final long initialId = abort.streamId();
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
-
-            doConnectionInitialAbortIfNecessary(traceId);
+            doConnectionReplyAbort(initialId, traceId);
         }
 
-        private void onConnectionSignal(
-            int signalId)
+        private void doConnectionInitialReset(
+            long initialId,
+            long traceId)
         {
-            assert signalId == SIGNAL_RECONNECT;
+            MessageConsumer sender = senders.remove(initialId);
 
-            this.reconnectAt = NO_CANCEL_ID;
-
-            final long traceId = supplyTraceId.getAsLong();
-
-            doConnectionInitialBeginIfNecessary(traceId);
+            doReset(sender, originId, routedId, initialId, 0, 0, 0,
+                traceId, authorization);
         }
 
-        private void doConnectionBegin(
-            long traceId,
+        private void doConnectionInitialWindow(
+            MessageConsumer sender,
+            long initialId,
             long authorization,
-            long affinity)
-        {
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-
-            state = KafkaState.openingInitial(state);
-
-            Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                .typeId(proxyTypeId)
-                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
-                    .source("0.0.0.0")
-                    .destination(delegate.host)
-                    .sourcePort(0)
-                    .destinationPort(delegate.port)))
-                .build()
-                .sizeof());
-
-            network = newStream(this::onConnection, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, extension);
-        }
-
-        private void doConnectionReplyResetIfNecessary(
-            long traceId)
-        {
-            if (!KafkaState.replyClosed(state))
-            {
-                doConnectionReplyReset(traceId);
-            }
-        }
-
-        private void doConnectionReplyReset(
-            long traceId)
-        {
-            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
-
-            state = KafkaState.closedReply(state);
-        }
-
-        private void doConnectionReplyWindow(
             long traceId,
-            int minReplyNoAck,
-            int minReplyMax)
+            long budgetId,
+            int padding)
         {
-            final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+            initialSeq = connection.initialSeq;
+            initialAck = connection.initialAck;
+            initialMax = connection.initialMax;
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
-            {
-                replyAck = newReplyAck;
-                assert replyAck <= replySeq;
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
+        }
 
-                replyMax = minReplyMax;
+        private void doConnectionReplyBegin(
+            MessageConsumer sender,
+            long initialId,
+            long traceId,
+            Flyweight extension)
+        {
+            final long replyId = supplyReplyId.applyAsLong(initialId);
 
-                state = KafkaState.openedReply(state);
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, initialBud, extension);
+        }
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, 0L, 0);
-            }
+        private void doConnectionReplyData(
+            long initialId,
+            long traceId,
+            int flags,
+            long sequence,
+            long acknowledge,
+            int reserved,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            replySeq = sequence;
+            replyAck = acknowledge;
+
+            MessageConsumer sender = senders.get(initialId);
+
+            final long replyId = supplyReplyId.applyAsLong(initialId);
+
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, flags, replyBud, reserved, payload, extension);
+        }
+
+        private void doConnectionReplyEnd(
+            long initialId,
+            long traceId)
+        {
+            MessageConsumer sender = senders.remove(initialId);
+
+            final long replyId = supplyReplyId.applyAsLong(initialId);
+
+            doEnd(sender, originId, routedId, replyId, 0, 0, 0,
+                traceId, authorization, EMPTY_EXTENSION);
+        }
+
+        private void doConnectionReplyAbort(
+            long initialId,
+            long traceId)
+        {
+            final MessageConsumer sender = senders.remove(initialId);
+
+            final long replyId = supplyReplyId.applyAsLong(initialId);
+
+            doAbort(sender, originId, routedId, replyId, 0, 0, 0,
+                traceId, authorization, EMPTY_EXTENSION);
+        }
+
+        private void onConnectionReplyReset(
+            ResetFW reset)
+        {
+            final long initialId = reset.streamId();
+            final long traceId = reset.traceId();
+
+            doConnectionInitialReset(initialId, traceId);
+        }
+
+        private void onConnectionReplyWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyBud = budgetId;
+            replyPad = padding;
+
+            assert replyAck <= replySeq;
+
+            connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
         public void addReceiver(
             long initialId,
             MessageConsumer sender)
         {
+            senders.put(initialId, sender);
+        }
 
+        public void onNetworkWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            senders.forEach((k, v) -> doConnectionInitialWindow(v, k, authorization, traceId, budgetId, padding));
         }
     }
 
@@ -714,6 +682,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final KafkaClientConnectionApp delegate;
+        private final Int2ObjectHashMap<Long> correlations;
 
         private long initialId;
         private long replyId;
@@ -731,6 +700,9 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
+        private int nextRequestId;
+        private int nextResponseId;
+
         private KafkaClientConnectionNet(
             KafkaClientConnectionApp delegate,
             long originId,
@@ -744,11 +716,11 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
+            this.correlations = new Int2ObjectHashMap<>();
         }
 
         private void doNetworkInitialBegin(
-            long traceId,
-            OctetsFW extension)
+            long traceId)
         {
             if (KafkaState.closed(state))
             {
@@ -761,6 +733,22 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
+
+                Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+                if (delegate.host != null && !delegate.host.isEmpty())
+                {
+                    extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                            .source("0.0.0.0")
+                            .destination(delegate.host)
+                            .sourcePort(0)
+                            .destinationPort(delegate.port)))
+                        .build()
+                        .sizeof());
+                }
+
                 this.receiver = newStream(this::onNetworkMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, extension);
@@ -769,28 +757,49 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         }
 
         private void doNetworkInitialData(
+            long initialId,
             long traceId,
             long authorization,
             long budgetId,
-            int reserved,
             int flags,
+            int reserved,
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
+            if ((flags & FLAG_INIT) != 0x00)
+            {
+                int requestId = nextRequestId++;
+                correlations.put(requestId, (Long) initialId);
+
+                final DirectBuffer buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.sizeof();
+
+                RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
+
+                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .length(requestHeader.length())
+                    .apiKey(requestHeader.apiKey())
+                    .apiVersion(requestHeader.apiVersion())
+                    .correlationId(requestId)
+                    .clientId(requestHeader.clientId())
+                    .build();
+
+                writeBuffer.putBytes(newRequestHeader.limit(), buffer, requestHeader.limit(),
+                    limit - requestHeader.limit());
+
+                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, flags, budgetId, reserved, writeBuffer, 0, limit, extension);
+            }
+            else
+            {
+                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, flags, budgetId, reserved, payload, extension);
+            }
 
             initialSeq += reserved;
 
             assert initialSeq <= initialAck + initialMax;
-        }
-
-        private void doNetworkInitialFlush(
-            long traceId,
-            OctetsFW extension)
-        {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, extension);
         }
 
         private void doNetworkInitialEnd(
@@ -832,8 +841,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             assert delegate.initialAck <= delegate.initialSeq;
 
-            delegate.doNetworkInitialReset(traceId);
-
             doNetworkReplyReset(traceId);
         }
 
@@ -861,7 +868,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            delegate.doNetworkInitialWindow(authorization, traceId, budgetId, padding);
+            delegate.onNetworkWindow(traceId, authorization, budgetId, padding);
         }
 
         private void onNetworkMessage(
@@ -872,36 +879,32 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         {
             switch (msgTypeId)
             {
-                case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                    onNetworkReplyBegin(begin);
-                    break;
-                case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap(buffer, index, index + length);
-                    onNetworkReplyData(data);
-                    break;
-                case FlushFW.TYPE_ID:
-                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                    onNetworkReplyFlush(flush);
-                    break;
-                case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap(buffer, index, index + length);
-                    onNetworkReplyEnd(end);
-                    break;
-                case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                    onNetworkReplyAbort(abort);
-                    break;
-                case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                    onNetworkInitialReset(reset);
-                    break;
-                case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                    onNetworkInitialWindow(window);
-                    break;
-                default:
-                    break;
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetworkReplyBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetworkReplyData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetworkReplyEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetworkReplyAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetworkInitialReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetworkInitialWindow(window);
+                break;
+            default:
+                break;
             }
         }
 
@@ -911,8 +914,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             final long traceId = begin.traceId();
 
             state = KafkaState.openingReply(state);
-
-            delegate.doNetworkReplyBegin(traceId, begin.extension());
         }
 
         private void onNetworkReplyData(
@@ -934,27 +935,20 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doNetworkReplyData(traceId, flags, reserved, payload, extension);
-        }
+            if ((flags & FLAG_INIT) != 0x00)
+            {
+                final DirectBuffer buffer = payload.buffer();
+                final int limit = payload.sizeof();
+                int progress = payload.offset();
 
-        private void onNetworkReplyFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final int reserved = flush.reserved();
-            final OctetsFW extension = flush.extension();
+                ResponseHeaderV0FW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
 
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
+                int correlationId = responseHeader.correlationId();
+                Long initialId = correlations.remove(correlationId);
 
-            replySeq = sequence + reserved;
-
-            assert replyAck <= replySeq;
-            assert replySeq <= replyAck + replyMax;
-
-            delegate.doNetworkReplyFlush(traceId, extension);
+                delegate.doConnectionReplyData(initialId, traceId, flags, sequence, acknowledge,
+                    reserved, payload, extension);
+            }
         }
 
         private void onNetworkReplyEnd(
@@ -971,8 +965,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             state = KafkaState.closedReply(state);
 
             assert replyAck <= replySeq;
-
-            delegate.doNetworkReplyEnd(traceId);
         }
 
         private void onNetworkReplyAbort(
@@ -989,8 +981,6 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             state = KafkaState.closedReply(state);
 
             assert replyAck <= replySeq;
-
-            delegate.doNetworkReplyAbort(traceId);
         }
 
         private void doNetworkReplyReset(

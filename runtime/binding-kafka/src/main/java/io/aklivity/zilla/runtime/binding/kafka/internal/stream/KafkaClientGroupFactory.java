@@ -2137,9 +2137,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int initialWin = initialMax - (int)(initialSeq - initialAck);
             final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
 
+            final int reserved = length + initialPad;
+
             if (length > 0)
             {
-                final int reserved = length + initialPad;
 
                 doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
