@@ -251,4 +251,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.publish.invalid.affinity/client",
+        "${app}/subscribe.publish.invalid.affinity/server"})
+    public void shouldAbortSubscribeAndPublishInvalidAffinity() throws Exception
+    {
+        k3po.finish();
+    }
 }

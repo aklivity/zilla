@@ -294,7 +294,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttClientDecoder decodeUnknownType = this::decodeUnknownType;
 
     private final Map<MqttPacketType, MqttClientDecoder> decodersByPacketType;
-    private final Int2ObjectHashMap<MqttClient> clients;
+    private final Long2ObjectHashMap<MqttClient> clients;
 
     private int maximumPacketSize;
 
@@ -376,7 +376,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
-        this.clients = new Int2ObjectHashMap<>();
+        this.clients = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -407,6 +407,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final long affinity = begin.affinity();
 
         MqttBindingConfig binding = bindings.get(routedId);
 
@@ -425,27 +426,20 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert typeId == mqttTypeId;
 
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-            String16FW clientId;
-            MqttClient client;
-            switch (mqttBeginEx.kind())
+            final int kind = mqttBeginEx.kind();
+
+            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity, kind);
+            switch (kind)
             {
             case MqttBeginExFW.KIND_SESSION:
-                clientId = mqttBeginEx.session().clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 client.sessionStream = new MqttSessionStream(client, sender, originId, routedId, initialId);
                 newStream = client.sessionStream::onSession;
                 break;
             case MqttBeginExFW.KIND_PUBLISH:
-                final MqttPublishBeginExFW publishBeginEx = mqttBeginEx.publish();
-                clientId = publishBeginEx.clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 MqttPublishStream publishStream = new MqttPublishStream(client, sender, originId, routedId, initialId);
                 newStream = publishStream::onPublish;
                 break;
             case MqttBeginExFW.KIND_SUBSCRIBE:
-                final MqttSubscribeBeginExFW subscribeBeginEx = mqttBeginEx.subscribe();
-                clientId = subscribeBeginEx.clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 MqttSubscribeStream subscribeStream = new MqttSubscribeStream(client, sender, originId, routedId, initialId);
                 newStream = subscribeStream::onSubscribe;
                 break;
@@ -459,17 +453,11 @@ public final class MqttClientFactory implements MqttStreamFactory
         long routedId,
         long resolvedId,
         long initialId,
-        String16FW clientId)
+        long affinity,
+        int kind)
     {
-        final int clientKey = clientKey(clientId.asString());
-        return clients.computeIfAbsent(clientKey,
-            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize));
-    }
-
-    private int clientKey(
-        String client)
-    {
-        return Math.abs(client.hashCode());
+        return kind == MqttBeginExFW.KIND_SESSION ? clients.computeIfAbsent(affinity,
+            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize)) : clients.get(affinity);
     }
 
     private MessageConsumer newStream(
@@ -1044,6 +1032,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         catch (CharacterCodingException ex)
         {
             invalid = true;
+            utf8Decoder.reset();
         }
         return invalid;
     }
@@ -2861,7 +2850,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             initialMax = maximum;
             state = MqttState.openingInitial(state);
 
-
             client.doNetworkBegin(traceId, authorization, affinity);
 
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
@@ -3227,36 +3215,45 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
-
-            initialSeq = sequence;
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttState.openingInitial(state);
-
-            final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-
-            assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
-            final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
-
-            final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
-
-            filters.forEach(filter ->
+            onSubscribeBegin:
             {
-                Subscription subscription = new Subscription();
-                subscription.id = (int) filter.subscriptionId();
-                subscription.filter = filter.pattern().asString();
-                subscription.flags = filter.flags();
-                subscription.qos = filter.qos();
-                subscriptions.add(subscription);
-            });
-            final int qos = subscriptions.get(0).qos;
-            client.subscribeStreams.put(qos, this);
+                if (client == null)
+                {
+                    doSubscribeReset(traceId, authorization);
+                    break onSubscribeBegin;
+                }
 
-            doSubscribeBegin(traceId, authorization, affinity);
-            doSubscribeWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+                assert acknowledge <= sequence;
+                assert sequence >= initialSeq;
+                assert acknowledge >= initialAck;
+
+                initialSeq = sequence;
+                initialAck = acknowledge;
+                initialMax = maximum;
+                state = MqttState.openingInitial(state);
+
+                final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+                assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
+                final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
+
+                final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
+
+                filters.forEach(filter ->
+                {
+                    Subscription subscription = new Subscription();
+                    subscription.id = (int) filter.subscriptionId();
+                    subscription.filter = filter.pattern().asString();
+                    subscription.flags = filter.flags();
+                    subscription.qos = filter.qos();
+                    subscriptions.add(subscription);
+                });
+                final int qos = subscriptions.get(0).qos;
+                client.subscribeStreams.put(qos, this);
+
+                doSubscribeBegin(traceId, authorization, affinity);
+                doSubscribeWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+            }
         }
 
         private void onSubscribeFlush(
@@ -3566,6 +3563,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private void onPublishBegin(
             BeginFW begin)
         {
+
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final int maximum = begin.maximum();
@@ -3574,25 +3572,34 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
+            onPublishBegin:
+            {
+                if (client == null)
+                {
+                    doPublishReset(traceId, authorization);
+                    break onPublishBegin;
+                }
 
-            initialSeq = sequence;
-            initialAck = acknowledge;
-            initialMax = maximum;
-            state = MqttState.openingInitial(state);
+                assert acknowledge <= sequence;
+                assert sequence >= initialSeq;
+                assert acknowledge >= initialAck;
 
-            final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+                initialSeq = sequence;
+                initialAck = acknowledge;
+                initialMax = maximum;
+                state = MqttState.openingInitial(state);
 
-            assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
-            final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
+                final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
 
-            this.topic = mqttPublishBeginEx.topic().asString();
-            client.publishStreams.add(this);
+                assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
+                final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
 
-            doPublishBegin(traceId, authorization, affinity);
-            doPublishWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+                this.topic = mqttPublishBeginEx.topic().asString();
+                client.publishStreams.add(this);
+
+                doPublishBegin(traceId, authorization, affinity);
+                doPublishWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+            }
         }
 
         private void onPublishData(

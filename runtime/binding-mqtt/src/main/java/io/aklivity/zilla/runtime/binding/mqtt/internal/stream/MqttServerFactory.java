@@ -971,6 +971,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         catch (CharacterCodingException ex)
         {
             invalid = true;
+            utf8Decoder.reset();
         }
         return invalid;
     }
@@ -1199,7 +1200,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long affinity;
         private final long encodeBudgetId;
 
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
@@ -1215,6 +1215,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private String16FW clientId;
 
+        private long affinity;
         private long decodeSeq;
         private long decodeAck;
         private int decodeMax;
@@ -1282,7 +1283,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
-            this.affinity = affinity;
             this.encodeBudgetId = budgetId;
             this.decoder = decodeInitialType;
             this.publishStreams = new Int2ObjectHashMap<>();
@@ -1341,8 +1341,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final long streamId = begin.streamId();
 
             state = MqttState.openingInitial(state);
+            affinity = streamId;
 
             doNetworkBegin(traceId, authorization);
             doNetworkWindow(traceId, authorization, 0, 0L, 0, bufferPool.slotCapacity());
