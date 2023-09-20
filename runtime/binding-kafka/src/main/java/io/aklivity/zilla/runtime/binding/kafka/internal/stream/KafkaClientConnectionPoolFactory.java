@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.System.currentTimeMillis;
 
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -59,9 +60,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
     private static final int FLAG_SKIP = 0x08;
     private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-    private static final byte[] CORRELATION_ID = new byte[4];
 
-    private static final int SIGNAL_RECONNECT = 1;
+    private static final int SIGNAL_CONNECTION_CLEANUP = 1;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -154,7 +154,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
         final KafkaClientConnectionApp kafkaClientConnectionApp = connectionPool.computeIfAbsent(address, s ->
             new KafkaClientConnectionApp(originId, routedId, initialId, authorization, affinity, host, port));
-        kafkaClientConnectionApp.addReceiver(initialId, sender);
+        kafkaClientConnectionApp.doAddReceiver(initialId, sender);
         newStream = kafkaClientConnectionApp::onConnectionMessage;
 
         return newStream;
@@ -659,11 +659,32 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             connection.doNetworkReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
-        private void addReceiver(
+        private void doSignalConnectionCleanup()
+        {
+            this.reconnectAt = signaler.signalAt(
+                currentTimeMillis(),
+                SIGNAL_CONNECTION_CLEANUP,
+                this::onConnectionCleanupSignal);
+        }
+
+        private void doAddReceiver(
             long initialId,
             MessageConsumer sender)
         {
             senders.put(initialId, sender);
+        }
+
+        private void onConnectionCleanupSignal(
+            int signalId)
+        {
+            assert signalId == SIGNAL_CONNECTION_CLEANUP;
+
+            if (senders.isEmpty())
+            {
+                final long traceId = supplyTraceId.getAsLong();
+                connection.networkCleanup(traceId);
+                connectionCleanup(traceId);
+            }
         }
 
         private void onNetworkWindow(
@@ -689,7 +710,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             connectionPool.remove(this);
         }
 
-        private void cleanupSenders(
+        private void connectionCleanup(
             long traceId)
         {
             senders.forEach((k, v) ->
@@ -861,7 +882,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             doNetworkReplyReset(traceId);
 
-            delegate.cleanupSenders(traceId);
+            delegate.connectionCleanup(traceId);
         }
 
 
@@ -997,7 +1018,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             doNetworkInitialAbort(traceId);
 
-            delegate.cleanupSenders(traceId);
+            delegate.connectionCleanup(traceId);
         }
 
         private void doNetworkReplyReset(
@@ -1023,6 +1044,13 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
 
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
+        }
+
+        private void networkCleanup(
+            long traceId)
+        {
+            doNetworkInitialAbort(traceId);
+            doNetworkReplyReset(traceId);
         }
     }
 }
