@@ -749,6 +749,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
         private long initialAck;
         private int initialMax;
         private int initialMin;
+        private int initialPad;
         private long initialBud;
 
         private long replySeq;
@@ -916,7 +917,7 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             this.initialAck = acknowledge;
             this.initialMax = maximum;
             this.initialMin = minimum;
-            this.replyPad = padding;
+            this.initialPad = padding;
             this.initialBud = budgetId;
 
             assert replyAck <= replySeq;
@@ -934,6 +935,8 @@ public final class KafkaClientConnectionPoolFactory implements BindingHandler
             {
                 creditor.credit(traceId, connectionInitialBudgetId, credit);
             }
+
+            delegate.onNetworkWindow(authorization, traceId, initialBud, initialPad);
         }
 
         private void onNetworkMessage(
