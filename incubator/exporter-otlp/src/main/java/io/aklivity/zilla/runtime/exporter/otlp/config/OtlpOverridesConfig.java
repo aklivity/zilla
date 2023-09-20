@@ -16,9 +16,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.config;
 
 import java.net.URI;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public class OtlpOverridesConfig extends OptionsConfig
+public class OtlpOverridesConfig
 {
     public URI metrics;
 

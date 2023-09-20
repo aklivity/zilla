@@ -212,7 +212,7 @@ connect await ROUTED_DESCRIBE_SERVER_SECOND
 
 connected
 
-write  119                              # size
+write  119                               # size
        11s                               # join group
        5s                                # v5
        ${newRequestId}

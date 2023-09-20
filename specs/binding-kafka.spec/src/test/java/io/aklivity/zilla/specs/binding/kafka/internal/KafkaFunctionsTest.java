@@ -105,17 +105,17 @@ public class KafkaFunctionsTest
     public void shouldGenerateMemberMetadata()
     {
         byte[] build = KafkaFunctions.memberMetadata()
-        .consumerId("localhost:9092")
-        .topic("test-1")
-            .partitionId(0)
-            .partitionId(1)
-            .build()
-        .topic("test-2")
-            .partitionId(0)
-            .partitionId(1)
-            .partitionId(2)
-            .build()
-        .build();
+            .consumerId("localhost:9092")
+            .topic("test-1")
+                .partitionId(0)
+                .partitionId(1)
+                .build()
+            .topic("test-2")
+                .partitionId(0)
+                .partitionId(1)
+                .partitionId(2)
+                .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaGroupMemberMetadataFW memberMetadata =
@@ -156,13 +156,13 @@ public class KafkaFunctionsTest
     {
         byte[] build = KafkaFunctions.topicAssignment()
             .topic()
-            .id("test")
-            .partitionId(0)
-            .consumer()
-                .id("localhost:9092")
+                .id("test")
                 .partitionId(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
                 .build()
-            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -4517,7 +4517,7 @@ public class KafkaFunctionsTest
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))
- .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
+                        .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                     .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8))))))
                 .build();
 
