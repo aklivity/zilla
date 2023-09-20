@@ -294,7 +294,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttClientDecoder decodeUnknownType = this::decodeUnknownType;
 
     private final Map<MqttPacketType, MqttClientDecoder> decodersByPacketType;
-    private final Int2ObjectHashMap<MqttClient> clients;
+    private final Long2ObjectHashMap<MqttClient> clients;
 
     private int maximumPacketSize;
 
@@ -376,7 +376,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
-        this.clients = new Int2ObjectHashMap<>();
+        this.clients = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -407,6 +407,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final long affinity = begin.affinity();
 
         MqttBindingConfig binding = bindings.get(routedId);
 
@@ -425,27 +426,19 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert typeId == mqttTypeId;
 
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
-            String16FW clientId;
-            MqttClient client;
+            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity);
+
             switch (mqttBeginEx.kind())
             {
             case MqttBeginExFW.KIND_SESSION:
-                clientId = mqttBeginEx.session().clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 client.sessionStream = new MqttSessionStream(client, sender, originId, routedId, initialId);
                 newStream = client.sessionStream::onSession;
                 break;
             case MqttBeginExFW.KIND_PUBLISH:
-                final MqttPublishBeginExFW publishBeginEx = mqttBeginEx.publish();
-                clientId = publishBeginEx.clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 MqttPublishStream publishStream = new MqttPublishStream(client, sender, originId, routedId, initialId);
                 newStream = publishStream::onPublish;
                 break;
             case MqttBeginExFW.KIND_SUBSCRIBE:
-                final MqttSubscribeBeginExFW subscribeBeginEx = mqttBeginEx.subscribe();
-                clientId = subscribeBeginEx.clientId();
-                client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), clientId);
                 MqttSubscribeStream subscribeStream = new MqttSubscribeStream(client, sender, originId, routedId, initialId);
                 newStream = subscribeStream::onSubscribe;
                 break;
@@ -459,17 +452,10 @@ public final class MqttClientFactory implements MqttStreamFactory
         long routedId,
         long resolvedId,
         long initialId,
-        String16FW clientId)
+        long affinity)
     {
-        final int clientKey = clientKey(clientId.asString());
-        return clients.computeIfAbsent(clientKey,
+        return clients.computeIfAbsent(affinity,
             s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize));
-    }
-
-    private int clientKey(
-        String client)
-    {
-        return Math.abs(client.hashCode());
     }
 
     private MessageConsumer newStream(
@@ -1044,6 +1030,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         catch (CharacterCodingException ex)
         {
             invalid = true;
+            utf8Decoder.reset();
         }
         return invalid;
     }
@@ -2860,7 +2847,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             initialAck = acknowledge;
             initialMax = maximum;
             state = MqttState.openingInitial(state);
-
 
             client.doNetworkBegin(traceId, authorization, affinity);
 
