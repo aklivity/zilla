@@ -15,19 +15,19 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public interface ValidatorConfigAdapterSpi extends JsonbAdapter<ValidatorConfig, JsonObject>
+public interface ValidatorConfigAdapterSpi extends JsonbAdapter<ValidatorConfig, JsonValue>
 {
     String type();
 
     @Override
-    JsonObject adaptToJson(
+    JsonValue adaptToJson(
         ValidatorConfig options);
 
     @Override
     ValidatorConfig adaptFromJson(
-        JsonObject object);
+        JsonValue object);
 
 }

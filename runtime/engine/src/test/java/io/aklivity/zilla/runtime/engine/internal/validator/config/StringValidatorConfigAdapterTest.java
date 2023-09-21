@@ -59,16 +59,31 @@ public class StringValidatorConfigAdapterTest
     }
 
     @Test
+    public void shouldWriteDefaultEncodingStringValidator()
+    {
+        // GIVEN
+        String expectedJson = "\"string\"";
+        StringValidatorConfig validator = StringValidatorConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(validator);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
     public void shouldWriteStringValidator()
     {
         // GIVEN
         String expectedJson =
             "{" +
                 "\"type\":\"string\"," +
-                "\"encoding\":\"utf_8\"" +
+                "\"encoding\":\"utf_16\"" +
             "}";
         StringValidatorConfig validator = StringValidatorConfig.builder()
-            .encoding("utf_8")
+            .encoding("utf_16")
             .build();
 
         // WHEN

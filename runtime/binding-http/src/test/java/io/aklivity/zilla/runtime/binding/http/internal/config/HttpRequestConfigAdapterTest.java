@@ -31,6 +31,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 
 public class HttpRequestConfigAdapterTest
 {
@@ -56,6 +57,10 @@ public class HttpRequestConfigAdapterTest
                 "[" +
                     "\"application/json\"" +
                 "]," +
+                "\"headers\": " +
+                "{" +
+                    "\"content-type\": \"string\"" +
+                "}," +
                 "\"content\":" +
                 "{" +
                     "\"type\": \"avro\"," +
@@ -82,6 +87,9 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(request.contentType.get(0), equalTo("application/json"));
         assertThat(request.content.type, equalTo("avro"));
+        assertThat(request.headers.get(0).name, equalTo("content-type"));
+        assertThat(request.headers.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.headers.get(0).validator.type, equalTo("string"));
         assertThat(request.content, instanceOf(AvroValidatorConfig.class));
         CatalogedConfig test0 = ((AvroValidatorConfig)request.content).catalogs.get(0);
         assertThat(test0.name, equalTo("test0"));
@@ -102,6 +110,10 @@ public class HttpRequestConfigAdapterTest
                 "[" +
                     "\"application/json\"" +
                 "]," +
+                "\"headers\":" +
+                "{" +
+                    "\"content-type\":\"string\"" +
+                "}," +
                 "\"content\":" +
                 "{" +
                     "\"type\":\"avro\"," +
@@ -123,6 +135,12 @@ public class HttpRequestConfigAdapterTest
             .path("/hello")
             .method(HttpRequestConfig.Method.GET)
             .contentType("application/json")
+            .header()
+                .name("content-type")
+                .validator(StringValidatorConfig::builder)
+                    .encoding("utf_8")
+                    .build()
+                .build()
             .content(AvroValidatorConfig::builder)
                 .catalog()
                     .name("test0")

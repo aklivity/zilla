@@ -29,7 +29,8 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     private String path;
     private HttpRequestConfig.Method method;
     private List<String> contentTypes;
-    // TODO: Ati - headers, params
+    private List<HttpParamConfig> headers;
+    // TODO: Ati - params
     private ValidatorConfig content;
 
     HttpRequestConfigBuilder(
@@ -77,6 +78,29 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         return this;
     }
 
+    public HttpRequestConfigBuilder<T> headers(
+        List<HttpParamConfig> headers)
+    {
+        this.headers = headers;
+        return this;
+    }
+
+    public HttpRequestConfigBuilder<T> header(
+        HttpParamConfig header)
+    {
+        if (this.headers == null)
+        {
+            this.headers = new LinkedList<>();
+        }
+        this.headers.add(header);
+        return this;
+    }
+
+    public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> header()
+    {
+        return new HttpParamConfigBuilder<>(this::header);
+    }
+
     public HttpRequestConfigBuilder<T> content(
         ValidatorConfig content)
     {
@@ -93,6 +117,6 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     @Override
     public T build()
     {
-        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, content));
+        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, content));
     }
 }

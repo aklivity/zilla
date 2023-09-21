@@ -21,13 +21,21 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public final class StringValidatorConfig extends ValidatorConfig
 {
+    public static final String DEFAULT_ENCODING = "utf_8";
+
     public final String encoding;
+
+    public StringValidatorConfig()
+    {
+        super("string");
+        this.encoding = DEFAULT_ENCODING;
+    }
 
     public StringValidatorConfig(
         String encoding)
     {
         super("string");
-        this.encoding = encoding != null ? encoding : "utf_8";
+        this.encoding = encoding != null ? encoding : DEFAULT_ENCODING;
     }
 
     public static <T> StringValidatorConfigBuilder<T> builder(

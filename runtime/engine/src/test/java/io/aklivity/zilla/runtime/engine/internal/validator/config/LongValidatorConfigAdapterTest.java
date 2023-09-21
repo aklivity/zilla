@@ -60,10 +60,7 @@ public class LongValidatorConfigAdapterTest
     public void shouldWriteLongValidator()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"type\":\"long\"" +
-            "}";
+        String expectedJson = "\"long\"";
         LongValidatorConfig validator = LongValidatorConfig.builder().build();
 
         // WHEN

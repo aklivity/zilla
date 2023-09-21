@@ -60,10 +60,7 @@ public class IntegerValidatorConfigAdapterTest
     public void shouldWriteIntegerValidator()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"type\":\"integer\"" +
-            "}";
+        String expectedJson = "\"integer\"";
         IntegerValidatorConfig validator = IntegerValidatorConfig.builder().build();
 
         // WHEN
