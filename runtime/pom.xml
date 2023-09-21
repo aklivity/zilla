@@ -28,6 +28,8 @@
     <module>binding-http-kafka</module>
     <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
+    <module>binding-mqtt</module>
+    <module>binding-mqtt-kafka</module>
     <module>binding-proxy</module>
     <module>binding-sse</module>
     <module>binding-sse-kafka</module>
@@ -101,6 +103,16 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

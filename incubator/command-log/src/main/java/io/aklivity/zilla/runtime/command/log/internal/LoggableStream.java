@@ -45,8 +45,6 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttEndReasonCode;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
@@ -80,6 +78,9 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeDataExFW;
@@ -97,9 +98,9 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaData
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishDataExFW;
@@ -145,7 +146,6 @@ public final class LoggableStream implements AutoCloseable
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
-    private final MqttEndExFW mqttEndExRO = new MqttEndExFW();
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
@@ -269,7 +269,6 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttBeginEx);
             dataHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttDataEx);
             flushHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttFlushEx);
-            endHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttEndEx);
         }
 
         if (hasExtensionType.test("amqp"))
@@ -895,6 +894,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaBeginExFW.KIND_GROUP:
             onKafkaGroupBeginEx(offset, timestamp, kafkaBeginEx.group());
             break;
+        case KafkaBeginExFW.KIND_CONSUMER:
+            onKafkaConsumerBeginEx(offset, timestamp, kafkaBeginEx.consumer());
+            break;
         case KafkaBeginExFW.KIND_FETCH:
             onKafkaFetchBeginEx(offset, timestamp, kafkaBeginEx.fetch());
             break;
@@ -962,6 +964,22 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, format("[group] %s %s %d",
             groupId.asString(), protocol.asString(), timeout));
+    }
+
+    private void onKafkaConsumerBeginEx(
+        int offset,
+        long timestamp,
+        KafkaConsumerBeginExFW consumer)
+    {
+        String16FW groupId = consumer.groupId();
+        String16FW consumerId = consumer.consumerId();
+        String16FW topic = consumer.topic();
+        int timeout = consumer.timeout();
+        Array32FW<KafkaTopicPartitionFW> partitions = consumer.partitionIds();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[consumer] %s %s %s %d",
+            groupId.asString(), consumerId.asString(), topic.asString(), timeout));
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp, format("%d", p.partitionId())));
     }
 
     private void onKafkaFetchBeginEx(
@@ -1083,6 +1101,9 @@ public final class LoggableStream implements AutoCloseable
         case KafkaDataExFW.KIND_FETCH:
             onKafkaFetchDataEx(offset, timestamp, kafkaDataEx.fetch());
             break;
+        case KafkaDataExFW.KIND_CONSUMER:
+            onKafkaConsumerDataEx(offset, timestamp, kafkaDataEx.consumer());
+            break;
         case KafkaDataExFW.KIND_MERGED:
             onKafkaMergedDataEx(offset, timestamp, kafkaDataEx.merged());
             break;
@@ -1125,6 +1146,25 @@ public final class LoggableStream implements AutoCloseable
                            partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
+    }
+
+    private void onKafkaConsumerDataEx(
+        int offset,
+        long timestamp,
+        KafkaConsumerDataExFW consumer)
+    {
+        Array32FW<KafkaTopicPartitionFW> partitions = consumer.partitions();
+        Array32FW<KafkaConsumerAssignmentFW> assignments = consumer.assignments();
+
+        out.printf(verboseFormat, index, offset, timestamp, "[consumer]");
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%d", p.partitionId())));
+        assignments.forEach(a ->
+        {
+            out.printf(verboseFormat, index, offset, timestamp, a.consumerId().asString());
+            a.partitions().forEach(p ->
+                out.printf(verboseFormat, index, offset, timestamp, format("%d", p.partitionId())));
+        });
     }
 
     private void onKafkaMergedDataEx(
@@ -1311,34 +1351,9 @@ public final class LoggableStream implements AutoCloseable
     {
         final String clientId = session.clientId().asString();
         final int expiry = session.expiry();
-        final MqttMessageFW will = session.will();
 
         out.printf(verboseFormat, index, offset, timestamp,
             format("[session] %s %d", clientId, expiry));
-        if (will != null)
-        {
-            final String willTopic = will.topic().asString();
-            final int delay = will.delay();
-            final int flags = will.flags();
-            final int expiryInterval = will.expiryInterval();
-            final String contentType = will.contentType().asString();
-            final MqttPayloadFormat format = will.format().get();
-            final String responseTopic = will.responseTopic().asString();
-            final String correlation = asString(will.correlation().bytes());
-            final Array32FW<MqttUserPropertyFW> userProperties = will.properties();
-            final String payload = asString(will.payload().bytes());
-            out.printf(verboseFormat, index, offset, timestamp, format("will topic: %s", willTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("will delay: %d", delay));
-            out.printf(verboseFormat, index, offset, timestamp, format("will flags: %d", flags));
-            out.printf(verboseFormat, index, offset, timestamp, format("will expiry: %d", expiryInterval));
-            out.printf(verboseFormat, index, offset, timestamp, format("will content type: %s", contentType));
-            out.printf(verboseFormat, index, offset, timestamp, format("will format: %s", format.name()));
-            out.printf(verboseFormat, index, offset, timestamp, format("will response topic: %s", responseTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("will correlation: %s", correlation));
-            out.printf(verboseFormat, index, offset, timestamp, format("will payload: %s", payload));
-            userProperties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
-                format("will user property: %s %s ", u.key(), u.value())));
-        }
     }
 
     private void onMqttDataEx(
@@ -1367,7 +1382,6 @@ public final class LoggableStream implements AutoCloseable
         MqttPublishDataExFW publish)
     {
         final int deferred = publish.deferred();
-        final String topic = publish.topic().asString();
         final int flags = publish.flags();
         final int expiryInterval = publish.expiryInterval();
         final String contentType = publish.contentType().asString();
@@ -1377,8 +1391,8 @@ public final class LoggableStream implements AutoCloseable
         final Array32FW<MqttUserPropertyFW> properties = publish.properties();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[publish] (%d) %s %d %d %s %s %s %s",
-                deferred, topic, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
+            format("[publish] (%d) %d %d %s %s %s %s",
+                deferred, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
         properties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %s ", u.key(), u.value())));
     }
@@ -1420,18 +1434,6 @@ public final class LoggableStream implements AutoCloseable
 
         filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));
-    }
-
-    private void onMqttEndEx(
-        final EndFW end)
-    {
-        final int offset = end.offset() - HEADER_LENGTH;
-        final long timestamp = end.timestamp();
-        final OctetsFW extension = end.extension();
-
-        final MqttEndExFW mqttEndEx = mqttEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final MqttEndReasonCode reasonCode = mqttEndEx.reasonCode().get();
-        out.printf(verboseFormat, index, offset, timestamp, format("%s", reasonCode.name()));
     }
 
     private void onAmqpBeginEx(

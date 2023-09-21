@@ -16,9 +16,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.config;
 
 import java.net.URI;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public class OtlpEndpointConfig extends OptionsConfig
+public class OtlpEndpointConfig
 {
     public String protocol;
     public URI location;

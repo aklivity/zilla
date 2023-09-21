@@ -46,6 +46,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
@@ -105,7 +106,15 @@ public class KafkaFunctionsTest
     {
         byte[] build = KafkaFunctions.memberMetadata()
             .consumerId("localhost:9092")
-            .topic("test", 0)
+            .topic("test-1")
+                .partitionId(0)
+                .partitionId(1)
+                .build()
+            .topic("test-2")
+                .partitionId(0)
+                .partitionId(1)
+                .partitionId(2)
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -113,14 +122,24 @@ public class KafkaFunctionsTest
             new KafkaGroupMemberMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("localhost:9092", memberMetadata.consumerId().asString());
+        assertEquals(2, memberMetadata.topics().fieldCount());
     }
 
     @Test
     public void shouldGenerateMemberAssignment()
     {
         byte[] build = KafkaFunctions.memberAssignment()
-            .member("memberId-1", "test", 0, "localhost:9092", 0)
-            .build();
+            .member("memberId-1")
+               .assignment()
+                .topic("test")
+                .partitionId(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
+                .build()
+            .build()
+        .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         Array32FW<MemberAssignmentFW> assignments =
@@ -136,7 +155,14 @@ public class KafkaFunctionsTest
     public void shouldGenerateTopicAssignment()
     {
         byte[] build = KafkaFunctions.topicAssignment()
-            .topic("test", 0, "localhost:9092", 0)
+            .topic()
+                .id("test")
+                .partitionId(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -2746,6 +2772,76 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchMergedBeginExtensionGroupId() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .merged()
+                .topic("topic")
+                .groupId("test")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("topic")
+                .groupId("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedBeginExtensionConsumerId() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .merged()
+                .topic("topic")
+                .consumerId("test")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("topic")
+                .consumerId("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchMergedBeginExtensionPartitions() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -3401,6 +3497,21 @@ public class KafkaFunctionsTest
 
         assertEquals(0x01, resetEx.typeId());
         assertEquals(87, resetEx.error());
+    }
+
+    @Test
+    public void shouldGenerateResetExtensionWithConsumerId()
+    {
+        byte[] build = KafkaFunctions.resetEx()
+            .typeId(0x01)
+            .consumerId("consumer-1")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals("consumer-1", resetEx.consumerId().asString());
     }
 
 
@@ -4069,7 +4180,10 @@ public class KafkaFunctionsTest
             .typeId(0x03)
             .consumer()
                 .partition(0)
-                .assignment("localhost:9092", 0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partition(0)
+                    .build()
                 .build()
             .build();
 
@@ -4389,6 +4503,7 @@ public class KafkaFunctionsTest
                     .fetch()
                         .partition(1, 2)
                         .progress(0, 1L)
+                        .capabilities("FETCH_ONLY")
                         .key("key")
                         .build()
                 .build();
@@ -4402,6 +4517,7 @@ public class KafkaFunctionsTest
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))
+                        .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                     .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8))))))
                 .build();
 
@@ -4793,7 +4909,30 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldMatchGroupFlushExtension() throws Exception
+    public void shouldMatchGroupFlushExtensionMembers() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("memberId-1")
+                .memberId("memberId-2")
+                .members("memberId-1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+                members(m -> m.item(i -> i.id("memberId-1"))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchGroupFlushExtensionMembersMetadata() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
@@ -4809,8 +4948,7 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
-                members(m -> m.item(i ->
-                    i.id("memberId-1")
+                members(m -> m.item(i -> i.id("memberId-1")
                      .metadataLen("test".length()).metadata(o -> o.set("test".getBytes())))))
             .build();
 

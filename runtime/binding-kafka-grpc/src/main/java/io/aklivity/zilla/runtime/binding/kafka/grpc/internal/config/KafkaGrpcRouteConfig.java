@@ -21,10 +21,9 @@ import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class KafkaGrpcRouteConfig extends OptionsConfig
+public final class KafkaGrpcRouteConfig
 {
     public final long id;
     public final KafkaGrpcWithConfig with;

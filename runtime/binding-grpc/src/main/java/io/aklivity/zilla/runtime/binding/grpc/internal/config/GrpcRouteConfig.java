@@ -22,10 +22,9 @@ import java.util.function.LongPredicate;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class GrpcRouteConfig extends OptionsConfig
+public final class GrpcRouteConfig
 {
     public final long id;
 

@@ -615,4 +615,24 @@ public class CacheMergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.group.produce.invalid.partition/client",
+        "${app}/unmerged.group.produce.invalid.partition/server"})
+    public void shouldRejectMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.group.produce.message.value/client",
+        "${app}/unmerged.group.produce.message.value/server"})
+    public void shouldProduceMergedMergedMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
 }
