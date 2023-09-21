@@ -44,6 +44,7 @@ public class MqttConfiguration extends Configuration
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<IntSupplier> SUBSCRIPTION_ID;
+    public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
 
     static
     {
@@ -172,6 +173,7 @@ public class MqttConfiguration extends Configuration
 
     private static int defaultSubscriptionId()
     {
-        return Math.abs(new Random().nextInt());
+        int randomValue = Math.abs(new Random().nextInt());
+        return randomValue | GENERATED_SUBSCRIPTION_ID_MASK;
     }
 }

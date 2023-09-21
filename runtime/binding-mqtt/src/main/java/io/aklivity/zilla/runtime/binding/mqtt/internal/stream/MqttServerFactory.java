@@ -826,13 +826,34 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
+                if (server.connected)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+
+                if (mqttConnect.clientId().length() > MAXIMUM_CLIENT_ID_LENGTH)
+                {
+                    reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
+                    break decode;
+                }
+
+                final MqttPropertiesFW properties = mqttConnect.properties();
+
+                reasonCode = server.decodeConnectProperties(properties);
+
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+
                 progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect);
 
                 final int decodedLength = progress - offset - 2;
                 server.decodableRemainingBytes -= decodedLength;
             }
 
-            if (reasonCode != SUCCESS || server.decoder == decodeIgnoreAll)
+            if (reasonCode != SUCCESS)
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
@@ -1633,57 +1654,27 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final String16FW clientIdentifier = connect.clientId();
             this.assignedClientId = false;
-            byte reasonCode;
-            decode:
+
+            final int length = clientIdentifier.length();
+
+            if (length == 0)
             {
-                if (connected)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                    break decode;
-                }
-
-                final int length = clientIdentifier.length();
-
-                if (length == 0)
-                {
-                    this.clientId = supplyClientId.get();
-                    this.assignedClientId = true;
-                }
-                else if (length > MAXIMUM_CLIENT_ID_LENGTH)
-                {
-                    reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
-                    break decode;
-                }
-                else
-                {
-                    this.clientId = new String16FW(clientIdentifier.asString());
-                }
-
-                final MqttPropertiesFW properties = connect.properties();
-
-                reasonCode = decodeConnectProperties(properties);
-
-                if (reasonCode != SUCCESS)
-                {
-                    break decode;
-                }
-
-                keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
-                serverDefinedKeepAlive = keepAlive != connect.keepAlive();
-                keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-                connectFlags = connect.flags();
-                doSignalKeepAliveTimeout();
-                doCancelConnectTimeout();
+                this.clientId = supplyClientId.get();
+                this.assignedClientId = true;
             }
+            else
+            {
+                this.clientId = new String16FW(clientIdentifier.asString());
+            }
+
+            keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
+            serverDefinedKeepAlive = keepAlive != connect.keepAlive();
+            keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+            connectFlags = connect.flags();
+            doSignalKeepAliveTimeout();
+            doCancelConnectTimeout();
 
             progress = connect.limit();
-            if (reasonCode != SUCCESS)
-            {
-                doCancelConnectTimeout();
-                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
-                doNetworkEnd(traceId, authorization);
-                decoder = decodeIgnoreAll;
-            }
 
             return progress;
         }
@@ -4591,16 +4582,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return reasonCode;
-    }
-
-    private static DirectBuffer copyBuffer(
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        UnsafeBuffer copy = new UnsafeBuffer(new byte[length]);
-        copy.putBytes(0, buffer, index, length);
-        return copy;
     }
 
     private final class MqttConnectPayload
