@@ -330,8 +330,14 @@ public class TcpClientFactory implements TcpStreamFactory
             ((Buffer) readByteBuffer).position(0);
             ((Buffer) readByteBuffer).limit(limit);
 
+            read:
             try
             {
+                if (!TcpState.opened(state))
+                {
+                    break read;
+                }
+
                 final int bytesRead = net.read(readByteBuffer);
 
                 if (bytesRead == -1)
