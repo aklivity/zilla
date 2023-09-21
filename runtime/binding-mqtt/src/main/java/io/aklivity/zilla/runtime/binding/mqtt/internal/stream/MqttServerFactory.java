@@ -86,6 +86,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -304,7 +305,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeUnknownType = this::decodeUnknownType;
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
-    private final String serverRef;
+    private final IntSupplier supplySubscriptionId;
     private int maximumPacketSize;
 
     {
@@ -402,10 +403,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
+        this.supplySubscriptionId = config.subscriptionId();
 
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
-        this.serverRef = config.serverReference();
     }
 
     @Override
@@ -1980,7 +1981,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decode:
                 {
-
                     for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                     {
                         final MqttSubscribePayloadFW mqttSubscribePayload =
@@ -2037,11 +2037,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                             break;
                         }
 
+                        if (!containsSubscriptionId)
+                        {
+                            subscriptionId = supplySubscriptionId.getAsInt();
+                        }
+
                         Subscription subscription = new Subscription();
                         subscription.id = subscriptionId;
                         subscription.filter = filter;
                         subscription.flags = flags;
-                        //TODO: what if we don't have a subscriptionId
                         subscribePacketIds.put(subscriptionId, packetId);
 
                         newSubscriptions.add(subscription);
@@ -3381,7 +3385,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 newState.add(subscription);
                             });
                             List<Subscription> currentSubscriptions = sessionStream.subscriptions();
-                            if (newState.size() > currentSubscriptions.size())
+                            if (newState.size() >= currentSubscriptions.size())
                             {
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
