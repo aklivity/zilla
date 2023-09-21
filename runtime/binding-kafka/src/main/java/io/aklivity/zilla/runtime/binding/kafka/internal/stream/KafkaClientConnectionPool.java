@@ -21,14 +21,12 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -51,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -488,7 +487,7 @@ public final class KafkaClientConnectionPool
             int signalId,
             IntConsumer handler)
         {
-           return signaler.signalAt(timeMillis, signalId, handler);
+            return signaler.signalAt(timeMillis, signalId, handler);
         }
 
         @Override
