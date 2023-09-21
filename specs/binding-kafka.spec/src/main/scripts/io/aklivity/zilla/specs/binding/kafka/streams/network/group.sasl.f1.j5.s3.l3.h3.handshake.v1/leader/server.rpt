@@ -71,12 +71,6 @@ write 35                                 # size
       9s "localhost"                  #host
       9092                            #port
 
-read closed
-write aborted
-
-accepted
-
-connected
 
 read 17                                 # size
      17s                                # sasl.handshake
