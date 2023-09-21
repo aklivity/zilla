@@ -37,4 +37,8 @@ public final class AvroValidatorConfig extends ValidatorConfig
         return new AvroValidatorConfigBuilder<>(mapper);
     }
 
+    public static AvroValidatorConfigBuilder<AvroValidatorConfig> builder()
+    {
+        return new AvroValidatorConfigBuilder<>(AvroValidatorConfig.class::cast);
+    }
 }

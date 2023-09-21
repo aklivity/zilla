@@ -52,11 +52,11 @@ public class LongValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        LongValidatorConfig longValidator = jsonb.fromJson(json, LongValidatorConfig.class);
+        LongValidatorConfig validator = jsonb.fromJson(json, LongValidatorConfig.class);
 
         // THEN
-        assertThat(longValidator, not(nullValue()));
-        assertThat(longValidator.type, equalTo("long"));
+        assertThat(validator, not(nullValue()));
+        assertThat(validator.type, equalTo("long"));
     }
 
     @Test
@@ -67,10 +67,10 @@ public class LongValidatorConfigAdapterTest
             "{" +
                 "\"type\":\"long\"" +
             "}";
-        ValidatorConfig longValidator = new LongValidatorConfigBuilder<>(identity()).build();
+        LongValidatorConfig validator = LongValidatorConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(longValidator);
+        String json = jsonb.toJson(validator);
 
         // THEN
         assertThat(json, not(nullValue()));

@@ -52,11 +52,11 @@ public class IntegerValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        IntegerValidatorConfig integerValidator = jsonb.fromJson(json, IntegerValidatorConfig.class);
+        IntegerValidatorConfig validator = jsonb.fromJson(json, IntegerValidatorConfig.class);
 
         // THEN
-        assertThat(integerValidator, not(nullValue()));
-        assertThat(integerValidator.type, equalTo("integer"));
+        assertThat(validator, not(nullValue()));
+        assertThat(validator.type, equalTo("integer"));
     }
 
     @Test
@@ -67,10 +67,10 @@ public class IntegerValidatorConfigAdapterTest
             "{" +
                 "\"type\":\"integer\"" +
             "}";
-        ValidatorConfig integerValidator = new IntegerValidatorConfigBuilder<>(identity()).build();
+        IntegerValidatorConfig validator = IntegerValidatorConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(integerValidator);
+        String json = jsonb.toJson(validator);
 
         // THEN
         assertThat(json, not(nullValue()));

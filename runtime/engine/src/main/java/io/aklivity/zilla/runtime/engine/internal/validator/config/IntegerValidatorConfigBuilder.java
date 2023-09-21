@@ -18,13 +18,14 @@ package io.aklivity.zilla.runtime.engine.internal.validator.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class IntegerValidatorConfigBuilder<T> extends ConfigBuilder<T, IntegerValidatorConfigBuilder<T>>
 {
-    private final Function<IntegerValidatorConfig, T> mapper;
+    private final Function<ValidatorConfig, T> mapper;
 
     IntegerValidatorConfigBuilder(
-        Function<IntegerValidatorConfig, T> mapper)
+        Function<ValidatorConfig, T> mapper)
     {
         this.mapper = mapper;
     }

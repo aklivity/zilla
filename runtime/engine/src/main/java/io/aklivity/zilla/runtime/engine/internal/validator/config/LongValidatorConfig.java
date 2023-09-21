@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class LongValidatorConfig extends ValidatorConfig
@@ -22,5 +24,16 @@ public class LongValidatorConfig extends ValidatorConfig
     public LongValidatorConfig()
     {
         super("long");
+    }
+
+    public static <T> LongValidatorConfigBuilder<T> builder(
+        Function<ValidatorConfig, T> mapper)
+    {
+        return new LongValidatorConfigBuilder<>(mapper);
+    }
+
+    public static LongValidatorConfigBuilder<LongValidatorConfig> builder()
+    {
+        return new LongValidatorConfigBuilder<>(LongValidatorConfig.class::cast);
     }
 }

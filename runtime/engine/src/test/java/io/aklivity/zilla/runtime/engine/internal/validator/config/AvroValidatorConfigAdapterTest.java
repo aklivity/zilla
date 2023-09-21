@@ -69,25 +69,25 @@ public class AvroValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        AvroValidatorConfig avroValidator = jsonb.fromJson(json, AvroValidatorConfig.class);
+        AvroValidatorConfig validator = jsonb.fromJson(json, AvroValidatorConfig.class);
 
         // THEN
-        assertThat(avroValidator, not(nullValue()));
-        assertThat(avroValidator.type, equalTo("avro"));
-        assertThat(avroValidator.catalogs.size(), equalTo(1));
-        assertThat(avroValidator.catalogs.get(0).name, equalTo("test0"));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(0).schema, nullValue());
-        assertThat(avroValidator.catalogs.get(0).schemas.get(0).strategy, equalTo("topic"));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(1).schema, equalTo("cat"));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(avroValidator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(avroValidator.catalogs.get(0).schemas.get(2).schema, nullValue());
-        assertThat(avroValidator.catalogs.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(avroValidator.catalogs.get(0).schemas.get(2).version, nullValue());
-        assertThat(avroValidator.catalogs.get(0).schemas.get(2).id, equalTo(42));
+        assertThat(validator, not(nullValue()));
+        assertThat(validator.type, equalTo("avro"));
+        assertThat(validator.catalogs.size(), equalTo(1));
+        assertThat(validator.catalogs.get(0).name, equalTo("test0"));
+        assertThat(validator.catalogs.get(0).schemas.get(0).schema, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(0).strategy, equalTo("topic"));
+        assertThat(validator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
+        assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
+        assertThat(validator.catalogs.get(0).schemas.get(1).schema, equalTo("cat"));
+        assertThat(validator.catalogs.get(0).schemas.get(1).strategy, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
+        assertThat(validator.catalogs.get(0).schemas.get(2).schema, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(2).version, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(2).id, equalTo(42));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class AvroValidatorConfigAdapterTest
                     "]" +
                 "}" +
             "}";
-        ValidatorConfig avroValidator = new AvroValidatorConfigBuilder<>(identity())
+        AvroValidatorConfig validator = AvroValidatorConfig.builder()
             .catalog()
                 .name("test0")
                     .schema()
@@ -133,7 +133,7 @@ public class AvroValidatorConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(avroValidator);
+        String json = jsonb.toJson(validator);
 
         // THEN
         assertThat(json, not(nullValue()));
