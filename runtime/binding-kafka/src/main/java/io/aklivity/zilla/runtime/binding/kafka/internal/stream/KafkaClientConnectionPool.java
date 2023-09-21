@@ -66,7 +66,7 @@ public final class KafkaClientConnectionPool
     private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final int SIGNAL_CONNECTION_CLEANUP = 1;
+    private static final int SIGNAL_CONNECTION_CLEANUP = 10001;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -104,6 +104,8 @@ public final class KafkaClientConnectionPool
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
+    private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialIds;
+
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -122,6 +124,7 @@ public final class KafkaClientConnectionPool
         this.supplyTraceId = context::supplyTraceId;
         this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
+        this.streamsByInitialIds = new Long2ObjectHashMap<>();
     }
 
     private MessageConsumer newStream(
@@ -494,7 +497,8 @@ public final class KafkaClientConnectionPool
             int signalId,
             int contextId)
         {
-
+            KafkaClientStream stream = streamsByInitialIds.get(streamId);
+            stream.signalNow(signalId);
         }
 
         @Override
@@ -506,7 +510,8 @@ public final class KafkaClientConnectionPool
             int signalId,
             int contextId)
         {
-            return 0;
+            KafkaClientStream stream = streamsByInitialIds.get(streamId);
+            return stream.signalAt(timeMillis, signalId);
         }
 
         @Override
@@ -525,7 +530,7 @@ public final class KafkaClientConnectionPool
         public boolean cancel(
             long cancelId)
         {
-            return false;
+            return signaler.cancel(cancelId);
         }
     }
 
@@ -773,6 +778,27 @@ public final class KafkaClientConnectionPool
             doStreamReset(traceId);
             doStreamAbort(traceId);
         }
+
+        private void signalNow(
+            int signalId)
+        {
+            connection.doConnectionSignalNow(initialId, signalId);
+        }
+
+        private long signalAt(
+            long timeMillis,
+            int signalId)
+        {
+            return connection.doConnectionSignalAt(initialId, timeMillis, signalId);
+        }
+
+        private void onSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final int signalId = signal.signalId();
+            doSignal(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, signalId);
+        }
     }
 
     final class KafkaClientConnection implements BindingHandler
@@ -781,7 +807,6 @@ public final class KafkaClientConnectionPool
         private final long routedId;
         private final long authorization;
         private final Int2ObjectHashMap<Long> correlations;
-        private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialIds;
 
         private long initialId;
         private long replyId;
@@ -814,7 +839,6 @@ public final class KafkaClientConnectionPool
             this.routedId = routedId;
             this.authorization = authorization;
             this.correlations = new Int2ObjectHashMap<>();
-            this.streamsByInitialIds = new Long2ObjectHashMap<>();
         }
 
         private void doConnectionBegin(
@@ -929,11 +953,19 @@ public final class KafkaClientConnectionPool
             }
         }
 
-        private void doConnectionSignal(
+        private void doConnectionSignalNow(
             long initialId,
             int signalId)
         {
             signaler.signalNow(originId, routedId, this.initialId, signalId, (int) initialId);
+        }
+
+        private long doConnectionSignalAt(
+            long initialId,
+            long timeMillis,
+            int signalId)
+        {
+            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, (int) initialId);
         }
 
         private void doConnectionReset(
@@ -1083,11 +1115,18 @@ public final class KafkaClientConnectionPool
             SignalFW signal)
         {
             final int signalId = signal.signalId();
+            final int contextId = signal.contextId();
 
             if (signalId == SIGNAL_CONNECTION_CLEANUP)
             {
                 doSignalStreamCleanup();
             }
+            else
+            {
+                KafkaClientStream stream = streamsByInitialIds.get(contextId);
+                stream.onSignal(signal);
+            }
+
         }
 
         private void onConnectionReset(
