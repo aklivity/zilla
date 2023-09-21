@@ -86,6 +86,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -304,7 +305,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeUnknownType = this::decodeUnknownType;
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
-    private final String serverRef;
+    private final IntSupplier supplySubscriptionId;
     private int maximumPacketSize;
 
     {
@@ -402,10 +403,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
+        this.supplySubscriptionId = config.subscriptionId();
 
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
-        this.serverRef = config.serverReference();
     }
 
     @Override
@@ -820,6 +821,27 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 reasonCode = decodeConnectFlags(flags);
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+
+                if (server.connected)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+
+                if (mqttConnect.clientId().length() > MAXIMUM_CLIENT_ID_LENGTH)
+                {
+                    reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
+                    break decode;
+                }
+
+                final MqttPropertiesFW properties = mqttConnect.properties();
+
+                reasonCode = server.decodeConnectProperties(properties);
+
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
@@ -1632,57 +1654,27 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final String16FW clientIdentifier = connect.clientId();
             this.assignedClientId = false;
-            byte reasonCode;
-            decode:
+
+            final int length = clientIdentifier.length();
+
+            if (length == 0)
             {
-                if (connected)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                    break decode;
-                }
-
-                final int length = clientIdentifier.length();
-
-                if (length == 0)
-                {
-                    this.clientId = supplyClientId.get();
-                    this.assignedClientId = true;
-                }
-                else if (length > MAXIMUM_CLIENT_ID_LENGTH)
-                {
-                    reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
-                    break decode;
-                }
-                else
-                {
-                    this.clientId = new String16FW(clientIdentifier.asString());
-                }
-
-                final MqttPropertiesFW properties = connect.properties();
-
-                reasonCode = decodeConnectProperties(properties);
-
-                if (reasonCode != SUCCESS)
-                {
-                    break decode;
-                }
-
-                keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
-                serverDefinedKeepAlive = keepAlive != connect.keepAlive();
-                keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-                connectFlags = connect.flags();
-                doSignalKeepAliveTimeout();
-                doCancelConnectTimeout();
+                this.clientId = supplyClientId.get();
+                this.assignedClientId = true;
             }
+            else
+            {
+                this.clientId = new String16FW(clientIdentifier.asString());
+            }
+
+            keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
+            serverDefinedKeepAlive = keepAlive != connect.keepAlive();
+            keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+            connectFlags = connect.flags();
+            doSignalKeepAliveTimeout();
+            doCancelConnectTimeout();
 
             progress = connect.limit();
-            if (reasonCode != SUCCESS)
-            {
-                doCancelConnectTimeout();
-                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null);
-                doNetworkEnd(traceId, authorization);
-                decoder = decodeIgnoreAll;
-            }
 
             return progress;
         }
@@ -1980,7 +1972,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decode:
                 {
-
                     for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                     {
                         final MqttSubscribePayloadFW mqttSubscribePayload =
@@ -2037,11 +2028,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                             break;
                         }
 
+                        if (!containsSubscriptionId)
+                        {
+                            subscriptionId = supplySubscriptionId.getAsInt();
+                        }
+
                         Subscription subscription = new Subscription();
                         subscription.id = subscriptionId;
                         subscription.filter = filter;
                         subscription.flags = flags;
-                        //TODO: what if we don't have a subscriptionId
                         subscribePacketIds.put(subscriptionId, packetId);
 
                         newSubscriptions.add(subscription);
@@ -3381,7 +3376,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 newState.add(subscription);
                             });
                             List<Subscription> currentSubscriptions = sessionStream.subscriptions();
-                            if (newState.size() > currentSubscriptions.size())
+                            if (newState.size() >= currentSubscriptions.size())
                             {
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
@@ -4587,16 +4582,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return reasonCode;
-    }
-
-    private static DirectBuffer copyBuffer(
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        UnsafeBuffer copy = new UnsafeBuffer(new byte[length]);
-        copy.putBytes(0, buffer, index, length);
-        return copy;
     }
 
     private final class MqttConnectPayload
