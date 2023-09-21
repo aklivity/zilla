@@ -29,9 +29,9 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.validator.config.AvroValidatorConfig;
 
 public final class AvroValidator implements Validator
 {

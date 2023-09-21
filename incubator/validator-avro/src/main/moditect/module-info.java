@@ -16,9 +16,6 @@ module io.aklivity.zilla.runtime.validator.avro
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
-        with io.aklivity.zilla.runtime.command.config.internal.ZillaConfigCommandSpi;
-
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.engine.validator.config.AvroValidatorConfigAdapter;
 

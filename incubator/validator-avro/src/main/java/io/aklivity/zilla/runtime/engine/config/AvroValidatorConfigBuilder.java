@@ -12,13 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.validator.config;
+package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
-
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidatorConfigBuilder<T>>
 {

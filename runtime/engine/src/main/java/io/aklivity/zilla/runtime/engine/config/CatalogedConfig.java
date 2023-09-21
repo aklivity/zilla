@@ -13,11 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.validator.config;
+package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import java.util.function.Function;
 
 public class CatalogedConfig
 {
@@ -32,5 +31,16 @@ public class CatalogedConfig
     {
         this.name = name;
         this.schemas = schemas;
+    }
+
+    public static <T> CatalogedConfigBuilder<T> builder(
+        Function<CatalogedConfig, T> mapper)
+    {
+        return new CatalogedConfigBuilder<>(mapper);
+    }
+
+    public static CatalogedConfigBuilder<CatalogedConfig> builder()
+    {
+        return new CatalogedConfigBuilder<>(CatalogedConfig.class::cast);
     }
 }

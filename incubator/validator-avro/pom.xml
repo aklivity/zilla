@@ -155,22 +155,6 @@
           </rules>
         </configuration>
       </plugin>
-<!--      <plugin>-->
-<!--        <groupId>${project.groupId}</groupId>-->
-<!--        <artifactId>flyweight-maven-plugin</artifactId>-->
-<!--        <version>${project.version}</version>-->
-<!--        <configuration>-->
-<!--          <scopeNames>core</scopeNames>-->
-<!--          <packageName>io.aklivity.zilla.runtime.command.config.internal.types</packageName>-->
-<!--        </configuration>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <goals>-->
-<!--              <goal>generate</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
     </plugins>
   </build>
 </project>

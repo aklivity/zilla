@@ -18,8 +18,8 @@ import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.config.AvroValidatorConfig;
 
 public final class AvroValidatorFactory implements ValidatorFactorySpi
 {

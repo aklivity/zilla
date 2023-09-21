@@ -32,14 +32,14 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.config.AvroValidatorConfig;
 
 public class AvroValidatorTest
 {

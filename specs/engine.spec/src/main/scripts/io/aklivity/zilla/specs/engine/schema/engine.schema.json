@@ -408,6 +408,7 @@
             {
                 "type": "string",
                 "enum": [
+                    "test",
                     "string",
                     "integer",
                     "long",

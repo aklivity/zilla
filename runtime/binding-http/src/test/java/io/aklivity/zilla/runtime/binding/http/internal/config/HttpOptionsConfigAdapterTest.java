@@ -42,8 +42,8 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 
 public class HttpOptionsConfigAdapterTest
@@ -128,7 +128,7 @@ public class HttpOptionsConfigAdapterTest
                         "}," +
                         "\"content\":" +
                         "{" +
-                            "\"type\": \"avro\"," +
+                            "\"type\": \"test\"," +
                             "\"catalog\": " +
                             "{" +
                                 "test0:" +
@@ -183,9 +183,9 @@ public class HttpOptionsConfigAdapterTest
         assertThat(request.queryParams.get(0).name, equalTo("index"));
         assertThat(request.queryParams.get(0).validator, instanceOf(StringValidatorConfig.class));
         assertThat(request.queryParams.get(0).validator.type, equalTo("string"));
-        assertThat(request.content, instanceOf(AvroValidatorConfig.class));
-        assertThat(request.content.type, equalTo("avro"));
-        CatalogedConfig test0 = ((AvroValidatorConfig) request.content).catalogs.get(0);
+        assertThat(request.content, instanceOf(TestValidatorConfig.class));
+        assertThat(request.content.type, equalTo("test"));
+        CatalogedConfig test0 = ((TestValidatorConfig) request.content).catalogs.get(0);
         assertThat(test0.name, equalTo("test0"));
         assertThat(test0.schemas.get(0).schema, equalTo("cat"));
         assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
@@ -261,7 +261,7 @@ public class HttpOptionsConfigAdapterTest
                         "}," +
                         "\"content\":" +
                         "{" +
-                            "\"type\":\"avro\"," +
+                            "\"type\":\"test\"," +
                             "\"catalog\":" +
                             "{" +
                                 "\"test0\":" +
@@ -330,7 +330,7 @@ public class HttpOptionsConfigAdapterTest
                     .validator(StringValidatorConfig::builder)
                         .build()
                     .build()
-                .content(AvroValidatorConfig::builder)
+                .content(TestValidatorConfig::builder)
                     .catalog()
                         .name("test0")
                             .schema()

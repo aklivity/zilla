@@ -24,11 +24,11 @@ import java.util.function.ToLongFunction;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.config.AvroValidatorConfig;
 
 public class AvroValidatorFactoryTest
 {

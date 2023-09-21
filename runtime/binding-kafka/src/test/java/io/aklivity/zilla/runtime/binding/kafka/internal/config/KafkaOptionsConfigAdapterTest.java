@@ -33,9 +33,9 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 
 public class KafkaOptionsConfigAdapterTest
@@ -159,10 +159,10 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new AvroValidatorConfig(
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new TestValidatorConfig(
                     singletonList(new CatalogedConfig("test0",
                         singletonList(new SchemaConfig(null, "topic", "latest", 0))
-                )), "test-value"))),
+                ))))),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -170,7 +170,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
-                "\"value\":{\"type\":\"avro\",\"catalog\":{\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}}]," +
+                "\"value\":{\"type\":\"test\",\"catalog\":{\"test0\":[{\"strategy\":\"topic\",\"version\":\"latest\"}]}}}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }

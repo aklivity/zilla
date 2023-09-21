@@ -65,12 +65,14 @@ module io.aklivity.zilla.runtime.engine
             with io.aklivity.zilla.runtime.engine.internal.expression.EnvironmentResolverSpi;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfigAdapter,
+        with io.aklivity.zilla.runtime.engine.config.TestValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfigAdapter,
             io.aklivity.zilla.runtime.engine.internal.validator.config.IntegerValidatorConfigAdapter,
             io.aklivity.zilla.runtime.engine.internal.validator.config.LongValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.engine.internal.validator.StringValidatorFactory,
+        with io.aklivity.zilla.runtime.engine.internal.validator.TestValidatorFactory,
+            io.aklivity.zilla.runtime.engine.internal.validator.StringValidatorFactory,
             io.aklivity.zilla.runtime.engine.internal.validator.IntegerValidatorFactory,
             io.aklivity.zilla.runtime.engine.internal.validator.LongValidatorFactory;
 }
