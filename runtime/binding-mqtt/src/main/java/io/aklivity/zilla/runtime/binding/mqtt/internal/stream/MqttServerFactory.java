@@ -832,7 +832,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodableRemainingBytes -= decodedLength;
             }
 
-            if (reasonCode != SUCCESS)
+            if (reasonCode != SUCCESS || server.decoder == decodeIgnoreAll)
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
