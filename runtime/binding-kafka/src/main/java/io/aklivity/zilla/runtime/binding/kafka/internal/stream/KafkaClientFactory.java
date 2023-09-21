@@ -63,7 +63,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, connectionPool);
+            config, context, bindings::get, accountant::supplyDebitor,
+            connectionPool.signaler(), connectionPool.streamFactory());
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);

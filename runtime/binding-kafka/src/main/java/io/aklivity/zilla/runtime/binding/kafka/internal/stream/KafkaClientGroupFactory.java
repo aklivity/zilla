@@ -282,13 +282,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
-        KafkaClientConnectionPool connectionPool)
+        Signaler signaler,
+        BindingHandler streamFactory)
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.signaler = connectionPool.signaler();
-        this.streamFactory = connectionPool.streamFactory();
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
