@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -102,7 +103,7 @@ public final class KafkaClientConnectionPool
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
+    private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -474,9 +475,63 @@ public final class KafkaClientConnectionPool
         return this::newStream;
     }
 
+    public class ConnectionSignaler implements Signaler
+    {
+        @Override
+        public long signalAt(
+            long timeMillis,
+            int signalId,
+            IntConsumer handler)
+        {
+           return signaler.signalAt(timeMillis, signalId, handler);
+        }
+
+        @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            int signalId,
+            int contextId)
+        {
+
+        }
+
+        @Override
+        public long signalAt(
+            long timeMillis,
+            long originId,
+            long routedId,
+            long streamId,
+            int signalId,
+            int contextId)
+        {
+            return 0;
+        }
+
+        @Override
+        public long signalTask(
+            Runnable task,
+            long originId,
+            long routedId,
+            long streamId,
+            int signalId,
+            int contextId)
+        {
+            return 0;
+        }
+
+        @Override
+        public boolean cancel(
+            long cancelId)
+        {
+            return false;
+        }
+    }
+
     public Signaler signaler()
     {
-        return null;
+        return new ConnectionSignaler();
     }
 
     final class KafkaClientStream

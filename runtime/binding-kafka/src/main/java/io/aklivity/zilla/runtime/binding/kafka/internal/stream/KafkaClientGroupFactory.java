@@ -270,7 +270,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final KafkaClientConnectionPool connectionPool;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
@@ -298,7 +297,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.clientId = config.clientId();
         this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.supplyDebitor = supplyDebitor;
-        this.connectionPool = connectionPool;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
     }
@@ -386,34 +384,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long bindingId)
     {
         instanceIds.remove(bindingId);
-    }
-
-    private BeginFW buildBegin(
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension)
-            .build();
-
-        return begin;
     }
 
     private MessageConsumer newStream(
