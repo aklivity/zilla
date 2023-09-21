@@ -25,12 +25,6 @@ public final class StringValidatorConfig extends ValidatorConfig
 
     public final String encoding;
 
-    public StringValidatorConfig()
-    {
-        super("string");
-        this.encoding = DEFAULT_ENCODING;
-    }
-
     public StringValidatorConfig(
         String encoding)
     {
@@ -41,7 +35,7 @@ public final class StringValidatorConfig extends ValidatorConfig
     public static <T> StringValidatorConfigBuilder<T> builder(
         Function<ValidatorConfig, T> mapper)
     {
-        return new StringValidatorConfigBuilder<>(mapper);
+        return new StringValidatorConfigBuilder<>(mapper::apply);
     }
 
     public static StringValidatorConfigBuilder<StringValidatorConfig> builder()

@@ -29,7 +29,7 @@ public class LongValidatorConfig extends ValidatorConfig
     public static <T> LongValidatorConfigBuilder<T> builder(
         Function<ValidatorConfig, T> mapper)
     {
-        return new LongValidatorConfigBuilder<>(mapper);
+        return new LongValidatorConfigBuilder<>(mapper::apply);
     }
 
     public static LongValidatorConfigBuilder<LongValidatorConfig> builder()

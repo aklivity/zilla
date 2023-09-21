@@ -29,7 +29,7 @@ public class IntegerValidatorConfig extends ValidatorConfig
     public static <T> IntegerValidatorConfigBuilder<T> builder(
         Function<ValidatorConfig, T> mapper)
     {
-        return new IntegerValidatorConfigBuilder<>(mapper);
+        return new IntegerValidatorConfigBuilder<>(mapper::apply);
     }
 
     public static IntegerValidatorConfigBuilder<IntegerValidatorConfig> builder()

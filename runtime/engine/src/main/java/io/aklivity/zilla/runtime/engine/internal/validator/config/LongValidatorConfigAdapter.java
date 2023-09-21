@@ -22,7 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
-public class LongValidatorConfigAdapter  implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
+public class LongValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
     @Override
     public String type()

@@ -20,17 +20,16 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidatorConfigBuilder<T>>
 {
-    private final Function<ValidatorConfig, T> mapper;
+    private final Function<AvroValidatorConfig, T> mapper;
 
     private List<CatalogedConfig> catalogs;
     private String subject;
 
     AvroValidatorConfigBuilder(
-        Function<ValidatorConfig, T> mapper)
+        Function<AvroValidatorConfig, T> mapper)
     {
         this.mapper = mapper;
     }

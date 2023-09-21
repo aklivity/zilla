@@ -57,7 +57,7 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
         StringValidatorConfig result = null;
         if (value instanceof JsonString)
         {
-            result = new StringValidatorConfig();
+            result = StringValidatorConfig.builder().build();
         }
         else if (value instanceof JsonObject)
         {

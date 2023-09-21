@@ -37,7 +37,7 @@ public final class AvroValidatorConfig extends ValidatorConfig
     public static <T> AvroValidatorConfigBuilder<T> builder(
         Function<ValidatorConfig, T> mapper)
     {
-        return new AvroValidatorConfigBuilder<>(mapper);
+        return new AvroValidatorConfigBuilder<>(mapper::apply);
     }
 
     public static AvroValidatorConfigBuilder<AvroValidatorConfig> builder()
