@@ -1850,14 +1850,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupDecodeSlotIfNecessary();
 
-            if (!delegate.isApplicationReplyOpen())
-            {
-                onError(traceId);
-            }
-            else if (decodeSlot == NO_SLOT)
-            {
-                delegate.doApplicationEnd(traceId);
-            }
+            onError(traceId);
         }
 
         private void onNetworkAbort(
@@ -2373,8 +2366,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             doNetworkAbort(traceId);
             doNetworkReset(traceId);
-
-            delegate.cleanupApplication(traceId, EMPTY_OCTETS);
         }
 
         private void cleanupDecodeSlotIfNecessary()
@@ -2701,18 +2692,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
-            Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                .typeId(proxyTypeId)
-                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
-                    .source("0.0.0.0")
-                    .destination(delegate.host)
-                    .sourcePort(0)
-                    .destinationPort(delegate.port)))
-                .build()
-                .sizeof());
-
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, extension);
+                traceId, authorization, affinity, EMPTY_EXTENSION);
 
             doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
