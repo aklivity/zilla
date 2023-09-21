@@ -163,7 +163,6 @@ public class HttpOptionsConfigAdapterTest
         assertThat(test0.name, equalTo("test0"));
         assertThat(test0.schemas.get(0).schema, equalTo("cat"));
         assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
-        // TODO: Ati - header, param
     }
 
     @Test

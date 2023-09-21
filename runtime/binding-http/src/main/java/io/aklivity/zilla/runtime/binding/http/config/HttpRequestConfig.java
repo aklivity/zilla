@@ -15,7 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import static java.util.function.Function.identity;
+
 import java.util.List;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
@@ -36,6 +39,7 @@ public class HttpRequestConfig
     public String path;
     public Method method;
     public List<String> contentType;
+    public Map<String, ValidatorConfig> headers;
     // TODO: Ati - headers, params
     public ValidatorConfig content;
 
@@ -49,5 +53,10 @@ public class HttpRequestConfig
         this.method = method;
         this.contentType = contentType;
         this.content = content;
+    }
+
+    public static HttpRequestConfigBuilder<HttpRequestConfig> builder()
+    {
+        return new HttpRequestConfigBuilder<>(identity());
     }
 }

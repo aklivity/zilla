@@ -61,7 +61,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
         if (request.content != null)
         {
             validator.adaptType(request.content.type);
-            JsonObject content = validator.adaptToJson(request.content);
+            JsonValue content = validator.adaptToJson(request.content);
             object.add(CONTENT_NAME, content);
         }
         return object.build();
@@ -89,24 +89,10 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 .collect(Collectors.toList());
         }
         ValidatorConfig content = null;
-        JsonValue contentJson = object.getOrDefault(CONTENT_NAME, null);
-        if (contentJson != null)
+        if (object.containsKey(CONTENT_NAME))
         {
-            if (contentJson instanceof JsonString)
-            {
-                JsonObject contentJsonObject = Json.createObjectBuilder()
-                    .add("type", ((JsonString) contentJson).getString())
-                    .build();
-                content = validator.adaptFromJson(contentJsonObject);
-            }
-            else if (contentJson instanceof JsonObject)
-            {
-                content = validator.adaptFromJson((JsonObject) contentJson);
-            }
-            else
-            {
-                assert false;
-            }
+            JsonValue contentJson = object.get(CONTENT_NAME);
+            content = validator.adaptFromJson(contentJson);
         }
         return new HttpRequestConfig(path, method, contentType, content);
     }

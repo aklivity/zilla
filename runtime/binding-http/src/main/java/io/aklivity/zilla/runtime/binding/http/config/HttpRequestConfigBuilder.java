@@ -32,7 +32,7 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     // TODO: Ati - headers, params
     private ValidatorConfig content;
 
-    public HttpRequestConfigBuilder(
+    HttpRequestConfigBuilder(
         Function<HttpRequestConfig, T> mapper)
     {
         this.mapper = mapper;
