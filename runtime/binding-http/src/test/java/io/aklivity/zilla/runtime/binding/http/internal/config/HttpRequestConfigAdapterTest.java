@@ -61,6 +61,17 @@ public class HttpRequestConfigAdapterTest
                 "{" +
                     "\"content-type\": \"string\"" +
                 "}," +
+                "\"params\": " +
+                "{" +
+                    "\"path\":" +
+                    "{" +
+                        "\"id\": \"string\"" +
+                    "}," +
+                    "\"query\":" +
+                    "{" +
+                        "\"index\": \"string\"" +
+                    "}," +
+                "}," +
                 "\"content\":" +
                 "{" +
                     "\"type\": \"avro\"," +
@@ -86,16 +97,21 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.path, equalTo("/hello"));
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(request.contentType.get(0), equalTo("application/json"));
-        assertThat(request.content.type, equalTo("avro"));
         assertThat(request.headers.get(0).name, equalTo("content-type"));
         assertThat(request.headers.get(0).validator, instanceOf(StringValidatorConfig.class));
         assertThat(request.headers.get(0).validator.type, equalTo("string"));
+        assertThat(request.pathParams.get(0).name, equalTo("id"));
+        assertThat(request.pathParams.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.pathParams.get(0).validator.type, equalTo("string"));
+        assertThat(request.queryParams.get(0).name, equalTo("index"));
+        assertThat(request.queryParams.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.queryParams.get(0).validator.type, equalTo("string"));
         assertThat(request.content, instanceOf(AvroValidatorConfig.class));
+        assertThat(request.content.type, equalTo("avro"));
         CatalogedConfig test0 = ((AvroValidatorConfig)request.content).catalogs.get(0);
         assertThat(test0.name, equalTo("test0"));
         assertThat(test0.schemas.get(0).schema, equalTo("cat"));
         assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
-        // TODO: Ati - header, param
     }
 
     @Test
@@ -113,6 +129,17 @@ public class HttpRequestConfigAdapterTest
                 "\"headers\":" +
                 "{" +
                     "\"content-type\":\"string\"" +
+                "}," +
+                "\"params\":" +
+                "{" +
+                    "\"path\":" +
+                    "{" +
+                        "\"id\":\"string\"" +
+                    "}," +
+                    "\"query\":" +
+                    "{" +
+                        "\"index\":\"string\"" +
+                    "}" +
                 "}," +
                 "\"content\":" +
                 "{" +
@@ -139,6 +166,16 @@ public class HttpRequestConfigAdapterTest
                 .name("content-type")
                 .validator(StringValidatorConfig::builder)
                     .encoding("utf_8")
+                    .build()
+                .build()
+            .pathParam()
+                .name("id")
+                .validator(StringValidatorConfig::builder)
+                    .build()
+                .build()
+            .queryParam()
+                .name("index")
+                .validator(StringValidatorConfig::builder)
                     .build()
                 .build()
             .content(AvroValidatorConfig::builder)

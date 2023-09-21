@@ -38,8 +38,11 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
     private static final String PATH_NAME = "path";
     private static final String METHOD_NAME = "method";
     private static final String CONTENT_TYPE_NAME = "content-type";
-    private static final String CONTENT_NAME = "content";
     private static final String HEADERS_NAME = "headers";
+    private static final String PARAMS_NAME = "params";
+    private static final String PATH_PARAMS_NAME = "path";
+    private static final String QUERY_PARAMS_NAME = "query";
+    private static final String CONTENT_NAME = "content";
 
     private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
 
@@ -71,6 +74,31 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 headers.add(header.name, validator.adaptToJson(header.validator));
             }
             object.add(HEADERS_NAME, headers);
+        }
+        if (request.pathParams != null || request.queryParams != null)
+        {
+            JsonObjectBuilder params = Json.createObjectBuilder();
+            if (request.pathParams != null)
+            {
+                JsonObjectBuilder pathParams = Json.createObjectBuilder();
+                for (HttpParamConfig pathParam : request.pathParams)
+                {
+                    validator.adaptType(pathParam.validator.type);
+                    pathParams.add(pathParam.name, validator.adaptToJson(pathParam.validator));
+                }
+                params.add(PATH_PARAMS_NAME, pathParams);
+            }
+            if (request.queryParams != null)
+            {
+                JsonObjectBuilder queryParams = Json.createObjectBuilder();
+                for (HttpParamConfig queryParam : request.queryParams)
+                {
+                    validator.adaptType(queryParam.validator.type);
+                    queryParams.add(queryParam.name, validator.adaptToJson(queryParam.validator));
+                }
+                params.add(QUERY_PARAMS_NAME, queryParams);
+            }
+            object.add(PARAMS_NAME, params);
         }
         if (request.content != null)
         {
@@ -122,6 +150,38 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 headers.add(header);
             }
         }
-        return new HttpRequestConfig(path, method, contentType, headers, content);
+        List<HttpParamConfig> pathParams = null;
+        List<HttpParamConfig> queryParams = null;
+        if (object.containsKey(PARAMS_NAME))
+        {
+            JsonObject paramsJson = object.getJsonObject(PARAMS_NAME);
+            if (paramsJson.containsKey(PATH_PARAMS_NAME))
+            {
+                pathParams = new LinkedList<>();
+                JsonObject pathParamsJson = paramsJson.getJsonObject(PATH_PARAMS_NAME);
+                for (Map.Entry<String, JsonValue> entry : pathParamsJson.entrySet())
+                {
+                    HttpParamConfig pathParam = HttpParamConfig.builder()
+                        .name(entry.getKey())
+                        .validator(validator.adaptFromJson(entry.getValue()))
+                        .build();
+                    pathParams.add(pathParam);
+                }
+            }
+            if (paramsJson.containsKey(QUERY_PARAMS_NAME))
+            {
+                queryParams = new LinkedList<>();
+                JsonObject queryParamsJson = paramsJson.getJsonObject(QUERY_PARAMS_NAME);
+                for (Map.Entry<String, JsonValue> entry : queryParamsJson.entrySet())
+                {
+                    HttpParamConfig queryParam = HttpParamConfig.builder()
+                        .name(entry.getKey())
+                        .validator(validator.adaptFromJson(entry.getValue()))
+                        .build();
+                    queryParams.add(queryParam);
+                }
+            }
+        }
+        return new HttpRequestConfig(path, method, contentType, headers, pathParams, queryParams, content);
     }
 }

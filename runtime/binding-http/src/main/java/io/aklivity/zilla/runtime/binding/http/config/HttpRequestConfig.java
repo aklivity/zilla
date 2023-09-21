@@ -39,7 +39,8 @@ public class HttpRequestConfig
     public Method method;
     public List<String> contentType;
     public List<HttpParamConfig> headers;
-    // TODO: Ati - params
+    public List<HttpParamConfig> pathParams;
+    public List<HttpParamConfig> queryParams;
     public ValidatorConfig content;
 
     public HttpRequestConfig(
@@ -47,12 +48,16 @@ public class HttpRequestConfig
         Method method,
         List<String> contentType,
         List<HttpParamConfig> headers,
+        List<HttpParamConfig> pathParams,
+        List<HttpParamConfig> queryParams,
         ValidatorConfig content)
     {
         this.path = path;
         this.method = method;
         this.contentType = contentType;
         this.headers = headers;
+        this.pathParams = pathParams;
+        this.queryParams = queryParams;
         this.content = content;
     }
 

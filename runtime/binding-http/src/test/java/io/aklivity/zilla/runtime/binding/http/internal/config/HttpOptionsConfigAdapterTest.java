@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 
 public class HttpOptionsConfigAdapterTest
 {
@@ -110,6 +111,21 @@ public class HttpOptionsConfigAdapterTest
                         "[" +
                             "\"application/json\"" +
                         "]," +
+                        "\"headers\": " +
+                        "{" +
+                            "\"content-type\": \"string\"" +
+                        "}," +
+                        "\"params\": " +
+                        "{" +
+                            "\"path\":" +
+                            "{" +
+                                "\"id\": \"string\"" +
+                            "}," +
+                            "\"query\":" +
+                            "{" +
+                                "\"index\": \"string\"" +
+                            "}," +
+                        "}," +
                         "\"content\":" +
                         "{" +
                             "\"type\": \"avro\"," +
@@ -154,12 +170,22 @@ public class HttpOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.parameters, nullValue());
         assertThat(options.authorization.credentials.cookies, nullValue());
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
-        assertThat(options.requests.get(0).path, equalTo("/hello"));
-        assertThat(options.requests.get(0).method, equalTo(HttpRequestConfig.Method.GET));
-        assertThat(options.requests.get(0).contentType.get(0), equalTo("application/json"));
-        assertThat(options.requests.get(0).content.type, equalTo("avro"));
-        assertThat(options.requests.get(0).content, instanceOf(AvroValidatorConfig.class));
-        CatalogedConfig test0 = ((AvroValidatorConfig) options.requests.get(0).content).catalogs.get(0);
+        HttpRequestConfig request = options.requests.get(0);
+        assertThat(request.path, equalTo("/hello"));
+        assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
+        assertThat(request.contentType.get(0), equalTo("application/json"));
+        assertThat(request.headers.get(0).name, equalTo("content-type"));
+        assertThat(request.headers.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.headers.get(0).validator.type, equalTo("string"));
+        assertThat(request.pathParams.get(0).name, equalTo("id"));
+        assertThat(request.pathParams.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.pathParams.get(0).validator.type, equalTo("string"));
+        assertThat(request.queryParams.get(0).name, equalTo("index"));
+        assertThat(request.queryParams.get(0).validator, instanceOf(StringValidatorConfig.class));
+        assertThat(request.queryParams.get(0).validator.type, equalTo("string"));
+        assertThat(request.content, instanceOf(AvroValidatorConfig.class));
+        assertThat(request.content.type, equalTo("avro"));
+        CatalogedConfig test0 = ((AvroValidatorConfig) request.content).catalogs.get(0);
         assertThat(test0.name, equalTo("test0"));
         assertThat(test0.schemas.get(0).schema, equalTo("cat"));
         assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
@@ -218,6 +244,21 @@ public class HttpOptionsConfigAdapterTest
                         "[" +
                             "\"application/json\"" +
                         "]," +
+                        "\"headers\":" +
+                        "{" +
+                            "\"content-type\":\"string\"" +
+                        "}," +
+                        "\"params\":" +
+                        "{" +
+                            "\"path\":" +
+                            "{" +
+                                "\"id\":\"string\"" +
+                            "}," +
+                            "\"query\":" +
+                            "{" +
+                                "\"index\":\"string\"" +
+                            "}" +
+                        "}," +
                         "\"content\":" +
                         "{" +
                             "\"type\":\"avro\"," +
@@ -273,6 +314,22 @@ public class HttpOptionsConfigAdapterTest
                 .path("/hello")
                 .method(HttpRequestConfig.Method.GET)
                 .contentType("application/json")
+                .header()
+                    .name("content-type")
+                    .validator(StringValidatorConfig::builder)
+                        .encoding("utf_8")
+                        .build()
+                    .build()
+                .pathParam()
+                    .name("id")
+                    .validator(StringValidatorConfig::builder)
+                        .build()
+                    .build()
+                .queryParam()
+                    .name("index")
+                    .validator(StringValidatorConfig::builder)
+                        .build()
+                    .build()
                 .content(AvroValidatorConfig::builder)
                     .catalog()
                         .name("test0")

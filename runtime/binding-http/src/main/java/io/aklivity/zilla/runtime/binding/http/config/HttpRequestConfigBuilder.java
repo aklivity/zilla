@@ -30,7 +30,8 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     private HttpRequestConfig.Method method;
     private List<String> contentTypes;
     private List<HttpParamConfig> headers;
-    // TODO: Ati - params
+    private List<HttpParamConfig> pathParams;
+    private List<HttpParamConfig> queryParams;
     private ValidatorConfig content;
 
     HttpRequestConfigBuilder(
@@ -101,6 +102,52 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         return new HttpParamConfigBuilder<>(this::header);
     }
 
+    public HttpRequestConfigBuilder<T> pathParams(
+        List<HttpParamConfig> pathParams)
+    {
+        this.pathParams = pathParams;
+        return this;
+    }
+
+    public HttpRequestConfigBuilder<T> pathParam(
+        HttpParamConfig pathParam)
+    {
+        if (this.pathParams == null)
+        {
+            this.pathParams = new LinkedList<>();
+        }
+        this.pathParams.add(pathParam);
+        return this;
+    }
+
+    public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> queryParam()
+    {
+        return new HttpParamConfigBuilder<>(this::queryParam);
+    }
+
+    public HttpRequestConfigBuilder<T> queryParams(
+        List<HttpParamConfig> queryParams)
+    {
+        this.queryParams = queryParams;
+        return this;
+    }
+
+    public HttpRequestConfigBuilder<T> queryParam(
+        HttpParamConfig queryParam)
+    {
+        if (this.queryParams == null)
+        {
+            this.queryParams = new LinkedList<>();
+        }
+        this.queryParams.add(queryParam);
+        return this;
+    }
+
+    public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> pathParam()
+    {
+        return new HttpParamConfigBuilder<>(this::pathParam);
+    }
+
     public HttpRequestConfigBuilder<T> content(
         ValidatorConfig content)
     {
@@ -117,6 +164,6 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     @Override
     public T build()
     {
-        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, content));
+        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, pathParams, queryParams, content));
     }
 }
