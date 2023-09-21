@@ -46,18 +46,6 @@ read  35                                 # size
       9s "localhost"                  # host
       9092                            # port
 
-write close
-read abort
-
-read notify ROUTED_CLUSTER_SERVER_FIRST
-
-connect await ROUTED_CLUSTER_SERVER_FIRST
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
 
 write 82                                                 # size
       32s                                                # describe configs
