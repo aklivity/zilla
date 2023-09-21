@@ -43,7 +43,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
-    private final KafkaClientConnectionPoolFactory connectionPool;
+    private final KafkaClientConnectionPool connectionPool;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -53,7 +53,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
-        this.connectionPool = new KafkaClientConnectionPoolFactory(
+        this.connectionPool = new KafkaClientConnectionPool(
             config, context, bindings::get, accountant.creditor());
 
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(

@@ -270,7 +270,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final KafkaClientConnectionPoolFactory connectionPool;
+    private final KafkaClientConnectionPool connectionPool;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
@@ -282,13 +282,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
-        KafkaClientConnectionPoolFactory connectionPool)
+        KafkaClientConnectionPool connectionPool)
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.signaler = context.signaler();
-        this.streamFactory = context.streamFactory();
+        this.signaler = connectionPool.signaler();
+        this.streamFactory = connectionPool.streamFactory();
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
@@ -316,7 +316,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
-        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
         final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
@@ -419,10 +418,34 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        BeginFW begin)
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Consumer<OctetsFW.Builder> extension)
     {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension)
+            .build();
+
         final MessageConsumer receiver =
-            connectionPool.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         return receiver;
     }
@@ -1980,10 +2003,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
-            BeginFW begin = buildBegin(originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, EMPTY_EXTENSION);
-            network = newStream(this::onNetwork, begin);
-            network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
         }
 
         @Override
@@ -2717,10 +2738,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .build()
                 .sizeof());
 
-            BeginFW begin = buildBegin(originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, extension);
-            network = newStream(this::onNetwork, begin);
-            network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
             doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
@@ -3450,10 +3469,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .build()
                 .sizeof());
 
-            BeginFW begin = buildBegin(originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, extension);
-            network = newStream(this::onNetwork, begin);
-            network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
 
         @Override
@@ -3993,7 +4012,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final int length = limit - offset;
             final int lengthMin = Math.min(length, 1024);
-            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int initialBudget = initialMax; //Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
             final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
