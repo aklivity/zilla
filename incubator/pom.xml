@@ -31,6 +31,8 @@
     <module>command-config</module>
 
     <module>exporter-otlp</module>
+
+    <module>validator-avro</module>
   </modules>
 
   <dependencyManagement>
@@ -68,6 +70,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>exporter-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
