@@ -122,6 +122,12 @@ final class TcpState
         return (state & REPLY_CLOSED) != 0;
     }
 
+    static boolean opened(
+        int state)
+    {
+        return initialOpened(state) && replyOpened(state);
+    }
+
     private TcpState()
     {
         // utility

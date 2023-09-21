@@ -214,7 +214,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final ConsumerTopicPartitionFW topicPartitionRO = new ConsumerTopicPartitionFW();
     private final ConsumerPartitionFW partitionRO = new ConsumerPartitionFW();
     private final Array32FW<ConsumerAssignmentFW> assignmentConsumersRO = new Array32FW<>(new ConsumerAssignmentFW());
-
     private final KafkaGroupMemberMetadataFW kafkaMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
     private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;

@@ -147,7 +147,7 @@ read  119                               # size
 
 write 24                                                # size
       ${newRequestId}
-      0                                                # throttle time
+      0                                                 # throttle time
       16s                                               # not a coordinator for a consumer
       -1                                                # generated id
       0s                                                # protocol name

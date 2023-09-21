@@ -3771,7 +3771,6 @@ public final class KafkaFunctions
                 {
                 }
 
-
                 public KafkaMergedFetchFlushEx capabilities(
                     String capabilities)
                 {

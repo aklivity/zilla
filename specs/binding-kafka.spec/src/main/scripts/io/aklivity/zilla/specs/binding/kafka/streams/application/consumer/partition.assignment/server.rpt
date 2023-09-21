@@ -25,13 +25,13 @@ accepted
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .consumer()
-                                .groupId("client-1")
-                                .consumerId("consumer-1")
-                                .timeout(45000)
-                                .topic("test")
-                                .partition(0)
-                                .partition(1)
-                                .build()
+                                  .groupId("client-1")
+                                  .consumerId("consumer-1")
+                                  .timeout(45000)
+                                  .topic("test")
+                                  .partition(0)
+                                  .partition(1)
+                                  .build()
                               .build()}
 
 connected
@@ -44,12 +44,12 @@ write zilla:data.ext ${kafka:dataEx()
                                  .consumer()
                                      .id("consumer-1")
                                      .partition(0)
-                                 .build()
+                                     .build()
                                  .consumer()
                                      .id("consumer-2")
                                      .partition(1)
+                                     .build()
                                  .build()
-                              .build()
                              .build()}
 
 write zilla:data.empty

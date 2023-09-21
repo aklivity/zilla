@@ -22,10 +22,9 @@ import java.util.function.Function;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class HttpRouteConfig extends OptionsConfig
+public final class HttpRouteConfig
 {
     public final long id;
 
