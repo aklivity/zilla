@@ -42,12 +42,56 @@ write 35                                 # size
       9s "localhost"                     # host
       9092                               # port
 
-read closed
-write aborted
+read 82                                                 # size
+     32s                                                # describe configs
+     0s                                                 # v0
+     (int:requestId)
+     -1s                                                # no client id
+     1                                                  # resources
+       [0x04]                                           # broker resource
+       1s "0"                                           # "node" topic
+       2                                                # configs
+         28s "group.min.session.timeout.ms"             # name
+         28s "group.max.session.timeout.ms"             # name
 
-accepted
+write 103                                                # size
+      ${requestId}
+      0
+      1                                                  # resources
+        0s                                               # no error
+        -1s                                              # error message
+        [0x04]                                           # broker resource
+        1s "0"                                           # "0" nodeId
+        2                                                # configs
+          28s "group.min.session.timeout.ms"             # name
+          4s "6000"                                      # value
+          [0x00]                                          # not read only
+          [0x00]                                          # not default
+          [0x00]                                          # not sensitive
+          28s "group.max.session.timeout.ms"             # name
+          5s "30000"                                     # value
+          [0x00]                                          # not read only
+          [0x00]                                          # not default
+          [0x00]                                          # not sensitive
 
-connected
+
+read  22                                # size
+      10s                               # find coordinator
+      1s                                # v1
+      (int:newRequestId)
+      5s "zilla"                        # client id
+      4s "test"                         # "test" coordinator key
+      [0x00]                            # coordinator group type
+
+write 35                                 # size
+      ${newRequestId}
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      9s "localhost"                     # host
+      9092                               # port
+
 
 read 82                                                 # size
      32s                                                # describe configs
@@ -110,73 +154,6 @@ write 24                                                # size
       0s                                                # leader id
       0s                                                # not a coordinator for a consumer
       0                                                 # members
-
-read closed
-write aborted
-
-accepted
-
-connected
-
-read  22                                # size
-      10s                               # find coordinator
-      1s                                # v1
-      (int:newRequestId)
-      5s "zilla"                        # client id
-      4s "test"                         # "test" coordinator key
-      [0x00]                            # coordinator group type
-
-write 35                                 # size
-      ${newRequestId}
-      0                                  # throttle time
-      0s                                 # no error
-      4s "none"                          # error message none
-      0                                  # coordinator node
-      9s "localhost"                     # host
-      9092                               # port
-
-read closed
-write aborted
-
-accepted
-
-connected
-
-read 82                                                 # size
-     32s                                                # describe configs
-     0s                                                 # v0
-     (int:requestId)
-     -1s                                                # no client id
-     1                                                  # resources
-       [0x04]                                           # broker resource
-       1s "0"                                           # "node" topic
-       2                                                # configs
-         28s "group.min.session.timeout.ms"             # name
-         28s "group.max.session.timeout.ms"             # name
-
-write 103                                                # size
-      ${requestId}
-      0
-      1                                                  # resources
-        0s                                               # no error
-        -1s                                              # error message
-        [0x04]                                           # broker resource
-        1s "0"                                           # "0" nodeId
-        2                                                # configs
-          28s "group.min.session.timeout.ms"             # name
-          4s "6000"                                      # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
-          28s "group.max.session.timeout.ms"             # name
-          5s "30000"                                     # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
-
-accepted
-
-connected
 
 read  119                               # size
       11s                               # join group

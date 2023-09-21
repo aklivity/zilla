@@ -51,7 +51,6 @@ public class ClientGroupIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-
     @Test
     @Configuration("client.yaml")
     @Specification({
