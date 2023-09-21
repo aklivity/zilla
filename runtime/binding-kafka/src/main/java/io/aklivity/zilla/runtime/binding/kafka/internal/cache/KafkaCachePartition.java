@@ -64,6 +64,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class KafkaCachePartition
 {
@@ -502,7 +503,7 @@ public final class KafkaCachePartition
             {
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
                 if (key != null &&
-                    !type.key.validate(key.value(), key.offset(), key.sizeof()))
+                    !type.key.read(key.value(), key.offset(), key.sizeof()))
                 {
                     System.out.println("Key Validation failed");
                 }
@@ -512,7 +513,7 @@ public final class KafkaCachePartition
             {
                 OctetsFW value = headEntry.value();
                 if (value != null &&
-                    !type.value.validate(value.value(), value.offset(), value.sizeof()))
+                    !type.value.read(value.value(), value.offset(), value.sizeof()))
                 {
                     System.out.println("Value Validation failed");
                 }
@@ -628,6 +629,51 @@ public final class KafkaCachePartition
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        boolean isKey,
+        OctetsFW data)
+    {
+        boolean status = true;
+
+        Validator validator = isKey ? type.key : type.value;
+        if (data != null &&
+            validator != null &&
+            !validator.write(data.value(), data.offset(), data.sizeof()))
+        {
+            status = false;
+            System.out.println("Validation failed");
+        }
+
+        return status;
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        boolean isKey,
+        Node head)
+    {
+        final KafkaCacheSegment segment = head.segment;
+        assert segment != null;
+
+        final KafkaCacheFile logFile = segment.logFile();
+
+        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
+        boolean status = true;
+
+        OctetsFW value = headEntry.value();
+        Validator validator = isKey ? type.key : type.value;
+        if (value != null &&
+            validator != null &&
+            !validator.write(value.value(), value.offset(), value.sizeof()))
+        {
+            status = false;
+            System.out.println("Validation failed");
+        }
+
+        return status;
     }
 
     public long retainAt(

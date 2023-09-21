@@ -27,7 +27,7 @@ public interface CatalogHandler
     String resolve(
         int schemaId);
 
-    String resolve(
+    int resolve(
         String subject,
         String version);
 }
