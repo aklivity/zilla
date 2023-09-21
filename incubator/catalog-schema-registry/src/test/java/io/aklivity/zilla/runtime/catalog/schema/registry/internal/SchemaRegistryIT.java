@@ -80,10 +80,13 @@ public class SchemaRegistryIT
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        String schema = catalog.resolve("items-snapshots", "latest");
+        int schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        String schema = catalog.resolve(schemaId);
 
         k3po.finish();
 
+        assertEquals(schemaId, 9);
         assertThat(schema, not(nullValue()));
         assertEquals(expected, schema);
     }
@@ -98,7 +101,7 @@ public class SchemaRegistryIT
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        int schemaId = catalog.register("items-snapshots", "avro", schema);
+        int schemaId = catalog.register("items-snapshots-value", "avro", schema);
 
         k3po.finish();
 

@@ -31,6 +31,7 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.http.proxy.AsyncApiHttpProxyConfigGenerator;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.mqtt.proxy.AsyncApiMqttProxyConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.http.proxy.OpenApiHttpProxyConfigGenerator;
 
 @Command(name = "config", description = "Generate configuration file")
@@ -38,13 +39,18 @@ public final class ZillaConfigCommand extends ZillaCommand
 {
     private static final Map<String, Function<InputStream, ConfigGenerator>> GENERATORS = Map.of(
         "openapi.http.proxy", OpenApiHttpProxyConfigGenerator::new,
-        "asyncapi.http.proxy", AsyncApiHttpProxyConfigGenerator::new
+        "asyncapi.http.proxy", AsyncApiHttpProxyConfigGenerator::new,
+        "asyncapi.mqtt.proxy", AsyncApiMqttProxyConfigGenerator::new
     );
 
     @Option(name = {"-t", "--template"},
         description = "Template name")
     @Required
-    @AllowedValues(allowedValues = {"openapi.http.proxy", "asyncapi.http.proxy"})
+    @AllowedValues(allowedValues = {
+        "openapi.http.proxy",
+        "asyncapi.http.proxy",
+        "asyncapi.mqtt.proxy"
+    })
     public String template;
 
     @Option(name = {"-i", "--input"},

@@ -26,12 +26,14 @@
     <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
+    <module>binding-mqtt.spec</module>
     <module>binding-sse.spec</module>
     <module>binding-ws.spec</module>
     <module>binding-kafka.spec</module>
     <module>binding-http-filesystem.spec</module>
     <module>binding-http-kafka.spec</module>
     <module>binding-grpc-kafka.spec</module>
+    <module>binding-mqtt-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
     <module>exporter-prometheus.spec</module>
@@ -102,6 +104,16 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-http-filesystem.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

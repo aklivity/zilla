@@ -65,7 +65,7 @@ write 82                                                 # size
       ${newRequestId}
       -1s                                                # no client id
       1                                                  # resources
-        [0x01]                                           # broker resource
+        [0x04]                                           # broker resource
         1s "0"                                           # "node" topic
         2                                                # configs
           28s "group.min.session.timeout.ms"             # name
@@ -77,7 +77,7 @@ read 103                                                # size
       1                                                  # resources
         0s                                               # no error
         -1s                                              # error message
-        [0x01]                                           # broker resource
+        [0x04]                                           # broker resource
         1s "0"                                           # "0" nodeId
         2                                                # configs
           28s "group.min.session.timeout.ms"             # name
@@ -101,7 +101,7 @@ connect await ROUTED_DESCRIBE_SERVER_FIRST
 
 connected
 
-write 105                               # size
+write 119                               # size
       11s                               # join group
       5s                                # v5
       ${newRequestId}
@@ -114,9 +114,10 @@ write 105                               # size
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
-        0                                   # metadata
+        14                                   # metadata size
+        ${kafka:randomBytes(14)}             # metadata
 
-read  112                                               # size
+read  126                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -127,7 +128,11 @@ read  112                                               # size
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
-         0                                                 # metadata
+         14                                                # metadata size
+         2s                                                # version
+         0                                                 # topics
+         0                                                 # userdata
+         0                                                 # partitions
 
 write 101                                            # size
       14s                                           # sync group
@@ -148,91 +153,7 @@ read 14                                                # size
       0s                                                # no error
       0                                                 # assignment
 
-write close
-read abort
-
-read notify ROUTED_BROKER_SERVER_SECOND
-
-connect await ROUTED_BROKER_SERVER_SECOND "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
-write  22                                # size
-       10s                               # find coordinator
-       1s                                # v1
-       ${newRequestId}
-       5s "zilla"                        # client id
-       4s "test"                         # "session" coordinator key
-       [0x00]                            # coordinator group type
-
-read  35                                 # size
-      (int:newRequestId)
-      0                                  # throttle time
-      0s                                 # no error
-      4s "none"                          # error message none
-      0                                  # coordinator node
-      9s "localhost"                  # host
-      9092                            # port
-
-write close
-read abort
-
-read notify ROUTED_CLUSTER_SERVER_SECOND
-
-connect await ROUTED_CLUSTER_SERVER_SECOND
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
-write 82                                                 # size
-      32s                                                # describe configs
-      0s                                                 # v0
-      ${newRequestId}
-      -1s                                                # no client id
-      1                                                  # resources
-        [0x01]                                           # broker resource
-        1s "0"                                           # "node" topic
-        2                                                # configs
-          28s "group.min.session.timeout.ms"             # name
-          28s "group.max.session.timeout.ms"             # name
-
-read 103                                                # size
-      (int:newRequestId)
-      0
-      1                                                  # resources
-        0s                                               # no error
-        -1s                                              # error message
-        [0x01]                                           # broker resource
-        1s "0"                                           # "0" nodeId
-        2                                                # configs
-          28s "group.min.session.timeout.ms"             # name
-          4s "6000"                                      # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
-          28s "group.max.session.timeout.ms"             # name
-          5s "30000"                                     # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
-
-read notify ROUTED_DESCRIBE_SERVER_SECOND
-
-connect await ROUTED_DESCRIBE_SERVER_SECOND
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
-write 115                               # size
+write 129                               # size
       11s                               # join group
       5s                                # v5
       ${newRequestId}
@@ -245,9 +166,10 @@ write 115                               # size
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
-        0                                   # metadata
+        14                                  # metadata size
+        ${kafka:randomBytes(14)}            # metadata
 
-read  112                                               # size
+read  126                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -258,7 +180,11 @@ read  112                                               # size
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
          42s [0..42]                                       # group instance id
-         0                                                 # metadata
+         14                                                # metadata size
+         2s                                                # version
+         0                                                 # topics
+         0                                                 # userdata
+         0                                                 # partitions
 
 write 101                                           # size
       14s                                           # sync group

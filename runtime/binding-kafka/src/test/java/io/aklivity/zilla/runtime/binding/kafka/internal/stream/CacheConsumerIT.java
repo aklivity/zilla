@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class CacheConsumerIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/application/group")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/consumer");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
@@ -53,10 +54,22 @@ public class CacheConsumerIT
     @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/partition.assignment/client",
-        "${app}/partition.assignment/server"
+        "${net}/partition.assignment/server"
         })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldAssignPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/reassign.new.topic/client",
+        "${net}/reassign.new.topic/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReassignOnUpdatedTopic() throws Exception
     {
         k3po.finish();
     }

@@ -536,7 +536,50 @@ scope protocol
                 octets[authBytesLen] authBytes = null;
                 int64 sessionLifetimeMs;
             }
+        }
 
+        scope consumer
+        {
+            struct ConsumerPartition
+            {
+                int32 partitionId;
+            }
+
+            struct ConsumerTopicPartition
+            {
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct ConsumerSubscriptionUserdata
+            {
+                uint32 userdataLength;
+                octets[userdataLength] userdata;
+                int32 ownedPartitions;
+            }
+
+            struct ConsumerAssignmentUserdata
+            {
+                uint32 userdataLength;
+                octets[userdataLength] userdata;
+            }
+
+            struct ConsumerMetadataTopic
+            {
+                string16 name;
+            }
+
+            struct ConsumerSubscriptionMetadata
+            {
+                int16 version;
+                int32 metadataTopicCount;
+            }
+
+            struct ConsumerAssignmentMetadata
+            {
+                int16 version;
+                int32 metadataTopicCount;
+            }
         }
     }
 }

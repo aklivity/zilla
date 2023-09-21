@@ -36,6 +36,7 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     private static final String AVRO = "avro";
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT = "subject";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -90,7 +91,12 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
                 }
                 catalogs.add(new CatalogedConfig(catalogName, schemas));
             }
-            result = new AvroValidatorConfig(catalogs);
+
+            String subject = object.containsKey(SUBJECT)
+                    ? object.getString(SUBJECT)
+                    : null;
+
+            result = new AvroValidatorConfig(catalogs, subject);
         }
         return result;
     }

@@ -290,6 +290,24 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.value.valid/client",
+        "${app}/merged.produce.message.value.valid/server"})
+    public void shouldProduceMergedMessageValueValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.message.value.invalid/client",
+        "${app}/merged.produce.message.value.invalid/server"})
+    public void shouldProduceMergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.server.sent.close/client",
         "${app}/merged.fetch.server.sent.close/server"})
     public void shouldMergedFetchServerSentClose() throws Exception
@@ -509,6 +527,24 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.produce.message.value.valid/client",
+        "${app}/unmerged.produce.message.value.valid/server"})
+    public void shouldProduceUnmergedMessageValueValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.value.invalid/client",
+        "${app}/unmerged.produce.message.value.invalid/server"})
+    public void shouldProduceUnmergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unmerged.fetch.server.sent.close/client",
         "${app}/unmerged.fetch.server.sent.close/server"})
     public void shouldUnmergedFetchServerSentClose() throws Exception
@@ -662,6 +698,42 @@ public class MergedIT
         "${app}/unmerged.group.fetch.message.value/client",
         "${app}/unmerged.group.fetch.message.value/server"})
     public void shouldFetchGroupUnmergedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.produce.invalid.partition/client",
+        "${app}/unmerged.group.produce.invalid.partition/server"})
+    public void shouldRejectUnmergedMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.group.produce.invalid.partition/client",
+        "${app}/merged.group.produce.invalid.partition/server"})
+    public void shouldRejectMergedMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.group.produce.message.value/client",
+        "${app}/merged.group.produce.message.value/server"})
+    public void shouldProduceMergedMergedMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.produce.message.value/client",
+        "${app}/unmerged.group.produce.message.value/server"})
+    public void shouldProduceUnmergedMergedMessageValue() throws Exception
     {
         k3po.finish();
     }

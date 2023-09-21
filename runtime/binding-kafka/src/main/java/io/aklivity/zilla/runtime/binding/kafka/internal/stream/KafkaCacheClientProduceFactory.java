@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -95,6 +96,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
+    private static final int ERROR_INVALID_RECORD = 87;
 
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
@@ -249,9 +251,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
+                final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName);
+                            partition, cacheRoute, topicName, type);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -493,6 +496,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCacheClientBudget budget;
         private KafkaCacheRoute cacheRoute;
         private String topicName;
+        private KafkaTopicType type;
 
         private int state;
 
@@ -521,7 +525,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCacheClientBudget budget,
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
-            String topicName)
+            String topicName,
+            KafkaTopicType type)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -531,6 +536,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.budget = budget;
             this.cacheRoute = cacheRoute;
             this.topicName = topicName;
+            this.type = type;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
             this.cursor = cursorFactory.newCursor(
@@ -681,6 +687,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
+                if (type != null &&
+                    !partition.validProduceEntry(type, true, key.value()))
+                {
+                    error = ERROR_INVALID_RECORD;
+                    break init;
+                }
+
                 stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
 
                 if (stream.segment != null)
@@ -704,6 +717,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             if (valueFragment != null && error == NO_ERROR)
             {
                 partition.writeProduceEntryContinue(stream.segment, stream.position, valueFragment);
+            }
+
+            if ((flags & FLAGS_FIN) != 0x00 &&
+                type != null &&
+                !partition.validProduceEntry(type, false, stream.segment))
+            {
+                error = ERROR_INVALID_RECORD;
             }
 
             if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)

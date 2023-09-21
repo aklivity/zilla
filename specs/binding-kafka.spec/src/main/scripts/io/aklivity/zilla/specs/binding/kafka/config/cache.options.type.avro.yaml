@@ -20,7 +20,22 @@ catalogs:
   test0:
     type: test
     options:
-      schema: "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"status\",\"type\":\"string\"}],\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}"
+      schema: |
+        {
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ],
+          "name": "Event",
+          "namespace": "io.aklivity.example",
+          "type": "record"
+        }
 bindings:
   app0:
     type: kafka

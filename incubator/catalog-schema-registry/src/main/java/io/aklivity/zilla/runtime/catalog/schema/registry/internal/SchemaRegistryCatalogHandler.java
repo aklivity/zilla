@@ -26,8 +26,8 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
-    private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}/schema";
-    private static final String SCHEMA_PATH = "/schemas/ids/{0}/schema";
+    private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
+    private static final String SCHEMA_PATH = "/schemas/ids/{0}";
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
 
     private final HttpClient client;
@@ -70,15 +70,17 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public String resolve(
         int schemaId)
     {
-        return sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+        return response != null ? request.resolveSchemaResponse(response) : null;
     }
 
     @Override
-    public String resolve(
+    public int resolve(
         String subject,
         String version)
     {
-        return sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+        String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+        return response != null ? request.resolveResponse(response) : NO_SCHEMA_ID;
     }
 
     private String sendHttpRequest(
