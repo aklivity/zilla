@@ -1006,7 +1006,7 @@ public final class KafkaClientConnectionPool
         {
             nextSignalerRequestId++;
             signalerCorrelations.put(nextSignalerRequestId, (Long) initialId);
-            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, (int) initialId);
+            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, nextSignalerRequestId);
         }
 
         private void doConnectionReset(
