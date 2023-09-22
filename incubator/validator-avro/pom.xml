@@ -136,14 +136,11 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.moditect</groupId>
-        <artifactId>moditect-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <executions>
           <execution>
+            <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>
@@ -156,7 +153,7 @@
               <relocations>
                 <relocation>
                   <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.engine.validator.avro</shadedPattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.validator.avro</shadedPattern>
                 </relocation>
               </relocations>
               <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
@@ -165,6 +162,10 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.moditect</groupId>
+        <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

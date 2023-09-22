@@ -12,11 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.validator.config;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidatorConfigBuilder<T>>
 {
@@ -47,7 +51,7 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
 
     public CatalogedConfigBuilder<AvroValidatorConfigBuilder<T>> catalog()
     {
-        return new CatalogedConfigBuilder<>(this::catalog);
+        return CatalogedConfig.builder(this::catalog);
     }
 
     public AvroValidatorConfigBuilder<T> catalog(

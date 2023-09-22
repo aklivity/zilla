@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.engine.config.AvroValidatorConfigAdapter
+io.aklivity.zilla.runtime.validator.config.AvroValidatorConfigAdapter

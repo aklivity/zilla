@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.validator;
+package io.aklivity.zilla.runtime.validator;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -29,9 +29,10 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.validator.config.AvroValidatorConfig;
 
 public final class AvroValidator implements Validator
 {
