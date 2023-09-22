@@ -233,9 +233,9 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                     .addModifiers(PUBLIC)
                     .returns(flyweightType.nestedClass("Builder"))
                     .addParameter(int.class, "value")
-                    .beginControlFlow("if (value > 0x0FFFFFFF)")
+                    .beginControlFlow("if (value < 0)")
                         .addStatement("throw new $T(String.format($S, value))", IllegalArgumentException.class,
-                                "Input value %d too long")
+                                "Input value %d is negative")
                     .endControlFlow()
                     .addStatement("final MutableDirectBuffer buffer = buffer()")
                     .addStatement("int progress = offset()")
