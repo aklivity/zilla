@@ -2349,8 +2349,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.describeClient.doNetworkBegin(traceId, authorization, 0);
 
-            doNetworkWindow(traceId, replyBud, 0, 0, replyMax);
-
             cleanupNetwork(traceId, authorization);
         }
 
