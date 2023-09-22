@@ -66,10 +66,7 @@ public class ValidatorConfigAdapterTest
     public void shouldWriteValidator()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"type\":\"integer\"" +
-            "}";
+        String expectedJson = "\"integer\"";
         ValidatorConfig validator = new IntegerValidatorConfigBuilder<>(identity()).build();
 
         // WHEN

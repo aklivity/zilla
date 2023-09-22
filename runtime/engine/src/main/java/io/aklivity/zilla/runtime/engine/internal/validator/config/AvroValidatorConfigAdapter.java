@@ -27,10 +27,11 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
-public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonObject>
+public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
     private static final String AVRO = "avro";
     private static final String TYPE_NAME = "type";
@@ -46,7 +47,7 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     }
 
     @Override
-    public JsonObject adaptToJson(
+    public JsonValue adaptToJson(
         ValidatorConfig config)
     {
         AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
@@ -71,8 +72,9 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
 
     @Override
     public ValidatorConfig adaptFromJson(
-        JsonObject object)
+        JsonValue value)
     {
+        JsonObject object = (JsonObject) value;
         ValidatorConfig result = null;
         if (object.containsKey(CATALOG_NAME))
         {

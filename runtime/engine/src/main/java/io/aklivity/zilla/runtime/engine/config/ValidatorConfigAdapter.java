@@ -22,12 +22,15 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public final class ValidatorConfigAdapter implements JsonbAdapter<ValidatorConfig, JsonObject>
+public final class ValidatorConfigAdapter implements JsonbAdapter<ValidatorConfig, JsonValue>
 {
-    private static final String CATALOG_TYPE = "type";
+    private static final String TYPE_NAME = "type";
 
     private final Map<String, ValidatorConfigAdapterSpi> delegatesByName;
     private ValidatorConfigAdapterSpi delegate;
@@ -48,7 +51,7 @@ public final class ValidatorConfigAdapter implements JsonbAdapter<ValidatorConfi
     }
 
     @Override
-    public JsonObject adaptToJson(
+    public JsonValue adaptToJson(
         ValidatorConfig options)
     {
         return delegate != null ? delegate.adaptToJson(options) : null;
@@ -56,10 +59,26 @@ public final class ValidatorConfigAdapter implements JsonbAdapter<ValidatorConfi
 
     @Override
     public ValidatorConfig adaptFromJson(
-        JsonObject object)
+        JsonValue value)
     {
-        String type = object.containsKey(CATALOG_TYPE)
-                ? object.getString(CATALOG_TYPE)
+        JsonObject object = null;
+        if (value instanceof JsonString)
+        {
+            object = Json.createObjectBuilder()
+                .add(TYPE_NAME, ((JsonString) value).getString())
+                .build();
+        }
+        else if (value instanceof JsonObject)
+        {
+            object = (JsonObject) value;
+        }
+        else
+        {
+            assert false;
+        }
+
+        String type = object.containsKey(TYPE_NAME)
+                ? object.getString(TYPE_NAME)
                 : null;
 
         adaptType(type);

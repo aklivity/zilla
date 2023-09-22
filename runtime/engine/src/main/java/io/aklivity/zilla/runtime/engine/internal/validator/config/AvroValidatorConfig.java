@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
@@ -31,5 +32,16 @@ public final class AvroValidatorConfig extends ValidatorConfig
         super("avro");
         this.catalogs = catalogs;
         this.subject = subject;
+    }
+
+    public static <T> AvroValidatorConfigBuilder<T> builder(
+        Function<ValidatorConfig, T> mapper)
+    {
+        return new AvroValidatorConfigBuilder<>(mapper::apply);
+    }
+
+    public static AvroValidatorConfigBuilder<AvroValidatorConfig> builder()
+    {
+        return new AvroValidatorConfigBuilder<>(AvroValidatorConfig.class::cast);
     }
 }
