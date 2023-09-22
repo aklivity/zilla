@@ -474,7 +474,7 @@ public final class KafkaClientConnectionPool
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            stream.signalNow(signalId);
+            stream.doStreamSignalNow(signalId);
         }
 
         @Override
@@ -489,7 +489,7 @@ public final class KafkaClientConnectionPool
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            return stream.signalAt(timeMillis, signalId);
+            return stream.doStreamSignalAt(timeMillis, signalId);
         }
 
         @Override
@@ -514,7 +514,7 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        return new KafkaClientSignaler();
+        return signaler;
     }
 
     final class KafkaClientStream
@@ -776,13 +776,13 @@ public final class KafkaClientConnectionPool
             streamsByInitialIds.remove(initialId);
         }
 
-        private void signalNow(
+        private void doStreamSignalNow(
             int signalId)
         {
             connection.doConnectionSignalNow(initialId, signalId);
         }
 
-        private long signalAt(
+        private long doStreamSignalAt(
             long timeMillis,
             int signalId)
         {
@@ -795,24 +795,21 @@ public final class KafkaClientConnectionPool
             final long traceId = signal.traceId();
             final int signalId = signal.signalId();
 
-            if (signalId == SIGNAL_STREAM_REPLY_BEGIN)
+            switch (signalId)
             {
+            case SIGNAL_STREAM_REPLY_BEGIN:
                 doStreamBegin(traceId);
-            }
-            else if (signalId == SIGNAL_STREAM_REPLY_END)
-            {
+                break;
+            case SIGNAL_STREAM_REPLY_END:
                 doStreamEnd(traceId);
-            }
-            else if (signalId == SIGNAL_STREAM_REPLY_ABORT)
-            {
+                break;
+            case SIGNAL_STREAM_REPLY_ABORT:
                 doStreamAbort(traceId);
-            }
-            else if (signalId == SIGNAL_STREAM_INITIAL_RESET)
-            {
+                break;
+            case SIGNAL_STREAM_INITIAL_RESET:
                 doStreamReset(traceId);
-            }
-            else
-            {
+                break;
+            default:
                 doSignal(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, signalId);
             }
         }
@@ -825,6 +822,7 @@ public final class KafkaClientConnectionPool
         private final long authorization;
         private final LongArrayQueue correlations;
         private final Long2LongHashMap signalerCorrelations;
+        private final KafkaClientSignaler signaler;
 
         private long initialId;
         private long replyId;
@@ -845,7 +843,7 @@ public final class KafkaClientConnectionPool
         private int replyPad;
 
         private int nextRequestId;
-        private int nextSignalerRequestId;
+        private int nextContextId;
         private long connectionInitialBudgetId = NO_BUDGET_ID;
         private long reconnectAt = NO_CANCEL_ID;
         private int requestBytes;
@@ -861,6 +859,7 @@ public final class KafkaClientConnectionPool
             this.authorization = authorization;
             this.correlations = new LongArrayQueue();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
+            this.signaler = new KafkaClientSignaler();
         }
 
         private void doConnectionBegin(
@@ -982,22 +981,22 @@ public final class KafkaClientConnectionPool
         }
 
         private void doConnectionSignalNow(
-            long initialId,
+            long streamId,
             int signalId)
         {
-            nextSignalerRequestId++;
-            signalerCorrelations.put(nextSignalerRequestId, initialId);
-            signaler.signalNow(originId, routedId, this.initialId, signalId, nextSignalerRequestId);
+            nextContextId++;
+            signalerCorrelations.put(nextContextId, streamId);
+            signaler.signalNow(originId, routedId, this.initialId, signalId, nextContextId);
         }
 
         private long doConnectionSignalAt(
-            long initialId,
+            long streamId,
             long timeMillis,
             int signalId)
         {
-            nextSignalerRequestId++;
-            signalerCorrelations.put(nextSignalerRequestId, initialId);
-            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, nextSignalerRequestId);
+            nextContextId++;
+            signalerCorrelations.put(nextContextId, streamId);
+            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, nextContextId);
         }
 
         private void doConnectionReset(
@@ -1025,6 +1024,7 @@ public final class KafkaClientConnectionPool
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, this.replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
         }
+
         private void onConnectionMessage(
             int msgTypeId,
             DirectBuffer buffer,
