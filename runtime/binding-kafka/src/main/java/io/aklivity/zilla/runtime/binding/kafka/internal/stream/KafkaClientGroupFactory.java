@@ -2656,7 +2656,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
-        private void doNetworkDataIfNecessary(long budgetId)
+        private void doNetworkDataIfNecessary(
+            long budgetId)
         {
             if (encodeSlot != NO_SLOT)
             {
