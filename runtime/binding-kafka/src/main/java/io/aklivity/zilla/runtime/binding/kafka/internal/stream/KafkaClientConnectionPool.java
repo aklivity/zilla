@@ -29,6 +29,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -874,6 +875,7 @@ public final class KafkaClientConnectionPool
         private int replyPad;
 
         private int nextRequestId;
+        private int nextResponseId;
         private int nextSignalerRequestId;
         private long connectionInitialBudgetId = NO_BUDGET_ID;
         private long reconnectAt = NO_CANCEL_ID;
@@ -942,7 +944,7 @@ public final class KafkaClientConnectionPool
         {
             if ((flags & FLAG_INIT) != 0x00)
             {
-                final int requestId = ++nextRequestId;
+                final int requestId = nextRequestId++;
                 correlations.put(requestId, connectionInitialId);
 
                 final DirectBuffer buffer = payload.buffer();
@@ -1120,7 +1122,8 @@ public final class KafkaClientConnectionPool
 
             if ((flags & FLAG_INIT) != 0x00)
             {
-                long initialId = correlations.remove(nextRequestId);
+                final int responseId = nextResponseId++;
+                long initialId = correlations.remove(responseId);
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
