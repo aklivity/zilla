@@ -223,6 +223,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
+    public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -2517,16 +2518,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 MutableBoolean retainAsPublished = new MutableBoolean(false);
 
-                subscriptionIds.forEach(subscriptionId ->
+                subscriptionIds.forEach(s ->
                 {
-                    if (subscriptionId.value() > 0)
+                    final int subscriptionId = s.value();
+                    if (subscriptionId > 0 && !generatedSubscriptionId(subscriptionId))
                     {
                         Optional<Subscription> result = subscriptions.stream()
-                            .filter(subscription -> subscription.id == subscriptionId.value())
+                            .filter(subscription -> subscription.id == subscriptionId)
                             .findFirst();
                         retainAsPublished.set(retainAsPublished.value | result.isPresent() && result.get().retainAsPublished());
                         mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
-                            .subscriptionId(v -> v.set(subscriptionId.value()));
+                            .subscriptionId(v -> v.set(subscriptionId));
                         propertiesSize.set(mqttPropertyRW.limit());
                     }
                 });
@@ -2603,6 +2605,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doNetworkData(traceId, authorization, 0L, payload);
             }
+        }
+
+        private boolean generatedSubscriptionId(
+            int subscriptionId)
+        {
+            return (subscriptionId & GENERATED_SUBSCRIPTION_ID_MASK) == GENERATED_SUBSCRIPTION_ID_MASK;
         }
 
         private int calculatePublishNetworkFlags(int applicationTypeAndFlags, int qos)
