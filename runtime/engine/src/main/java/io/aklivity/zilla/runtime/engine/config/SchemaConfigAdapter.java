@@ -13,14 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.validator.config;
+package io.aklivity.zilla.runtime.engine.config;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
 public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObject>
 {

@@ -13,34 +13,27 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.validator.config;
+package io.aklivity.zilla.runtime.binding.http.config;
 
-import jakarta.json.Json;
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import static java.util.function.Function.identity;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
-public class IntegerValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
+public class HttpParamConfig
 {
-    @Override
-    public String type()
+    public String name;
+    public ValidatorConfig validator;
+
+    public HttpParamConfig(
+        String name,
+        ValidatorConfig validator)
     {
-        return "integer";
+        this.name = name;
+        this.validator = validator;
     }
 
-    @Override
-    public JsonValue adaptToJson(
-        ValidatorConfig options)
+    public static HttpParamConfigBuilder<HttpParamConfig> builder()
     {
-        return Json.createValue(type());
-    }
-
-    @Override
-    public ValidatorConfig adaptFromJson(
-        JsonValue object)
-    {
-        return new IntegerValidatorConfig();
+        return new HttpParamConfigBuilder<>(identity());
     }
 }

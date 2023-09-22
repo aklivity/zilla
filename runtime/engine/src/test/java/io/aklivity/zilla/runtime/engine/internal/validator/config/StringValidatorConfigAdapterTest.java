@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -27,8 +26,6 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class StringValidatorConfigAdapterTest
 {
@@ -53,12 +50,27 @@ public class StringValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        StringValidatorConfig stringValidator = jsonb.fromJson(json, StringValidatorConfig.class);
+        StringValidatorConfig validator = jsonb.fromJson(json, StringValidatorConfig.class);
 
         // THEN
-        assertThat(stringValidator, not(nullValue()));
-        assertThat(stringValidator.type, equalTo("string"));
-        assertThat(stringValidator.encoding, equalTo("utf_8"));
+        assertThat(validator, not(nullValue()));
+        assertThat(validator.type, equalTo("string"));
+        assertThat(validator.encoding, equalTo("utf_8"));
+    }
+
+    @Test
+    public void shouldWriteDefaultEncodingStringValidator()
+    {
+        // GIVEN
+        String expectedJson = "\"string\"";
+        StringValidatorConfig validator = StringValidatorConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(validator);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
     }
 
     @Test
@@ -68,14 +80,14 @@ public class StringValidatorConfigAdapterTest
         String expectedJson =
             "{" +
                 "\"type\":\"string\"," +
-                "\"encoding\":\"utf_8\"" +
+                "\"encoding\":\"utf_16\"" +
             "}";
-        ValidatorConfig stringValidator = new StringValidatorConfigBuilder<>(identity())
-            .encoding("utf_8")
+        StringValidatorConfig validator = StringValidatorConfig.builder()
+            .encoding("utf_16")
             .build();
 
         // WHEN
-        String json = jsonb.toJson(stringValidator);
+        String json = jsonb.toJson(validator);
 
         // THEN
         assertThat(json, not(nullValue()));
