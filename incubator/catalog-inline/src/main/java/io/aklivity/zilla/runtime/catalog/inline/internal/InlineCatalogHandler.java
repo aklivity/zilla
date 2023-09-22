@@ -67,6 +67,7 @@ public class InlineCatalogHandler implements CatalogHandler
         String schema)
     {
         byte[] bytes = schema.getBytes();
+        crc32c.reset();
         crc32c.update(bytes, 0, bytes.length);
         return (int) crc32c.getValue();
     }

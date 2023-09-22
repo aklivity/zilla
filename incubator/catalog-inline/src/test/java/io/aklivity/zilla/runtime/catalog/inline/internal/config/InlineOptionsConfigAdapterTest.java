@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal.config;
 
-import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -69,18 +69,29 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        InlineOptionsConfig catalog = new InlineOptionsConfig(singletonList(
-                new InlineSchemaConfig("subject1", "latest",
-                "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}," +
-                        "\"required\":[\"id\",\"status\"]}")));
+        String expectedJson = "{" +
+                        "\"subject1\":" +
+                            "{" +
+                                "\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
+                                "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
+                                "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"," +
+                                "\"version\":\"latest\"" +
+                            "}" +
+                        "}";
 
-        String text = jsonb.toJson(catalog);
+        InlineOptionsConfig catalog = (InlineOptionsConfig) new InlineOptionsConfigBuilder<>(identity())
+                .subjects()
+                    .subject("subject1")
+                        .version("latest")
+                        .schema("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}," +
+                                "\"status\":{\"type\":\"string\"}}," +
+                                "\"required\":[\"id\",\"status\"]}")
+                        .build()
+                .build();
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"subject1\":{" +
-                "\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
-                "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
-                "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"," +
-                "\"version\":\"latest\"}}"));
+        String json = jsonb.toJson(catalog);
+
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
     }
 }

@@ -39,6 +39,11 @@ public class InlineOptionsConfigBuilder<T> extends ConfigBuilder<T, InlineOption
         return (Class<InlineOptionsConfigBuilder<T>>) getClass();
     }
 
+    public InlineSchemaConfigBuilder<InlineOptionsConfigBuilder<T>> subjects()
+    {
+        return new InlineSchemaConfigBuilder<>(this::subjects);
+    }
+
     public InlineOptionsConfigBuilder<T> subjects(
         InlineSchemaConfig config)
     {
