@@ -15,21 +15,18 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public class MqttOptionsConfig extends OptionsConfig
+public class MqttTopicConfig
 {
-    public final MqttAuthorizationConfig authorization;
-    public final List<MqttTopicConfig> topics;
+    public final String name;
+    public final ValidatorConfig content;
 
-
-    public MqttOptionsConfig(
-        MqttAuthorizationConfig authorization,
-        List<MqttTopicConfig> topics)
+    public MqttTopicConfig(
+        String name,
+        ValidatorConfig content)
     {
-        this.authorization = authorization;
-        this.topics = topics;
+        this.name = name;
+        this.content = content;
     }
 }

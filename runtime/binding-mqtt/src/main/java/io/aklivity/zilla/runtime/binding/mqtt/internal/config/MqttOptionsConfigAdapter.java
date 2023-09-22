@@ -19,8 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
@@ -28,6 +31,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationC
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
 public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -36,6 +41,11 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
     private static final String AUTHORIZATION_CREDENTIALS_USERNAME_NAME = "username";
     private static final String AUTHORIZATION_CREDENTIALS_PASSWORD_NAME = "password";
+    private static final String TOPICS_NAME = "topics";
+    private static final String TOPIC_NAME_NAME = "name";
+    private static final String TOPIC_CONTENT_NAME = "content";
+
+    private final ValidatorConfigAdapter validator = new ValidatorConfigAdapter();
 
     @Override
     public Kind kind()
@@ -86,6 +96,25 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             object.add(AUTHORIZATION_NAME, authorizations);
         }
 
+        List<MqttTopicConfig> mqttTopics = mqttOptions.topics;
+        if (mqttTopics != null)
+        {
+            JsonArrayBuilder topics = Json.createArrayBuilder();
+
+            for (MqttTopicConfig topic : mqttTopics)
+            {
+                JsonObjectBuilder topicJson = Json.createObjectBuilder();
+
+                topicJson.add(TOPIC_NAME_NAME, topic.name);
+                validator.adaptType(topic.content.type);
+                JsonValue content = validator.adaptToJson(topic.content);
+                topicJson.add(TOPIC_CONTENT_NAME, content);
+                topics.add(topicJson);
+            }
+
+            object.add(TOPICS_NAME, topics);
+        }
+
         return object.build();
     }
 
@@ -121,7 +150,33 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             }
         }
 
-        return new MqttOptionsConfig(newAuthorization);
+        List<MqttTopicConfig> newTopics = null;
+
+        JsonArray topicsJson = object.containsKey(TOPICS_NAME)
+            ? object.getJsonArray(TOPICS_NAME)
+            : null;
+
+        if (topicsJson != null)
+        {
+            List<MqttTopicConfig> topics = new ArrayList<>();
+            for (int i = 0; i < topicsJson.size(); i++)
+            {
+                JsonObject topic = topicsJson.getJsonObject(i);
+
+                String topicName = topic.getString(TOPIC_NAME_NAME);
+
+                ValidatorConfig content = null;
+                if (topic.containsKey(TOPIC_CONTENT_NAME))
+                {
+                    JsonValue contentJson = topic.get(TOPIC_CONTENT_NAME);
+                    content = validator.adaptFromJson(contentJson);
+                }
+                topics.add(new MqttTopicConfig(topicName, content));
+            }
+            newTopics = topics;
+        }
+
+        return new MqttOptionsConfig(newAuthorization, newTopics);
     }
 
     private List<MqttPatternConfig> adaptPatternFromJson(
