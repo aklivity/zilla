@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import static java.util.function.Function.identity;
+
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class MqttTopicConfig
@@ -28,5 +30,10 @@ public class MqttTopicConfig
     {
         this.name = name;
         this.content = content;
+    }
+
+    public static MqttTopicConfigBuilder<MqttTopicConfig> builder()
+    {
+        return new MqttTopicConfigBuilder<>(identity());
     }
 }

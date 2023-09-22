@@ -33,8 +33,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class MqttOptionsConfigAdapterTest
@@ -86,7 +84,7 @@ public class MqttOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.connect, hasSize(1));
         assertThat(options.authorization.credentials.connect.get(0), not(nullValue()));
         assertThat(options.authorization.credentials.connect.get(0).property,
-            equalTo(MqttAuthorizationConfig.MqttConnectProperty.USERNAME));
+            equalTo(MqttPatternConfig.MqttConnectProperty.USERNAME));
         assertThat(options.authorization.credentials.connect.get(0).pattern,
             equalTo("Bearer {credentials}"));
 
@@ -107,7 +105,7 @@ public class MqttOptionsConfigAdapterTest
                     "test0",
                     new MqttCredentialsConfig(
                         singletonList(new MqttPatternConfig(
-                            MqttAuthorizationConfig.MqttConnectProperty.USERNAME,
+                            MqttPatternConfig.MqttConnectProperty.USERNAME,
                             "Bearer {credentials}")))),
                     topics);
 

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -24,6 +25,16 @@ public class MqttOptionsConfig extends OptionsConfig
     public final MqttAuthorizationConfig authorization;
     public final List<MqttTopicConfig> topics;
 
+    public static MqttOptionsConfigBuilder<MqttOptionsConfig> builder()
+    {
+        return new MqttOptionsConfigBuilder<>(MqttOptionsConfig.class::cast);
+    }
+
+    public static <T> MqttOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new MqttOptionsConfigBuilder<>(mapper);
+    }
 
     public MqttOptionsConfig(
         MqttAuthorizationConfig authorization,
