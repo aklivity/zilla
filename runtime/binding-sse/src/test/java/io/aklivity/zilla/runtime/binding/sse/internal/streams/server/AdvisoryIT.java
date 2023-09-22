@@ -39,9 +39,7 @@ public class AdvisoryIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(2048)
-        .responseBufferCapacity(2048)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/sse/config")
         .external("app0")
         .clean();

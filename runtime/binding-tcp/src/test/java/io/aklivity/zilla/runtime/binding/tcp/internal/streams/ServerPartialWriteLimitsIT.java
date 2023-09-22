@@ -62,12 +62,8 @@ public class ServerPartialWriteLimitsIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
-        // Initial window size for output to network:
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 16)
-        // Overall buffer pool size same as slot size so maximum concurrent streams with partial writes = 1
         .configure(ENGINE_BUFFER_POOL_CAPACITY, 16)
         .configurationRoot("io/aklivity/zilla/specs/binding/tcp/config")
         .external("app0")
