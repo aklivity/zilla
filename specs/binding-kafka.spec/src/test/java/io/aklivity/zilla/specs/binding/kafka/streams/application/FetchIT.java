@@ -192,8 +192,8 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${app}/message.value.test/client",
-        "${app}/message.value.test/server"})
+        "${app}/message.value.valid/client",
+        "${app}/message.value.valid/server"})
     public void shouldReceiveMessageValueTest() throws Exception
     {
         k3po.finish();
@@ -201,8 +201,8 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${app}/message.value.test.invalid/client",
-        "${app}/message.value.test.invalid/server"})
+        "${app}/message.value.invalid/client",
+        "${app}/message.value.invalid/server"})
     public void shouldReceiveMessageValueTestInvalid() throws Exception
     {
         k3po.finish();
