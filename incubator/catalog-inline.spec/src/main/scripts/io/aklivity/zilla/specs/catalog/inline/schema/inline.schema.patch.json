@@ -1,0 +1,70 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "inline"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "inline"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "inline"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "subjects":
+                            {
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "title": "Subject",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "version":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "schema":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "schema"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]
