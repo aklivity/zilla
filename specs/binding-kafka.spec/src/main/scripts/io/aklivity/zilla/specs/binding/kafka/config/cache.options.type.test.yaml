@@ -54,7 +54,7 @@ bindings:
             type: string
             encoding: utf_8
           value:
-            type: avro
+            type: test
             catalog:
               test0:
                 - strategy: topic
