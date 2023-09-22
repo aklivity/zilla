@@ -33,11 +33,6 @@ scope protocol
             int32 length;
         }
 
-        struct ResponseHeaderV0 extends ResponseHeader
-        {
-            int32 correlationId;
-        }
-
         scope message
         {
             struct RecordSet

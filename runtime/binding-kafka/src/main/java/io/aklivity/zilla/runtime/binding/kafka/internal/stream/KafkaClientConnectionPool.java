@@ -29,7 +29,6 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -42,7 +41,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderV0FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -96,7 +94,6 @@ public final class KafkaClientConnectionPool
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
 
     private final RequestHeaderFW requestHeaderRO = new RequestHeaderFW();
-    private final ResponseHeaderV0FW responseHeaderRO = new ResponseHeaderV0FW();
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
@@ -855,7 +852,7 @@ public final class KafkaClientConnectionPool
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final Int2ObjectHashMap<Long> correlations;
+        private final Long2LongHashMap correlations;
         private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
@@ -889,7 +886,7 @@ public final class KafkaClientConnectionPool
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
-            this.correlations = new Int2ObjectHashMap<>();
+            this.correlations = new Long2LongHashMap(-1);
             this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
@@ -945,8 +942,8 @@ public final class KafkaClientConnectionPool
         {
             if ((flags & FLAG_INIT) != 0x00)
             {
-                int requestId = nextRequestId++;
-                correlations.put(requestId, (Long) connectionInitialId);
+                final int requestId = ++nextRequestId;
+                correlations.put(requestId, connectionInitialId);
 
                 final DirectBuffer buffer = payload.buffer();
                 final int offset = payload.offset();
@@ -1123,14 +1120,7 @@ public final class KafkaClientConnectionPool
 
             if ((flags & FLAG_INIT) != 0x00)
             {
-                final DirectBuffer buffer = payload.buffer();
-                final int limit = payload.limit();
-                int progress = payload.offset();
-
-                ResponseHeaderV0FW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
-
-                int correlationId = responseHeader.correlationId();
-                Long initialId = correlations.remove(correlationId);
+                long initialId = correlations.remove(nextRequestId);
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
