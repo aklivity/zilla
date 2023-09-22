@@ -470,13 +470,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         return System.identityHashCode(topic.intern());
     }
 
-    private int subscribeKey(
-        String clientId,
-        long resolveId)
-    {
-        return System.identityHashCode((clientId + "_" + resolveId).intern());
-    }
-
     private MessageConsumer newStream(
         MessageConsumer sender,
         long originId,
@@ -1226,7 +1219,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final long encodeBudgetId;
 
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
-        private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
+        private final Long2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
@@ -1309,7 +1302,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.encodeBudgetId = budgetId;
             this.decoder = decodeInitialType;
             this.publishStreams = new Int2ObjectHashMap<>();
-            this.subscribeStreams = new Int2ObjectHashMap<>();
+            this.subscribeStreams = new Long2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
@@ -2116,12 +2109,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             subscriptionsByRouteId.forEach((key, value) ->
             {
-                int subscribeKey = subscribeKey(clientId.asString(), key);
-                MqttSubscribeStream stream = subscribeStreams.computeIfAbsent(subscribeKey, s ->
+                MqttSubscribeStream stream = subscribeStreams.computeIfAbsent(key, s ->
                     new MqttSubscribeStream(routedId, key, implicitSubscribe));
                 stream.packetId = packetId;
                 value.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
-                stream.doSubscribeBeginOrFlush(traceId, affinity, subscribeKey, value);
+                stream.doSubscribeBeginOrFlush(traceId, affinity, value);
             });
         }
 
@@ -2243,8 +2235,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final MqttBindingConfig binding = bindings.get(routedId);
                 final MqttRouteConfig resolved =
                     binding != null ? binding.resolveSubscribe(sessionId, topicFilter) : null;
-                final int subscribeKey = subscribeKey(clientId.asString(), resolved.id);
-                final MqttSubscribeStream stream = subscribeStreams.get(subscribeKey);
+                final MqttSubscribeStream stream = subscribeStreams.get(resolved.id);
 
 
                 Optional<Subscription> subscription = stream.getSubscriptionByFilter(topicFilter, newState);
@@ -4022,7 +4013,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int state;
             private final List<Subscription> subscriptions;
             private boolean acknowledged;
-            private int clientKey;
             private int packetId;
             private final boolean adminSubscribe;
 
@@ -4052,11 +4042,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSubscribeBeginOrFlush(
                 long traceId,
                 long affinity,
-                int clientKey,
                 List<Subscription> subscriptions)
             {
                 this.subscriptions.addAll(subscriptions);
-                this.clientKey = clientKey;
 
                 if (!MqttState.initialOpening(state))
                 {
@@ -4168,7 +4156,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (MqttState.closed(state))
                 {
-                    subscribeStreams.remove(clientKey);
+                    subscribeStreams.remove(routedId);
                 }
             }
 
@@ -4430,7 +4418,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (MqttState.closed(state))
                 {
-                    subscribeStreams.remove(clientKey);
+                    subscribeStreams.remove(routedId);
                 }
             }
 
