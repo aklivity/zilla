@@ -105,6 +105,7 @@ public final class KafkaClientConnectionPool
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer encodeBuffer;
     private final Signaler signaler;
+    private final KafkaClientSignaler connectionSignaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -124,6 +125,7 @@ public final class KafkaClientConnectionPool
         this.encodeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
+        this.connectionSignaler = new KafkaClientSignaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -514,7 +516,7 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        return signaler;
+        return connectionSignaler;
     }
 
     final class KafkaClientStream
@@ -822,7 +824,6 @@ public final class KafkaClientConnectionPool
         private final long authorization;
         private final LongArrayQueue correlations;
         private final Long2LongHashMap signalerCorrelations;
-        private final KafkaClientSignaler signaler;
 
         private long initialId;
         private long replyId;
@@ -859,7 +860,6 @@ public final class KafkaClientConnectionPool
             this.authorization = authorization;
             this.correlations = new LongArrayQueue();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
-            this.signaler = new KafkaClientSignaler();
         }
 
         private void doConnectionBegin(
