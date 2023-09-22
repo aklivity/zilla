@@ -30,6 +30,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -66,7 +67,7 @@ public final class KafkaClientConnectionPool
     private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final int SIGNAL_CONNECTION_CLEANUP = 10001;
+    private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000001;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -479,7 +480,7 @@ public final class KafkaClientConnectionPool
         return this::newStream;
     }
 
-    public class ConnectionSignaler implements Signaler
+    public class KafkaClientSignaler implements Signaler
     {
         @Override
         public long signalAt(
@@ -498,6 +499,8 @@ public final class KafkaClientConnectionPool
             int signalId,
             int contextId)
         {
+            assert contextId == 0;
+
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
             stream.signalNow(signalId);
         }
@@ -511,6 +514,8 @@ public final class KafkaClientConnectionPool
             int signalId,
             int contextId)
         {
+            assert contextId == 0;
+
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
             return stream.signalAt(timeMillis, signalId);
         }
@@ -537,7 +542,7 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        return new ConnectionSignaler();
+        return new KafkaClientSignaler();
     }
 
     final class KafkaClientStream
@@ -840,7 +845,7 @@ public final class KafkaClientConnectionPool
         private final long routedId;
         private final long authorization;
         private final Int2ObjectHashMap<Long> correlations;
-        private final Int2ObjectHashMap<Long> signalerCorrelations;
+        private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
         private long replyId;
@@ -874,7 +879,7 @@ public final class KafkaClientConnectionPool
             this.routedId = routedId;
             this.authorization = authorization;
             this.correlations = new Int2ObjectHashMap<>();
-            this.signalerCorrelations = new Int2ObjectHashMap<>();
+            this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
         private void doConnectionBegin(
@@ -995,7 +1000,7 @@ public final class KafkaClientConnectionPool
             int signalId)
         {
             nextSignalerRequestId++;
-            signalerCorrelations.put(nextSignalerRequestId, (Long) initialId);
+            signalerCorrelations.put(nextSignalerRequestId, initialId);
             signaler.signalNow(originId, routedId, this.initialId, signalId, nextSignalerRequestId);
         }
 
@@ -1005,7 +1010,7 @@ public final class KafkaClientConnectionPool
             int signalId)
         {
             nextSignalerRequestId++;
-            signalerCorrelations.put(nextSignalerRequestId, (Long) initialId);
+            signalerCorrelations.put(nextSignalerRequestId, initialId);
             return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, nextSignalerRequestId);
         }
 
@@ -1164,11 +1169,14 @@ public final class KafkaClientConnectionPool
             }
             else
             {
-                Long initialId = signalerCorrelations.remove(contextId);
+                long initialId = signalerCorrelations.remove(contextId);
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
-                stream.onSignal(signal);
-            }
 
+                if (stream != null)
+                {
+                    stream.onSignal(signal);
+                }
+            }
         }
 
         private void onConnectionReset(
