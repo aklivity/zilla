@@ -15,20 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class TestValidatorConfigBuilder<T> extends ConfigBuilder<T, TestValidatorConfigBuilder<T>>
 {
     private final Function<ValidatorConfig, T> mapper;
-
-    private List<CatalogedConfig> catalogs;
 
     TestValidatorConfigBuilder(
         Function<ValidatorConfig, T> mapper)
@@ -43,25 +37,9 @@ public class TestValidatorConfigBuilder<T> extends ConfigBuilder<T, TestValidato
         return (Class<TestValidatorConfigBuilder<T>>) getClass();
     }
 
-    public CatalogedConfigBuilder<TestValidatorConfigBuilder<T>> catalog()
-    {
-        return CatalogedConfig.builder(this::catalog);
-    }
-
-    public TestValidatorConfigBuilder<T> catalog(
-        CatalogedConfig catalog)
-    {
-        if (catalogs == null)
-        {
-            catalogs = new LinkedList<>();
-        }
-        catalogs.add(catalog);
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new TestValidatorConfig(catalogs));
+        return mapper.apply(new TestValidatorConfig());
     }
 }

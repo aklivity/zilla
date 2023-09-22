@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
@@ -72,22 +71,7 @@ public class HttpRequestConfigAdapterTest
                         "\"index\": \"string\"" +
                     "}," +
                 "}," +
-                "\"content\":" +
-                "{" +
-                    "\"type\": \"test\"," +
-                    "\"catalog\": " +
-                    "{" +
-                        "test0:" +
-                        "[" +
-                            "{" +
-                                "\"schema\": \"cat\"" +
-                            "}," +
-                            "{" +
-                                "\"schema\": \"tiger\"" +
-                            "}" +
-                        "]" +
-                    "}" +
-                "}" +
+                "\"content\": \"test\"" +
              "}";
 
         // WHEN
@@ -108,10 +92,6 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.queryParams.get(0).validator.type, equalTo("string"));
         assertThat(request.content, instanceOf(TestValidatorConfig.class));
         assertThat(request.content.type, equalTo("test"));
-        CatalogedConfig test0 = ((TestValidatorConfig)request.content).catalogs.get(0);
-        assertThat(test0.name, equalTo("test0"));
-        assertThat(test0.schemas.get(0).schema, equalTo("cat"));
-        assertThat(test0.schemas.get(1).schema, equalTo("tiger"));
     }
 
     @Test
@@ -141,22 +121,7 @@ public class HttpRequestConfigAdapterTest
                         "\"index\":\"string\"" +
                     "}" +
                 "}," +
-                "\"content\":" +
-                "{" +
-                    "\"type\":\"test\"," +
-                    "\"catalog\":" +
-                    "{" +
-                        "\"test0\":" +
-                        "[" +
-                            "{" +
-                                "\"schema\":\"cat\"" +
-                            "}," +
-                            "{" +
-                                "\"schema\":\"tiger\"" +
-                            "}" +
-                        "]" +
-                    "}" +
-                "}" +
+                "\"content\":\"test\"" +
             "}";
         HttpRequestConfig request = HttpRequestConfig.builder()
             .path("/hello")
@@ -179,15 +144,6 @@ public class HttpRequestConfigAdapterTest
                     .build()
                 .build()
             .content(TestValidatorConfig::builder)
-                .catalog()
-                    .name("test0")
-                        .schema()
-                            .schema("cat")
-                            .build()
-                        .schema()
-                            .schema("tiger")
-                            .build()
-                    .build()
                 .build()
             .build();
 

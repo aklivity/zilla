@@ -45,10 +45,6 @@ bindings:
         - name: test
           value:
             type: test
-            catalog:
-              test0:
-                - strategy: topic
-                  version: latest
     routes:
       - exit: cache0
         when:

@@ -55,10 +55,6 @@ bindings:
             encoding: utf_8
           value:
             type: test
-            catalog:
-              test0:
-                - strategy: topic
-                  version: latest
     routes:
       - exit: app1
         when:

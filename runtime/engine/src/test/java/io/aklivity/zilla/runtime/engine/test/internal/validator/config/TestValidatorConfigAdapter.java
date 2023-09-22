@@ -15,19 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
@@ -35,8 +26,6 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
     private static final String TEST = "test";
-    private static final String TYPE_NAME = "type";
-    private static final String CATALOG_NAME = "catalog";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -50,51 +39,13 @@ public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, Js
     public JsonValue adaptToJson(
         ValidatorConfig config)
     {
-        TestValidatorConfig validatorConfig = (TestValidatorConfig) config;
-        JsonObjectBuilder validator = Json.createObjectBuilder();
-        validator.add(TYPE_NAME, TEST);
-        if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
-        {
-            JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : validatorConfig.catalogs)
-            {
-                JsonArrayBuilder array = Json.createArrayBuilder();
-                for (SchemaConfig schemaItem: catalog.schemas)
-                {
-                    array.add(schema.adaptToJson(schemaItem));
-                }
-                catalogs.add(catalog.name, array);
-            }
-            validator.add(CATALOG_NAME, catalogs);
-        }
-        return validator.build();
+        return Json.createValue(TEST);
     }
 
     @Override
     public ValidatorConfig adaptFromJson(
         JsonValue value)
     {
-        JsonObject object = (JsonObject) value;
-        ValidatorConfig result = null;
-        if (object.containsKey(CATALOG_NAME))
-        {
-            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
-            List<CatalogedConfig> catalogs = new LinkedList<>();
-            for (String catalogName: catalogsJson.keySet())
-            {
-                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                List<SchemaConfig> schemas = new LinkedList<>();
-                for (JsonValue item : schemasJson)
-                {
-                    JsonObject schemaJson = (JsonObject) item;
-                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
-                    schemas.add(schemaElement);
-                }
-                catalogs.add(new CatalogedConfig(catalogName, schemas));
-            }
-
-            result = new TestValidatorConfig(catalogs);
-        }
-        return result;
+        return TestValidatorConfig.builder().build();
     }
 }
