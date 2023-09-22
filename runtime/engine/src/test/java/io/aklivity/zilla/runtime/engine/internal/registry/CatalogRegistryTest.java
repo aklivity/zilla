@@ -15,41 +15,30 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.util.Objects.requireNonNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+
+import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
-public class CatalogRegistry
+public class CatalogRegistryTest
 {
-    private final CatalogConfig config;
-    private final CatalogContext context;
-
-    private CatalogHandler attached;
-
-    CatalogRegistry(
-        CatalogConfig config,
-        CatalogContext context)
+    @Test
+    public void shouldWork()
     {
-        this.config = requireNonNull(config);
-        this.context = requireNonNull(context);
-    }
+        // GIVEN
+        CatalogConfig config = new CatalogConfig("test", "test", null);
+        CatalogContext context = new CatalogContext()
+        {
+        };
+        CatalogRegistry catalog = new CatalogRegistry(config, context);
 
-    public void attach()
-    {
-        attached = context.attach(config);
-    }
+        // WHEN
+        catalog.attach();
 
-    public void detach()
-    {
-        context.detach(config);
-        attached = null;
+        // THEN
+        assertThat(catalog.handler(), nullValue());
     }
-
-    public CatalogHandler handler()
-    {
-        return attached;
-    }
-
 }
