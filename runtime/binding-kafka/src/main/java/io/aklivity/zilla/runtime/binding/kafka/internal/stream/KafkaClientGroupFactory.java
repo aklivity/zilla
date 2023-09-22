@@ -1843,20 +1843,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onNetworkEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
-
             state = KafkaState.closedReply(state);
 
             cleanupDecodeSlotIfNecessary();
-
-            if (!delegate.isApplicationReplyOpen())
-            {
-                onError(traceId);
-            }
-            else if (decodeSlot == NO_SLOT)
-            {
-                delegate.doApplicationEnd(traceId);
-            }
         }
 
         private void onNetworkAbort(
@@ -2580,20 +2569,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onNetworkEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
-
             state = KafkaState.closedReply(state);
 
             cleanupDecodeSlotIfNecessary();
-
-            if (!KafkaState.replyOpened(delegate.state))
-            {
-                cleanupNetwork(traceId);
-            }
-            else if (decodeSlot == NO_SLOT)
-            {
-                delegate.doApplicationEnd(traceId);
-            }
         }
 
         private void onNetworkAbort(
