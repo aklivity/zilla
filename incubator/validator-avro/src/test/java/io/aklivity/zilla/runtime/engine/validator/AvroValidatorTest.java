@@ -14,17 +14,20 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -47,11 +50,21 @@ public class AvroValidatorTest
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-    private final Configuration config = new Configuration();
-    private final LabelManager labels = new LabelManager(config.directory());
-    private final ToLongFunction<String> resolveId = name -> name != null ? NamespacedId.id(1, labels.supplyLabelId(name)) : 0L;
-    private final Catalog catalog = new TestCatalog(config);
-    private final CatalogContext context = catalog.supply(mock(EngineContext.class));
+    private LabelManager labels;
+    private ToLongFunction<String> resolveId;
+    private CatalogContext context;
+
+    @Before
+    public void init()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
+        Configuration config = new Configuration(properties);
+        labels = new LabelManager(config.directory());
+        resolveId = name -> name != null ? NamespacedId.id(1, labels.supplyLabelId(name)) : 0L;
+        Catalog catalog = new TestCatalog(config);
+        context = catalog.supply(mock(EngineContext.class));
+    }
 
     @Test
     public void shouldVerifyValidAvroEvent()
