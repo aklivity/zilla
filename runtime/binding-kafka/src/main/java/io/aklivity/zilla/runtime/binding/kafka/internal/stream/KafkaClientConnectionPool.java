@@ -31,6 +31,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -819,7 +820,7 @@ public final class KafkaClientConnectionPool
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final Long2LongHashMap correlations;
+        private final LongArrayQueue correlations;
         private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
@@ -841,7 +842,6 @@ public final class KafkaClientConnectionPool
         private int replyPad;
 
         private int nextRequestId;
-        private int nextResponseId;
         private int nextSignalerRequestId;
         private long connectionInitialBudgetId = NO_BUDGET_ID;
         private long reconnectAt = NO_CANCEL_ID;
@@ -854,7 +854,7 @@ public final class KafkaClientConnectionPool
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
-            this.correlations = new Long2LongHashMap(-1);
+            this.correlations = new LongArrayQueue();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
@@ -911,7 +911,7 @@ public final class KafkaClientConnectionPool
             if ((flags & FLAG_INIT) != 0x00)
             {
                 final int requestId = nextRequestId++;
-                correlations.put(requestId, connectionInitialId);
+                correlations.add(connectionInitialId);
 
                 final DirectBuffer buffer = payload.buffer();
                 final int offset = payload.offset();
@@ -1088,8 +1088,7 @@ public final class KafkaClientConnectionPool
 
             if ((flags & FLAG_INIT) != 0x00)
             {
-                final int responseId = nextResponseId++;
-                long initialId = correlations.remove(responseId);
+                long initialId = correlations.removeLong();
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
