@@ -315,10 +315,10 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.type.test.yaml")
+    @Configuration("cache.options.validate.yaml")
     @Specification({
-        "${app}/message.value.test/client",
-        "${app}/message.value.test/server"})
+        "${app}/message.value.valid/client",
+        "${app}/message.value.valid/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueTest() throws Exception
     {
@@ -327,10 +327,10 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.type.test.yaml")
+    @Configuration("cache.options.validate.yaml")
     @Specification({
-        "${app}/message.value.test.invalid/client",
-        "${app}/message.value.test.invalid/server"})
+        "${app}/message.value.invalid/client",
+        "${app}/message.value.invalid/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueTestInvalid() throws Exception
     {
