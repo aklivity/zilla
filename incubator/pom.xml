@@ -18,11 +18,13 @@
 
   <modules>
     <module>binding-amqp.spec</module>
+    <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
 
     <module>binding-amqp</module>
 
+    <module>catalog-inline</module>
     <module>catalog-schema-registry</module>
 
     <module>command-log</module>
