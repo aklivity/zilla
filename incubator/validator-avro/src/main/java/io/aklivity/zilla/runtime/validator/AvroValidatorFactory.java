@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.validator;
 
+import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -23,12 +24,17 @@ import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.validator.config.AvroValidatorConfig;
 
-public final class AvroValidatorFactorySpi implements ValidatorFactorySpi
+public final class AvroValidatorFactory implements ValidatorFactorySpi
 {
     @Override
     public String type()
     {
         return "avro";
+    }
+
+    public URL schema()
+    {
+        return getClass().getResource("schema/avro.schema.patch.json");
     }
 
     @Override

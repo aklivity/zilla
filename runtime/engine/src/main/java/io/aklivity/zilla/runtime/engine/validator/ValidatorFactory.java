@@ -19,6 +19,7 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
@@ -48,6 +49,11 @@ public final class ValidatorFactory
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
         return validatorSpi.create(config, resolveId, supplyCatalog);
+    }
+
+    public Collection<ValidatorFactorySpi> validatorSpis()
+    {
+        return validatorSpis.values();
     }
 
     private static ValidatorFactory instantiate(

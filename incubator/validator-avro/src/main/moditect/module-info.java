@@ -23,5 +23,5 @@ module io.aklivity.zilla.runtime.validator.avro
         with io.aklivity.zilla.runtime.validator.config.AvroValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.validator.AvroValidatorFactorySpi;
+        with io.aklivity.zilla.runtime.validator.AvroValidatorFactory;
 }

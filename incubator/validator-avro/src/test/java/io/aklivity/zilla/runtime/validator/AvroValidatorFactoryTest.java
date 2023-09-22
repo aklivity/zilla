@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.validator.config.AvroValidatorConfig;
 
-public class AvroValidatorFactorySpiTest
+public class AvroValidatorFactoryTest
 {
     @Test
     public void shouldCreate()
@@ -40,7 +40,7 @@ public class AvroValidatorFactorySpiTest
         ValidatorConfig validator = new AvroValidatorConfig(List.of(new CatalogedConfig("test0", List.of())), "test-value");
         ToLongFunction<String> resolveId = i -> 0L;
         LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
-        AvroValidatorFactorySpi factory = new AvroValidatorFactorySpi();
+        AvroValidatorFactory factory = new AvroValidatorFactory();
 
         // WHEN
         Validator avroValidator = factory.create(validator, resolveId, supplyCatalog);

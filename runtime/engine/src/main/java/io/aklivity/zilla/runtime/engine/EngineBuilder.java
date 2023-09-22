@@ -33,6 +33,8 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -129,9 +131,12 @@ public class EngineBuilder
             catalogs.add(catalog);
         }
 
+        final ValidatorFactory validators = ValidatorFactory.instantiate();
+        Collection<ValidatorFactorySpi> validatorFactories = validators.validatorSpis();
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, errorHandler, affinities, readonly);
+                catalogs, validatorFactories, errorHandler, affinities, readonly);
     }
 }

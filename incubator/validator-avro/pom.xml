@@ -124,7 +124,7 @@
                   <fileMappers>
                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                       <pattern>^\Qio/aklivity/zilla/specs/validator/avro/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/validator/avro/internal/</replacement>
+                      <replacement>io/aklivity/zilla/runtime/validator/</replacement>
                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>

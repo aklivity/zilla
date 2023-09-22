@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 
-public class TestValidatorFactorySpi implements ValidatorFactorySpi
+public class TestValidatorFactory implements ValidatorFactorySpi
 {
     @Override
     public String type()

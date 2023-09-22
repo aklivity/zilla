@@ -77,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -107,6 +108,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<ValidatorFactorySpi> validatorFactories,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -180,6 +182,8 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(validatorFactories.stream().map(ValidatorFactorySpi::schema).filter(Objects::nonNull)
+            .collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
