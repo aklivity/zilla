@@ -284,7 +284,8 @@ public class EngineConfiguration extends Configuration
     private static int defaultBudgetsBufferCapacity(
         Configuration config)
     {
-        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * ENGINE_WORKER_CAPACITY.getAsInt(config);
+        // more consistent with original defaults
+        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512 * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
     private static URL configURL(
