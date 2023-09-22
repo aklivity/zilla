@@ -1867,9 +1867,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
-
-            onError(traceId);
+            if (!delegate.isApplicationReplyOpen())
+            {
+                onError(traceId);
+            }
+            else if (decodeSlot == NO_SLOT)
+            {
+                delegate.doApplicationEnd(traceId);
+            }
         }
 
         private void onNetworkWindow(

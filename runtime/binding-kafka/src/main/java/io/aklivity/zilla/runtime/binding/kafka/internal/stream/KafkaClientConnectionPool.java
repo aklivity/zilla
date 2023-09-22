@@ -68,6 +68,7 @@ public final class KafkaClientConnectionPool
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000001;
+    private static final int SIGNAL_STREAM_REPLY_BEGIN = 0x80000002;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -650,9 +651,7 @@ public final class KafkaClientConnectionPool
 
             connection.doConnectionBegin(traceId, host, port);
 
-            signaler.signalAt(currentTimeMillis(), (int) traceId, this::doStreamBegin);
-            signaler.signalAt(currentTimeMillis(), (int) traceId, this::doInitialStreamWindow);
-
+            connection.doConnectionSignalNow(initialId, SIGNAL_STREAM_REPLY_BEGIN);
         }
 
         private void onStreamData(
@@ -744,18 +743,9 @@ public final class KafkaClientConnectionPool
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, initialBud, EMPTY_EXTENSION);
-        }
 
-        private void doInitialStreamWindow(
-            long traceId)
-        {
-            if (!KafkaState.initialClosed(state))
-            {
-                state = KafkaState.openedInitial(state);
-
-                doStreamWindow(connection.authorization, traceId,
-                    connection.connectionInitialBudgetId, connection.initialPad);
-            }
+            doStreamWindow(connection.authorization, traceId, connection.connectionInitialBudgetId,
+                connection.initialPad);
         }
 
         private void doStreamData(
@@ -835,7 +825,15 @@ public final class KafkaClientConnectionPool
         {
             final long traceId = signal.traceId();
             final int signalId = signal.signalId();
-            doSignal(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, signalId);
+
+            if (signalId == SIGNAL_STREAM_REPLY_BEGIN)
+            {
+                doStreamBegin(traceId);
+            }
+            else
+            {
+                doSignal(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, signalId);
+            }
         }
     }
 
