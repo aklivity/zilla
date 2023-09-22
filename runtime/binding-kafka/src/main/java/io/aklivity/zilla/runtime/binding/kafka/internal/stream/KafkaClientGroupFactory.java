@@ -1562,9 +1562,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (!KafkaState.replyClosed(state))
             {
+                state = KafkaState.closedReply(state);
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, 0, EMPTY_EXTENSION);
-                state = KafkaState.closedReply(state);
             }
         }
 
@@ -1874,14 +1874,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = reset.traceId();
 
-            if (!delegate.isApplicationReplyOpen())
-            {
-                onError(traceId);
-            }
-            else if (decodeSlot == NO_SLOT)
-            {
-                delegate.doApplicationEnd(traceId);
-            }
+            state = KafkaState.closedInitial(state);
+
+            onError(traceId);
         }
 
         private void onNetworkWindow(
@@ -2025,10 +2020,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (!KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
-
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
+                state = KafkaState.closedInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -2376,6 +2370,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             doNetworkAbort(traceId);
             doNetworkReset(traceId);
+
+            delegate.cleanupApplication(traceId, EMPTY_OCTETS);
         }
 
         private void cleanupDecodeSlotIfNecessary()
@@ -2704,8 +2700,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, EMPTY_EXTENSION);
-
-            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
 
         @Override
@@ -3435,8 +3429,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, extension);
-
-            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
 
         @Override
