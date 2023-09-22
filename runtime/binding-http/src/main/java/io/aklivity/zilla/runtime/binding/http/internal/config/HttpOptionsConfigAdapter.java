@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CRO
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -39,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpExposeConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
@@ -67,6 +70,9 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String MAX_AGE_NAME = "max-age";
     private static final String EXPOSE_NAME = "expose";
     private static final String EXPOSE_HEADERS_NAME = "headers";
+    private static final String REQUESTS_NAME = "requests";
+
+    private final HttpRequestConfigAdapter httpRequest = new HttpRequestConfigAdapter();
 
     @Override
     public Kind kind()
@@ -226,6 +232,15 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             object.add(OVERRIDES_NAME, entries);
         }
 
+        if (httpOptions.requests != null)
+        {
+            JsonArrayBuilder requests = Json.createArrayBuilder();
+            httpOptions.requests.stream()
+                .map(httpRequest::adaptToJson)
+                .forEach(requests::add);
+            object.add(REQUESTS_NAME, requests);
+        }
+
         return object.build();
     }
 
@@ -369,6 +384,14 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             object.getJsonObject(OVERRIDES_NAME)
                 .forEach((k, v) ->
                     httpOptions.override(new String8FW(k), new String16FW(JsonString.class.cast(v).getString())));
+        }
+
+        if (object.containsKey(REQUESTS_NAME))
+        {
+            List<HttpRequestConfig> requests = object.getJsonArray(REQUESTS_NAME).stream()
+                .map(item -> httpRequest.adaptFromJson((JsonObject) item))
+                .collect(Collectors.toList());
+            httpOptions.requests(requests);
         }
 
         return httpOptions.build();

@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -27,8 +26,6 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class IntegerValidatorConfigAdapterTest
 {
@@ -52,25 +49,22 @@ public class IntegerValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        IntegerValidatorConfig integerValidator = jsonb.fromJson(json, IntegerValidatorConfig.class);
+        IntegerValidatorConfig validator = jsonb.fromJson(json, IntegerValidatorConfig.class);
 
         // THEN
-        assertThat(integerValidator, not(nullValue()));
-        assertThat(integerValidator.type, equalTo("integer"));
+        assertThat(validator, not(nullValue()));
+        assertThat(validator.type, equalTo("integer"));
     }
 
     @Test
     public void shouldWriteIntegerValidator()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"type\":\"integer\"" +
-            "}";
-        ValidatorConfig integerValidator = new IntegerValidatorConfigBuilder<>(identity()).build();
+        String expectedJson = "\"integer\"";
+        IntegerValidatorConfig validator = IntegerValidatorConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(integerValidator);
+        String json = jsonb.toJson(validator);
 
         // THEN
         assertThat(json, not(nullValue()));
