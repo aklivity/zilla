@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.GENERATED_SUBSCRIPTION_ID_MASK;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.BAD_AUTHENTICATION_METHOD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
@@ -2309,7 +2310,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             MqttPropertyFW mqttProperty;
 
             final int subscriptionId = subscriptions.get(0).id;
-            if (subscriptionId != 0)
+            if (subscriptionId != 0 && !generatedSubscriptionId(subscriptionId))
             {
                 mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .subscriptionId(i -> i.set(subscriptionId))
@@ -2349,6 +2350,12 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             sessionStream.unAckedSubscriptionsByPacketId.put(packetId, subscriptions);
             doNetworkData(traceId, authorization, 0L, subscribe);
+        }
+
+        private boolean generatedSubscriptionId(
+            int subscriptionId)
+        {
+            return (subscriptionId & GENERATED_SUBSCRIPTION_ID_MASK) == GENERATED_SUBSCRIPTION_ID_MASK;
         }
 
         private void doEncodeUnsubscribe(

@@ -44,9 +44,8 @@ read   [0x10 0x13]                   # CONNECT
        [0x00]                        # properties = none
        [0x00 0x06] "client"          # client id
 
-write  [0x20 0x03]                   # CONNACK
-       [0x00]                        # flags = none
-       [0x82]                        # reason = protocol error
-       [0x00]                        # properties = none
+write [0xe0 0x02]                   # DISCONNECT
+      [0x82]                        # reason = protocol error
+      [0x00]                        # properties = none
 
 write close

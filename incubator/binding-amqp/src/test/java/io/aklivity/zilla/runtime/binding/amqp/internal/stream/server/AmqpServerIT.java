@@ -49,9 +49,7 @@ public class AmqpServerIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(AMQP_CONTAINER_ID, "server")
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(AMQP_CLOSE_EXCHANGE_TIMEOUT, 500)
