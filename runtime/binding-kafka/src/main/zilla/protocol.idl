@@ -484,6 +484,7 @@ scope protocol
 
             struct OffsetFetchResponse
             {
+                int32 correlationId;
                 int32 topicCount;
             }
 

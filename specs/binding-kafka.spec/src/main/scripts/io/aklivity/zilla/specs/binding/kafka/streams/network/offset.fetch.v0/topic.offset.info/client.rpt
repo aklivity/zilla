@@ -39,7 +39,8 @@ write 38                                # size
         1                               # partitions
           0                             # partition
 
-read 30                                 # size
+read 34                                 # size
+     (int:newRequestId)
      1                                  # topics
        4s "test"                          # "test" topic
        1                                  # partitions
