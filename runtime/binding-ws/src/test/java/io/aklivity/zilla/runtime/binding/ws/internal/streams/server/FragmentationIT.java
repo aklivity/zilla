@@ -42,9 +42,7 @@ public class FragmentationIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(4096)
+        .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
         .external("app0")
         .clean();

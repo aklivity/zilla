@@ -44,15 +44,11 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
-    public static final IntPropertyDef ENGINE_BUDGETS_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_LOAD_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_COMMAND_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_RESPONSE_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_COUNTERS_BUFFER_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
-    public static final IntPropertyDef ENGINE_ROUTES_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_COUNTERS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_BUDGETS_BUFFER_CAPACITY;
     public static final BooleanPropertyDef ENGINE_TIMESTAMPS;
     public static final IntPropertyDef ENGINE_MAXIMUM_MESSAGES_PER_READ;
     public static final IntPropertyDef ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL;
@@ -83,15 +79,11 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
-        ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity", 1024 * 1024);
-        ENGINE_LOAD_BUFFER_CAPACITY = config.property("load.buffer.capacity", 1024 * 8);
-        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity", 1024 * 1024);
-        ENGINE_COMMAND_BUFFER_CAPACITY = config.property("command.buffer.capacity", 1024 * 1024);
-        ENGINE_RESPONSE_BUFFER_CAPACITY = config.property("response.buffer.capacity", 1024 * 1024);
-        ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
-        ENGINE_ROUTES_BUFFER_CAPACITY = config.property("routes.buffer.capacity", 1024 * 1024);
+        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity", 1024 * 1024);
+        ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity", 1024 * 1024);
+        ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
         ENGINE_TIMESTAMPS = config.property("timestamps", true);
         ENGINE_MAXIMUM_MESSAGES_PER_READ = config.property("maximum.messages.per.read", Integer.MAX_VALUE);
         ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL = config.property("maximum.expirations.per.poll", Integer.MAX_VALUE);
@@ -172,9 +164,19 @@ public class EngineConfiguration extends Configuration
         return ENGINE_BUFFER_SLOT_CAPACITY.getAsInt(this);
     }
 
-    public int maximumStreamsCount()
+    public int budgetsBufferCapacity()
     {
-        return bufferPoolCapacity() / bufferSlotCapacity();
+        return ENGINE_BUDGETS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
+    public int streamsBufferCapacity()
+    {
+        return ENGINE_STREAMS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
+    public int countersBufferCapacity()
+    {
+        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
     }
 
     public int maximumMessagesPerRead()
@@ -190,51 +192,6 @@ public class EngineConfiguration extends Configuration
     public int taskParallelism()
     {
         return ENGINE_TASK_PARALLELISM.getAsInt(this);
-    }
-
-    public int budgetsBufferCapacity()
-    {
-        return ENGINE_BUDGETS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int streamsBufferCapacity()
-    {
-        return ENGINE_STREAMS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int commandBufferCapacity()
-    {
-        return ENGINE_COMMAND_BUFFER_CAPACITY.get(this);
-    }
-
-    public int responseBufferCapacity()
-    {
-        return ENGINE_RESPONSE_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int loadBufferCapacity()
-    {
-        return ENGINE_LOAD_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int routesBufferCapacity()
-    {
-        return ENGINE_ROUTES_BUFFER_CAPACITY.get(this);
-    }
-
-    public int counterBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int counterValuesBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int counterLabelsBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this) * 2;
     }
 
     public boolean timestamps()
