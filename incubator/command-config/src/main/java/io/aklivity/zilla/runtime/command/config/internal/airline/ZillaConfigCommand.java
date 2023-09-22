@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.command.config.internal.asyncapi.http.proxy.Asy
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.mqtt.proxy.AsyncApiMqttProxyConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.openapi.http.proxy.OpenApiHttpProxyConfigGenerator;
 
-@Command(name = "config", description = "Generate configuration file")
+@Command(name = "generate", description = "Generate configuration file")
 public final class ZillaConfigCommand extends ZillaCommand
 {
     private static final Map<String, Function<InputStream, ConfigGenerator>> GENERATORS = Map.of(
