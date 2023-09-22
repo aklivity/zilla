@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SERVER_REFERENCE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -44,9 +43,7 @@ public class SessionIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
@@ -224,7 +221,6 @@ public class SessionIT
     @Specification({
         "${net}/session.server.redirect.after.connack/client",
         "${app}/session.server.redirect.after.connack/server"})
-    @Configure(name = SERVER_REFERENCE_NAME, value = "mqtt-1.example.com:1883")
     public void shouldRedirectAfterConnack() throws Exception
     {
         k3po.finish();
@@ -235,7 +231,6 @@ public class SessionIT
     @Specification({
         "${net}/session.server.redirect.before.connack/client",
         "${app}/session.server.redirect.before.connack/server"})
-    @Configure(name = SERVER_REFERENCE_NAME, value = "mqtt-1.example.com:1883")
     public void shouldRedirectBeforeConnack() throws Exception
     {
         k3po.finish();

@@ -23,9 +23,9 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.RETAIN_AVAILABLE;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SERVER_REFERENCE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_EXPIRY_GRACE_PERIOD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.TOPIC_ALIAS_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION;
@@ -48,7 +48,7 @@ public class MqttConfigurationTest
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
     public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
-    public static final String SERVER_REFERENCE_NAME = "zilla.binding.mqtt.server.reference";
+    public static final String SUBSCRIPTION_ID_NAME = "zilla.binding.mqtt.subscription.id";
 
     @Test
     public void shouldVerifyConstants()
@@ -66,6 +66,6 @@ public class MqttConfigurationTest
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
         assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);
-        assertEquals(SERVER_REFERENCE.name(), SERVER_REFERENCE_NAME);
+        assertEquals(SUBSCRIPTION_ID.name(), SUBSCRIPTION_ID_NAME);
     }
 }

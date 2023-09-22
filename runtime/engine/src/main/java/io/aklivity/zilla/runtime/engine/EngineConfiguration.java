@@ -34,6 +34,8 @@ import java.util.function.Function;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
+
 public class EngineConfiguration extends Configuration
 {
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
@@ -44,15 +46,12 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
-    public static final IntPropertyDef ENGINE_BUDGETS_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_LOAD_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_COMMAND_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_RESPONSE_BUFFER_CAPACITY;
-    public static final IntPropertyDef ENGINE_COUNTERS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
-    public static final IntPropertyDef ENGINE_ROUTES_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_COUNTERS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_BUDGETS_BUFFER_CAPACITY;
     public static final BooleanPropertyDef ENGINE_TIMESTAMPS;
     public static final IntPropertyDef ENGINE_MAXIMUM_MESSAGES_PER_READ;
     public static final IntPropertyDef ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL;
@@ -83,24 +82,22 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
-        ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity", 1024 * 1024);
-        ENGINE_LOAD_BUFFER_CAPACITY = config.property("load.buffer.capacity", 1024 * 8);
-        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity", 1024 * 1024);
-        ENGINE_COMMAND_BUFFER_CAPACITY = config.property("command.buffer.capacity", 1024 * 1024);
-        ENGINE_RESPONSE_BUFFER_CAPACITY = config.property("response.buffer.capacity", 1024 * 1024);
-        ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
+        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", 64);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
-        ENGINE_ROUTES_BUFFER_CAPACITY = config.property("routes.buffer.capacity", 1024 * 1024);
+        ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
+                EngineConfiguration::defaultStreamsBufferCapacity);
+        ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity",
+                EngineConfiguration::defaultBudgetsBufferCapacity);
+        ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
         ENGINE_TIMESTAMPS = config.property("timestamps", true);
         ENGINE_MAXIMUM_MESSAGES_PER_READ = config.property("maximum.messages.per.read", Integer.MAX_VALUE);
         ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL = config.property("maximum.expirations.per.poll", Integer.MAX_VALUE);
         ENGINE_TASK_PARALLELISM = config.property("task.parallelism", 1);
         ENGINE_BACKOFF_MAX_SPINS = config.property("backoff.idle.strategy.max.spins", 64L);
         ENGINE_BACKOFF_MAX_YIELDS = config.property("backoff.idle.strategy.max.yields", 64L);
-        // TODO: shorten property name string values to match constant naming
-        ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.idle.strategy.min.park.period", NANOSECONDS.toNanos(64L));
-        ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.idle.strategy.max.park.period", MILLISECONDS.toNanos(1L));
+        ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.min.park.nanos", NANOSECONDS.toNanos(64L));
+        ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.max.park.nanos", MILLISECONDS.toNanos(100L));
         ENGINE_DRAIN_ON_CLOSE = config.property("drain.on.close", false);
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
@@ -172,9 +169,19 @@ public class EngineConfiguration extends Configuration
         return ENGINE_BUFFER_SLOT_CAPACITY.getAsInt(this);
     }
 
-    public int maximumStreamsCount()
+    public int budgetsBufferCapacity()
     {
-        return bufferPoolCapacity() / bufferSlotCapacity();
+        return ENGINE_BUDGETS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
+    public int streamsBufferCapacity()
+    {
+        return ENGINE_STREAMS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
+    public int countersBufferCapacity()
+    {
+        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
     }
 
     public int maximumMessagesPerRead()
@@ -190,51 +197,6 @@ public class EngineConfiguration extends Configuration
     public int taskParallelism()
     {
         return ENGINE_TASK_PARALLELISM.getAsInt(this);
-    }
-
-    public int budgetsBufferCapacity()
-    {
-        return ENGINE_BUDGETS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int streamsBufferCapacity()
-    {
-        return ENGINE_STREAMS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int commandBufferCapacity()
-    {
-        return ENGINE_COMMAND_BUFFER_CAPACITY.get(this);
-    }
-
-    public int responseBufferCapacity()
-    {
-        return ENGINE_RESPONSE_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int loadBufferCapacity()
-    {
-        return ENGINE_LOAD_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int routesBufferCapacity()
-    {
-        return ENGINE_ROUTES_BUFFER_CAPACITY.get(this);
-    }
-
-    public int counterBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int counterValuesBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
-    }
-
-    public int counterLabelsBufferCapacity()
-    {
-        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this) * 2;
     }
 
     public boolean timestamps()
@@ -310,7 +272,19 @@ public class EngineConfiguration extends Configuration
     private static int defaultBufferPoolCapacity(
         Configuration config)
     {
-        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * 64;
+        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
+    }
+
+    private static int defaultStreamsBufferCapacity(
+        Configuration config)
+    {
+        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
+    }
+
+    private static int defaultBudgetsBufferCapacity(
+        Configuration config)
+    {
+        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
     private static URL configURL(

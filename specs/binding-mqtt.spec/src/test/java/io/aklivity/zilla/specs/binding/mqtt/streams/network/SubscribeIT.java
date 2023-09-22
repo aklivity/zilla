@@ -184,6 +184,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/client",
+        "${net}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/server"})
+    public void shouldFilterIsolatedBothExactNoSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
         "${net}/subscribe.topic.filters.isolated.both.wildcard/server"})
     public void shouldFilterIsolatedBothWildcard() throws Exception
