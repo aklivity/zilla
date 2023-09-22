@@ -411,8 +411,7 @@
                     "test",
                     "string",
                     "integer",
-                    "long",
-                    "avro"
+                    "long"
                 ]
             },
             "schema":

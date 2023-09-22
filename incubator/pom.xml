@@ -20,6 +20,7 @@
     <module>binding-amqp.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
+    <module>validator-avro.spec</module>
 
     <module>binding-amqp</module>
 

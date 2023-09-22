@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>validator-avro</artifactId>
-  <name>zilla::incubator::validator-avro</name>
+  <artifactId>validator-avro.spec</artifactId>
+  <name>zilla::incubator::validator-avro.spec</name>
 
   <licenses>
     <license>
@@ -26,42 +26,29 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.80</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>validator-avro.spec</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>engine</artifactId>
+      <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>engine</artifactId>
-      <type>test-jar</type>
-      <version>${project.version}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jmock</groupId>
-      <artifactId>jmock-junit4</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -72,6 +59,15 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/scripts</directory>
+      </resource>
+    </resources>
+
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
@@ -83,11 +79,12 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.validator.avro.internal.types</packageName>
+          <packageName>io.aklivity.zilla.specs.validator.avro.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
             <goals>
+              <goal>validate</goal>
               <goal>generate</goal>
             </goals>
           </execution>
@@ -109,73 +106,25 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>validator-avro.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/validator/avro/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/validator/avro/internal/</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/validator/avro/schema/avro.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>org.apache.avro:avro</include>
-                </includes>
-              </artifactSet>
-              <relocations>
-                <relocation>
-                  <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.engine.validator.avro</shadedPattern>
-                </relocation>
-              </relocations>
-              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
-              <minimizeJar>true</minimizeJar>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -186,7 +135,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/validator/avro/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/validator/avro/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
