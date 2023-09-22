@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
-public final class AvroValidatorFactory implements ValidatorFactorySpi
+public final class AvroValidatorFactorySpi implements ValidatorFactorySpi
 {
     @Override
     public String type()
