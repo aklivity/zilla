@@ -165,40 +165,6 @@ public final class KafkaClientConnectionPool
         return newStream;
     }
 
-    private MessageConsumer newStream(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension)
-            .build();
-
-        final MessageConsumer receiver =
-            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-
-        return receiver;
-    }
-
     private KafkaClientConnection newConnection(
         long originId,
         long routedId,
