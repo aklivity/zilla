@@ -32,9 +32,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 
 public final class KafkaClientFactory implements KafkaStreamFactory
 {
@@ -45,8 +43,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-    private final ValidatorFactory validatorFactory;
+    private final EngineContext context;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -89,15 +86,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
-        this.supplyCatalog = context::supplyCatalog;
-        this.validatorFactory = ValidatorFactory.instantiate();
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, supplyCatalog, validatorFactory);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
 
         KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);

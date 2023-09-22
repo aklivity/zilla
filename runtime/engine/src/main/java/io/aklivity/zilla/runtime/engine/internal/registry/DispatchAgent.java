@@ -60,6 +60,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -95,6 +96,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -130,6 +132,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -204,6 +208,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
+    private final ValidatorFactory validatorFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -224,6 +229,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<MetricGroup> metricGroups,
+        ValidatorFactory validatorFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -391,6 +397,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
+        this.validatorFactory = validatorFactory;
     }
 
     public static int indexOfId(
@@ -852,6 +859,13 @@ public class DispatchAgent implements EngineContext, Agent
         return histogramsLayout.supplyWriter(bindingId, metricId);
     }
 
+    @Override
+    public Validator createValidator(
+        ValidatorConfig validator,
+        ToLongFunction<String> resolveId)
+    {
+        return validatorFactory.create(validator, resolveId, this::supplyCatalog);
+    }
 
     private void onSystemMessage(
         int msgTypeId,
