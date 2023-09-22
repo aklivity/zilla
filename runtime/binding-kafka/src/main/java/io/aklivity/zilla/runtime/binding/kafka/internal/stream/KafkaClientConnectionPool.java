@@ -206,6 +206,7 @@ public final class KafkaClientConnectionPool
 
         return receiver;
     }
+
     private void doBegin(
         MessageConsumer receiver,
         long originId,
