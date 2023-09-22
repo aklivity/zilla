@@ -84,7 +84,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/leader/client",
         "${net}/coordinator.reject.invalid.consumer/server"})
-    public void shouldHRejectInvalidConsumer() throws Exception
+    public void shouldRejectInvalidConsumer() throws Exception
     {
         k3po.finish();
     }
