@@ -30,8 +30,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class HttpRequestConfigAdapterTest
 {

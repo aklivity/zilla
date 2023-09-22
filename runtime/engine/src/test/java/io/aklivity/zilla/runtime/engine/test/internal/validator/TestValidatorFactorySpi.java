@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.validator;
+package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 
-public class TestValidatorFactory implements ValidatorFactorySpi
+public class TestValidatorFactorySpi implements ValidatorFactorySpi
 {
     @Override
     public String type()
