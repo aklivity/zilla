@@ -84,6 +84,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     public static final int DATA_FIN_FLAG = 0x03;
+    public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
+
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -904,8 +906,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             {
                                 if (((filters >> i) & 1) == 1)
                                 {
-                                    long subscriptionId = mqtt.messagesSubscriptionIds.get(i);
-                                    subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
+                                    int subscriptionId = mqtt.messagesSubscriptionIds.get(i);
+                                    if (!generatedSubscriptionId(subscriptionId))
+                                    {
+                                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
+                                    }
                                 }
                             }
                             b.flags(flag);
@@ -979,6 +984,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     }
                 }
             }
+        }
+
+        private boolean generatedSubscriptionId(
+            int subscriptionId)
+        {
+            return (subscriptionId & GENERATED_SUBSCRIPTION_ID_MASK) == GENERATED_SUBSCRIPTION_ID_MASK;
         }
 
         private void flushData(
