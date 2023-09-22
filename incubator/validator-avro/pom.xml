@@ -153,7 +153,7 @@
               <relocations>
                 <relocation>
                   <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.validator.avro</shadedPattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.validator.avro.internal.avro</shadedPattern>
                 </relocation>
               </relocations>
               <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
