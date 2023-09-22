@@ -20,6 +20,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.MessageFormat;
 
+import org.agrona.collections.Int2ObjectCache;
+
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -33,6 +35,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final HttpClient client;
     private final String baseUrl;
     private final RegisterSchemaRequest request;
+    private final Int2ObjectCache<String> cache;
 
     public SchemaRegistryCatalogHandler(
         SchemaRegistryOptionsConfig config)
@@ -40,6 +43,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
         this.request = new RegisterSchemaRequest();
+        this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
     @Override
@@ -58,6 +62,10 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         {
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             schemaId = response.statusCode() == 200 ? request.resolveResponse(response.body()) : NO_SCHEMA_ID;
+            if (schemaId != NO_SCHEMA_ID)
+            {
+                cache.put(schemaId, schema);
+            }
         }
         catch (Exception ex)
         {
@@ -70,8 +78,18 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public String resolve(
         int schemaId)
     {
-        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-        return response != null ? request.resolveSchemaResponse(response) : null;
+        String schema;
+        if (cache.containsKey(schemaId))
+        {
+            schema = cache.get(schemaId);
+        }
+        else
+        {
+            String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+            schema = response != null ? request.resolveSchemaResponse(response) : null;
+            cache.put(schemaId, schema);
+        }
+        return schema;
     }
 
     @Override
