@@ -106,7 +106,7 @@ write 116                               # size
         ${kafka:randomBytes(14)}             # metadata
 
 
-read  123                                               # size
+read  125                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error

@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
@@ -60,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaClientConnectionPool
 {
     private static final long NO_DELTA = -1L;
+    private static final int KAFKA_FRAME_LENGTH_FIELD_OFFSET = 4;
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
     private static final int FLAG_SKIP = 0x08;
@@ -82,6 +84,7 @@ public final class KafkaClientConnectionPool
     private final WindowFW windowRO = new WindowFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
+    private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
 
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -100,7 +103,7 @@ public final class KafkaClientConnectionPool
     private final int proxyTypeId;
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer encodeBuffer;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -118,7 +121,7 @@ public final class KafkaClientConnectionPool
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.encodeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -845,6 +848,8 @@ public final class KafkaClientConnectionPool
         private int nextSignalerRequestId;
         private long connectionInitialBudgetId = NO_BUDGET_ID;
         private long reconnectAt = NO_CANCEL_ID;
+        private int requestBytes;
+        private int responseBytes;
 
         private KafkaClientConnection(
             long originId,
@@ -908,7 +913,7 @@ public final class KafkaClientConnectionPool
             OctetsFW payload,
             Flyweight extension)
         {
-            if ((flags & FLAG_INIT) != 0x00)
+            if (requestBytes == 0)
             {
                 final int requestId = nextRequestId++;
                 correlations.add(connectionInitialId);
@@ -918,9 +923,10 @@ public final class KafkaClientConnectionPool
                 final int limit = payload.limit();
 
                 RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
+                requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
 
                 int progress = 0;
-                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(extBuffer, 0, extBuffer.capacity())
+                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(encodeBuffer, 0, encodeBuffer.capacity())
                     .length(requestHeader.length())
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
@@ -930,16 +936,20 @@ public final class KafkaClientConnectionPool
                 progress = newRequestHeader.limit();
 
                 final int remaining = payload.sizeof() - progress;
-                extBuffer.putBytes(progress, buffer, requestHeader.limit(), remaining);
+                encodeBuffer.putBytes(progress, buffer, requestHeader.limit(), remaining);
 
                 final int length = progress + remaining;
                 doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, flags, budgetId, reserved, extBuffer, 0, length, extension);
+                    traceId, authorization, flags, budgetId, reserved, encodeBuffer, 0, length, extension);
+
+                requestBytes -= length;
+                assert requestBytes >= 0;
             }
             else
             {
                 doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, flags, budgetId, reserved, payload, extension);
+                requestBytes -= payload.sizeof();
             }
 
             initialSeq += reserved;
@@ -1086,13 +1096,28 @@ public final class KafkaClientConnectionPool
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            if ((flags & FLAG_INIT) != 0x00)
+            if (responseBytes == 0)
             {
-                long initialId = correlations.removeLong();
+                final DirectBuffer buffer = payload.buffer();
+                final int limit = payload.limit();
+                int progress = payload.offset();
 
-                KafkaClientStream stream = streamsByInitialIds.get(initialId);
+                final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
+                responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+            }
 
-                stream.doStreamData(traceId, flags, sequence, acknowledge, reserved, payload, extension);
+            long initialId = correlations.peekLong();
+
+            KafkaClientStream stream = streamsByInitialIds.get(initialId);
+
+            stream.doStreamData(traceId, flags, sequence, acknowledge, reserved, payload, extension);
+
+            responseBytes -= payload.sizeof();
+            assert responseBytes >= 0;
+
+            if (responseBytes == 0)
+            {
+                correlations.remove();
             }
         }
 
