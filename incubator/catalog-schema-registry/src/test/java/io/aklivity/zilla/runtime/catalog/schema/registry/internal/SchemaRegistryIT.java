@@ -108,4 +108,49 @@ public class SchemaRegistryIT
         assertThat(schemaId, not(nullValue()));
         assertEquals(schemaId, 1);
     }
+
+    @Test
+    @Specification({
+        "${local}/resolve.schema.via.schema.id" })
+    public void shouldResolveSchemaViaSchemaIdFromCache() throws Exception
+    {
+        String expected = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+                "{\"name\":\"status\",\"type\":\"string\"}]," +
+                "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        catalog.resolve(9);
+
+        k3po.finish();
+
+        String schema = catalog.resolve(9);
+
+        assertThat(schema, not(nullValue()));
+        assertEquals(expected, schema);
+    }
+
+    @Test
+    @Specification({
+        "${local}/resolve.schema.via.subject.version" })
+    public void shouldResolveSchemaViaSubjectVersionFromCache() throws Exception
+    {
+        String expected = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+                "{\"name\":\"status\",\"type\":\"string\"}]," +
+                "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        catalog.resolve(catalog.resolve("items-snapshots-value", "latest"));
+
+        k3po.finish();
+
+        int schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        String schema = catalog.resolve(schemaId);
+
+        assertEquals(schemaId, 9);
+        assertThat(schema, not(nullValue()));
+        assertEquals(expected, schema);
+    }
 }
