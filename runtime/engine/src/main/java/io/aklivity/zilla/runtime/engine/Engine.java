@@ -184,8 +184,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema)
-            .filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));

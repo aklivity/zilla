@@ -26,10 +26,7 @@ public interface ValidatorFactorySpi
 {
     String type();
 
-    default URL schema()
-    {
-        return null;
-    }
+    URL schema();
 
     Validator create(
         ValidatorConfig config,

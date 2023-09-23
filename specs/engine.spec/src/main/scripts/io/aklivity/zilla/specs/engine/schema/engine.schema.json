@@ -407,9 +407,7 @@
             "types":
             {
                 "type": "string",
-                "enum": [
-                    "test"
-                ]
+                "enum": []
             },
             "schema":
             {
