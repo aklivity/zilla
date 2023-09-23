@@ -16,12 +16,11 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
-
-import io.aklivity.zilla.runtime.engine.internal.config.NamespaceRef;
 
 public class NamespaceConfig
 {
@@ -30,15 +29,20 @@ public class NamespaceConfig
     public transient Function<String, String> readURL;
 
     public final String name;
-    public final List<NamespaceRef> references;
+    public final List<NamespaceRefConfig> references;
     public final TelemetryConfig telemetry;
     public final List<BindingConfig> bindings;
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
 
-    public NamespaceConfig(
+    public static NamespaceConfigBuilder<NamespaceConfig> builder()
+    {
+        return new NamespaceConfigBuilder<>(identity());
+    }
+
+    NamespaceConfig(
         String name,
-        List<NamespaceRef> references,
+        List<NamespaceRefConfig> references,
         TelemetryConfig telemetry,
         List<BindingConfig> bindings,
         List<GuardConfig> guards,

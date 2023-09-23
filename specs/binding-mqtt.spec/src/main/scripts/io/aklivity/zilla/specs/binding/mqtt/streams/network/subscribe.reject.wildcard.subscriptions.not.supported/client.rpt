@@ -1,0 +1,50 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write [0x10 0x13]                   # CONNECT
+      [0x00 0x04] "MQTT"            # protocol name
+      [0x05]                        # protocol version
+      [0x02]                        # flags = clean start
+      [0x00 0x3c]                   # keep alive = 60s
+      [0x00]                        # properties = none
+      [0x00 0x06] "client"          # client id
+
+read  [0x20 0x0a]                   # CONNACK
+      [0x00]                        # flags = none
+      [0x00]                        # reason code
+      [0x07]                        # properties
+      [0x27] 66560                  # maximum packet size = 66560
+      [0x28 0x00]                   # wildcard subscription unavailable
+
+write [0x82 0x14]                   # SUBSCRIBE
+      [0x00 0x01]                   # packet id = 1
+      [0x02]                        # properties
+      [0x0b 0x01]                   # subscription id = 1
+      [0x00 0x0c] "sensor/one/#"    # topic filter
+      [0x00]                        # options = at-most-once, send retained
+
+read  [0xe0 0x02]                   # DISCONNECT
+      [0xa2]                        # wildcard subscription unavailable
+      [0x00]                        # properties = none
+
+read closed

@@ -46,9 +46,7 @@ public class CacheMergedIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(16384)
+        .countersBufferCapacity(16384)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CACHE_SERVER_BOOTSTRAP, false)
         .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
@@ -406,6 +404,16 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
+        "${app}/merged.produce.message.values.dynamic.hash.key/client",
+        "${app}/unmerged.produce.message.values.dynamic.hash.key/server"})
+    public void shouldProduceMergedMessageValuesDynamicHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
         "${app}/merged.produce.message.flags.incomplete/client",
         "${app}/unmerged.produce.message.flags.incomplete/server"})
     public void shouldProduceMergedMessageFlagsIncomplete() throws Exception
@@ -572,6 +580,36 @@ public class CacheMergedIT
         "${app}/merged.fetch.filter.headers.skip.many/client",
         "${app}/unmerged.fetch.filter.none/server"})
     public void shouldReceiveMessagesWithHeadersSkipManyFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.group.fetch.message.value/client",
+        "${app}/unmerged.group.fetch.message.value/server"})
+    public void shouldFetchGroupMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.group.produce.invalid.partition/client",
+        "${app}/unmerged.group.produce.invalid.partition/server"})
+    public void shouldRejectMessageForInvalidPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.group.produce.message.value/client",
+        "${app}/unmerged.group.produce.message.value/server"})
+    public void shouldProduceMergedMergedMessageValue() throws Exception
     {
         k3po.finish();
     }

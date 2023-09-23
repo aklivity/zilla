@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -59,9 +60,15 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -70,16 +77,26 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDat
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 
 public final class KafkaFunctions
 {
@@ -267,6 +284,24 @@ public final class KafkaFunctions
                 (byte) ((bits >> 63) & 0x01)
             };
         }
+    }
+
+    @Function
+    public static KafkaGroupMemberMetadataBuilder memberMetadata()
+    {
+        return new KafkaGroupMemberMetadataBuilder();
+    }
+
+    @Function
+    public static KafkaMemberAssignmentsBuilder memberAssignment()
+    {
+        return new KafkaMemberAssignmentsBuilder();
+    }
+
+    @Function
+    public static KafkaTopicAssignmentsBuilder topicAssignment()
+    {
+        return new KafkaTopicAssignmentsBuilder();
     }
 
     public abstract static class KafkaHeadersBuilder<T>
@@ -548,6 +583,305 @@ public final class KafkaFunctions
         }
     }
 
+    public static final class KafkaGroupMemberMetadataBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final KafkaGroupMemberMetadataFW.Builder groupMemberMetadataRW =
+            new KafkaGroupMemberMetadataFW.Builder();
+
+        public KafkaGroupMemberMetadataBuilder()
+        {
+            groupMemberMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaGroupMemberMetadataBuilder consumerId(
+            String consumerId)
+        {
+            groupMemberMetadataRW.consumerId(consumerId);
+            return this;
+        }
+
+        public KafkaTopicsBuilder topic(
+            String topic)
+        {
+            KafkaTopicsBuilder topicsBuilder = new KafkaTopicsBuilder(topic);
+            return topicsBuilder;
+        }
+
+        public byte[] build()
+        {
+            final KafkaGroupMemberMetadataFW metadata = groupMemberMetadataRW.build();
+            final byte[] array = new byte[metadata.sizeof()];
+            metadata.buffer().getBytes(metadata.offset(), array);
+            return array;
+        }
+
+        class KafkaTopicsBuilder
+        {
+            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final KafkaGroupTopicMetadataFW.Builder topicsRW = new KafkaGroupTopicMetadataFW.Builder();
+
+            KafkaTopicsBuilder(
+                String topic)
+            {
+                topicsRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                topicsRW.topic(topic);
+            }
+
+            public KafkaTopicsBuilder partitionId(
+                int partitionId)
+            {
+                topicsRW.partitionsItem(i -> i.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaGroupMemberMetadataBuilder build()
+            {
+                KafkaGroupTopicMetadataFW topic = topicsRW.build();
+                groupMemberMetadataRW.topicsItem(i -> i.topic(topic.topic()).partitions(topic.partitions()));
+
+                return KafkaGroupMemberMetadataBuilder.this;
+            }
+        }
+    }
+
+    public static final class KafkaMemberAssignmentsBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentsRW =
+            new Array32FW.Builder(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
+
+        public KafkaMemberAssignmentsBuilder()
+        {
+            memberAssignmentsRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaMemberBuilder member(
+            String memberId)
+        {
+            KafkaMemberBuilder member = new KafkaMemberBuilder(memberId);
+            return member;
+        }
+
+        public byte[] build()
+        {
+            Array32FW<MemberAssignmentFW> members = memberAssignmentsRW.build();
+            final byte[] array = new byte[members.sizeof()];
+            members.buffer().getBytes(members.offset(), array);
+            return array;
+        }
+
+        class KafkaMemberBuilder
+        {
+            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MemberAssignmentFW.Builder assignmentRW = new MemberAssignmentFW.Builder();
+            private final MutableDirectBuffer topicAssignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentsRW =
+                new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+
+            KafkaMemberBuilder(
+                String memberId)
+            {
+                assignmentRW.wrap(memberBuffer, 0, memberBuffer.capacity())
+                    .memberId(memberId);
+                topicAssignmentsRW.wrap(topicAssignmentBuffer, 0, topicAssignmentBuffer.capacity());
+            }
+
+            public KafkaTopicAssignmentBuilder assignment()
+            {
+                KafkaTopicAssignmentBuilder assignment = new KafkaTopicAssignmentBuilder();
+                return assignment;
+            }
+
+            public KafkaMemberAssignmentsBuilder build()
+            {
+                Array32FW<TopicAssignmentFW> topicAssignments = topicAssignmentsRW.build();
+                assignmentRW.assignments(topicAssignments);
+                MemberAssignmentFW assignment = assignmentRW.build();
+                memberAssignmentsRW.item(m -> m.set(assignment));
+
+                return KafkaMemberAssignmentsBuilder.this;
+            }
+
+            class KafkaTopicAssignmentBuilder
+            {
+                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                TopicAssignmentFW.Builder assignmentRW = new TopicAssignmentFW.Builder();
+
+                KafkaTopicAssignmentBuilder()
+                {
+                    assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
+                }
+
+                public KafkaTopicAssignmentBuilder topic(
+                    String topic)
+                {
+                    assignmentRW.topic(topic);
+                    return this;
+                }
+
+                public KafkaTopicAssignmentBuilder partitionId(
+                    int partitionId)
+                {
+                    assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaConsumerBuilder consumer()
+                {
+                    KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder();
+                    return consumerBuilder;
+                }
+
+                public KafkaMemberBuilder build()
+                {
+                    TopicAssignmentFW assignment = assignmentRW.build();
+                    topicAssignmentsRW.item(i -> i
+                        .topic(assignment.topic())
+                        .partitions(assignment.partitions())
+                        .userdata(assignment.userdata()));
+                    return KafkaMemberBuilder.this;
+                }
+
+                class KafkaConsumerBuilder
+                {
+                    private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
+                    KafkaConsumerBuilder()
+                    {
+                        consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                    }
+
+                    public KafkaConsumerBuilder id(
+                        String id)
+                    {
+                        consumerRW.consumerId(id);
+                        return this;
+                    }
+
+                    public KafkaConsumerBuilder partitionId(
+                        int partitionId)
+                    {
+                        consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                        return this;
+                    }
+
+                    public KafkaTopicAssignmentBuilder build()
+                    {
+                        ConsumerAssignmentFW consumer = consumerRW.build();
+                        assignmentRW.userdataItem(u -> u
+                            .consumerId(consumer.consumerId())
+                            .partitions(consumer.partitions()));
+
+                        return KafkaTopicAssignmentBuilder.this;
+                    }
+                }
+            }
+        }
+    }
+
+    public static final class KafkaTopicAssignmentsBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
+            new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+
+        public KafkaTopicAssignmentsBuilder()
+        {
+            topicAssignments.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaTopicBuilder topic()
+        {
+            KafkaTopicBuilder kafkaTopicBuilder = new KafkaTopicBuilder();
+            return kafkaTopicBuilder;
+        }
+
+        public byte[] build()
+        {
+            Array32FW<TopicAssignmentFW> topics = topicAssignments.build();
+            final byte[] array = new byte[topics.sizeof()];
+            topics.buffer().getBytes(topics.offset(), array);
+            return array;
+        }
+
+        class KafkaTopicBuilder
+        {
+            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final TopicAssignmentFW.Builder topicAssignmentRW = new TopicAssignmentFW.Builder();
+            KafkaTopicBuilder()
+            {
+                topicAssignmentRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+            }
+
+            public KafkaTopicBuilder id(
+                String topic)
+            {
+                topicAssignmentRW.topic(topic);
+                return this;
+            }
+
+            public KafkaTopicBuilder partitionId(
+                int partitionId)
+            {
+                topicAssignmentRW.partitionsItem(p -> p.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaConsumerBuilder consumer()
+            {
+                KafkaConsumerBuilder consumerBuilder = new KafkaConsumerBuilder();
+                return consumerBuilder;
+            }
+
+            public KafkaTopicAssignmentsBuilder build()
+            {
+                TopicAssignmentFW topicAssignment = topicAssignmentRW.build();
+                topicAssignments.item(i -> i
+                    .topic(topicAssignment.topic())
+                    .partitions(topicAssignment.partitions())
+                    .userdata(topicAssignment.userdata()));
+                return KafkaTopicAssignmentsBuilder.this;
+            }
+
+            class KafkaConsumerBuilder
+            {
+                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
+                KafkaConsumerBuilder()
+                {
+                    consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                }
+
+                public KafkaConsumerBuilder id(
+                    String id)
+                {
+                    consumerRW.consumerId(id);
+                    return this;
+                }
+
+                public KafkaConsumerBuilder partitionId(
+                    int partitionId)
+                {
+                    consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaTopicBuilder build()
+                {
+                    ConsumerAssignmentFW consumer = consumerRW.build();
+                    topicAssignmentRW.userdataItem(u -> u
+                        .consumerId(consumer.consumerId())
+                        .partitions(consumer.partitions()));
+
+                    return KafkaTopicBuilder.this;
+                }
+            }
+        }
+    }
+
     public static final class KafkaBeginExBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -617,6 +951,27 @@ public final class KafkaFunctions
             return new KafkaGroupBeginExBuilder();
         }
 
+        public KafkaConsumerBeginExBuilder consumer()
+        {
+            beginExRW.kind(KafkaApi.CONSUMER.value());
+
+            return new KafkaConsumerBeginExBuilder();
+        }
+
+        public KafkaOffsetFetchBeginExBuilder offsetFetch()
+        {
+            beginExRW.kind(KafkaApi.OFFSET_FETCH.value());
+
+            return new KafkaOffsetFetchBeginExBuilder();
+        }
+
+        public KafkaOffsetCommitBeginExBuilder offsetCommit()
+        {
+            beginExRW.kind(KafkaApi.OFFSET_COMMIT.value());
+
+            return new KafkaOffsetCommitBeginExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaBeginExFW beginEx = beginExRO;
@@ -669,6 +1024,27 @@ public final class KafkaFunctions
                 String topic)
             {
                 mergedBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder groupId(
+                String groupId)
+            {
+                mergedBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder consumerId(
+                String consumerId)
+            {
+                mergedBeginExRW.consumerId(consumerId);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder timeout(
+                int timeout)
+            {
+                mergedBeginExRW.timeout(timeout);
                 return this;
             }
 
@@ -1006,10 +1382,142 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExBuilder metadata(
+                byte[] metadata)
+            {
+                groupBeginExRW.metadataLen(metadata.length).metadata(m -> m.set(metadata));
+                return this;
+            }
+
             public KafkaBeginExBuilder build()
             {
                 final KafkaGroupBeginExFW groupBeginEx = groupBeginExRW.build();
                 beginExRO.wrap(writeBuffer, 0, groupBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaConsumerBeginExBuilder
+        {
+            private final KafkaConsumerBeginExFW.Builder consumerBeginExRW = new KafkaConsumerBeginExFW.Builder();
+            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
+                new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
+
+
+            private KafkaConsumerBeginExBuilder()
+            {
+                consumerBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+                partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
+            }
+
+            public KafkaConsumerBeginExBuilder groupId(
+                String groupId)
+            {
+                consumerBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder consumerId(
+                String consumerId)
+            {
+                consumerBeginExRW.consumerId(consumerId);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder timeout(
+                int timeout)
+            {
+                consumerBeginExRW.timeout(timeout);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder topic(
+                String topic)
+            {
+                consumerBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder partition(
+                int partitionId)
+            {
+                partitionsRW.item(i -> i.partitionId(partitionId));
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                consumerBeginExRW.partitionIds(partitionsRW.build());
+                final KafkaConsumerBeginExFW consumerBeginEx = consumerBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, consumerBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaOffsetFetchBeginExBuilder
+        {
+            private final KafkaOffsetFetchBeginExFW.Builder offsetFetchBeginExRW = new KafkaOffsetFetchBeginExFW.Builder();
+
+
+            private KafkaOffsetFetchBeginExBuilder()
+            {
+                offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetFetchBeginExBuilder groupId(
+                String groupId)
+            {
+                offsetFetchBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder topic(
+                String topic,
+                int partitionId)
+            {
+                offsetFetchBeginExRW.topics(t -> t.item(i ->
+                    i.topic(topic)
+                        .partitions(p -> p.item(a -> a.partitionId(partitionId)))));
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaOffsetFetchBeginExFW consumerBeginEx = offsetFetchBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, consumerBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaOffsetCommitBeginExBuilder
+        {
+            private final KafkaOffsetCommitBeginExFW.Builder offsetCommitBeginExRW = new KafkaOffsetCommitBeginExFW.Builder();
+
+
+            private KafkaOffsetCommitBeginExBuilder()
+            {
+                offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitBeginExBuilder groupId(
+                String groupId)
+            {
+                offsetCommitBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder topic(
+                String topic)
+            {
+                offsetCommitBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = offsetCommitBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, offsetCommitBeginEx.limit());
                 return KafkaBeginExBuilder.this;
             }
         }
@@ -1070,11 +1578,25 @@ public final class KafkaFunctions
             return new KafkaProduceDataExBuilder();
         }
 
-        public KafkaGroupDataExBuilder group()
+        public KafkaConsumerDataExBuilder consumer()
         {
-            dataExRW.kind(KafkaApi.GROUP.value());
+            dataExRW.kind(KafkaApi.CONSUMER.value());
 
-            return new KafkaGroupDataExBuilder();
+            return new KafkaConsumerDataExBuilder();
+        }
+
+        public KafkaOffsetFetchDataExBuilder offsetFetch()
+        {
+            dataExRW.kind(KafkaApi.OFFSET_FETCH.value());
+
+            return new KafkaOffsetFetchDataExBuilder();
+        }
+
+        public KafkaOffsetCommitDataExBuilder offsetCommit()
+        {
+            dataExRW.kind(KafkaApi.OFFSET_COMMIT.value());
+
+            return new KafkaOffsetCommitDataExBuilder();
         }
 
         public byte[] build()
@@ -1218,6 +1740,7 @@ public final class KafkaFunctions
         public final class KafkaMergedDataExBuilder
         {
             private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
             private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
             private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
@@ -1302,6 +1825,23 @@ public final class KafkaFunctions
                     keyRO.wrap(key.getBytes(UTF_8));
                     mergedDataExRW.key(k -> k.length(keyRO.capacity())
                                             .value(keyRO, 0, keyRO.capacity()));
+                }
+                return this;
+            }
+
+            public KafkaMergedDataExBuilder hashKey(
+                String hashKey)
+            {
+                if (hashKey == null)
+                {
+                    mergedDataExRW.hashKey(m -> m.length(-1)
+                        .value((OctetsFW) null));
+                }
+                else
+                {
+                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                    mergedDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
+                        .value(hashKeyRO, 0, hashKeyRO.capacity()));
                 }
                 return this;
             }
@@ -1574,33 +2114,126 @@ public final class KafkaFunctions
             }
         }
 
-        public final class KafkaGroupDataExBuilder
+        public final class KafkaConsumerDataExBuilder
         {
-            private final KafkaGroupDataExFW.Builder groupDataExRW = new KafkaGroupDataExFW.Builder();
+            private final KafkaConsumerDataExFW.Builder consumerDataExRW = new KafkaConsumerDataExFW.Builder();
 
-            private KafkaGroupDataExBuilder()
+            private KafkaConsumerDataExBuilder()
             {
-                groupDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                consumerDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
             }
 
-            public KafkaGroupDataExBuilder leaderId(
-                String leaderId)
+            public KafkaConsumerDataExBuilder partition(
+                int partitionId)
             {
-                groupDataExRW.leaderId(leaderId);
+                consumerDataExRW.partitionsItem(p -> p.partitionId(partitionId));
                 return this;
             }
 
-            public KafkaGroupDataExBuilder memberId(
-                String memberId)
+            public KafkaConsumerBuilder consumer()
             {
-                groupDataExRW.memberId(memberId);
+                KafkaConsumerBuilder kafkaConsumerBuilder = new KafkaConsumerBuilder();
+                return kafkaConsumerBuilder;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                final KafkaConsumerDataExFW consumerDataEx = consumerDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+
+            class KafkaConsumerBuilder
+            {
+                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final KafkaConsumerAssignmentFW.Builder consumerRW = new KafkaConsumerAssignmentFW.Builder();
+
+                KafkaConsumerBuilder()
+                {
+                    consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                }
+
+                public KafkaConsumerBuilder id(
+                    String id)
+                {
+                    consumerRW.consumerId(id);
+                    return this;
+                }
+
+                public KafkaConsumerBuilder partition(
+                    int partitionId)
+                {
+                    consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
+                }
+
+                public KafkaConsumerDataExBuilder build()
+                {
+                    KafkaConsumerAssignmentFW consumer = consumerRW.build();
+                    consumerDataExRW.assignmentsItem(a -> a
+                        .consumerId(consumer.consumerId())
+                        .partitions(consumer.partitions()));
+
+                    return KafkaConsumerDataExBuilder.this;
+                }
+            }
+        }
+
+        public final class KafkaOffsetFetchDataExBuilder
+        {
+            private final KafkaOffsetFetchDataExFW.Builder offsetFetchDataExRW = new KafkaOffsetFetchDataExFW.Builder();
+
+            private KafkaOffsetFetchDataExBuilder()
+            {
+                offsetFetchDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetFetchDataExBuilder topic(
+                String topic,
+                int partitionId,
+                long offset)
+            {
+                offsetFetchDataExRW.topic(t ->
+                    t.topic(topic).offsets(o -> o.item(i ->
+                        i.partitionId(partitionId).partitionOffset(offset))));
                 return this;
             }
 
             public KafkaDataExBuilder build()
             {
-                final KafkaGroupDataExFW groupDataEx = groupDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
+                final KafkaOffsetFetchDataExFW offsetFetchDataEx = offsetFetchDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, offsetFetchDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+        }
+
+        public final class KafkaOffsetCommitDataExBuilder
+        {
+            private final KafkaOffsetCommitDataExFW.Builder offsetCommitDataExRW = new KafkaOffsetCommitDataExFW.Builder();
+
+            private KafkaOffsetCommitDataExBuilder()
+            {
+                offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitDataExBuilder partitionId(
+                int partitionId)
+            {
+                offsetCommitDataExRW.partitionId(partitionId);
+                return this;
+            }
+
+            public KafkaOffsetCommitDataExBuilder partitionOffset(
+                long partitionId)
+            {
+                offsetCommitDataExRW.partitionOffset(partitionId);
+                return this;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                final KafkaOffsetCommitDataExFW consumerDataEx = offsetCommitDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
                 return KafkaDataExBuilder.this;
             }
         }
@@ -1648,6 +2281,13 @@ public final class KafkaFunctions
             return new KafkaProduceFlushExBuilder();
         }
 
+        public KafkaGroupFlushExBuilder group()
+        {
+            flushExRW.kind(KafkaApi.GROUP.value());
+
+            return new KafkaGroupFlushExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaFlushExFW flushEx = flushExRO;
@@ -1662,98 +2302,21 @@ public final class KafkaFunctions
 
             private KafkaMergedFlushExBuilder()
             {
-                mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_FETCH, writeBuffer.capacity());
+                mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
-            public KafkaMergedFlushExBuilder progress(
-                int partitionId,
-                long offset)
+            public KafkaMergedFetchFlushExBuilder fetch()
             {
-                progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
-                return this;
+                mergedFlushExRW.kind(KafkaApi.FETCH.value());
+
+                return new KafkaMergedFetchFlushExBuilder();
             }
 
-            public KafkaMergedFlushExBuilder progress(
-                int partitionId,
-                long offset,
-                long latestOffset)
+            public KafkaMergedConsumerFlushExBuilder consumer()
             {
-                mergedFlushExRW.progressItem(p -> p.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
-                return this;
-            }
+                mergedFlushExRW.kind(KafkaApi.CONSUMER.value());
 
-            public KafkaMergedFlushExBuilder progress(
-                    int partitionId,
-                    long offset,
-                    long stableOffset,
-                    long latestOffset)
-            {
-                mergedFlushExRW.progressItem(p -> p
-                        .partitionId(partitionId)
-                        .partitionOffset(offset)
-                        .stableOffset(stableOffset)
-                        .latestOffset(latestOffset));
-                return this;
-            }
-
-            public KafkaMergedFlushExBuilder capabilities(
-                String capabilities)
-            {
-                mergedFlushExRW.capabilities(c -> c.set(KafkaCapabilities.valueOf(capabilities)));
-                return this;
-            }
-
-            public KafkaFilterBuilder<KafkaMergedFlushExBuilder> filter()
-            {
-                return new KafkaFilterBuilder<>()
-                {
-
-                    @Override
-                    protected KafkaMergedFlushExBuilder build(
-                        KafkaFilterFW filter)
-                    {
-                        mergedFlushExRW.filtersItem(fb -> set(fb, filter));
-                        return KafkaMergedFlushExBuilder.this;
-                    }
-                };
-            }
-
-            public KafkaMergedFlushExBuilder partition(
-                int partitionId,
-                long partitionOffset)
-            {
-                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
-
-            public KafkaMergedFlushExBuilder partition(
-                int partitionId,
-                long partitionOffset,
-                long latestOffset)
-            {
-                mergedFlushExRW.partition(p -> p
-                    .partitionId(partitionId)
-                    .partitionOffset(partitionOffset)
-                    .latestOffset(latestOffset));
-                return this;
-            }
-
-
-            public KafkaMergedFlushExBuilder key(
-                String key)
-            {
-                if (key == null)
-                {
-                    mergedFlushExRW.key(m -> m.length(-1)
-                        .value((OctetsFW) null));
-                }
-                else
-                {
-                    keyRO.wrap(key.getBytes(UTF_8));
-                    mergedFlushExRW.key(k -> k.length(keyRO.capacity())
-                        .value(keyRO, 0, keyRO.capacity()));
-                }
-                return this;
+                return new KafkaMergedConsumerFlushExBuilder();
             }
 
             public KafkaFlushExBuilder build()
@@ -1761,6 +2324,160 @@ public final class KafkaFunctions
                 final KafkaMergedFlushExFW mergedFlushEx = mergedFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, mergedFlushEx.limit());
                 return KafkaFlushExBuilder.this;
+            }
+
+            public final class KafkaMergedFetchFlushExBuilder
+            {
+                private final KafkaMergedFetchFlushExFW.Builder mergedFetchFlushExRW = new KafkaMergedFetchFlushExFW.Builder();
+
+                private KafkaMergedFetchFlushExBuilder()
+                {
+                    mergedFetchFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_FETCH,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedFetchFlushExBuilder progress(
+                    int partitionId,
+                    long offset)
+                {
+                    progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushExBuilder progress(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    mergedFetchFlushExRW.progressItem(p ->
+                        p.partitionId(partitionId)
+                        .partitionOffset(offset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushExBuilder progress(
+                    int partitionId,
+                    long offset,
+                    long stableOffset,
+                    long latestOffset)
+                {
+                    mergedFetchFlushExRW.progressItem(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(offset)
+                        .stableOffset(stableOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushExBuilder capabilities(
+                    String capabilities)
+                {
+                    mergedFetchFlushExRW.capabilities(c -> c.set(KafkaCapabilities.valueOf(capabilities)));
+                    return this;
+                }
+
+                public KafkaFilterBuilder<KafkaFlushExBuilder.KafkaMergedFlushExBuilder
+                    .KafkaMergedFetchFlushExBuilder> filter()
+                {
+                    return new KafkaFilterBuilder<>()
+                    {
+
+                        @Override
+                        protected KafkaMergedFetchFlushExBuilder build(
+                            KafkaFilterFW filter)
+                        {
+                            mergedFetchFlushExRW.filtersItem(fb -> set(fb, filter));
+                            return KafkaFlushExBuilder.KafkaMergedFlushExBuilder.KafkaMergedFetchFlushExBuilder.this;
+                        }
+                    };
+                }
+
+                public KafkaMergedFetchFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedFetchFlushExRW.partition(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+
+                public KafkaMergedFetchFlushExBuilder key(
+                    String key)
+                {
+                    if (key == null)
+                    {
+                        mergedFetchFlushExRW.key(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        mergedFetchFlushExRW.key(k -> k.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaFlushExBuilder build()
+                {
+                    final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
+                    flushExRO.wrap(writeBuffer, 0, mergedFetchFlushExRW.limit());
+                    return KafkaFlushExBuilder.this;
+                }
+            }
+
+            public final class KafkaMergedConsumerFlushExBuilder
+            {
+                private final KafkaMergedConsumerFlushExFW.Builder mergedConsumerFlushExRW =
+                    new KafkaMergedConsumerFlushExFW.Builder();
+
+                private KafkaMergedConsumerFlushExBuilder()
+                {
+                    mergedConsumerFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_CONSUMER,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedConsumerFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedConsumerFlushExBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedConsumerFlushExRW.partition(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaFlushExBuilder build()
+                {
+                    final KafkaMergedConsumerFlushExFW mergedConsumerFlushEx = mergedConsumerFlushExRW.build();
+                    flushExRO.wrap(writeBuffer, 0, mergedConsumerFlushExRW.limit());
+                    return KafkaFlushExBuilder.this;
+                }
             }
         }
 
@@ -1797,9 +2514,9 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 fetchFlushExRW.partition(p -> p.partitionId(partitionId)
-                                               .partitionOffset(offset)
-                                               .stableOffset(stableOffset)
-                                               .latestOffset(latestOffset));
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset));
                 return this;
             }
 
@@ -1889,6 +2606,59 @@ public final class KafkaFunctions
                 return KafkaFlushExBuilder.this;
             }
         }
+
+        public final class KafkaGroupFlushExBuilder
+        {
+            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final KafkaGroupFlushExFW.Builder flushGroupExRW = new KafkaGroupFlushExFW.Builder();
+            private final Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> memberRW =
+                new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new  KafkaGroupMemberFW());
+
+            private KafkaGroupFlushExBuilder()
+            {
+                flushGroupExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+                memberRW.wrap(memberBuffer, 0, memberBuffer.capacity());
+            }
+
+            public KafkaGroupFlushExBuilder leaderId(
+                String leaderId)
+            {
+                flushGroupExRW.leaderId(leaderId);
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder memberId(
+                String memberId)
+            {
+                flushGroupExRW.memberId(memberId);
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder members(
+                String memberId,
+                byte[] metadata)
+            {
+                memberRW.item(gm -> gm.id(memberId)
+                    .metadataLen(metadata.length)
+                    .metadata(md -> md.set(metadata)));
+                return this;
+            }
+
+            public KafkaGroupFlushExBuilder members(
+                String memberId)
+            {
+                memberRW.item(gm -> gm.id(memberId));
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                flushGroupExRW.members(memberRW.build());
+                final KafkaGroupFlushExFW groupFlushEx = flushGroupExRW.build();
+                flushExRO.wrap(writeBuffer, 0, groupFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
+        }
     }
 
     public static final class KafkaResetExBuilder
@@ -1918,6 +2688,13 @@ public final class KafkaFunctions
             return this;
         }
 
+        public KafkaResetExBuilder consumerId(
+            String consumerId)
+        {
+            resetExRW.consumerId(consumerId);
+            return this;
+        }
+
         public byte[] build()
         {
             final KafkaResetExFW resetEx = resetExRW.build();
@@ -1932,6 +2709,7 @@ public final class KafkaFunctions
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
         private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
         private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
         private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
@@ -1964,15 +2742,6 @@ public final class KafkaFunctions
             final KafkaProduceDataExMatcherBuilder matcherBuilder = new KafkaProduceDataExMatcherBuilder();
 
             this.kind = KafkaApi.PRODUCE.value();
-            this.caseMatcher = matcherBuilder::match;
-            return matcherBuilder;
-        }
-
-        public KafkaGroupDataExMatchBuilder group()
-        {
-            final KafkaGroupDataExMatchBuilder matcherBuilder = new KafkaGroupDataExMatchBuilder();
-
-            this.kind = KafkaApi.GROUP.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -2397,6 +3166,7 @@ public final class KafkaFunctions
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
             private KafkaDeltaFW.Builder deltaRW;
             private KafkaKeyFW.Builder keyRW;
+            private KafkaKeyFW.Builder hashKeyRW;
             private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
 
             private KafkaMergedDataExMatcherBuilder()
@@ -2483,6 +3253,27 @@ public final class KafkaFunctions
                     keyRO.wrap(key.getBytes(UTF_8));
                     keyRW.length(keyRO.capacity())
                          .value(keyRO, 0, keyRO.capacity());
+                }
+
+                return this;
+            }
+
+            public KafkaMergedDataExMatcherBuilder hashKey(
+                String hashKey)
+            {
+                assert hashKeyRW == null;
+                hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                if (hashKey == null)
+                {
+                    hashKeyRW.length(-1)
+                        .value((OctetsFW) null);
+                }
+                else
+                {
+                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                    hashKeyRW.length(hashKeyRO.capacity())
+                        .value(hashKeyRO, 0, hashKeyRO.capacity());
                 }
 
                 return this;
@@ -2664,6 +3455,7 @@ public final class KafkaFunctions
                     matchDeferred(mergedDataEx) &&
                     matchTimestamp(mergedDataEx) &&
                     matchKey(mergedDataEx) &&
+                    matchHashKey(mergedDataEx) &&
                     matchDelta(mergedDataEx) &&
                     matchHeaders(mergedDataEx) &&
                     matchFilters(mergedDataEx);
@@ -2699,6 +3491,12 @@ public final class KafkaFunctions
                 return keyRW == null || keyRW.build().equals(mergedDataEx.key());
             }
 
+            private boolean matchHashKey(
+                final KafkaMergedDataExFW mergedDataEx)
+            {
+                return hashKeyRW == null || hashKeyRW.build().equals(mergedDataEx.hashKey());
+            }
+
             private boolean matchDelta(
                 final KafkaMergedDataExFW mergedDataEx)
             {
@@ -2715,55 +3513,6 @@ public final class KafkaFunctions
                 final KafkaMergedDataExFW mergedDataEx)
             {
                 return filters == null || filters == mergedDataEx.filters();
-            }
-        }
-
-        public final class KafkaGroupDataExMatchBuilder
-        {
-            private String16FW leaderId;
-            private String16FW memberId;
-
-            private KafkaGroupDataExMatchBuilder()
-            {
-            }
-
-            public KafkaGroupDataExMatchBuilder leaderId(
-                String leaderId)
-            {
-                this.leaderId = new String16FW(leaderId);
-                return this;
-            }
-
-            public KafkaGroupDataExMatchBuilder memberId(
-                String memberId)
-            {
-                this.memberId = new String16FW(memberId);
-                return this;
-            }
-
-            public KafkaDataExMatcherBuilder build()
-            {
-                return KafkaDataExMatcherBuilder.this;
-            }
-
-            private boolean match(
-                KafkaDataExFW dataEx)
-            {
-                final KafkaGroupDataExFW groupDataEx = dataEx.group();
-                return matchLeaderId(groupDataEx) &&
-                    matchMemberId(groupDataEx);
-            }
-
-            private boolean matchLeaderId(
-                final KafkaGroupDataExFW groupDataEx)
-            {
-                return leaderId == null || leaderId.equals(groupDataEx.leaderId());
-            }
-
-            private boolean matchMemberId(
-                final KafkaGroupDataExFW groupDataEx)
-            {
-                return memberId == null || memberId.equals(groupDataEx.memberId());
             }
         }
     }
@@ -2802,6 +3551,15 @@ public final class KafkaFunctions
             final KafkaProduceFlushExMatcherBuilder matcherBuilder = new KafkaProduceFlushExMatcherBuilder();
 
             this.kind = KafkaApi.PRODUCE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaGroupFlushExMatchBuilder group()
+        {
+            final KafkaGroupFlushExMatchBuilder matcherBuilder = new KafkaGroupFlushExMatchBuilder();
+
+            this.kind = KafkaApi.GROUP.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -2929,7 +3687,6 @@ public final class KafkaFunctions
 
                 return new KafkaFilterBuilder<>()
                 {
-
                     @Override
                     protected KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder build(
                         KafkaFilterFW filter)
@@ -2971,162 +3728,207 @@ public final class KafkaFunctions
             {
                 return filtersRW == null || filtersRW.build().equals(fetchFlushEx.filters());
             }
-
         }
 
         public final class KafkaMergedFlushExMatcherBuilder
         {
-            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
-            private KafkaKeyFW.Builder keyRW;
-            private KafkaOffsetFW.Builder partitionRW;
-
-            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+            KafkaMergedFetchFlushEx mergedFetchFlush;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
             }
 
-            public KafkaMergedFlushExMatcherBuilder progress(
-                int partitionId,
-                long offset)
+            public boolean match(
+                KafkaFlushExFW kafkaFlushEx)
             {
-                progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
-                return this;
+                boolean matched = false;
+                if (kafkaFlushEx.merged().kind() == KafkaApi.FETCH.value())
+                {
+                    matched = fetch().match(kafkaFlushEx);
+                }
+                return matched;
             }
 
-            public KafkaMergedFlushExMatcherBuilder progress(
-                int partitionId,
-                long offset,
-                long latestOffset)
+            public KafkaMergedFetchFlushEx fetch()
             {
-                if (progressRW == null)
+                if (mergedFetchFlush == null)
                 {
-                    this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    mergedFetchFlush = new KafkaMergedFetchFlushEx();
                 }
-                progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
-                return this;
+                return mergedFetchFlush;
             }
 
-            public KafkaMergedFlushExMatcherBuilder progress(
-                int partitionId,
-                long offset,
-                long stableOffset,
-                long latestOffset)
+            public final class KafkaMergedFetchFlushEx
             {
-                if (progressRW == null)
+                private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
+                private KafkaKeyFW.Builder keyRW;
+                private KafkaOffsetFW.Builder partitionRW;
+                private KafkaCapabilities capabilities;
+
+                private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+
+                private KafkaMergedFetchFlushEx()
                 {
-                    this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
-                progressRW.item(i -> i
+
+                public KafkaMergedFetchFlushEx capabilities(
+                    String capabilities)
+                {
+                    this.capabilities = KafkaCapabilities.valueOf(capabilities);
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushEx progress(
+                    int partitionId,
+                    long offset)
+                {
+                    progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushEx progress(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    if (progressRW == null)
+                    {
+                        this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushEx progress(
+                    int partitionId,
+                    long offset,
+                    long stableOffset,
+                    long latestOffset)
+                {
+                    if (progressRW == null)
+                    {
+                        this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    progressRW.item(i -> i
                         .partitionId(partitionId)
                         .partitionOffset(offset)
                         .stableOffset(stableOffset)
                         .latestOffset(latestOffset));
-                return this;
-            }
-
-            public KafkaMergedFlushExMatcherBuilder partition(
-                int partitionId,
-                long offset)
-            {
-                partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
-
-            public KafkaMergedFlushExMatcherBuilder partition(
-                int partitionId,
-                long offset,
-                long latestOffset)
-            {
-                assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
-
-                return this;
-            }
-
-            public KafkaMergedFlushExMatcherBuilder key(
-                String key)
-            {
-                assert keyRW == null;
-                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                if (key == null)
-                {
-                    keyRW.length(-1)
-                        .value((OctetsFW) null);
-                }
-                else
-                {
-                    keyRO.wrap(key.getBytes(UTF_8));
-                    keyRW.length(keyRO.capacity())
-                        .value(keyRO, 0, keyRO.capacity());
+                    return this;
                 }
 
-                return this;
-            }
-
-            public KafkaFilterBuilder<KafkaMergedFlushExMatcherBuilder> filter()
-            {
-                if (filtersRW == null)
+                public KafkaMergedFetchFlushEx partition(
+                    int partitionId,
+                    long offset)
                 {
-                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
                 }
 
-                return new KafkaFilterBuilder<>()
+                public KafkaMergedFetchFlushEx partition(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
                 {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
 
-                    @Override
-                    protected KafkaMergedFlushExMatcherBuilder build(
-                        KafkaFilterFW filter)
+                    partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
+
+                    return this;
+                }
+
+                public KafkaMergedFetchFlushEx key(
+                    String key)
+                {
+                    assert keyRW == null;
+                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    if (key == null)
                     {
-                        filtersRW.item(fb -> set(fb, filter));
-                        return KafkaMergedFlushExMatcherBuilder.this;
+                        keyRW.length(-1)
+                            .value((OctetsFW) null);
                     }
-                };
-            }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        keyRW.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity());
+                    }
 
-            public KafkaFlushExMatcherBuilder build()
-            {
-                return KafkaFlushExMatcherBuilder.this;
-            }
+                    return this;
+                }
 
-            private boolean match(
-                KafkaFlushExFW flushEx)
-            {
-                final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
-                return matchProgress(mergedFlushEx) &&
-                    matchKey(mergedFlushEx) &&
-                    matchPartition(mergedFlushEx) &&
-                    matchFilters(mergedFlushEx);
-            }
+                public KafkaFilterBuilder
+                    <KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder.KafkaMergedFetchFlushEx>
+                    filter()
+                {
+                    if (filtersRW == null)
+                    {
+                        filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
 
-            private boolean matchProgress(
-                final KafkaMergedFlushExFW mergedFlushEx)
-            {
-                return progressRW == null || progressRW.build().equals(mergedFlushEx.progress());
-            }
+                    return new KafkaFilterBuilder<>()
+                    {
+                        @Override
+                        protected KafkaFlushExMatcherBuilder.KafkaMergedFlushExMatcherBuilder.KafkaMergedFetchFlushEx
+                            build(
+                            KafkaFilterFW filter)
+                        {
+                            filtersRW.item(fb -> set(fb, filter));
+                            return KafkaMergedFetchFlushEx.this;
+                        }
+                    };
+                }
 
-            private boolean matchPartition(
-                final KafkaMergedFlushExFW mergedFlushEx)
-            {
-                return partitionRW == null || partitionRW.build().equals(mergedFlushEx.partition());
-            }
+                public KafkaFlushExMatcherBuilder build()
+                {
+                    return KafkaFlushExMatcherBuilder.this;
+                }
 
-            private boolean matchKey(
-                final KafkaMergedFlushExFW mergedFlushEx)
-            {
-                return keyRW == null || keyRW.build().equals(mergedFlushEx.key());
-            }
+                private boolean match(
+                    KafkaFlushExFW flushEx)
+                {
+                    final KafkaMergedFetchFlushExFW mergedFlushEx = flushEx.merged().fetch();
+                    return matchCapabilities(mergedFlushEx) &&
+                        matchProgress(mergedFlushEx) &&
+                        matchKey(mergedFlushEx) &&
+                        matchPartition(mergedFlushEx) &&
+                        matchFilters(mergedFlushEx);
+                }
 
-            private boolean matchFilters(
-                final KafkaMergedFlushExFW mergedFlushEx)
-            {
-                return filtersRW == null || filtersRW.build().equals(mergedFlushEx.filters());
+                private boolean matchCapabilities(
+                    final KafkaMergedFetchFlushExFW mergedFlushEx)
+                {
+                    return capabilities == null || capabilities.equals(mergedFlushEx.capabilities().get());
+                }
+
+                private boolean matchProgress(
+                    final KafkaMergedFetchFlushExFW mergedFlush)
+                {
+                    return progressRW == null || progressRW.build().equals(mergedFlush.progress());
+                }
+
+                private boolean matchPartition(
+                    final KafkaMergedFetchFlushExFW mergedFlush)
+                {
+                    return partitionRW == null || partitionRW.build().equals(mergedFlush.partition());
+                }
+
+                private boolean matchKey(
+                    final KafkaMergedFetchFlushExFW mergedFlush)
+                {
+                    return keyRW == null || keyRW.build().equals(mergedFlush.key());
+                }
+
+                private boolean matchFilters(
+                    final KafkaMergedFetchFlushExFW mergedFlush)
+                {
+                    return filtersRW == null || filtersRW.build().equals(mergedFlush.filters());
+                }
             }
         }
 
@@ -3204,6 +4006,89 @@ public final class KafkaFunctions
                 final KafkaProduceFlushExFW produceFlushEx)
             {
                 return keyRW == null || keyRW.build().equals(produceFlushEx.key());
+            }
+        }
+
+        public final class KafkaGroupFlushExMatchBuilder
+        {
+            private String16FW leaderId;
+            private String16FW memberId;
+            private Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> membersRW;
+
+            private KafkaGroupFlushExMatchBuilder()
+            {
+            }
+
+            public KafkaGroupFlushExMatchBuilder leaderId(
+                String leaderId)
+            {
+                this.leaderId = new String16FW(leaderId);
+                return this;
+            }
+
+            public KafkaGroupFlushExMatchBuilder memberId(
+                String memberId)
+            {
+                this.memberId = new String16FW(memberId);
+                return this;
+            }
+
+            public KafkaGroupFlushExMatchBuilder members(
+                String memberId,
+                String metadata)
+            {
+                if (membersRW == null)
+                {
+                    this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                this.membersRW.item(m -> m.id(memberId).metadataLen(metadata.length())
+                    .metadata(md -> md.set(metadata.getBytes())));
+                return this;
+            }
+
+            public KafkaGroupFlushExMatchBuilder members(
+                String memberId)
+            {
+                if (membersRW == null)
+                {
+                    this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                this.membersRW.item(m -> m.id(memberId));
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
+                return matchLeaderId(groupFlushEx) &&
+                    matchMemberId(groupFlushEx) &&
+                    matchMembers(groupFlushEx);
+            }
+
+            private boolean matchLeaderId(
+                final KafkaGroupFlushExFW groupFLushEx)
+            {
+                return leaderId == null || leaderId.equals(groupFLushEx.leaderId());
+            }
+
+            private boolean matchMemberId(
+                final KafkaGroupFlushExFW groupFLushEx)
+            {
+                return memberId == null || memberId.equals(groupFLushEx.memberId());
+            }
+
+            private boolean matchMembers(
+                final KafkaGroupFlushExFW groupFLushEx)
+            {
+                return membersRW == null || membersRW.build().equals(groupFLushEx.members());
             }
         }
     }
@@ -3579,6 +4464,8 @@ public final class KafkaFunctions
             private String16FW protocol;
             private int timeout;
 
+            private byte[] metadata;
+
             private KafkaGroupBeginExMatcherBuilder()
             {
             }
@@ -3604,6 +4491,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder metadata(
+                byte[] metadata)
+            {
+                this.metadata = metadata;
+                return this;
+            }
+
             public KafkaBeginExMatcherBuilder build()
             {
                 return KafkaBeginExMatcherBuilder.this;
@@ -3616,7 +4510,8 @@ public final class KafkaFunctions
                 return matchGroupId(groupBeginEx) &&
                     matchGroupId(groupBeginEx) &&
                     matchProtocol(groupBeginEx) &&
-                    matchTimeout(groupBeginEx);
+                    matchTimeout(groupBeginEx) &&
+                    matchMetadata(groupBeginEx);
             }
 
             private boolean matchGroupId(
@@ -3636,12 +4531,21 @@ public final class KafkaFunctions
             {
                 return timeout == 0 || timeout == groupBeginExFW.timeout();
             }
+
+            private boolean matchMetadata(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                OctetsFW metadata = groupBeginExFW.metadata();
+                return this.metadata == null || metadata.sizeof() == this.metadata.length;
+            }
         }
 
         public final class KafkaMergedBeginExMatcherBuilder
         {
             private KafkaCapabilities capabilities;
             private String16FW topic;
+            private String16FW groupId;
+            private String16FW consumerId;
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
@@ -3665,6 +4569,20 @@ public final class KafkaFunctions
                 String topic)
             {
                 this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder consumerId(
+                String consumerId)
+            {
+                this.consumerId = new String16FW(consumerId);
                 return this;
             }
 
@@ -3768,6 +4686,8 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
                 return matchCapabilities(mergedBeginEx) &&
                     matchTopic(mergedBeginEx) &&
+                    matchGroupId(mergedBeginEx) &&
+                    matchConsumerId(mergedBeginEx) &&
                     matchPartitions(mergedBeginEx) &&
                     matchFilters(mergedBeginEx) &&
                     matchIsolation(mergedBeginEx) &&
@@ -3786,6 +4706,18 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return topic == null || topic.equals(mergedBeginEx.topic());
+            }
+
+            private boolean matchGroupId(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return groupId == null || groupId.equals(mergedBeginEx.groupId());
+            }
+
+            private boolean matchConsumerId(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return consumerId == null || consumerId.equals(mergedBeginEx.consumerId());
             }
 
             private boolean matchPartitions(

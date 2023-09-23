@@ -15,11 +15,9 @@
 package io.aklivity.zilla.runtime.guard.jwt.internal.config;
 
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
 import java.util.List;
-
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -31,6 +29,9 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuard;
 
 public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
@@ -98,47 +99,56 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String issuer = object.containsKey(ISSUER_NAME)
-                ? object.getString(ISSUER_NAME)
-                : null;
+        JwtOptionsConfigBuilder<JwtOptionsConfig> jwtOptions = JwtOptionsConfig.builder();
 
-        String audience = object.containsKey(AUDIENCE_NAME)
-                ? object.getString(AUDIENCE_NAME)
-                : null;
+        String issuer = object.containsKey(ISSUER_NAME) ? object.getString(ISSUER_NAME) : null;
+        if (issuer != null)
+        {
+            jwtOptions.issuer(issuer);
+        }
 
-        List<JwtKeyConfig> keys = KEYS_DEFAULT;
-        String keysURL = null;
+        if (object.containsKey(AUDIENCE_NAME))
+        {
+            jwtOptions.audience(object.getString(AUDIENCE_NAME));
+        }
+
         if (object.containsKey(KEYS_NAME))
         {
             JsonValue keysValue = object.getValue(String.format("/%s", KEYS_NAME));
             switch (keysValue.getValueType())
             {
             case ARRAY:
-                keys = keysValue.asJsonArray()
-                        .stream()
-                        .map(JsonValue::asJsonObject)
-                        .map(key::adaptFromJson)
-                        .collect(toList());
+                keysValue.asJsonArray()
+                    .stream()
+                    .map(JsonValue::asJsonObject)
+                    .map(key::adaptFromJson)
+                    .forEach(jwtOptions::key);
                 break;
             case STRING:
-                keysURL = ((JsonString) keysValue).getString();
+                jwtOptions.keys(KEYS_DEFAULT)
+                          .keysURL(((JsonString) keysValue).getString());
+                break;
+            default:
                 break;
             }
         }
         else
         {
+            jwtOptions.keys(KEYS_DEFAULT);
+
             if (issuer != null)
             {
-                keysURL = issuer.endsWith("/")
+                jwtOptions.keysURL(issuer.endsWith("/")
                     ? String.format("%s.well-known/jwks.json", issuer)
-                    : String.format("%s/.well-known/jwks.json", issuer);
+                    : String.format("%s/.well-known/jwks.json", issuer));
             }
         }
 
-        Duration challenge = object.containsKey(CHALLENGE_NAME)
-                ? Duration.ofSeconds(object.getInt(CHALLENGE_NAME))
-                : null;
+        if (object.containsKey(CHALLENGE_NAME))
+        {
+            jwtOptions.challenge(Duration.ofSeconds(object.getInt(CHALLENGE_NAME)));
+        }
 
-        return new JwtOptionsConfig(issuer, audience, keys, challenge, keysURL);
+        return jwtOptions.build();
     }
 }

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
 public class MetricConfig
 {
@@ -24,7 +25,12 @@ public class MetricConfig
 
     public transient long id;
 
-    public MetricConfig(
+    public static MetricConfigBuilder<MetricConfig> builder()
+    {
+        return new MetricConfigBuilder<>(identity());
+    }
+
+    MetricConfig(
         String group,
         String name)
     {

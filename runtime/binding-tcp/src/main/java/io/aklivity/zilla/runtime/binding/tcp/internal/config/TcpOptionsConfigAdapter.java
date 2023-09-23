@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.BACKLOG_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.KEEPALIVE_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder.NODELAY_DEFAULT;
+
 import java.util.stream.IntStream;
 
 import jakarta.json.Json;
@@ -30,6 +34,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -39,10 +45,6 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String HOST_NAME = "host";
     private static final String PORT_NAME = "port";
     private static final String BACKLOG_NAME = "backlog";
-
-    private static final int BACKLOG_DEFAULT = 0;
-    private static final boolean NODELAY_DEFAULT = true;
-    private static final boolean KEEPALIVE_DEFAULT = false;
 
     @Override
     public Kind kind()
@@ -99,14 +101,12 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String host = object.getString(HOST_NAME);
+        final TcpOptionsConfigBuilder<TcpOptionsConfig> tcpOptions = TcpOptionsConfig.builder();
+
+        tcpOptions.host(object.getString(HOST_NAME));
+
         JsonValue portsValue = object.get(PORT_NAME);
-        int backlog = object.containsKey(BACKLOG_NAME) ? object.getJsonNumber(BACKLOG_NAME).intValue() : BACKLOG_DEFAULT;
-        boolean nodelay = NODELAY_DEFAULT;
-        boolean keepalive = KEEPALIVE_DEFAULT;
-
         IntHashSet portsSet = new IntHashSet();
-
         switch (portsValue.getValueType())
         {
         case ARRAY:
@@ -121,8 +121,14 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         int[] ports = new int[portsSet.size()];
         MutableInteger index = new MutableInteger();
         portsSet.forEach(i -> ports[index.value++] = i);
+        tcpOptions.ports(ports);
 
-        return new TcpOptionsConfig(host, ports, backlog, nodelay, keepalive);
+        if (object.containsKey(BACKLOG_NAME))
+        {
+            tcpOptions.backlog(object.getJsonNumber(BACKLOG_NAME).intValue());
+        }
+
+        return tcpOptions.build();
     }
 
     static void adaptPortsValueFromJson(

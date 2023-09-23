@@ -20,10 +20,10 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class KafkaRouteConfig extends OptionsConfig
+public final class KafkaRouteConfig
 {
     public final long id;
     public final KafkaWithConfig with;
@@ -50,8 +50,9 @@ public final class KafkaRouteConfig extends OptionsConfig
     }
 
     boolean matches(
-        String topic)
+        String topic,
+        String groupId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, groupId));
     }
 }

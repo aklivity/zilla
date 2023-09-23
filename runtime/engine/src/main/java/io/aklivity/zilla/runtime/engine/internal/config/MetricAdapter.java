@@ -33,17 +33,15 @@ public class MetricAdapter implements JsonbAdapter<MetricConfig, JsonValue>
 
     @Override
     public MetricConfig adaptFromJson(
-        JsonValue jsonValue)
-    {
-        String name = asJsonString(jsonValue);
-        String[] parts = name.split("\\.");
-        String group = parts[0];
-        return new MetricConfig(group, name);
-    }
-
-    private static String asJsonString(
         JsonValue value)
     {
-        return ((JsonString) value).getString();
+        String name = JsonString.class.cast(value).getString();
+        String[] parts = name.split("\\.");
+        String group = parts[0];
+
+        return MetricConfig.builder()
+            .group(group)
+            .name(name)
+            .build();
     }
 }

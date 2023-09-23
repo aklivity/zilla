@@ -21,10 +21,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class HttpFileSystemRouteConfig extends OptionsConfig
+public final class HttpFileSystemRouteConfig
 {
     public final long id;
     public final Optional<HttpFileSystemWithResolver> with;

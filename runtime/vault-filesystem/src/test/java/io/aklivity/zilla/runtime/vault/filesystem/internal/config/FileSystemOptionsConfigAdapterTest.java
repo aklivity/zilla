@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -26,6 +27,9 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class FileSystemOptionsConfigAdapterTest
 {
@@ -49,7 +53,7 @@ public class FileSystemOptionsConfigAdapterTest
         FileSystemOptionsConfig options = jsonb.fromJson(text, FileSystemOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.keys, nullValue(FileSystemStore.class));
+        assertThat(options.keys, nullValue(FileSystemStoreConfig.class));
     }
 
     @Test
@@ -77,7 +81,8 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(null, null, null);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -88,8 +93,15 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithKeys()
     {
-        FileSystemStore keys = new FileSystemStore("localhost.p12", "pkcs12", "generated");
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, null);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .inject(identity())
+            .keys()
+                .inject(identity())
+                .store("localhost.p12")
+                .type("pkcs12")
+                .password("generated")
+                .build()
+            .build();
 
         String text = jsonb.toJson(options);
 

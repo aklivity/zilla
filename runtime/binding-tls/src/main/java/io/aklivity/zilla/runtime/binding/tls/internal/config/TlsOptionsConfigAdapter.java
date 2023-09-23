@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.config.TlsMutual.REQUIRED;
+import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig.REQUIRED;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -29,6 +29,9 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -103,7 +106,7 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         }
 
         if (tlsOptions.mutual != null &&
-            (tlsOptions.mutual != REQUIRED || tlsOptions.trust != null))
+            (tlsOptions.trust == null || tlsOptions.mutual != REQUIRED))
         {
             String mutual = tlsOptions.mutual.name().toLowerCase();
             object.add(MUTUAL_NAME, mutual);
@@ -123,32 +126,49 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String version = object.containsKey(VERSION_NAME)
-                ? object.getString(VERSION_NAME)
-                : null;
-        List<String> keys = object.containsKey(KEYS_NAME)
-                ? asListString(object.getJsonArray(KEYS_NAME))
-                : null;
-        List<String> trust = object.containsKey(TRUST_NAME)
-                ? asListString(object.getJsonArray(TRUST_NAME))
-                : null;
-        boolean trustcacerts = object.containsKey(TRUSTCACERTS_NAME)
-                ? object.getBoolean(TRUSTCACERTS_NAME)
-                : false;
-        List<String> sni = object.containsKey(SNI_NAME)
-                ? asListString(object.getJsonArray(SNI_NAME))
-                : null;
-        List<String> alpn = object.containsKey(ALPN_NAME)
-                ? asListString(object.getJsonArray(ALPN_NAME))
-                : null;
-        TlsMutual mutual = object.containsKey(MUTUAL_NAME)
-                ? TlsMutual.valueOf(object.getString(MUTUAL_NAME).toUpperCase())
-                : trust != null ? REQUIRED : null;
-        List<String> signers = object.containsKey(SIGNERS_NAME)
-                ? asListString(object.getJsonArray(SIGNERS_NAME))
-                : null;
+        TlsOptionsConfigBuilder<TlsOptionsConfig> tlsOptions = TlsOptionsConfig.builder();
 
-        return new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts);
+        if (object.containsKey(VERSION_NAME))
+        {
+            tlsOptions.version(object.getString(VERSION_NAME));
+        }
+
+        if (object.containsKey(KEYS_NAME))
+        {
+            tlsOptions.keys(asListString(object.getJsonArray(KEYS_NAME)));
+        }
+
+        if (object.containsKey(TRUST_NAME))
+        {
+            tlsOptions.trust(asListString(object.getJsonArray(TRUST_NAME)));
+        }
+
+        if (object.containsKey(TRUSTCACERTS_NAME))
+        {
+            tlsOptions.trustcacerts(object.getBoolean(TRUSTCACERTS_NAME));
+        }
+
+        if (object.containsKey(SNI_NAME))
+        {
+            tlsOptions.sni(asListString(object.getJsonArray(SNI_NAME)));
+        }
+
+        if (object.containsKey(ALPN_NAME))
+        {
+            tlsOptions.alpn(asListString(object.getJsonArray(ALPN_NAME)));
+        }
+
+        if (object.containsKey(MUTUAL_NAME))
+        {
+            tlsOptions.mutual(TlsMutualConfig.valueOf(object.getString(MUTUAL_NAME).toUpperCase()));
+        }
+
+        if (object.containsKey(SIGNERS_NAME))
+        {
+            tlsOptions.signers(asListString(object.getJsonArray(SIGNERS_NAME)));
+        }
+
+        return tlsOptions.build();
     }
 
     private static List<String> asListString(

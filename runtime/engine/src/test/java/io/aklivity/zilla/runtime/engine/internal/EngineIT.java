@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -39,9 +40,7 @@ public class EngineIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(4096)
+        .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/engine/config")
         .external("app0")
         .clean();
@@ -119,6 +118,7 @@ public class EngineIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({

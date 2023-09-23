@@ -17,6 +17,8 @@ module io.aklivity.zilla.runtime.guard.jwt
     requires io.aklivity.zilla.runtime.engine;
     requires org.jose4j;
 
+    exports io.aklivity.zilla.runtime.guard.jwt.config;
+
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
         with io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardFactorySpi;
 

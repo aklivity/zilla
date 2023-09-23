@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.IntHashSet;
 
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.util.Cidr;
 
 public final class TcpConditionMatcher

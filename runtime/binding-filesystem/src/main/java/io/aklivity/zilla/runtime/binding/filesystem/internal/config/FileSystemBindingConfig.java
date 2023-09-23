@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.config;
 
+import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 

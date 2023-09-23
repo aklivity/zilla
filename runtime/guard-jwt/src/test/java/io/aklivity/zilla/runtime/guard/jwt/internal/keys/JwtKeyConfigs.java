@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.keys;
 
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 
 public final class JwtKeyConfigs
 {
@@ -24,33 +24,29 @@ public final class JwtKeyConfigs
     static
     {
         // RFC 7515, section A.2.1
-        RFC7515_RS256_CONFIG = new JwtKeyConfig(
-                "RSA",
-                "test",
-                "verify",
-                "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx" +
-                "HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs" +
-                "D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH" +
-                "SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV" +
-                "MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8" +
-                "NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
-                "AQAB",
-                "RS256",
-                null,
-                null,
-                null);
+        RFC7515_RS256_CONFIG = JwtKeyConfig.builder()
+                .kty("RSA")
+                .kid("test")
+                .use("verify")
+                .n("ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx" +
+                   "HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs" +
+                   "D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH" +
+                   "SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV" +
+                   "MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8" +
+                   "NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ")
+                .e("AQAB")
+                .alg("RS256")
+                .build();
 
         // RFC 7515, section A.3.1
-        RFC7515_ES256_CONFIG = new JwtKeyConfig(
-                "RSA",
-                "test",
-                "verify",
-                null,
-                null,
-                null,
-                "P-256",
-                "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
-                "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0");
+        RFC7515_ES256_CONFIG = JwtKeyConfig.builder()
+                .kty("RSA")
+                .kid("test")
+                .use("verify")
+                .crv("P-256")
+                .x("f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU")
+                .y("x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0")
+                .build();
     }
 
     private JwtKeyConfigs()

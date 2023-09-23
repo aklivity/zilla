@@ -238,21 +238,21 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("counters")
                 .build();
 
         this.gaugesLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("gauges")
                 .build();
 
         this.histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .build();
 

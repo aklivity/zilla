@@ -38,6 +38,8 @@ module io.aklivity.zilla.runtime.engine
     requires transitive jakarta.json.bind;
     requires transitive org.agrona.core;
     requires org.leadpony.justify;
+    requires com.fasterxml.jackson.dataformat.yaml;
+    requires com.fasterxml.jackson.databind;
     requires jdk.unsupported;
     requires java.net.http;
 

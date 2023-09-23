@@ -1,0 +1,70 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property delayMillis 2000L
+property expireAt ${mqtt:timestamp() + delayMillis}
+
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .header("type", "will-signal")
+                                    .build()
+                                .filter()
+                                    .header("type", "expiry-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write option zilla:flags "init"
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write [0x01 0x07 0x00 0x7a 0x69 0x6c 0x6c 0x61 0x2d 0x31 0x08 0x00 0x63 0x6c 0x69 0x65 0x6e 0x74 0x2d]
+write flush
+
+write option zilla:flags "fin"
+write [0x31 0xd0 0x07 0x00 0x00 0xbe 0x35 0x1a 0xa5 0x8a 0x01 0x00 0x00]
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write flush

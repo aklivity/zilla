@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
+
 public class KafkaConditionConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -44,23 +46,25 @@ public class KafkaConditionConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"topic\": \"test\"" +
+                    "\"topic\": \"test\"," +
+                    "\"groupId\": \"test\"" +
                 "}";
 
         KafkaConditionConfig condition = jsonb.fromJson(text, KafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.topic, equalTo("test"));
+        assertThat(condition.groupId, equalTo("test"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        KafkaConditionConfig condition = new KafkaConditionConfig("test");
+        KafkaConditionConfig condition = new KafkaConditionConfig("test", "test");
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\"}"));
+        assertThat(text, equalTo("{\"topic\":\"test\",\"groupId\":\"test\"}"));
     }
 }

@@ -25,7 +25,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
@@ -68,10 +67,15 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
         for (String name : jsonObject.keySet())
         {
             JsonObject item = jsonObject.getJsonObject(name);
+
             String type = item.getString(TYPE_NAME);
             options.adaptType(type);
-            OptionsConfig opts = options.adaptFromJson(item.getJsonObject(OPTIONS_NAME));
-            exporters.add(new ExporterConfig(name, type, opts));
+
+            exporters.add(ExporterConfig.builder()
+                .name(name)
+                .type(type)
+                .options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)))
+                .build());
         }
         return exporters.toArray(ExporterConfig[]::new);
     }

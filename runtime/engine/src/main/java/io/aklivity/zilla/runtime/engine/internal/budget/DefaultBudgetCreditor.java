@@ -113,6 +113,12 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
         if (budgetIndex != NO_CREDITOR_INDEX)
         {
             budgetIndexById.put(budgetId, budgetIndex);
+
+            if (EngineConfiguration.DEBUG_BUDGETS)
+            {
+                System.out.format("[%d] acquire creditor  budgetId=%d budgetIndex=%d \n",
+                        System.nanoTime(), budgetId, budgetIndex);
+            }
         }
 
         return budgetIndex;

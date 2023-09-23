@@ -141,8 +141,14 @@ public class OtlpMetricsSerializer
         MetricRecord record)
     {
         return attributesToJson(List.of(
-            new AttributeConfig("namespace", record.namespace()),
-            new AttributeConfig("binding", record.binding())
+            AttributeConfig.builder()
+                .name("namespace")
+                .value(record.namespace())
+                .build(),
+            AttributeConfig.builder()
+                .name("binding")
+                .value(record.binding())
+                .build()
         ));
     }
 

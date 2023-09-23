@@ -40,9 +40,7 @@ public class ClientMetaIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(KAFKA_CLIENT_META_MAX_AGE_MILLIS, 0)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")

@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.DEFAULT_CREDENTIALS;
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
@@ -28,15 +27,20 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpBindingConfig
 {
+    private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
-    private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL = new HttpAccessControlConfig(SAME_ORIGIN);
+    private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
+            HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
 
     public final long id;
     public final String name;

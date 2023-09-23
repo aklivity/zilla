@@ -15,38 +15,31 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static java.util.Collections.emptyMap;
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Map;
+import static io.aklivity.zilla.runtime.engine.config.NamespaceRefConfigBuilder.LINKS_DEFAULT;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceRefConfigBuilder;
 
-public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject>
+public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRefConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String LINKS_NAME = "links";
 
-    private static final Map<String, String> LINKS_DEFAULT = emptyMap();
-
-    private final ConfigAdapterContext context;
-
     public NamspaceRefAdapter(
         ConfigAdapterContext context)
     {
-        this.context = context;
     }
 
     @Override
     public JsonObject adaptToJson(
-        NamespaceRef ref)
+        NamespaceRefConfig ref)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -63,23 +56,21 @@ public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject
     }
 
     @Override
-    public NamespaceRef adaptFromJson(
+    public NamespaceRefConfig adaptFromJson(
         JsonObject object)
     {
-        String name = object.getString(NAME_NAME);
-        Map<String, String> links = object.containsKey(LINKS_NAME)
-                ? object.getJsonObject(LINKS_NAME)
-                    .entrySet()
-                    .stream()
-                    .collect(toMap(Map.Entry::getKey, e -> asJsonString(e.getValue())))
-                : LINKS_DEFAULT;
+        NamespaceRefConfigBuilder<NamespaceRefConfig> namespace = NamespaceRefConfig.builder();
 
-        return new NamespaceRef(name, links);
-    }
+        namespace.name(object.getString(NAME_NAME));
 
-    private static String asJsonString(
-        JsonValue value)
-    {
-        return ((JsonString) value).getString();
+        if (object.containsKey(LINKS_NAME))
+        {
+            object.getJsonObject(LINKS_NAME)
+                .entrySet()
+                .stream()
+                .forEach(e -> namespace.link(e.getKey(), JsonString.class.cast(e.getValue()).getString()));
+        }
+
+        return namespace.build();
     }
 }

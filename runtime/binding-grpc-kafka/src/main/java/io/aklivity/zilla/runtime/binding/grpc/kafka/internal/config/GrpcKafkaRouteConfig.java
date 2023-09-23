@@ -24,15 +24,16 @@ import java.util.function.LongPredicate;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 
-public final class GrpcKafkaRouteConfig extends OptionsConfig
+public final class GrpcKafkaRouteConfig
 {
     public final long id;
 

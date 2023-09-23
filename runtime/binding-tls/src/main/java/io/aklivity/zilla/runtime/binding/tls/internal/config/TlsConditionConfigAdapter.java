@@ -20,6 +20,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -60,13 +62,18 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String authority = object.containsKey(AUTHORITY_NAME)
-                ? object.getString(AUTHORITY_NAME)
-                : null;
-        String alpn = object.containsKey(ALPN_NAME)
-                ? object.getString(ALPN_NAME)
-                : null;
+        TlsConditionConfigBuilder<TlsConditionConfig> tlsCondition = TlsConditionConfig.builder();
 
-        return new TlsConditionConfig(authority, alpn);
+        if (object.containsKey(AUTHORITY_NAME))
+        {
+            tlsCondition.authority(object.getString(AUTHORITY_NAME));
+        }
+
+        if (object.containsKey(ALPN_NAME))
+        {
+            tlsCondition.alpn(object.getString(ALPN_NAME));
+        }
+
+        return tlsCondition.build();
     }
 }

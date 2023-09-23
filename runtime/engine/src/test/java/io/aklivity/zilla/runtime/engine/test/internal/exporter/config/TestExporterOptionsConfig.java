@@ -15,13 +15,26 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestExporterOptionsConfig extends OptionsConfig
 {
     public final String mode;
 
-    public TestExporterOptionsConfig(
+    public static TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> builder()
+    {
+        return new TestExporterOptionsConfigBuilder<>(TestExporterOptionsConfig.class::cast);
+    }
+
+    public static <T> TestExporterOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TestExporterOptionsConfigBuilder<>(mapper);
+    }
+
+    TestExporterOptionsConfig(
         String mode)
     {
         this.mode = mode;

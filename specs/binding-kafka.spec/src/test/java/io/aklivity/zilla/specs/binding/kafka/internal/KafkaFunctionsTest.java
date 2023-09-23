@@ -46,6 +46,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
@@ -56,9 +57,13 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -67,12 +72,18 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDat
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -88,6 +99,80 @@ public class KafkaFunctionsTest
     {
         factory = newExpressionFactory();
         ctx = new ExpressionContext();
+    }
+
+    @Test
+    public void shouldGenerateMemberMetadata()
+    {
+        byte[] build = KafkaFunctions.memberMetadata()
+            .consumerId("localhost:9092")
+            .topic("test-1")
+                .partitionId(0)
+                .partitionId(1)
+                .build()
+            .topic("test-2")
+                .partitionId(0)
+                .partitionId(1)
+                .partitionId(2)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaGroupMemberMetadataFW memberMetadata =
+            new KafkaGroupMemberMetadataFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals("localhost:9092", memberMetadata.consumerId().asString());
+        assertEquals(2, memberMetadata.topics().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateMemberAssignment()
+    {
+        byte[] build = KafkaFunctions.memberAssignment()
+            .member("memberId-1")
+               .assignment()
+                .topic("test")
+                .partitionId(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
+                .build()
+            .build()
+        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        Array32FW<MemberAssignmentFW> assignments =
+            new Array32FW<>(new MemberAssignmentFW()).wrap(buffer, 0, buffer.capacity());
+
+        assignments.forEach(a ->
+        {
+            assertEquals("memberId-1", a.memberId().asString());
+        });
+    }
+
+    @Test
+    public void shouldGenerateTopicAssignment()
+    {
+        byte[] build = KafkaFunctions.topicAssignment()
+            .topic()
+                .id("test")
+                .partitionId(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partitionId(0)
+                    .build()
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        Array32FW<TopicAssignmentFW> topics =
+            new Array32FW<>(new TopicAssignmentFW()).wrap(buffer, 0, buffer.capacity());
+
+        topics.forEach(t ->
+        {
+            assertEquals("test", t.topic().asString());
+        });
     }
 
     @Test
@@ -212,6 +297,8 @@ public class KafkaFunctionsTest
                                      .merged()
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .topic("topic")
+                                         .groupId("groupId")
+                                         .consumerId("consumerId")
                                          .partition(0, 1L)
                                          .filter()
                                              .key("match")
@@ -232,6 +319,8 @@ public class KafkaFunctionsTest
 
         final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
         assertEquals("topic", mergedBeginEx.topic().asString());
+        assertEquals("groupId", mergedBeginEx.groupId().asString());
+        assertEquals("consumerId", mergedBeginEx.consumerId().asString());
 
         assertNotNull(mergedBeginEx.partitions()
                 .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 1L));
@@ -448,6 +537,7 @@ public class KafkaFunctionsTest
                                          .partition(0, 0L)
                                          .progress(0, 1L)
                                          .key("match")
+                                         .hashKey("hashKey")
                                          .header("name", "value")
                                          .build()
                                      .build();
@@ -485,6 +575,10 @@ public class KafkaFunctionsTest
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
+
+        assertEquals("hashKey", mergedDataEx.hashKey()
+            .value()
+            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
     @Test
@@ -863,11 +957,12 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateMergedFlushExtension()
+    public void shouldGenerateMergedFetchFlushExtension()
     {
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                        .fetch()
                                          .partition(1, 2)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L)
@@ -887,26 +982,26 @@ public class KafkaFunctionsTest
 
         final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
         final MutableInteger partitionsCount = new MutableInteger();
-        mergedFlushEx.progress().forEach(f -> partitionsCount.value++);
+        mergedFlushEx.fetch().progress().forEach(f -> partitionsCount.value++);
         assertEquals(1, partitionsCount.value);
 
-        assertNotNull(mergedFlushEx.progress()
+        assertNotNull(mergedFlushEx.fetch().progress()
                 .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 1L));
 
-        assertEquals(mergedFlushEx.key().value().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)), "key");
-        assertEquals(mergedFlushEx.partition().partitionId(), 1);
-        assertEquals(mergedFlushEx.partition().partitionOffset(), 2);
+        assertEquals(mergedFlushEx.fetch().key().value().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)), "key");
+        assertEquals(mergedFlushEx.fetch().partition().partitionId(), 1);
+        assertEquals(mergedFlushEx.fetch().partition().partitionOffset(), 2);
 
         final MutableInteger filterCount = new MutableInteger();
-        mergedFlushEx.filters().forEach(f -> filterCount.value++);
+        mergedFlushEx.fetch().filters().forEach(f -> filterCount.value++);
         assertEquals(2, filterCount.value);
-        assertNotNull(mergedFlushEx.filters()
+        assertNotNull(mergedFlushEx.fetch().filters()
                 .matchFirst(f -> f.conditions()
                 .matchFirst(c -> c.kind() == KEY.value() &&
                     "match".equals(c.key()
                                     .value()
                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null));
-        assertNotNull(mergedFlushEx.filters()
+        assertNotNull(mergedFlushEx.fetch().filters()
                 .matchFirst(f -> f.conditions()
                 .matchFirst(c -> c.kind() == HEADER.value() &&
                     "name".equals(c.header().name()
@@ -916,11 +1011,12 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateMergedFlushExtensionWithStableOffset()
+    public void shouldGenerateMergedFetchFlushExtensionWithStableOffset()
     {
         byte[] build = KafkaFunctions.flushEx()
                                      .typeId(0x01)
                                      .merged()
+                                        .fetch()
                                          .partition(0, 1L, 1L)
                                          .capabilities("PRODUCE_AND_FETCH")
                                          .progress(0, 1L, 1L, 1L)
@@ -940,35 +1036,56 @@ public class KafkaFunctionsTest
 
         final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
         final MutableInteger partitionsCount = new MutableInteger();
-        mergedFlushEx.progress().forEach(f -> partitionsCount.value++);
+        mergedFlushEx.fetch().progress().forEach(f -> partitionsCount.value++);
         assertEquals(1, partitionsCount.value);
 
-        assertEquals(mergedFlushEx.partition().partitionId(), 0);
-        assertEquals(mergedFlushEx.partition().partitionOffset(), 1L);
-        assertEquals(mergedFlushEx.partition().latestOffset(), 1L);
+        assertEquals(mergedFlushEx.fetch().partition().partitionId(), 0);
+        assertEquals(mergedFlushEx.fetch().partition().partitionOffset(), 1L);
+        assertEquals(mergedFlushEx.fetch().partition().latestOffset(), 1L);
 
-        assertNotNull(mergedFlushEx.progress()
+        assertNotNull(mergedFlushEx.fetch().progress()
                 .matchFirst(p -> p.partitionId() == 0 &&
                     p.partitionOffset() == 1L &&
                     p.stableOffset() == 1L &&
                     p.latestOffset() == 1L));
 
         final MutableInteger filterCount = new MutableInteger();
-        mergedFlushEx.filters().forEach(f -> filterCount.value++);
+        mergedFlushEx.fetch().filters().forEach(f -> filterCount.value++);
         assertEquals(2, filterCount.value);
-        assertNotNull(mergedFlushEx.filters()
+        assertNotNull(mergedFlushEx.fetch().filters()
                 .matchFirst(f -> f.conditions()
                         .matchFirst(c -> c.kind() == KEY.value() &&
                                 "match".equals(c.key()
                                         .value()
                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null));
-        assertNotNull(mergedFlushEx.filters()
+        assertNotNull(mergedFlushEx.fetch().filters()
                 .matchFirst(f -> f.conditions()
                         .matchFirst(c -> c.kind() == HEADER.value() &&
                                 "name".equals(c.header().name()
                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                                 "value".equals(c.header().value()
                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null));
+    }
+
+    @Test
+    public void shouldGenerateMergedConsumerFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .merged()
+                .consumer()
+                    .partition(1, 2)
+                    .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, flushEx.typeId());
+
+        final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
+
+        assertEquals(mergedFlushEx.consumer().partition().partitionId(), 1);
+        assertEquals(mergedFlushEx.consumer().partition().partitionOffset(), 2);
     }
 
     @Test
@@ -983,6 +1100,7 @@ public class KafkaFunctionsTest
                                                  .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
+                                                 .hashKey("hashKey")
                                                  .build()
                                              .build();
 
@@ -996,8 +1114,9 @@ public class KafkaFunctionsTest
                              .progressItem(p -> p.partitionId(0).partitionOffset(1L))
                              .key(k -> k.length(5)
                                         .value(v -> v.set("match".getBytes(UTF_8))))
+                             .hashKey(k -> k.length(7)
+                                 .value(v -> v.set("hashKey".getBytes(UTF_8))))
                              .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-
                              .headersItem(h -> h.nameLen(4)
                                                 .name(n -> n.set("name".getBytes(UTF_8)))
                                                 .valueLen(5)
@@ -1399,6 +1518,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
                                                  .key(null)
+                                                 .hashKey(null)
                                                  .build()
                                              .build();
 
@@ -2094,6 +2214,56 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateGroupFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("consumer-1")
+                .memberId("consumer-2")
+                .members("memberId-1", "test".getBytes())
+                .members("memberId-2", "test".getBytes())
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
+        final String leaderId = groupFlushEx.leaderId().asString();
+        final String memberId = groupFlushEx.memberId().asString();
+        assertEquals("consumer-1", leaderId);
+        assertEquals("consumer-2", memberId);
+        assertEquals(2, groupFlushEx.members().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateGroupFlushExtensionWithEmptyMetadata()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .group()
+            .leaderId("consumer-1")
+            .memberId("consumer-2")
+            .members("memberId-1")
+            .members("memberId-2")
+            .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
+        final String leaderId = groupFlushEx.leaderId().asString();
+        final String memberId = groupFlushEx.memberId().asString();
+        assertEquals("consumer-1", leaderId);
+        assertEquals("consumer-2", memberId);
+        assertEquals(2, groupFlushEx.members().fieldCount());
+    }
+
+    @Test
     public void shouldMatchFetchDataExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
@@ -2584,6 +2754,76 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged(f -> f
                 .topic("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedBeginExtensionGroupId() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .merged()
+                .topic("topic")
+                .groupId("test")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("topic")
+                .groupId("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedBeginExtensionConsumerId() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .merged()
+                .topic("topic")
+                .consumerId("test")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("topic")
+                .consumerId("test")
                 .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
                 .filtersItem(i -> i
                     .conditionsItem(c -> c
@@ -3259,6 +3499,21 @@ public class KafkaFunctionsTest
         assertEquals(87, resetEx.error());
     }
 
+    @Test
+    public void shouldGenerateResetExtensionWithConsumerId()
+    {
+        byte[] build = KafkaFunctions.resetEx()
+            .typeId(0x01)
+            .consumerId("consumer-1")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals("consumer-1", resetEx.consumerId().asString());
+    }
+
 
     @Test
     public void shouldMatchProduceDataExtensionTimestamp() throws Exception
@@ -3785,6 +4040,7 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
+                .metadata("test".getBytes())
                 .build()
             .build();
 
@@ -3797,6 +4053,97 @@ public class KafkaFunctionsTest
         assertEquals("test", groupBeginEx.groupId().asString());
         assertEquals("roundrobin", groupBeginEx.protocol().asString());
         assertEquals(10, groupBeginEx.timeout());
+    }
+
+    @Test
+    public void shouldGenerateGroupBeginWithEmptyMetadataExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .group()
+                .groupId("test")
+                .protocol("roundrobin")
+                .timeout(10)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.GROUP.value(), beginEx.kind());
+
+        final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
+        assertEquals("test", groupBeginEx.groupId().asString());
+        assertEquals("roundrobin", groupBeginEx.protocol().asString());
+        assertEquals(10, groupBeginEx.timeout());
+    }
+
+    @Test
+    public void shouldGenerateConsumerBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+                .consumer()
+                    .groupId("test")
+                    .consumerId("consumer-1")
+                    .timeout(10000)
+                    .topic("topic")
+                    .partition(0)
+                    .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.CONSUMER.value(), beginEx.kind());
+
+        final KafkaConsumerBeginExFW consumerBeginEx = beginEx.consumer();
+        assertEquals("test", consumerBeginEx.groupId().asString());
+        assertEquals("topic", consumerBeginEx.topic().asString());
+        assertEquals(1, consumerBeginEx.partitionIds().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateOffsetFetchBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .offsetFetch()
+            .groupId("test")
+            .topic("topic", 0)
+            .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.OFFSET_FETCH.value(), beginEx.kind());
+
+        final KafkaOffsetFetchBeginExFW offsetFetchBeginEx = beginEx.offsetFetch();
+        KafkaOffsetFetchTopicFW topic = offsetFetchBeginEx.topics()
+            .matchFirst(t -> t.topic().asString().equals("topic"));
+        assertEquals(1, topic.partitions().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateOffsetCommitBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .offsetCommit()
+                .groupId("test")
+                .topic("topic")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.OFFSET_COMMIT.value(), beginEx.kind());
+
+        final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.offsetCommit();
+        assertEquals("test", offsetCommitBeginEx.groupId().asString());
+        assertEquals("topic", offsetCommitBeginEx.topic().asString());
     }
 
     @Test
@@ -3818,55 +4165,79 @@ public class KafkaFunctionsTest
             .group(f -> f
                 .groupId("test")
                 .protocol("roundrobin")
-                .timeout(10))
+                .timeout(10)
+                .metadataLen("test".length())
+                .metadata(m -> m.set("test".getBytes())))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldGenerateGroupDataExtension()
+    public void shouldGenerateConsumerDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x03)
+            .consumer()
+                .partition(0)
+                .consumer()
+                    .id("localhost:9092")
+                    .partition(0)
+                    .build()
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x03, dataEx.typeId());
+        assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
+
+        final KafkaConsumerDataExFW consumerDataEx = dataEx.consumer();
+        assertTrue(consumerDataEx.partitions().fieldCount() == 1);
+        assertTrue(consumerDataEx.assignments().fieldCount() == 1);
+    }
+
+    @Test
+    public void shouldGenerateOffsetFetchDataExtension()
     {
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
-            .group()
-                .leaderId("test1")
-                .memberId("test2")
+            .offsetFetch()
+                .topic("test", 0, 1L)
                 .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
-        assertEquals(KafkaApi.GROUP.value(), dataEx.kind());
+        assertEquals(KafkaApi.OFFSET_FETCH.value(), dataEx.kind());
 
-        final KafkaGroupDataExFW groupDataEx = dataEx.group();
-        assertEquals("test1", groupDataEx.leaderId().asString());
-        assertEquals("test2", groupDataEx.memberId().asString());
+        final KafkaOffsetFetchDataExFW offsetFetchDataEx = dataEx.offsetFetch();
+        KafkaOffsetFW offset = offsetFetchDataEx.topic().offsets().matchFirst(o -> o.partitionId() == 0);
+        assertEquals("test", offsetFetchDataEx.topic().topic().asString());
+        assertEquals(0, offset.partitionId());
+        assertEquals(1L, offset.partitionOffset());
     }
 
     @Test
-    public void shouldMatchGroupDataExtension() throws Exception
+    public void shouldGenerateOffsetCommitDataExtension()
     {
-        BytesMatcher matcher = KafkaFunctions.matchDataEx()
+        byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
-            .group()
-                .leaderId("test1")
-                .memberId("test2")
+            .offsetCommit()
+                .partitionId(0)
+                .partitionOffset(1L)
                 .build()
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.OFFSET_COMMIT.value(), dataEx.kind());
 
-        new KafkaDataExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .group(f -> f
-                .leaderId("test1")
-                .memberId("test2"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
+        final KafkaOffsetCommitDataExFW offsetCommitDataEx = dataEx.offsetCommit();
+        assertEquals(0, offsetCommitDataEx.partitionId());
+        assertEquals(1L, offsetCommitDataEx.partitionOffset());
     }
 
     @Test
@@ -4129,21 +4500,25 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                    .partition(1, 2)
-                    .progress(0, 1L)
-                    .key("key")
-                    .build()
+                    .fetch()
+                        .partition(1, 2)
+                        .progress(0, 1L)
+                        .capabilities("FETCH_ONLY")
+                        .key("key")
+                        .build()
                 .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.partition(p -> p.partitionId(1).partitionOffset(2))
+                .merged(f -> f
+                    .fetch(m -> m.partition(p -> p.partitionId(1).partitionOffset(2))
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))
-                    .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8)))))
+                        .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
+                    .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4155,6 +4530,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
+                    .fetch()
                     .partition(0, 1L, 1L)
                     .progress(0, 1L, 1L)
                     .build()
@@ -4165,12 +4541,12 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f ->
-                    f.partition(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
+                .merged(f -> f
+                    .fetch(m -> m.partition(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L)
-                        .latestOffset(1L)))
+                        .latestOffset(1L))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4187,9 +4563,11 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
-                        .partitionId(0)
-                        .partitionOffset(1L)))
+                .merged(f -> f
+                    .fetch(m ->
+                    m.progressItem(p -> p
+                    .partitionId(0)
+                    .partitionOffset(1L))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4200,6 +4578,7 @@ public class KafkaFunctionsTest
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .merged()
+                .fetch()
                 .progress(0, 1L, 1L, 1L)
                 .build()
                 .build();
@@ -4208,11 +4587,12 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
-                                .partitionId(0)
-                                .partitionOffset(1L)
-                                .stableOffset(1L)
-                                .latestOffset(1L)))
+                .merged(f -> f
+                    .fetch(m -> m.progressItem(p -> p
+                    .partitionId(0)
+                    .partitionOffset(1L)
+                    .stableOffset(1L)
+                    .latestOffset(1L))))
                             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4222,12 +4602,14 @@ public class KafkaFunctionsTest
     public void shouldMatchMergedFlushExtensionFilters() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
             .merged()
-                .filter()
-                    .key("key")
-                    .header("name", "value")
+                .fetch()
+                    .filter()
+                        .key("key")
+                        .header("name", "value")
+                        .build()
                     .build()
-                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -4236,7 +4618,7 @@ public class KafkaFunctionsTest
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .merged(f -> f
-                .filtersItem(i -> i
+                    .fetch(m -> m.filtersItem(i -> i
                     .conditionsItem(c -> c
                         .key(k -> k
                             .length(3)
@@ -4247,6 +4629,7 @@ public class KafkaFunctionsTest
                             .name(n -> n.set("name".getBytes(UTF_8)))
                             .valueLen(5)
                             .value(v -> v.set("value".getBytes(UTF_8)))))))
+                )
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4263,9 +4646,10 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
-                        .partitionId(0)
-                        .partitionOffset(1L)))
+                .merged(f -> f
+                    .fetch(m -> m.progressItem(p -> p
+                    .partitionId(0)
+                    .partitionOffset(1L))))
                 .build();
 
         matcher.match(byteBuf);
@@ -4277,17 +4661,19 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .merged()
-                .progress(0, 2L)
-                .build()
+                .fetch()
+                    .progress(0, 2L)
+                    .build()
                 .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.progressItem(p -> p
+                .merged(f -> f
+                    .fetch(m -> m.progressItem(p -> p
                         .partitionId(0)
-                        .partitionOffset(1L)))
+                        .partitionOffset(1L))))
                 .build();
 
         matcher.match(byteBuf);
@@ -4521,6 +4907,54 @@ public class KafkaFunctionsTest
 
         matcher.match(byteBuf);
     }
+
+    @Test
+    public void shouldMatchGroupFlushExtensionMembers() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("memberId-1")
+                .memberId("memberId-2")
+                .members("memberId-1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+                members(m -> m.item(i -> i.id("memberId-1"))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchGroupFlushExtensionMembersMetadata() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .group()
+               .leaderId("memberId-1")
+               .memberId("memberId-2")
+               .members("memberId-1", "test")
+               .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+                members(m -> m.item(i -> i.id("memberId-1")
+                     .metadataLen("test".length()).metadata(o -> o.set("test".getBytes())))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
 
     @Test(expected = Exception.class)
     public void shouldNotMatchFetchFlushExtensionWithLatestOffset() throws Exception

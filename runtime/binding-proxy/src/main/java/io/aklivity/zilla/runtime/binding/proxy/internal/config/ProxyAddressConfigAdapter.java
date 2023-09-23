@@ -20,6 +20,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
+
 public final class ProxyAddressConfigAdapter implements JsonbAdapter<ProxyAddressConfig, JsonObject>
 {
     private static final String HOST_NAME = "host";

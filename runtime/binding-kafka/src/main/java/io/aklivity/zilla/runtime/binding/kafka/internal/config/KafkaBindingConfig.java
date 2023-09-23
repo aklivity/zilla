@@ -19,6 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -45,7 +48,18 @@ public final class KafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .filter(r -> r.authorized(authorization) && r.matches(topic, null))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public KafkaRouteConfig resolve(
+        long authorization,
+        String topic,
+        String groupId)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(topic, groupId))
             .findFirst()
             .orElse(null);
     }

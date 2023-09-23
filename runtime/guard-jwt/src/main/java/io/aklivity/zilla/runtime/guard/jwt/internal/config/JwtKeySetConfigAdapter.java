@@ -25,6 +25,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeySetConfig;
+
 public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfig, JsonObject>
 {
     private static final String KEYS_NAME = "keys";

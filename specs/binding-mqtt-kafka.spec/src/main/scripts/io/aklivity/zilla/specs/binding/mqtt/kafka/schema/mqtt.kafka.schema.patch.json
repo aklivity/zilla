@@ -1,0 +1,97 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mqtt-kafka"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt-kafka"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy" ]
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "server":
+                            {
+                                "title": "Server Reference",
+                                "type": "string"
+                            },
+                            "topics":
+                            {
+                                "title": "Topics",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "sessions":
+                                    {
+                                        "title": "Kafka Sessions Topic",
+                                        "type": "string"
+                                    },
+                                    "messages":
+                                    {
+                                        "title": "Kafka Messages Topic",
+                                        "type": "string"
+                                    },
+                                    "retained":
+                                    {
+                                        "title": "Kafka Retained Topic",
+                                        "type": "string"
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "required":
+                                [
+                                    "sessions",
+                                    "retained",
+                                    "messages"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required":
+                        [
+                            "topics"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit",
+                            "options"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+]

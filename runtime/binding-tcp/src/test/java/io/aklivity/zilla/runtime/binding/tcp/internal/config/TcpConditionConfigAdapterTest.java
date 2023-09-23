@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 
 public class TcpConditionConfigAdapterTest
 {
@@ -62,13 +65,19 @@ public class TcpConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        TcpConditionConfig condition = new TcpConditionConfig("127.0.0.0/24", "*.example.net", new int[] { 8080 });
+        TcpConditionConfig condition = TcpConditionConfig.builder()
+            .inject(identity())
+            .cidr("127.0.0.0/24")
+            .authority("*.example.net")
+            .ports(new int[] { 8080 })
+            .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"cidr\":\"127.0.0.0/24\",\"authority\":\"*.example.net\",\"port\":8080}"));
     }
+
     @Test
     public void shouldReadConditionWithPortRange()
     {

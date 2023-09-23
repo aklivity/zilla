@@ -18,6 +18,8 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
+
 public final class SseKafkaConditionMatcher
 {
     private final Matcher path;

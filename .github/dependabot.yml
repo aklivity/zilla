@@ -1,0 +1,23 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: /
+  ignore:
+    - dependency-name: "org.kaazing:k3po.*"
+      versions: [ "4.x", "5.x" ]
+    - dependency-name: "com.guicedee.services:commons-*"
+      versions: [ "62" ]
+  schedule:
+    interval: daily
+- package-ecosystem: docker
+  directory: /cloud/docker-image/src/main/docker/release
+  schedule:
+    interval: daily
+- package-ecosystem: docker
+  directory: /cloud/docker-image/src/main/docker/incubator
+  schedule:
+    interval: daily
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily

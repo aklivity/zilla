@@ -46,9 +46,7 @@ public class ClientMergedIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CLIENT_META_MAX_AGE_MILLIS, 1000)
         .configure(KAFKA_CLIENT_PRODUCE_MAX_BYTES, 116)

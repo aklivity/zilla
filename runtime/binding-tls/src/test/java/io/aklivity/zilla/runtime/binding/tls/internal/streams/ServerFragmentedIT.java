@@ -42,9 +42,7 @@ public class ServerFragmentedIT
 
     private final EngineRule engine = new EngineRule()
             .directory("target/zilla-itests")
-            .commandBufferCapacity(1024)
-            .responseBufferCapacity(1024)
-            .counterValuesBufferCapacity(8192)
+            .countersBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/binding/tls/config")
             .external("app0")
             .clean();

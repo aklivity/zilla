@@ -15,16 +15,18 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.sse.internal.config.SseOptionsConfigAdapter.RETRY_DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class SseBindingConfig
 {
-    private static final SseOptionsConfig DEFAULT_OPTIONS = new SseOptionsConfig();
+    private static final SseOptionsConfig DEFAULT_OPTIONS = new SseOptionsConfig(RETRY_DEFAULT);
 
     public final long id;
     public final String name;

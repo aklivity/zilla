@@ -33,14 +33,10 @@ public class MetricRefAdapter implements JsonbAdapter<MetricRefConfig, JsonValue
 
     @Override
     public MetricRefConfig adaptFromJson(
-        JsonValue jsonValue)
-    {
-        return new MetricRefConfig(asJsonString(jsonValue));
-    }
-
-    private static String asJsonString(
         JsonValue value)
     {
-        return ((JsonString) value).getString();
+        return MetricRefConfig.builder()
+            .name(JsonString.class.cast(value).getString())
+            .build();
     }
 }
