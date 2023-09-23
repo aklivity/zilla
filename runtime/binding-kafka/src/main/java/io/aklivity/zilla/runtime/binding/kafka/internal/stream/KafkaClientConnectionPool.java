@@ -717,14 +717,16 @@ public final class KafkaClientConnectionPool
             long sequence,
             long acknowledge,
             int reserved,
-            OctetsFW payload,
+            DirectBuffer payload,
+            int offset,
+            int length,
             Flyweight extension)
         {
             replySeq = sequence;
             replyAck = acknowledge;
 
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, flags, replyBud, reserved, payload, extension);
+                traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
         }
 
         private void doStreamEnd(
@@ -1096,28 +1098,50 @@ public final class KafkaClientConnectionPool
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            if (responseBytes == 0)
+            final DirectBuffer buffer = payload.buffer();
+            final int limit = payload.limit();
+            int progress = payload.offset();
+
+            while (progress < limit)
             {
-                final DirectBuffer buffer = payload.buffer();
-                final int limit = payload.limit();
-                int progress = payload.offset();
+                final int beforeResponseBytes = responseBytes;
+                if (responseBytes == 0)
+                {
+                    final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
+                    responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+                }
 
-                final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
-                responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
-            }
+                final int responseBytesMin = Math.min(responseBytes, payload.sizeof());
+                responseBytes -= responseBytesMin;
+                assert responseBytes >= 0;
 
-            long initialId = correlations.peekLong();
+                long initialId = correlations.peekLong();
 
-            KafkaClientStream stream = streamsByInitialIds.get(initialId);
+                KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-            stream.doStreamData(traceId, flags, sequence, acknowledge, reserved, payload, extension);
+                int newFlags = flags;
 
-            responseBytes -= payload.sizeof();
-            assert responseBytes >= 0;
+                if (beforeResponseBytes == 0 && responseBytes > 0)
+                {
+                    newFlags = FLAG_INIT;
+                }
+                else if (beforeResponseBytes != 0 && responseBytes == 0)
+                {
+                    newFlags = FLAG_FIN;
+                }
+                else if (responseBytes > 0)
+                {
+                    newFlags = FLAG_NONE;
+                }
 
-            if (responseBytes == 0)
-            {
-                correlations.remove();
+                stream.doStreamData(traceId, newFlags, sequence, acknowledge, reserved,
+                    buffer, progress, responseBytesMin, extension);
+                progress += responseBytesMin;
+
+                if (responseBytes == 0)
+                {
+                    correlations.remove();
+                }
             }
         }
 
