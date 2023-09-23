@@ -25,7 +25,7 @@ public class MqttCredentialsConfigBuilder<T> extends ConfigBuilder<T, MqttCreden
 {
     private final Function<MqttCredentialsConfig, T> mapper;
 
-    private List<MqttPatternConfig> connectList;
+    private List<MqttPatternConfig> connects;
 
     MqttCredentialsConfigBuilder(
         Function<MqttCredentialsConfig, T> mapper)
@@ -48,17 +48,17 @@ public class MqttCredentialsConfigBuilder<T> extends ConfigBuilder<T, MqttCreden
     @Override
     public T build()
     {
-        return mapper.apply(new MqttCredentialsConfig(connectList));
+        return mapper.apply(new MqttCredentialsConfig(connects));
     }
 
     private MqttCredentialsConfigBuilder<T> connect(
         MqttPatternConfig connect)
     {
-        if (connectList == null)
+        if (connects == null)
         {
-            connectList = new LinkedList<>();
+            connects = new LinkedList<>();
         }
-        connectList.add(connect);
+        connects.add(connect);
         return this;
     }
 }

@@ -21,7 +21,6 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
 public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, JsonObject>
@@ -55,18 +54,17 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
     public MqttTopicConfig adaptFromJson(
         JsonObject object)
     {
-        String name = null;
+        MqttTopicConfigBuilder<MqttTopicConfig> mqttTopic = MqttTopicConfig.builder();
         if (object.containsKey(NAME_NAME))
         {
-            name = object.getString(NAME_NAME);
+            mqttTopic.name(object.getString(NAME_NAME));
         }
 
-        ValidatorConfig content = null;
         if (object.containsKey(CONTENT_NAME))
         {
             JsonValue contentJson = object.get(CONTENT_NAME);
-            content = validator.adaptFromJson(contentJson);
+            mqttTopic.content(validator.adaptFromJson(contentJson));
         }
-        return new MqttTopicConfig(name, content);
+        return mqttTopic.build();
     }
 }
