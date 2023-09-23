@@ -17,6 +17,7 @@
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:budgetId 1
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))

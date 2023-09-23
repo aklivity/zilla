@@ -69,6 +69,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
+    public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -111,6 +112,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
+        KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
         KAFKA_CONFIG = config;
     }
 
@@ -238,6 +240,11 @@ public class KafkaConfiguration extends Configuration
     public boolean cacheServerBootstrap()
     {
         return KAFKA_CACHE_SERVER_BOOTSTRAP.getAsBoolean(this);
+    }
+
+    public boolean clientConnectionPool()
+    {
+        return KAFKA_CLIENT_CONNECTION_POOL.getAsBoolean(this);
     }
 
     public int cacheClientReconnect()

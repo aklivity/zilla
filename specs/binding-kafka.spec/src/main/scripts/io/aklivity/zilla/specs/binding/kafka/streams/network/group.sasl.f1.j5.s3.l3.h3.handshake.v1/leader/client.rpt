@@ -75,18 +75,6 @@ read  35                                 # size
       9s "localhost"                  #host
       9092                            #port
 
-write close
-read abort
-
-read notify ROUTED_CLUSTER_SERVER
-
-connect await ROUTED_CLUSTER_SERVER
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
 
 write 17                                # size
       17s                               # sasl.handshake
@@ -204,7 +192,7 @@ write 119                               # size
         14                                   # metadata size
         ${kafka:randomBytes(14)}             # metadata
 
-read  126                                               # size
+read  128                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error

@@ -42,13 +42,6 @@ write 35                                 # size
       9s "localhost"                     # host
       9092                               # port
 
-read closed
-write aborted
-
-accepted
-
-connected
-
 read 82                                                 # size
      32s                                                # describe configs
      0s                                                 # v0
@@ -128,7 +121,7 @@ read  129                               # size
         14                                   # metadata size
         [0..14]                              # metadata
 
-write 126                                               # size
+write 128                                               # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
@@ -196,7 +189,7 @@ read  129                               # size
         [0..14]                             # metadata
 
 
-write 198                                               # size
+write 202                                               # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
@@ -259,5 +252,3 @@ write 70                                           # size
         10s "memberId-1"                             # consumer member group id
         42s ${instanceId}                            # group instance id
 
-read closed
-write aborted

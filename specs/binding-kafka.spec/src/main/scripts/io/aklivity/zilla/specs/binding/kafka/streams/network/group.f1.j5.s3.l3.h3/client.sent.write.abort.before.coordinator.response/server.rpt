@@ -30,6 +30,3 @@ read  22                                # size
       5s "zilla"                        # no client id
       4s "test"                         # "session" coordinator key
       [0x00]                            # coordinator group type
-
-read aborted
-write abort
