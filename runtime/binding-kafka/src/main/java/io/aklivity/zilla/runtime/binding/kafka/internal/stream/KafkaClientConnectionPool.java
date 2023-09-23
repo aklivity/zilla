@@ -112,6 +112,7 @@ public final class KafkaClientConnectionPool
     private final LongSupplier supplyTraceId;
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialIds;
+    private final boolean clientConnectionPool;
 
 
     public KafkaClientConnectionPool(
@@ -133,6 +134,7 @@ public final class KafkaClientConnectionPool
         this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
         this.streamsByInitialIds = new Long2ObjectHashMap<>();
+        this.clientConnectionPool = config.clientConnectionPool();
     }
 
     private MessageConsumer newStream(
@@ -451,7 +453,13 @@ public final class KafkaClientConnectionPool
 
     public BindingHandler streamFactory()
     {
-        return this::newStream;
+        BindingHandler newStream = this::newStream;
+        if (!clientConnectionPool)
+        {
+            newStream = streamFactory;
+        }
+
+        return newStream;
     }
 
     public class KafkaClientSignaler implements Signaler
@@ -516,7 +524,12 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        return connectionSignaler;
+        Signaler newConnectionSignaler = connectionSignaler;
+        if (!clientConnectionPool)
+        {
+            newConnectionSignaler = signaler;
+        }
+        return newConnectionSignaler;
     }
 
     final class KafkaClientStream
