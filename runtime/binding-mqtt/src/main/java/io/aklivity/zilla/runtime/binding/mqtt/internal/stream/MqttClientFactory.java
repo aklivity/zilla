@@ -2690,7 +2690,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private boolean existStreamForId(
             int subscriptionId)
         {
-            return sessionStream.subscriptions.stream().anyMatch(s -> s.id == subscriptionId);
+            return sessionStream.subscriptions.stream().anyMatch(s -> generatedSubscriptionId(s.id) || s.id == subscriptionId);
         }
 
         private int nextPacketId()
