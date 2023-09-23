@@ -20,8 +20,8 @@ module io.aklivity.zilla.runtime.validator.avro
     uses io.aklivity.zilla.runtime.validator.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.validator.config.AvroValidatorConfigAdapter;
+        with io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.validator.AvroValidatorFactory;
+        with io.aklivity.zilla.runtime.validator.avro.AvroValidatorFactory;
 }
