@@ -659,7 +659,6 @@ public final class KafkaClientConnectionPool
             requestBytes -= payload.sizeof();
             connection.doConnectionData(initialId, traceId, authorization, budgetId,
                 flags, reserved, payload, extension);
-            assert requestBytes >= 0;
         }
 
         private void onStreamEnd(
@@ -770,6 +769,7 @@ public final class KafkaClientConnectionPool
         {
             if (!KafkaState.replyClosed(state))
             {
+                state = KafkaState.closingReply(state);
                 if (nextRequestId == nexResponseId)
                 {
                     state = KafkaState.closedReply(state);
@@ -779,10 +779,6 @@ public final class KafkaClientConnectionPool
 
                     streamsByInitialIds.remove(initialId);
                 }
-                else
-                {
-                    state = KafkaState.closingReply(state);
-                }
             }
         }
 
@@ -791,6 +787,8 @@ public final class KafkaClientConnectionPool
         {
             if (!KafkaState.replyClosed(state))
             {
+                state = KafkaState.closingReply(state);
+
                 if (nextRequestId == nexResponseId)
                 {
                     state = KafkaState.closedReply(state);
@@ -799,10 +797,6 @@ public final class KafkaClientConnectionPool
                         traceId, authorization, EMPTY_EXTENSION);
 
                     streamsByInitialIds.remove(initialId);
-                }
-                else
-                {
-                    state = KafkaState.closingReply(state);
                 }
             }
         }
@@ -1170,8 +1164,9 @@ public final class KafkaClientConnectionPool
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-                stream.doStreamData(traceId, flags, sequence, acknowledge, reserved,
-                    buffer, progress, responseBytesMin, extension);
+                stream.doStreamData(traceId, flags | FLAG_INIT | FLAG_FIN, sequence,
+                    acknowledge, reserved, buffer, progress, responseBytesMin, extension);
+
                 progress += responseBytesMin;
 
                 if (responseBytes == 0)
