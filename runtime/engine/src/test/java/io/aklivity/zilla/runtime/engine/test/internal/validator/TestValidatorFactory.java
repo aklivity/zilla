@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
+import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -29,6 +30,12 @@ public class TestValidatorFactory implements ValidatorFactorySpi
     public String type()
     {
         return "test";
+    }
+
+    @Override
+    public URL schema()
+    {
+        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

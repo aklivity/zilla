@@ -51,8 +51,7 @@ bindings:
       topics:
         - name: test
           key:
-            type: string
-            encoding: utf_8
+            type: test
           value:
             type: test
     routes:

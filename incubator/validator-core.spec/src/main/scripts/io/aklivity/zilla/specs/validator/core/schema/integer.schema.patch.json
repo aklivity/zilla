@@ -1,0 +1,7 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "integer"
+    }
+]
