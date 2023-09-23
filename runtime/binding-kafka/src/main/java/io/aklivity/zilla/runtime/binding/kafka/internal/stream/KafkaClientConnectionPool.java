@@ -104,8 +104,7 @@ public final class KafkaClientConnectionPool
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer encodeBuffer;
-    private final Signaler signaler;
-    private final KafkaClientSignaler connectionSignaler;
+    private final KafkaClientSignaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -125,8 +124,7 @@ public final class KafkaClientConnectionPool
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.encodeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
-        this.signaler = context.signaler();
-        this.connectionSignaler = new KafkaClientSignaler();
+        this.signaler = new KafkaClientSignaler(context.signaler());
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -453,17 +451,19 @@ public final class KafkaClientConnectionPool
 
     public BindingHandler streamFactory()
     {
-        BindingHandler newStream = this::newStream;
-        if (!clientConnectionPool)
-        {
-            newStream = streamFactory;
-        }
-
-        return newStream;
+        return this::newStream;
     }
 
     public class KafkaClientSignaler implements Signaler
     {
+        private final Signaler signaler;
+
+        public KafkaClientSignaler(
+            Signaler signaler)
+        {
+            this.signaler = signaler;
+        }
+
         @Override
         public long signalAt(
             long timeMillis,
@@ -524,12 +524,7 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        Signaler newConnectionSignaler = connectionSignaler;
-        if (!clientConnectionPool)
-        {
-            newConnectionSignaler = signaler;
-        }
-        return newConnectionSignaler;
+        return signaler;
     }
 
     final class KafkaClientStream
