@@ -42,12 +42,6 @@ write 35                                 # size
       9s "localhost"                  # host
       9092                            # port
 
-read closed
-write aborted
-
-accepted
-
-connected
 
 read 82                                                 # size
      32s                                                # describe configs
@@ -101,7 +95,7 @@ read  119                               # size
         14                                   # metadata size
         [0..14]                              # metadata
 
-write 126                                               # size
+write 128                                               # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
@@ -134,7 +128,7 @@ read  129                               # size
         14                                  # metadata size
         [0..14]                             # metadata
 
-write 126                                               # size
+write 128                                               # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error

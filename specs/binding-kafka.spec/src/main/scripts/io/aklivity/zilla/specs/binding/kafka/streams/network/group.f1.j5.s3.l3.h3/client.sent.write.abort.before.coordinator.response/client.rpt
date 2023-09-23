@@ -36,6 +36,3 @@ write 22                                # size
       4s "test"                         # "session" coordinator key
       [0x00]                            # coordinator group type
 
-
-write abort
-read aborted

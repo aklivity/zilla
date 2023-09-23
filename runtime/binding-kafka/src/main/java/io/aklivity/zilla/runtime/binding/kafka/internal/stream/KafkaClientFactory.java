@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaClientFactory implements KafkaStreamFactory
@@ -52,6 +53,15 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
+        final KafkaClientConnectionPool connectionPool = new KafkaClientConnectionPool(
+            config, context, accountant.creditor());
+
+        final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
+                context.streamFactory();
+
+        final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
+                context.signaler();
+
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
 
@@ -59,7 +69,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);

@@ -16,6 +16,9 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -265,6 +268,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final String clientId;
@@ -275,13 +279,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
-        LongFunction<BudgetDebitor> supplyDebitor)
+        LongFunction<BudgetDebitor> supplyDebitor,
+        Signaler signaler,
+        BindingHandler streamFactory)
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.signaler = context.signaler();
-        this.streamFactory = context.streamFactory();
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
@@ -290,6 +296,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
         this.clientId = config.clientId();
         this.supplyInstanceId = config.clientInstanceIdSupplier();
+        this.supplyDebitor = supplyDebitor;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
     }
@@ -307,7 +314,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
-        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
         final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
@@ -802,7 +808,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         int progress,
         int limit)
     {
-        client.doNetworkResetIfNecessary(traceId);
+        client.doNetworkReset(traceId);
         client.decoder = decodeIgnoreAll;
         return limit;
     }
@@ -1691,12 +1697,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private long initialSeq;
         private long initialAck;
+        private int initialMin;
         private int initialMax;
         private int initialPad;
-        private long initialBudgetId;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_DEBITOR_INDEX;
 
         private long replySeq;
         private long replyAck;
+        private long replyBud;
         private int replyMax;
 
         private int encodeSlot = NO_SLOT;
@@ -1709,6 +1718,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private int nextResponseId;
 
+        private BudgetDebitor initialDeb;
         private KafkaGroupClusterClientDecoder decoder;
         private LongLongConsumer encoder;
 
@@ -1790,6 +1800,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             replySeq = sequence + data.reserved();
             authorization = data.authorization();
+            replyBud = budgetId;
 
             assert replyAck <= replySeq;
 
@@ -1862,6 +1873,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final int minimum = window.minimum();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
@@ -1875,6 +1887,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.initialAck = acknowledge;
             this.initialMax = maximum;
             this.initialPad = padding;
+            this.initialMin = minimum;
             this.initialBudgetId = budgetId;
 
             assert initialAck <= initialSeq;
@@ -1883,15 +1896,28 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openedInitial(state);
 
+            if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(initialBudgetId);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
+            }
+
+            doNetworkDataIfNecessary(budgetId);
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void doNetworkDataIfNecessary(
+            long traceId)
+        {
             if (encodeSlot != NO_SLOT)
             {
                 final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
-                encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
+                encodeNetwork(traceId, authorization, initialBudgetId, buffer, 0, limit);
             }
-
-            doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
         private void onNetworkSignal(
@@ -2089,13 +2115,32 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int offset,
             int limit)
         {
-            final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+            final int length = limit - offset;
+            final int lengthMin = Math.min(length, 1024);
+            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
+            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
-            if (length > 0)
+            int reserved = reservedMax;
+
+            flush:
+            if (reserved > 0)
             {
-                final int reserved = length + initialPad;
+
+                boolean claimed = false;
+
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    final int lengthMax = Math.min(reserved - initialPad, length);
+                    final int deferredMax = length - lengthMax;
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    claimed = reserved > 0;
+                }
+
+                if (reserved < initialPad || reserved == initialPad && length > 0)
+                {
+                    break flush;
+                }
 
                 doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
@@ -2105,7 +2150,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert initialAck <= initialSeq;
             }
 
-            final int remaining = maxLength - length;
+            final int flushed = Math.max(reserved - initialPad, 0);
+            final int remaining = length - flushed;
             if (remaining > 0)
             {
                 if (encodeSlot == NO_SLOT)
@@ -2120,7 +2166,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 else
                 {
                     final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
             }
@@ -2353,9 +2399,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private long initialSeq;
         private long initialAck;
+        private int initialMin;
         private int initialMax;
         private int initialPad;
-        private long initialBudgetId;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_CREDITOR_INDEX;
 
         private long replySeq;
         private long replyAck;
@@ -2373,6 +2421,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private KafkaDescribeClientDecoder decoder;
         private LongLongConsumer encoder;
+        private BudgetDebitor initialDeb;
 
         DescribeClient(
             long originId,
@@ -2550,6 +2599,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final int minimum = window.minimum();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
@@ -2563,6 +2613,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.initialAck = acknowledge;
             this.initialMax = maximum;
             this.initialPad = padding;
+            this.initialMin = minimum;
             this.initialBudgetId = budgetId;
 
             assert initialAck <= initialSeq;
@@ -2571,6 +2622,21 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openedInitial(state);
 
+            if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(initialBudgetId);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
+            }
+
+            doNetworkDataIfNecessary(budgetId);
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void doNetworkDataIfNecessary(
+            long budgetId)
+        {
             if (encodeSlot != NO_SLOT)
             {
                 final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
@@ -2578,8 +2644,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
             }
-
-            doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
         private void onNetworkSignal(
@@ -2650,7 +2714,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 traceId, authorization, EMPTY_EXTENSION);
         }
 
-        private void doNetworkAbortIfNecessary(
+        private void doNetworkAbort(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -2663,7 +2727,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             cleanupEncodeSlotIfNecessary();
         }
 
-        private void doNetworkResetIfNecessary(
+        private void doNetworkReset(
             long traceId)
         {
             if (!KafkaState.replyClosed(state))
@@ -2782,13 +2846,32 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int offset,
             int limit)
         {
-            final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+            final int length = limit - offset;
+            final int lengthMin = Math.min(length, 1024);
+            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
+            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
-            if (length > 0)
+            int reserved = reservedMax;
+
+            flush:
+            if (reserved > 0)
             {
-                final int reserved = length + initialPad;
+
+                boolean claimed = false;
+
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    final int lengthMax = Math.min(reserved - initialPad, length);
+                    final int deferredMax = length - lengthMax;
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    claimed = reserved > 0;
+                }
+
+                if (reserved < initialPad || reserved == initialPad && length > 0)
+                {
+                    break flush;
+                }
 
                 doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
@@ -2798,7 +2881,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert initialAck <= initialSeq;
             }
 
-            final int remaining = maxLength - length;
+            final int flushed = Math.max(reserved - initialPad, 0);
+            final int remaining = length - flushed;
             if (remaining > 0)
             {
                 if (encodeSlot == NO_SLOT)
@@ -2813,7 +2897,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 else
                 {
                     final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
             }
@@ -2985,8 +3069,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void cleanupNetwork(
             long traceId)
         {
-            doNetworkResetIfNecessary(traceId);
-            doNetworkAbortIfNecessary(traceId);
+            doNetworkAbort(traceId);
+            doNetworkReset(traceId);
         }
 
         private void cleanupDecodeSlotIfNecessary()
@@ -3030,9 +3114,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private long initialSeq;
         private long initialAck;
+        private int initialMin;
         private int initialMax;
         private int initialPad;
-        private long initialBudgetId;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_CREDITOR_INDEX;
 
         private long replySeq;
         private long replyAck;
@@ -3056,6 +3142,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private KafkaGroupCoordinatorClientDecoder decoder;
         private LongLongConsumer encoder;
         private OctetsFW assignment = EMPTY_OCTETS;
+        private BudgetDebitor initialDeb;
 
         CoordinatorClient(
             long originId,
@@ -3215,6 +3302,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final int minimum = window.minimum();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
@@ -3228,6 +3316,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.initialAck = acknowledge;
             this.initialMax = maximum;
             this.initialPad = padding;
+            this.initialMin = minimum;
             this.initialBudgetId = budgetId;
 
             assert initialAck <= initialSeq;
@@ -3236,6 +3325,20 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openedInitial(state);
 
+            if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(initialBudgetId);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
+            }
+
+            doNetworkDataIfNecessary(budgetId);
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void doNetworkDataIfNecessary(long budgetId)
+        {
             if (encodeSlot != NO_SLOT)
             {
                 final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
@@ -3243,8 +3346,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
             }
-
-            doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
         private void onNetworkSignal(
@@ -3842,13 +3943,32 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int offset,
             int limit)
         {
-            final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+            final int length = limit - offset;
+            final int lengthMin = Math.min(length, 1024);
+            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
+            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
-            if (length > 0)
+            int reserved = reservedMax;
+
+            flush:
+            if (reserved > 0)
             {
-                final int reserved = length + initialPad;
+
+                boolean claimed = false;
+
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    final int lengthMax = Math.min(reserved - initialPad, length);
+                    final int deferredMax = length - lengthMax;
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    claimed = reserved > 0;
+                }
+
+                if (reserved < initialPad || reserved == initialPad && length > 0)
+                {
+                    break flush;
+                }
 
                 doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
@@ -3858,7 +3978,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert initialAck <= initialSeq;
             }
 
-            final int remaining = maxLength - length;
+            final int flushed = Math.max(reserved - initialPad, 0);
+            final int remaining = length - flushed;
             if (remaining > 0)
             {
                 if (encodeSlot == NO_SLOT)
@@ -3873,7 +3994,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 else
                 {
                     final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
             }

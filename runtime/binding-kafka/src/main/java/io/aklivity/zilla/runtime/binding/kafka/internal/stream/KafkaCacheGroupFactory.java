@@ -269,38 +269,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
     }
 
-
-    private void doDataNull(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        Flyweight extension)
-    {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
-
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
     private void doFlush(
         MessageConsumer receiver,
         long originId,
