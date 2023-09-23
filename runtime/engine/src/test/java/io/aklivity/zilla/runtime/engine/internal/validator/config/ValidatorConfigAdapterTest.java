@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.validator.config;
 
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -30,6 +29,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class ValidatorConfigAdapterTest
 {
@@ -39,7 +39,7 @@ public class ValidatorConfigAdapterTest
     public void initJson()
     {
         ValidatorConfigAdapter adapter = new ValidatorConfigAdapter();
-        adapter.adaptType("integer");
+        adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
         jsonb = JsonbBuilder.create(config);
@@ -51,7 +51,7 @@ public class ValidatorConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"integer\"" +
+                "\"type\": \"test\"" +
             "}";
 
         // WHEN
@@ -59,15 +59,15 @@ public class ValidatorConfigAdapterTest
 
         // THEN
         assertThat(validator, not(nullValue()));
-        assertThat(validator.type, equalTo("integer"));
+        assertThat(validator.type, equalTo("test"));
     }
 
     @Test
     public void shouldWriteValidator()
     {
         // GIVEN
-        String expectedJson = "\"integer\"";
-        ValidatorConfig validator = new IntegerValidatorConfigBuilder<>(identity()).build();
+        String expectedJson = "\"test\"";
+        ValidatorConfig validator = TestValidatorConfig.builder().build();
 
         // WHEN
         String json = jsonb.toJson(validator);

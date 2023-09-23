@@ -26,7 +26,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 
@@ -37,15 +38,15 @@ public class ValidatorFactoryTest
     public void shouldCreate()
     {
         // GIVEN
-        ValidatorConfig integerValidator = new IntegerValidatorConfig();
+        ValidatorConfig testValidator = new TestValidatorConfig();
         ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        Validator validator = factory.create(integerValidator, resolveId, supplyCatalog);
+        Validator validator = factory.create(testValidator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(validator, instanceOf(IntegerValidator.class));
+        assertThat(validator, instanceOf(TestValidator.class));
     }
 }

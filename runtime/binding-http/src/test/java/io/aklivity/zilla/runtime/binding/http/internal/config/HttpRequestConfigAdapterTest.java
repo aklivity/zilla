@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class HttpRequestConfigAdapterTest
@@ -58,17 +57,17 @@ public class HttpRequestConfigAdapterTest
                 "]," +
                 "\"headers\": " +
                 "{" +
-                    "\"content-type\": \"string\"" +
+                    "\"content-type\": \"test\"" +
                 "}," +
                 "\"params\": " +
                 "{" +
                     "\"path\":" +
                     "{" +
-                        "\"id\": \"string\"" +
+                        "\"id\": \"test\"" +
                     "}," +
                     "\"query\":" +
                     "{" +
-                        "\"index\": \"string\"" +
+                        "\"index\": \"test\"" +
                     "}," +
                 "}," +
                 "\"content\": \"test\"" +
@@ -82,14 +81,14 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(request.contentType.get(0), equalTo("application/json"));
         assertThat(request.headers.get(0).name, equalTo("content-type"));
-        assertThat(request.headers.get(0).validator, instanceOf(StringValidatorConfig.class));
-        assertThat(request.headers.get(0).validator.type, equalTo("string"));
+        assertThat(request.headers.get(0).validator, instanceOf(TestValidatorConfig.class));
+        assertThat(request.headers.get(0).validator.type, equalTo("test"));
         assertThat(request.pathParams.get(0).name, equalTo("id"));
-        assertThat(request.pathParams.get(0).validator, instanceOf(StringValidatorConfig.class));
-        assertThat(request.pathParams.get(0).validator.type, equalTo("string"));
+        assertThat(request.pathParams.get(0).validator, instanceOf(TestValidatorConfig.class));
+        assertThat(request.pathParams.get(0).validator.type, equalTo("test"));
         assertThat(request.queryParams.get(0).name, equalTo("index"));
-        assertThat(request.queryParams.get(0).validator, instanceOf(StringValidatorConfig.class));
-        assertThat(request.queryParams.get(0).validator.type, equalTo("string"));
+        assertThat(request.queryParams.get(0).validator, instanceOf(TestValidatorConfig.class));
+        assertThat(request.queryParams.get(0).validator.type, equalTo("test"));
         assertThat(request.content, instanceOf(TestValidatorConfig.class));
         assertThat(request.content.type, equalTo("test"));
     }
@@ -108,17 +107,17 @@ public class HttpRequestConfigAdapterTest
                 "]," +
                 "\"headers\":" +
                 "{" +
-                    "\"content-type\":\"string\"" +
+                    "\"content-type\":\"test\"" +
                 "}," +
                 "\"params\":" +
                 "{" +
                     "\"path\":" +
                     "{" +
-                        "\"id\":\"string\"" +
+                        "\"id\":\"test\"" +
                     "}," +
                     "\"query\":" +
                     "{" +
-                        "\"index\":\"string\"" +
+                        "\"index\":\"test\"" +
                     "}" +
                 "}," +
                 "\"content\":\"test\"" +
@@ -129,18 +128,17 @@ public class HttpRequestConfigAdapterTest
             .contentType("application/json")
             .header()
                 .name("content-type")
-                .validator(StringValidatorConfig::builder)
-                    .encoding("utf_8")
+                .validator(TestValidatorConfig::builder)
                     .build()
                 .build()
             .pathParam()
                 .name("id")
-                .validator(StringValidatorConfig::builder)
+                .validator(TestValidatorConfig::builder)
                     .build()
                 .build()
             .queryParam()
                 .name("index")
-                .validator(StringValidatorConfig::builder)
+                .validator(TestValidatorConfig::builder)
                     .build()
                 .build()
             .content(TestValidatorConfig::builder)
