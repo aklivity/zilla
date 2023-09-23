@@ -5,9 +5,9 @@ info:
   license:
     name: Aklivity Community License
 servers:
-  secure:
-    host: mqtts://localhost:8883
-    protocol: secure-mqtt
+  plain:
+    host: mqtt://localhost:1883
+    protocol: mqtt
 defaultContentType: application/json
 
 channels:
@@ -20,6 +20,8 @@ channels:
     messages:
       items:
         $ref: '#/components/messages/item'
+      things:
+        $ref: '#/components/messages/thing'
 
 operations:
   sendEvents:
@@ -50,3 +52,18 @@ components:
           id:
             description: Street Light ID
             type: string
+      contentType: application/avro
+      payload:
+        type: object
+        properties:
+          item:
+            $ref: "#/components/schemas/item"
+    thing:
+      name: thing
+      title: A thing
+      contentType: application/avro
+      payload:
+        type: object
+        properties:
+          item:
+            $ref: "#/components/schemas/thing"

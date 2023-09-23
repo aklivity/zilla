@@ -31,21 +31,29 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Message;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
+    private static final String INLINE_CATALOG = "catalog0";
+    private static final String APPLICATION_AVRO = "application/avro";
+
     private final InputStream inputStream;
 
     private AsyncApi asyncApi;
@@ -153,6 +161,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                 .name("mqtt_server0")
                 .type("mqtt")
                 .kind(SERVER)
+                .inject(this::injectMqttServerOptions)
                 .inject(this::injectMqttServerRoutes)
                 .build()
             .binding()
@@ -227,6 +236,60 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build();
         }
         return namespace;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttServerOptions(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        for (Map.Entry<String, Channel> channelEntry : asyncApi.channels.entrySet())
+        {
+            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
+            Map<String, Message> messages = channelEntry.getValue().messages;
+            Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
+            String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
+            if (APPLICATION_AVRO.equals(contentType))
+            {
+                binding
+                    .options(MqttOptionsConfig::builder)
+                        .topic()
+                            .name(topic)
+                            .content(AvroValidatorConfig::builder)
+                                .catalog()
+                                    .name(INLINE_CATALOG)
+                                    .inject(cataloged -> injectAvroSchemas(cataloged, messages, APPLICATION_AVRO))
+                                    .build()
+                                .build()
+                            .build()
+                        .build()
+                    .build();
+            }
+        }
+        return binding;
+    }
+
+    private <C> CatalogedConfigBuilder<C> injectAvroSchemas(
+        CatalogedConfigBuilder<C> cataloged,
+        Map<String, Message> messages,
+        String contentType)
+    {
+        for (Map.Entry<String, Message> messageEntry : messages.entrySet())
+        {
+            MessageView message = MessageView.of(asyncApi.components.messages, messageEntry.getValue());
+            String schema = messageEntry.getKey();
+            if (message.contentType().equals(contentType))
+            {
+                cataloged
+                    .schema()
+                        .schema(schema)
+                        .build()
+                    .build();
+            }
+            else
+            {
+                throw new RuntimeException("Invalid content type");
+            }
+        }
+        return cataloged;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttServerRoutes(
