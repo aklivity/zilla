@@ -15,17 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-public final class MqttAuthorizationConfig
+import static java.util.function.Function.identity;
+
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+
+public class MqttTopicConfig
 {
     public final String name;
-    public final MqttCredentialsConfig credentials;
+    public final ValidatorConfig content;
 
-    public MqttAuthorizationConfig(
+    public MqttTopicConfig(
         String name,
-        MqttCredentialsConfig credentials)
+        ValidatorConfig content)
     {
         this.name = name;
-        this.credentials = credentials;
+        this.content = content;
+    }
+
+    public static MqttTopicConfigBuilder<MqttTopicConfig> builder()
+    {
+        return new MqttTopicConfigBuilder<>(identity());
     }
 }
-

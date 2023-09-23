@@ -67,6 +67,26 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/publish.invalid.message/client",
+        "${app}/publish.invalid.message/server"})
+    public void shouldPublishInvalidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/publish.valid.message/client",
+        "${app}/publish.valid.message/server"})
+    public void shouldPublishValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",

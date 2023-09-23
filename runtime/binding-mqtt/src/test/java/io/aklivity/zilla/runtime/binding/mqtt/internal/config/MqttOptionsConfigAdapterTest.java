@@ -19,8 +19,12 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -29,8 +33,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class MqttOptionsConfigAdapterTest
 {
@@ -62,6 +65,13 @@ public class MqttOptionsConfigAdapterTest
                             "}" +
                         "}" +
                     "}," +
+                    "\"topics\":" +
+                    "[" +
+                        "{" +
+                            "\"name\": \"sensor/one\"," +
+                            "\"content\":\"test\"" +
+                        "}" +
+                    "]" +
                 "}";
 
         MqttOptionsConfig options = jsonb.fromJson(text, MqttOptionsConfig.class);
@@ -74,29 +84,36 @@ public class MqttOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.connect, hasSize(1));
         assertThat(options.authorization.credentials.connect.get(0), not(nullValue()));
         assertThat(options.authorization.credentials.connect.get(0).property,
-            equalTo(MqttAuthorizationConfig.MqttConnectProperty.USERNAME));
+            equalTo(MqttPatternConfig.MqttConnectProperty.USERNAME));
         assertThat(options.authorization.credentials.connect.get(0).pattern,
             equalTo("Bearer {credentials}"));
 
+        MqttTopicConfig topic = options.topics.get(0);
+        assertThat(topic.name, equalTo("sensor/one"));
+        assertThat(topic.content, instanceOf(TestValidatorConfig.class));
+        assertThat(topic.content.type, equalTo("test"));
     }
 
     @Test
     public void shouldWriteOptions()
     {
+        List<MqttTopicConfig> topics = new ArrayList<>();
+        topics.add(new MqttTopicConfig("sensor/one", new TestValidatorConfig()));
+
         MqttOptionsConfig options = new MqttOptionsConfig(
                 new MqttAuthorizationConfig(
                     "test0",
                     new MqttCredentialsConfig(
                         singletonList(new MqttPatternConfig(
-                            MqttAuthorizationConfig.MqttConnectProperty.USERNAME,
-                            "Bearer {credentials}")))));
+                            MqttPatternConfig.MqttConnectProperty.USERNAME,
+                            "Bearer {credentials}")))),
+                    topics);
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                     "{" +
-
                         "\"authorization\":" +
                         "{" +
                             "\"test0\":" +
@@ -109,7 +126,14 @@ public class MqttOptionsConfigAdapterTest
                                     "}" +
                                 "}" +
                             "}" +
-                        "}" +
+                        "}," +
+                        "\"topics\":" +
+                        "[" +
+                            "{" +
+                                "\"name\":\"sensor/one\"," +
+                                "\"content\":\"test\"" +
+                            "}" +
+                        "]" +
                     "}"));
     }
 }
