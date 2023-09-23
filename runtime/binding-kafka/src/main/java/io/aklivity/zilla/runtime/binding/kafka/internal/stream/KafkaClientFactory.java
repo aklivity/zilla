@@ -54,8 +54,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
-        this.connectionPool = new KafkaClientConnectionPool(
-            config, context, bindings::get, accountant.creditor());
+        this.connectionPool = new KafkaClientConnectionPool(config, context, accountant.creditor());
 
         final BindingHandler newStream = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();

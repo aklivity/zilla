@@ -23,7 +23,6 @@ import static java.lang.System.currentTimeMillis;
 
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -37,7 +36,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressInetFW;
@@ -47,7 +45,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
@@ -55,7 +52,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaClientConnectionPool
@@ -82,7 +78,6 @@ public final class KafkaClientConnectionPool
     private final SignalFW signalRO = new SignalFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
-    private final ExtensionFW extensionRO = new ExtensionFW();
     private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
 
@@ -101,30 +96,27 @@ public final class KafkaClientConnectionPool
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
-    private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer encodeBuffer;
-    private final KafkaClientSignaler signaler;
+    private final Signaler signaler;
+    private final KafkaClientSignaler connectionSignaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialIds;
-    private final boolean clientConnectionPool;
-
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
         EngineContext context,
-        LongFunction<KafkaBindingConfig> supplyBinding,
         MergedBudgetCreditor creditor)
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.encodeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.bufferPool = context.bufferPool();
-        this.signaler = new KafkaClientSignaler(context.signaler());
+        this.signaler = context.signaler();
+        this.connectionSignaler = new KafkaClientSignaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -132,7 +124,6 @@ public final class KafkaClientConnectionPool
         this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
         this.streamsByInitialIds = new Long2ObjectHashMap<>();
-        this.clientConnectionPool = config.clientConnectionPool();
     }
 
     private MessageConsumer newStream(
@@ -456,14 +447,6 @@ public final class KafkaClientConnectionPool
 
     public class KafkaClientSignaler implements Signaler
     {
-        private final Signaler signaler;
-
-        public KafkaClientSignaler(
-            Signaler signaler)
-        {
-            this.signaler = signaler;
-        }
-
         @Override
         public long signalAt(
             long timeMillis,
@@ -524,7 +507,7 @@ public final class KafkaClientConnectionPool
 
     public Signaler signaler()
     {
-        return signaler;
+        return connectionSignaler;
     }
 
     final class KafkaClientStream
