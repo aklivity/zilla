@@ -3351,9 +3351,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     subscription.flags = filter.flags();
                                     subscriptions.add(subscription);
                                 });
-                                int packetId = subscribePacketIds.get(subscriptions.get(0).id);
-                                subscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
-                                openSubscribeStreams(packetId, traceId, authorization, subscriptions, true);
+
+                                openSubscribeStreams(0, traceId, authorization, subscriptions, true);
                                 sessionPresent = true;
                             }
                         }
