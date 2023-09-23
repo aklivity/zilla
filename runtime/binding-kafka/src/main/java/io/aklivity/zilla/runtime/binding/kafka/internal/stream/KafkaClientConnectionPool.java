@@ -98,8 +98,7 @@ public final class KafkaClientConnectionPool
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer encodeBuffer;
-    private final Signaler signaler;
-    private final KafkaClientSignaler connectionSignaler;
+    private final KafkaClientSignaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -115,8 +114,7 @@ public final class KafkaClientConnectionPool
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.encodeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.signaler = context.signaler();
-        this.connectionSignaler = new KafkaClientSignaler();
+        this.signaler = new KafkaClientSignaler(context.signaler());
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -447,13 +445,22 @@ public final class KafkaClientConnectionPool
 
     public class KafkaClientSignaler implements Signaler
     {
+        private final Signaler delegate;
+
+        public KafkaClientSignaler(
+            Signaler delegate)
+        {
+
+            this.delegate = delegate;
+        }
+
         @Override
         public long signalAt(
             long timeMillis,
             int signalId,
             IntConsumer handler)
         {
-            return signaler.signalAt(timeMillis, signalId, handler);
+            return delegate.signalAt(timeMillis, signalId, handler);
         }
 
         @Override
@@ -501,13 +508,13 @@ public final class KafkaClientConnectionPool
         public boolean cancel(
             long cancelId)
         {
-            return signaler.cancel(cancelId);
+            return delegate.cancel(cancelId);
         }
     }
 
     public Signaler signaler()
     {
-        return connectionSignaler;
+        return signaler;
     }
 
     final class KafkaClientStream
@@ -1031,7 +1038,7 @@ public final class KafkaClientConnectionPool
         {
             nextContextId++;
             signalerCorrelations.put(nextContextId, streamId);
-            signaler.signalNow(originId, routedId, this.initialId, signalId, nextContextId);
+            signaler.delegate.signalNow(originId, routedId, this.initialId, signalId, nextContextId);
         }
 
         private long doConnectionSignalAt(
@@ -1041,7 +1048,8 @@ public final class KafkaClientConnectionPool
         {
             nextContextId++;
             signalerCorrelations.put(nextContextId, streamId);
-            return signaler.signalAt(timeMillis, originId, routedId, this.initialId, signalId, nextContextId);
+            return signaler.delegate.signalAt(
+                timeMillis, originId, routedId, this.initialId, signalId, nextContextId);
         }
 
         private void doConnectionReset(
@@ -1282,7 +1290,7 @@ public final class KafkaClientConnectionPool
 
         private void doSignalStreamCleanup()
         {
-            this.reconnectAt = signaler.signalAt(
+            this.reconnectAt = signaler.delegate.signalAt(
                 currentTimeMillis() + 4000,
                 SIGNAL_CONNECTION_CLEANUP,
                 this::onStreamCleanupSignal);
