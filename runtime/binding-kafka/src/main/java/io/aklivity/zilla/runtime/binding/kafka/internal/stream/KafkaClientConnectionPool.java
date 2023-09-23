@@ -1178,22 +1178,7 @@ public final class KafkaClientConnectionPool
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-                int newFlags = flags;
-
-                if (beforeResponseBytes == 0 && responseBytes > 0)
-                {
-                    newFlags = FLAG_INIT;
-                }
-                else if (beforeResponseBytes != 0 && responseBytes == 0)
-                {
-                    newFlags = FLAG_FIN;
-                }
-                else if (responseBytes > 0)
-                {
-                    newFlags = FLAG_NONE;
-                }
-
-                stream.doStreamData(traceId, newFlags, sequence, acknowledge, reserved,
+                stream.doStreamData(traceId, flags, sequence, acknowledge, reserved,
                     buffer, progress, responseBytesMin, extension);
                 progress += responseBytesMin;
 
