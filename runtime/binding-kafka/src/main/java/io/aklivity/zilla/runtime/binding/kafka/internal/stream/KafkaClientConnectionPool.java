@@ -674,7 +674,7 @@ public final class KafkaClientConnectionPool
             requestBytes -= payload.sizeof();
             connection.doConnectionData(initialId, traceId, authorization, budgetId,
                 flags, reserved, payload, extension);
-            assert requestBytes >=0;
+            assert requestBytes >= 0;
         }
 
         private void onStreamEnd(
