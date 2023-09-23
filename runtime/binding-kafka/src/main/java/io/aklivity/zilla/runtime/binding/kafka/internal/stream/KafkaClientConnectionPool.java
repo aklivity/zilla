@@ -555,6 +555,11 @@ public final class KafkaClientConnectionPool
         private int replyPad;
         private long replyBud;
 
+        private int nextRequestId;
+        private int nexResponseId;
+        private int requestBytes;
+        private int responseBytes;
+
         private int state;
 
 
@@ -654,8 +659,22 @@ public final class KafkaClientConnectionPool
 
             initialSeqDelta = connection.initialSeq;
 
+            if (requestBytes == 0)
+            {
+                nextRequestId++;
+
+                final DirectBuffer buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
+
+                RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
+                requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+            }
+
+            requestBytes -= payload.sizeof();
             connection.doConnectionData(initialId, traceId, authorization, budgetId,
                 flags, reserved, payload, extension);
+            assert requestBytes >=0;
         }
 
         private void onStreamEnd(
@@ -738,8 +757,26 @@ public final class KafkaClientConnectionPool
             replySeq = sequence;
             replyAck = acknowledge;
 
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
+            if (responseBytes == 0)
+            {
+                nexResponseId++;
+                final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(payload, offset, offset + length);
+                responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+            }
+
+            if (!KafkaState.replyClosing(state))
+            {
+                doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
+            }
+            else
+            {
+                responseBytes -= length;
+                if (responseBytes == 0)
+                {
+                    doStreamEnd(traceId);
+                }
+            }
         }
 
         private void doStreamEnd(
@@ -747,12 +784,19 @@ public final class KafkaClientConnectionPool
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                if (nextRequestId == nexResponseId)
+                {
+                    state = KafkaState.closedReply(state);
 
-                doEnd(sender, originId, routedId, replyId, 0, 0, 0,
-                    traceId, authorization, EMPTY_EXTENSION);
+                    doEnd(sender, originId, routedId, replyId, 0, 0, 0,
+                        traceId, authorization, EMPTY_EXTENSION);
 
-                streamsByInitialIds.remove(initialId);
+                    streamsByInitialIds.remove(initialId);
+                }
+                else
+                {
+                    state = KafkaState.closingReply(state);
+                }
             }
         }
 
@@ -761,12 +805,19 @@ public final class KafkaClientConnectionPool
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                if (nextRequestId == nexResponseId)
+                {
+                    state = KafkaState.closedReply(state);
 
-                doAbort(sender, originId, routedId, replyId, 0, 0, 0,
-                    traceId, authorization, EMPTY_EXTENSION);
+                    doAbort(sender, originId, routedId, replyId, 0, 0, 0,
+                        traceId, authorization, EMPTY_EXTENSION);
 
-                streamsByInitialIds.remove(initialId);
+                    streamsByInitialIds.remove(initialId);
+                }
+                else
+                {
+                    state = KafkaState.closingReply(state);
+                }
             }
         }
 
