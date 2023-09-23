@@ -742,6 +742,8 @@ public final class KafkaClientConnectionPool
                 responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
             }
 
+            responseBytes -= length;
+
             if (!KafkaState.replyClosing(state))
             {
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -749,7 +751,6 @@ public final class KafkaClientConnectionPool
             }
             else
             {
-                responseBytes -= length;
                 if (responseBytes == 0)
                 {
                     doStreamEnd(traceId);
