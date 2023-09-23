@@ -34,7 +34,7 @@ public class StringValidatorConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfigAdapter());
+            .withAdapters(new StringValidatorConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -49,8 +49,7 @@ public class StringValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig
-            validator = jsonb.fromJson(json, io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig.class);
+        StringValidatorConfig validator = jsonb.fromJson(json, StringValidatorConfig.class);
 
         // THEN
         assertThat(validator, not(nullValue()));
@@ -63,8 +62,7 @@ public class StringValidatorConfigAdapterTest
     {
         // GIVEN
         String expectedJson = "\"string\"";
-        io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig
-            validator = io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig.builder().build();
+        StringValidatorConfig validator = StringValidatorConfig.builder().build();
 
         // WHEN
         String json = jsonb.toJson(validator);
@@ -83,8 +81,7 @@ public class StringValidatorConfigAdapterTest
                 "\"type\":\"string\"," +
                 "\"encoding\":\"utf_16\"" +
             "}";
-        io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig
-            validator = io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig.builder()
+        StringValidatorConfig validator = StringValidatorConfig.builder()
             .encoding("utf_16")
             .build();
 
