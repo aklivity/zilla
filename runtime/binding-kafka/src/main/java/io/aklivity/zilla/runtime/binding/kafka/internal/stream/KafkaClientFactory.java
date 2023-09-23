@@ -56,7 +56,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientConnectionPool connectionPool = new KafkaClientConnectionPool(
             config, context, accountant.creditor());
 
-        final BindingHandler newStream = config.clientConnectionPool() ? connectionPool.streamFactory() :
+        final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();
 
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
@@ -69,7 +69,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, newStream);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
