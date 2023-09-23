@@ -96,9 +96,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_TASK_PARALLELISM = config.property("task.parallelism", 1);
         ENGINE_BACKOFF_MAX_SPINS = config.property("backoff.idle.strategy.max.spins", 64L);
         ENGINE_BACKOFF_MAX_YIELDS = config.property("backoff.idle.strategy.max.yields", 64L);
-        // TODO: shorten property name string values to match constant naming
-        ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.idle.strategy.min.park.period", NANOSECONDS.toNanos(64L));
-        ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.idle.strategy.max.park.period", MILLISECONDS.toNanos(1L));
+        ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.min.park.nanos", NANOSECONDS.toNanos(64L));
+        ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.max.park.nanos", MILLISECONDS.toNanos(100L));
         ENGINE_DRAIN_ON_CLOSE = config.property("drain.on.close", false);
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
@@ -285,7 +284,8 @@ public class EngineConfiguration extends Configuration
     private static int defaultBudgetsBufferCapacity(
         Configuration config)
     {
-        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * ENGINE_WORKER_CAPACITY.getAsInt(config);
+        // more consistent with original defaults
+        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512 * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
     private static URL configURL(

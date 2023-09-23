@@ -223,6 +223,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
+    public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -467,13 +468,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         String topic)
     {
         return System.identityHashCode(topic.intern());
-    }
-
-    private int subscribeKey(
-        String clientId,
-        long resolveId)
-    {
-        return System.identityHashCode((clientId + "_" + resolveId).intern());
     }
 
     private MessageConsumer newStream(
@@ -1225,7 +1219,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final long encodeBudgetId;
 
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
-        private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
+        private final Long2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
@@ -1308,7 +1302,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.encodeBudgetId = budgetId;
             this.decoder = decodeInitialType;
             this.publishStreams = new Int2ObjectHashMap<>();
-            this.subscribeStreams = new Int2ObjectHashMap<>();
+            this.subscribeStreams = new Long2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
@@ -2115,12 +2109,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             subscriptionsByRouteId.forEach((key, value) ->
             {
-                int subscribeKey = subscribeKey(clientId.asString(), key);
-                MqttSubscribeStream stream = subscribeStreams.computeIfAbsent(subscribeKey, s ->
+                MqttSubscribeStream stream = subscribeStreams.computeIfAbsent(key, s ->
                     new MqttSubscribeStream(routedId, key, implicitSubscribe));
                 stream.packetId = packetId;
                 value.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
-                stream.doSubscribeBeginOrFlush(traceId, affinity, subscribeKey, value);
+                stream.doSubscribeBeginOrFlush(traceId, affinity, value);
             });
         }
 
@@ -2242,8 +2235,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final MqttBindingConfig binding = bindings.get(routedId);
                 final MqttRouteConfig resolved =
                     binding != null ? binding.resolveSubscribe(sessionId, topicFilter) : null;
-                final int subscribeKey = subscribeKey(clientId.asString(), resolved.id);
-                final MqttSubscribeStream stream = subscribeStreams.get(subscribeKey);
+                final MqttSubscribeStream stream = subscribeStreams.get(resolved.id);
 
 
                 Optional<Subscription> subscription = stream.getSubscriptionByFilter(topicFilter, newState);
@@ -2517,16 +2509,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 MutableBoolean retainAsPublished = new MutableBoolean(false);
 
-                subscriptionIds.forEach(subscriptionId ->
+                subscriptionIds.forEach(s ->
                 {
-                    if (subscriptionId.value() > 0)
+                    final int subscriptionId = s.value();
+                    if (subscriptionId > 0 && !generatedSubscriptionId(subscriptionId))
                     {
                         Optional<Subscription> result = subscriptions.stream()
-                            .filter(subscription -> subscription.id == subscriptionId.value())
+                            .filter(subscription -> subscription.id == subscriptionId)
                             .findFirst();
                         retainAsPublished.set(retainAsPublished.value | result.isPresent() && result.get().retainAsPublished());
                         mqttPropertyRW.wrap(propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
-                            .subscriptionId(v -> v.set(subscriptionId.value()));
+                            .subscriptionId(v -> v.set(subscriptionId));
                         propertiesSize.set(mqttPropertyRW.limit());
                     }
                 });
@@ -2603,6 +2596,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doNetworkData(traceId, authorization, 0L, payload);
             }
+        }
+
+        private boolean generatedSubscriptionId(
+            int subscriptionId)
+        {
+            return (subscriptionId & GENERATED_SUBSCRIPTION_ID_MASK) == GENERATED_SUBSCRIPTION_ID_MASK;
         }
 
         private int calculatePublishNetworkFlags(int applicationTypeAndFlags, int qos)
@@ -3352,9 +3351,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     subscription.flags = filter.flags();
                                     subscriptions.add(subscription);
                                 });
-                                int packetId = subscribePacketIds.get(subscriptions.get(0).id);
-                                subscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
-                                openSubscribeStreams(packetId, traceId, authorization, subscriptions, true);
+
+                                openSubscribeStreams(0, traceId, authorization, subscriptions, true);
                                 sessionPresent = true;
                             }
                         }
@@ -4014,7 +4012,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int state;
             private final List<Subscription> subscriptions;
             private boolean acknowledged;
-            private int clientKey;
             private int packetId;
             private final boolean adminSubscribe;
 
@@ -4044,11 +4041,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSubscribeBeginOrFlush(
                 long traceId,
                 long affinity,
-                int clientKey,
                 List<Subscription> subscriptions)
             {
                 this.subscriptions.addAll(subscriptions);
-                this.clientKey = clientKey;
 
                 if (!MqttState.initialOpening(state))
                 {
@@ -4160,7 +4155,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (MqttState.closed(state))
                 {
-                    subscribeStreams.remove(clientKey);
+                    subscribeStreams.remove(routedId);
                 }
             }
 
@@ -4422,7 +4417,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (MqttState.closed(state))
                 {
-                    subscribeStreams.remove(clientKey);
+                    subscribeStreams.remove(routedId);
                 }
             }
 
