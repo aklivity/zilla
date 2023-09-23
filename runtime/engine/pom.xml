@@ -75,10 +75,6 @@
       <version>2.15.2</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.jmock</groupId>
       <artifactId>jmock-junit4</artifactId>
       <scope>test</scope>
@@ -230,33 +226,6 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>org.apache.avro:avro</include>
-                </includes>
-              </artifactSet>
-              <relocations>
-                <relocation>
-                  <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.engine.validator.avro</shadedPattern>
-                </relocation>
-              </relocations>
-              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
-              <minimizeJar>true</minimizeJar>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
@@ -277,11 +246,13 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/**/*.schema.patch.json</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/exporter/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/expression/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/metrics/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/validator/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/concurrent/bench/**/*.class</include>
                 <include>org/openjdk/jmh/infra/generated/**/*.class</include>

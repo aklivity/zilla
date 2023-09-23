@@ -282,6 +282,7 @@
                             <include>io/aklivity/zilla/exporter-*/**</include>
                             <include>io/aklivity/zilla/guard-*/**</include>
                             <include>io/aklivity/zilla/metrics-*/**</include>
+                            <include>io/aklivity/zilla/validator-*/**</include>
                             <include>io/aklivity/zilla/vault-*/**</include>
                             <include>io/aklivity/zilla/command/**</include>
                             <include>io/aklivity/zilla/command-*/**</include>
@@ -289,6 +290,7 @@
                             <include>io/aklivity/zilla/incubator/**</include>
                             <include>org/agrona/**</include>
                             <include>org/apache/apache/**</include>
+                            <include>org/apache/avro/**</include>
                             <include>org/apache/maven/maven/**</include>
                             <include>org/apache/maven/maven-parent/**</include>
                             <include>jakarta/json/**</include>
@@ -376,6 +378,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>command-config</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-avro</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

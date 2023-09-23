@@ -422,7 +422,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.client.options.type.avro.yaml")
+    @Configuration("cache.client.options.validate.yaml")
     @Specification({
         "${app}/merged.produce.message.value.valid/client",
         "${app}/unmerged.produce.message.value.valid/server"})
@@ -432,7 +432,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.client.options.type.avro.yaml")
+    @Configuration("cache.client.options.validate.yaml")
     @Specification({
         "${app}/merged.produce.message.value.invalid/client",
         "${app}/unmerged.produce.message.value.invalid/server"})

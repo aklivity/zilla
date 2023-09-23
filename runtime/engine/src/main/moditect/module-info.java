@@ -46,9 +46,6 @@ module io.aklivity.zilla.runtime.engine
     requires java.net.http;
     requires org.slf4j;
 
-    uses io.aklivity.zilla.runtime.engine.validator.avro.Conversion;
-    uses io.aklivity.zilla.runtime.engine.validator.avro.LogicalTypes$LogicalTypeFactory;
-
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
@@ -69,14 +66,11 @@ module io.aklivity.zilla.runtime.engine
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.engine.internal.validator.config.StringValidatorConfigAdapter,
-            io.aklivity.zilla.runtime.engine.internal.validator.config.AvroValidatorConfigAdapter,
             io.aklivity.zilla.runtime.engine.internal.validator.config.IntegerValidatorConfigAdapter,
             io.aklivity.zilla.runtime.engine.internal.validator.config.LongValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.validator.StringValidatorFactory,
             io.aklivity.zilla.runtime.engine.internal.validator.IntegerValidatorFactory,
-            io.aklivity.zilla.runtime.engine.internal.validator.LongValidatorFactory,
-            io.aklivity.zilla.runtime.engine.internal.validator.AvroValidatorFactory;
-
+            io.aklivity.zilla.runtime.engine.internal.validator.LongValidatorFactory;
 }

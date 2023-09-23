@@ -408,10 +408,10 @@
             {
                 "type": "string",
                 "enum": [
+                    "test",
                     "string",
                     "integer",
-                    "long",
-                    "avro"
+                    "long"
                 ]
             },
             "schema":

@@ -40,15 +40,6 @@ bindings:
   app0:
     type: kafka
     kind: cache_client
-    options:
-      topics:
-        - name: test
-          value:
-            type: avro
-            catalog:
-              test0:
-                - strategy: topic
-                  version: latest
     routes:
       - exit: cache0
         when:
@@ -56,6 +47,14 @@ bindings:
   cache0:
     type: kafka
     kind: cache_server
+    options:
+      topics:
+        - name: test
+          key:
+            type: string
+            encoding: utf_8
+          value:
+            type: test
     routes:
       - exit: app1
         when:

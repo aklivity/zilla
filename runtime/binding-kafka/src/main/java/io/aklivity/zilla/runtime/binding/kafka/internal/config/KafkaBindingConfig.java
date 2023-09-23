@@ -20,7 +20,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
@@ -29,10 +28,9 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 
 public final class KafkaBindingConfig
 {
@@ -46,8 +44,7 @@ public final class KafkaBindingConfig
 
     public KafkaBindingConfig(
         BindingConfig binding,
-        LongFunction<CatalogHandler> supplyCatalog,
-        ValidatorFactory validatorFactory)
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -59,8 +56,8 @@ public final class KafkaBindingConfig
                 options.topics != null
                     ? options.topics.stream()
                     .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                    t.key != null ? validatorFactory.create(t.key, resolveId, supplyCatalog) : null,
-                    t.value != null ? validatorFactory.create(t.value, resolveId, supplyCatalog) : null
+                    t.key != null ? context.createValidator(t.key, resolveId) : null,
+                    t.value != null ? context.createValidator(t.value, resolveId) : null
                     ))) : null;
     }
 

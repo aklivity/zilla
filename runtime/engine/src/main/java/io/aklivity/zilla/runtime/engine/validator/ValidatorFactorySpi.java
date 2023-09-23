@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
+import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -24,6 +25,11 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 public interface ValidatorFactorySpi
 {
     String type();
+
+    default URL schema()
+    {
+        return null;
+    }
 
     Validator create(
         ValidatorConfig config,

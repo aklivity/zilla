@@ -21,6 +21,7 @@
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
+    <module>validator-avro.spec</module>
 
     <module>binding-amqp</module>
 
@@ -33,6 +34,8 @@
     <module>command-config</module>
 
     <module>exporter-otlp</module>
+
+    <module>validator-avro</module>
   </modules>
 
   <dependencyManagement>
@@ -70,6 +73,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>exporter-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

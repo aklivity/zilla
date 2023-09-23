@@ -192,18 +192,18 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${app}/message.value.avro/client",
-        "${app}/message.value.avro/server"})
-    public void shouldReceiveMessageValueAvro() throws Exception
+        "${app}/message.value.valid/client",
+        "${app}/message.value.valid/server"})
+    public void shouldReceiveMessageValueTest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/message.value.avro.invalid/client",
-        "${app}/message.value.avro.invalid/server"})
-    public void shouldReceiveMessageValueAvroInvalid() throws Exception
+        "${app}/message.value.invalid/client",
+        "${app}/message.value.invalid/server"})
+    public void shouldReceiveMessageValueTestInvalid() throws Exception
     {
         k3po.finish();
     }

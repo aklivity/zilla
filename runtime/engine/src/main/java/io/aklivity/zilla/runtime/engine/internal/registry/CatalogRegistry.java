@@ -29,10 +29,10 @@ public class CatalogRegistry
     private CatalogHandler attached;
 
     CatalogRegistry(
-        CatalogConfig vault,
+        CatalogConfig config,
         CatalogContext context)
     {
-        this.config = requireNonNull(vault);
+        this.config = requireNonNull(config);
         this.context = requireNonNull(context);
     }
 

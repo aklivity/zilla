@@ -315,24 +315,24 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.type.avro.yaml")
+    @Configuration("cache.options.validate.yaml")
     @Specification({
-        "${app}/message.value.avro/client",
-        "${app}/message.value.avro/server"})
+        "${app}/message.value.valid/client",
+        "${app}/message.value.valid/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReceiveMessageValueAvro() throws Exception
+    public void shouldReceiveMessageValueTest() throws Exception
     {
         partition.append(10L);
         k3po.finish();
     }
 
     @Test
-    @Configuration("cache.options.type.avro.yaml")
+    @Configuration("cache.options.validate.yaml")
     @Specification({
-        "${app}/message.value.avro.invalid/client",
-        "${app}/message.value.avro.invalid/server"})
+        "${app}/message.value.invalid/client",
+        "${app}/message.value.invalid/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReceiveMessageValueAvroInvalid() throws Exception
+    public void shouldReceiveMessageValueTestInvalid() throws Exception
     {
         partition.append(10L);
         k3po.finish();
