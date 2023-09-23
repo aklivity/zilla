@@ -80,6 +80,7 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
@@ -947,7 +948,10 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final Varuint32FW firstSubscriptionId = subscriptionIdsRW.build().matchFirst(s -> true);
                 final int subscriptionId = firstSubscriptionId != null ? firstSubscriptionId.value() : 0;
 
-                if (!client.existStreamForId(subscriptionId))
+                boolean existSubscribeStream = subscriptionId != 0 ? client.existStreamForId(subscriptionId)
+                    : client.existStreamForTopic(mqttPublishHeader.topic);
+
+                if (!existSubscribeStream)
                 {
                     MqttSessionStateFW.Builder sessionStateBuilder =
                         mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
@@ -2690,7 +2694,29 @@ public final class MqttClientFactory implements MqttStreamFactory
         private boolean existStreamForId(
             int subscriptionId)
         {
-            return sessionStream.subscriptions.stream().anyMatch(s -> generatedSubscriptionId(s.id) || s.id == subscriptionId);
+            return sessionStream.subscriptions.stream().anyMatch(s -> s.id == subscriptionId);
+        }
+
+        private boolean existStreamForTopic(
+            String topic)
+        {
+            boolean match = sessionStream.subscriptions.stream().anyMatch(s ->
+            {
+                String regex = s.filter.replace("#", ".*").replace("+", "[^/]+");
+                return Pattern.matches(regex, topic);
+            });
+
+            if (!match)
+            {
+                match = sessionStream.unAckedSubscriptionsByPacketId.values().stream().anyMatch(ss ->
+                    ss.stream().anyMatch(s ->
+                    {
+                        String regex = s.filter.replace("#", ".*").replace("+", "[^/]+");
+                        return Pattern.matches(regex, topic);
+                    }));
+            }
+
+            return match;
         }
 
         private int nextPacketId()
