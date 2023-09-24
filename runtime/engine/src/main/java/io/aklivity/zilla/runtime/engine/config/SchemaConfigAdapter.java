@@ -60,37 +60,33 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
     public SchemaConfig adaptFromJson(
         JsonObject object)
     {
-        String schema = null;
+        SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder();
+
         if (object.containsKey(SCHEMA_NAME))
         {
-            schema = object.getString(SCHEMA_NAME);
+            builder.schema(object.getString(SCHEMA_NAME));
         }
-        String strategy = null;
+
         if (object.containsKey(STRATEGY_NAME))
         {
-            strategy = object.getString(STRATEGY_NAME);
+            builder.strategy(object.getString(STRATEGY_NAME));
         }
-        String subject = null;
+
         if (object.containsKey(SUBJECT_NAME))
         {
-            subject = object.getString(SUBJECT_NAME);
+            builder.subject(object.getString(SUBJECT_NAME));
         }
-        String version = null;
+
         if (object.containsKey(VERSION_NAME))
         {
-            version = object.getString(VERSION_NAME);
+            builder.version(object.getString(VERSION_NAME));
         }
-        int id = 0;
+
         if (object.containsKey(ID_NAME))
         {
-            id = object.getInt(ID_NAME);
+            builder.id(object.getInt(ID_NAME));
         }
-        return SchemaConfig.builder()
-                .schema(schema)
-                    .strategy(strategy)
-                    .subject(subject)
-                    .version(version)
-                    .id(id)
-                    .build();
+
+        return builder.build();
     }
 }
