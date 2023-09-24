@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.52...HEAD)
+
+**Fixed bugs:**
+
+- Connection cleanup can trigger exception  [\#468](https://github.com/aklivity/zilla/issues/468)
+
+**Merged pull requests:**
+
+- Release debitor on stream close and remove streams only related to specific connection [\#469](https://github.com/aklivity/zilla/pull/469) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.52](https://github.com/aklivity/zilla/tree/0.9.52) (2023-09-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.51...0.9.52)
