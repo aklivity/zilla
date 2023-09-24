@@ -2002,6 +2002,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkAbort(
@@ -2015,6 +2016,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkReset(
@@ -2382,6 +2384,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 encodeSlotTraceId = 0;
             }
         }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDebIndex = NO_DEBITOR_INDEX;
+            }
+        }
     }
 
     private final class DescribeClient extends KafkaSaslClient
@@ -2709,6 +2720,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedInitial(state);
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
@@ -2725,6 +2737,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkReset(
@@ -3094,6 +3107,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 encodeSlotTraceId = 0;
             }
         }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDebIndex = NO_DEBITOR_INDEX;
+            }
+        }
     }
 
     private final class CoordinatorClient extends KafkaSaslClient
@@ -3444,6 +3466,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
 
         }
 
@@ -3459,6 +3482,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkReset(
@@ -4387,6 +4411,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
     }
