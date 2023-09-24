@@ -42,13 +42,26 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.validator.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.validator.config.JsonValidatorConfig;
 
-public class AvroValidatorTest
+public class JsonValidatorTest
 {
-    private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-            "{\"name\":\"status\",\"type\":\"string\"}]," +
-            "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+    private static final String SCHEMA = "{" +
+                    "\"type\": \"object\"," +
+                    "\"properties\": " +
+                    "{" +
+                        "\"id\": {" +
+                        "\"type\": \"string\"" +
+                        "}," +
+                        "\"status\": {" +
+                        "\"type\": \"string\"" +
+                        "}" +
+                    "}," +
+                    "\"required\": [" +
+                    "\"id\"," +
+                    "\"status\"" +
+                    "]" +
+                "}";
 
     private LabelManager labels;
     private ToLongFunction<String> resolveId;
@@ -67,75 +80,48 @@ public class AvroValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidAvroEvent()
+    public void shouldVerifyValidJsonData()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
+        JsonValidatorConfig config = new JsonValidatorConfig(Collections.singletonList(
                 new CatalogedConfig("test0",
-                    List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+                        List.of(new SchemaConfig(null, "topic", null, "latest", 0)))));
+
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        String payload = "{" +
+                "\"id\": \"123\"," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertTrue(validator.write(data, 0, data.capacity()));
     }
 
     @Test
-    public void shouldVerifyInvalidAvroEvent()
+    public void shouldVerifyInvalidJsonData()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
 
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        JsonValidatorConfig config = new JsonValidatorConfig(Collections.singletonList(
+                new CatalogedConfig("test0",
+                        List.of(new SchemaConfig(null, "topic", null, "latest", 0)))));
+
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
+        String payload = "{" +
+                "\"id\": 123," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
-    }
-
-    @Test
-    public void shouldVerifyMagicBytes()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = "Invalid Event".getBytes();
-        data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
-    }
-
-    @Test
-    public void shouldVerifyInvalidSchemaId()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
-        data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity()));
     }
 }
