@@ -51,7 +51,8 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
-    private static final String INLINE_CATALOG = "catalog0";
+    private static final String INLINE_CATALOG_NAME = "catalog0";
+    private static final String INLINE_CATALOG_TYPE = "inline";
     private static final String APPLICATION_AVRO = "application/avro";
 
     private final InputStream inputStream;
@@ -181,6 +182,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build()
                 .build()
             .inject(this::injectVaults)
+            .inject(this::injectCatalog)
             .build();
     }
 
@@ -255,7 +257,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                             .name(topic)
                             .content(AvroValidatorConfig::builder)
                                 .catalog()
-                                    .name(INLINE_CATALOG)
+                                    .name(INLINE_CATALOG_NAME)
                                     .inject(cataloged -> injectAvroSchemas(cataloged, messages, APPLICATION_AVRO))
                                     .build()
                                 .build()
@@ -366,6 +368,20 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                             .password("") //env
                             .build()
                         .build()
+                    .build();
+        }
+        return namespace;
+    }
+
+    private NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    {
+        if (asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
+        {
+            namespace
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .type(INLINE_CATALOG_TYPE)
                     .build();
         }
         return namespace;

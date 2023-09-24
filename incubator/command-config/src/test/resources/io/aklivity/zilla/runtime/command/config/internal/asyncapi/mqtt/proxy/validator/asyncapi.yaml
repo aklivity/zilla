@@ -67,3 +67,14 @@ components:
         properties:
           item:
             $ref: "#/components/schemas/thing"
+  schemas:
+    item:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+      required:
+        - id
+        - status

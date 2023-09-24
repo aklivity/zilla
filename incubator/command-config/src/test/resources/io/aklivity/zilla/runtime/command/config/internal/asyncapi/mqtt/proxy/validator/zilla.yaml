@@ -39,3 +39,26 @@ bindings:
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
       port: ${{env.TCP_CLIENT_PORT}}
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "status"
+              ]
+            }

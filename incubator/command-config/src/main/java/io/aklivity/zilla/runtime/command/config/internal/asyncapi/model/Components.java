@@ -22,4 +22,5 @@ public class Components
 {
     public Map<String, SecurityScheme> securitySchemes;
     public Map<String, Message> messages;
+    public Map<String, Schema> schemas;
 }
