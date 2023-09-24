@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String SUBJECT_NAME = "subjects";
+    private static final String SUBJECTS_NAME = "subjects";
     private static final String VERSION_NAME = "version";
     private static final String SCHEMA_NAME = "schema";
 
@@ -45,10 +45,11 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
         OptionsConfig options)
     {
         InlineOptionsConfig config = (InlineOptionsConfig) options;
-        JsonObjectBuilder catalogs = Json.createObjectBuilder();
+        JsonObjectBuilder subjects = Json.createObjectBuilder();
 
         if (config.subjects != null && !config.subjects.isEmpty())
         {
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
             for (InlineSchemaConfig schema : config.subjects)
             {
                 JsonObjectBuilder schemaJson = Json.createObjectBuilder();
@@ -63,8 +64,9 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
                 }
                 catalogs.add(schema.subject, schemaJson);
             }
+            subjects.add(SUBJECTS_NAME, catalogs);
         }
-        return catalogs.build();
+        return subjects.build();
     }
 
     @Override
@@ -74,9 +76,9 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
         InlineOptionsConfigBuilder<InlineOptionsConfig> options = InlineOptionsConfig.builder();
         if (object != null)
         {
-            if (object.containsKey(SUBJECT_NAME))
+            if (object.containsKey(SUBJECTS_NAME))
             {
-                JsonObject subjectsJson = object.getJsonObject(SUBJECT_NAME);
+                JsonObject subjectsJson = object.getJsonObject(SUBJECTS_NAME);
                 for (String subject: subjectsJson.keySet())
                 {
                     JsonObject schemaJson = subjectsJson.getJsonObject(subject);

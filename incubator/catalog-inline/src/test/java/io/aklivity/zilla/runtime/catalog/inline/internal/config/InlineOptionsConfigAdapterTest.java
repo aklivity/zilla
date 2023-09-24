@@ -70,14 +70,17 @@ public class InlineOptionsConfigAdapterTest
     public void shouldWriteCondition()
     {
         String expectedJson = "{" +
-                        "\"subject1\":" +
-                            "{" +
-                                "\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
-                                "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
-                                "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"," +
-                                "\"version\":\"latest\"" +
-                            "}" +
-                        "}";
+            "\"subjects\":" +
+                "{" +
+                    "\"subject1\":" +
+                        "{" +
+                            "\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
+                            "{\\\"id\\\":{\\\"type\\\":\\\"string\\\"},\\\"status\\\":{\\\"type\\\":\\\"string\\\"}}," +
+                            "\\\"required\\\":[\\\"id\\\",\\\"status\\\"]}\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "}" +
+                "}";
 
         InlineOptionsConfig catalog = (InlineOptionsConfig) new InlineOptionsConfigBuilder<>(identity())
                 .subjects()
