@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.config;
 
 import java.util.LinkedList;
 import java.util.List;

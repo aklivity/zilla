@@ -25,6 +25,14 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

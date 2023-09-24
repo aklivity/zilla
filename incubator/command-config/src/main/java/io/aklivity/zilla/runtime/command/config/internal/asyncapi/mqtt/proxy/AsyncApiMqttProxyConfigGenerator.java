@@ -38,7 +38,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;

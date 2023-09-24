@@ -13,19 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-public final class MqttAuthorizationConfig
+import java.util.List;
+
+public final class MqttCredentialsConfig
 {
-    public final String name;
-    public final MqttCredentialsConfig credentials;
+    public final List<MqttPatternConfig> connect;
 
-    public MqttAuthorizationConfig(
-        String name,
-        MqttCredentialsConfig credentials)
+    public MqttCredentialsConfig(
+        List<MqttPatternConfig> connect)
     {
-        this.name = name;
-        this.credentials = credentials;
+        this.connect = connect;
     }
 }
-
