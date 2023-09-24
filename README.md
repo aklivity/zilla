@@ -5,8 +5,9 @@
 </br>
 
 <div align="center"> 
-  
-  [![Build Status][build-status-image]][build-status]
+
+  <!--[![Build Status][build-status-image]][build-status]-->
+  [![Latest Release][release-latest-image]][release-latest]
   [![Slack Community][community-image]][community-join]
   [![Artifact HUB][artifact-hub-shield]][artifact-hub]
   
@@ -19,7 +20,7 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-#  🦎Zilla: A multi-protocol, event-native edge/service proxy
+#  🦎 Zilla: Multi-protocol event-native edge/service proxy
 
 Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
@@ -166,4 +167,6 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
+[release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
+[release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
