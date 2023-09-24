@@ -78,3 +78,8 @@ components:
       required:
         - id
         - status
+    thing:
+      type: object
+      properties:
+        sunshine:
+          type: int

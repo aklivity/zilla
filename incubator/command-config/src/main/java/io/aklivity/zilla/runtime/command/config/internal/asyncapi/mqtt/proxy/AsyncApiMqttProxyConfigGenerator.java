@@ -35,10 +35,13 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Message;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Schema;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -54,6 +57,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     private static final String INLINE_CATALOG_NAME = "catalog0";
     private static final String INLINE_CATALOG_TYPE = "inline";
     private static final String APPLICATION_AVRO = "application/avro";
+    private static final String VERSION_LATEST = "latest";
 
     private final InputStream inputStream;
 
@@ -382,9 +386,28 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
                     .type(INLINE_CATALOG_TYPE)
+                    .options(InlineOptionsConfig::builder)
+                        .subjects()
+                            .inject(this::injectSubjects)
+                            .build()
+                        .build()
                     .build();
         }
         return namespace;
+    }
+
+    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
+        InlineSchemaConfigBuilder<C> subjects)
+    {
+        for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
+        {
+            subjects
+                .subject(entry.getKey())
+                    .version(VERSION_LATEST)
+                    .schema("{\"type\": \"object\"}")
+                    .build();
+        }
+        return subjects;
     }
 
     private JsonPatch createEnvVarsPatch()
