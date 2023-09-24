@@ -45,20 +45,19 @@ catalogs:
     options:
       subjects:
         item:
-          version: latest
           schema: |
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "status"
-              ]
-            }
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+            required:
+            - id
+            - status
+          version: latest
+        thing:
+          schema: |
+            properties:
+              sunshine:
+                type: integer
+          version: latest

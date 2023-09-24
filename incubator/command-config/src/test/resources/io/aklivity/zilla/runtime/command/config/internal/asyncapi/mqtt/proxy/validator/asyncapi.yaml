@@ -82,4 +82,4 @@ components:
       type: object
       properties:
         sunshine:
-          type: int
+          type: integer

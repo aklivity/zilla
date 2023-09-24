@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.mqtt.proxy;
 
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
@@ -29,6 +31,11 @@ import jakarta.json.JsonPatch;
 import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
@@ -392,6 +399,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                             .build()
                         .build()
                     .build();
+
         }
         return namespace;
     }
@@ -399,15 +407,45 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     private <C> InlineSchemaConfigBuilder<C> injectSubjects(
         InlineSchemaConfigBuilder<C> subjects)
     {
-        for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
+        try (Jsonb jsonb = JsonbBuilder.create())
         {
-            subjects
-                .subject(entry.getKey())
-                    .version(VERSION_LATEST)
-                    .schema("{\"type\": \"object\"}")
-                    .build();
+            YAMLMapper yaml = YAMLMapper.builder()
+                .disable(WRITE_DOC_START_MARKER)
+                .enable(MINIMIZE_QUOTES)
+                .build();
+            for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
+            {
+                subjects
+                    .subject(entry.getKey())
+                        .version(VERSION_LATEST)
+                        .schema(writeSchemaYaml(jsonb, yaml, entry.getValue()))
+                        .build();
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
         }
         return subjects;
+    }
+
+    private static String writeSchemaYaml(
+        Jsonb jsonb,
+        YAMLMapper yaml,
+        Schema schema)
+    {
+        String result = null;
+        try
+        {
+            String schemaJson = jsonb.toJson(schema);
+            JsonNode json = new ObjectMapper().readTree(schemaJson);
+            result = yaml.writeValueAsString(json);
+        }
+        catch (JsonProcessingException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return result;
     }
 
     private JsonPatch createEnvVarsPatch()
