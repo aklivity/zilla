@@ -26,6 +26,9 @@ module io.aklivity.zilla.runtime.command.config
     requires io.aklivity.zilla.runtime.validator.avro;
     requires io.aklivity.zilla.runtime.validator.core;
 
+    requires com.fasterxml.jackson.dataformat.yaml;
+    requires com.fasterxml.jackson.databind;
+
     opens io.aklivity.zilla.runtime.command.config.internal.airline
         to com.github.rvesse.airline;
 
