@@ -22,6 +22,8 @@ module io.aklivity.zilla.runtime.command.config
     requires io.aklivity.zilla.runtime.binding.tls;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
+    requires io.aklivity.zilla.runtime.validator.avro;
+    requires io.aklivity.zilla.runtime.validator.core;
 
     opens io.aklivity.zilla.runtime.command.config.internal.airline
         to com.github.rvesse.airline;

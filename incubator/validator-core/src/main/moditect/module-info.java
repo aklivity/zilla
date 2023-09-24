@@ -16,6 +16,8 @@ module io.aklivity.zilla.runtime.validator.core
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.validator.core.config;
+
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfigAdapter,
             io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfigAdapter,
