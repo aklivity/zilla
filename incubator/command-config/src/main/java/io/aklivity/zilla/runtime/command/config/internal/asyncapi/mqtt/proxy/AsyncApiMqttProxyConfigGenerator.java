@@ -59,7 +59,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     private static final String APPLICATION_AVRO = "application/avro";
     private static final String VERSION_LATEST = "latest";
 
-    private final InputStream inputStream;
+    private final InputStream input;
 
     private AsyncApi asyncApi;
     private int[] allPorts;
@@ -71,13 +71,13 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     public AsyncApiMqttProxyConfigGenerator(
         InputStream input)
     {
-        this.inputStream = input;
+        this.input = input;
     }
 
     @Override
     public String generate()
     {
-        this.asyncApi = parseAsyncApi(inputStream);
+        this.asyncApi = parseAsyncApi(input);
         this.allPorts = resolveAllPorts();
         this.mqttPorts = resolvePortsForScheme("mqtt");
         this.mqttsPorts = resolvePortsForScheme("mqtts");
