@@ -5,8 +5,9 @@
 </br>
 
 <div align="center"> 
-  
-  [![Build Status][build-status-image]][build-status]
+
+  <!--[![Build Status][build-status-image]][build-status]-->
+  [![Latest Release][release-latest-image]][release-latest]
   [![Slack Community][community-image]][community-join]
   [![Artifact HUB][artifact-hub-shield]][artifact-hub]
   
@@ -166,4 +167,6 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
+[release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
+[release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
