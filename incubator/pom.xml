@@ -49,6 +49,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-inline</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>

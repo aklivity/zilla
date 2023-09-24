@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32C;
 
-import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineSchemaConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public class InlineCatalogHandler implements CatalogHandler
