@@ -19,8 +19,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -36,8 +34,6 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
@@ -63,6 +59,18 @@ public class JsonValidatorTest
                     "]" +
                 "}";
 
+    private final JsonValidatorConfig config = JsonValidatorConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .schema(null)
+                        .strategy("topic")
+                        .subject(null)
+                        .version("latest")
+                        .id(0)
+                        .build()
+                .build()
+            .build();
     private LabelManager labels;
     private ToLongFunction<String> resolveId;
     private CatalogContext context;
@@ -84,11 +92,6 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        JsonValidatorConfig config = new JsonValidatorConfig(Collections.singletonList(
-                new CatalogedConfig("test0",
-                        List.of(new SchemaConfig(null, "topic", null, "latest", 0)))));
-
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -107,11 +110,6 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        JsonValidatorConfig config = new JsonValidatorConfig(Collections.singletonList(
-                new CatalogedConfig("test0",
-                        List.of(new SchemaConfig(null, "topic", null, "latest", 0)))));
-
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();

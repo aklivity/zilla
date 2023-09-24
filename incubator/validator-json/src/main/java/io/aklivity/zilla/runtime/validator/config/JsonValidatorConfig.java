@@ -24,7 +24,7 @@ public final class JsonValidatorConfig extends ValidatorConfig
 {
     public final List<CatalogedConfig> catalogs;
 
-    public JsonValidatorConfig(
+    JsonValidatorConfig(
         List<CatalogedConfig> catalogs)
     {
         super("json");

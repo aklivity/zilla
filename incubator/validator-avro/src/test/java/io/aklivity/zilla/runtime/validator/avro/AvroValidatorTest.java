@@ -19,8 +19,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -36,8 +34,6 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
@@ -49,6 +45,18 @@ public class AvroValidatorTest
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
+    private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .schema(null)
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                .build()
+            .build();
 
     private LabelManager labels;
     private ToLongFunction<String> resolveId;
@@ -71,10 +79,6 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-                new CatalogedConfig("test0",
-                    List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -90,10 +94,6 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -108,10 +108,6 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -126,10 +122,6 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-
-        AvroValidatorConfig avroConfig = new AvroValidatorConfig(Collections.singletonList(
-            new CatalogedConfig("test0",
-                List.of(new SchemaConfig(null, "topic", null, "latest", 0)))), "test-value");
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();

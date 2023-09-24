@@ -27,11 +27,15 @@ public class CatalogedConfigTest
     @Test
     public void shouldWork()
     {
-        // WHEN
-        SchemaConfig schema = new SchemaConfig("schema", "strategy", null, "version", 42);
+        SchemaConfig schema = SchemaConfig.builder()
+                .schema("schema")
+                    .strategy("strategy")
+                    .subject(null)
+                    .version("version")
+                    .id(42)
+                    .build();
         CatalogedConfig cataloged = new CatalogedConfig("test", List.of(schema));
 
-        // THEN
         assertThat(cataloged.name, equalTo("test"));
         assertThat(cataloged.schemas.get(0).schema, equalTo("schema"));
         assertThat(cataloged.schemas.get(0).strategy, equalTo("strategy"));

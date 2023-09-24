@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.validator;
 
+import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -29,6 +30,11 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     public String type()
     {
         return "json";
+    }
+
+    public URL schema()
+    {
+        return getClass().getResource("schema/json.schema.patch.json");
     }
 
     @Override

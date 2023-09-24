@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.validator;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -42,8 +41,6 @@ import io.aklivity.zilla.runtime.validator.config.JsonValidatorConfig;
 
 public class JsonValidator implements Validator
 {
-    private static final byte MAGIC_BYTE = 0x0;
-
     private final JsonProvider schemaProvider;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final JsonValidationService service;
@@ -77,26 +74,7 @@ public class JsonValidator implements Validator
         int index,
         int length)
     {
-        boolean status = false;
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
-
-        if (byteBuf.get() == MAGIC_BYTE)
-        {
-            int schemaId = byteBuf.getInt();
-            int valLength = length - 1 - 4;
-            byte[] valBytes = new byte[valLength];
-            data.getBytes(length - valLength, valBytes);
-
-            String schema = handler.resolve(schemaId);
-
-            if (schema != null && validate(schema, valBytes))
-            {
-                status = true;
-            }
-        }
-        return status;
+        return validate(data, index, length);
     }
 
     @Override
@@ -105,7 +83,14 @@ public class JsonValidator implements Validator
         int index,
         int length)
     {
-        boolean status = false;
+        return validate(data, index, length);
+    }
+
+    private boolean validate(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
         String schema = null;
         int schemaId = catalog != null ? catalog.id : 0;
 
@@ -116,8 +101,7 @@ public class JsonValidator implements Validator
         {
             schema = handler.resolve(schemaId);
         }
-        else if (catalog != null &&
-            ("topic".equals(catalog.strategy) || catalog.subject != null))
+        else if (catalog != null)
         {
             schemaId = handler.resolve(catalog.subject, catalog.version);
             if (schemaId > 0)
@@ -126,12 +110,7 @@ public class JsonValidator implements Validator
             }
         }
 
-        if (schema != null && validate(schema, payloadBytes))
-        {
-            status = true;
-        }
-
-        return status;
+        return schema != null && validate(schema, payloadBytes);
     }
 
     private boolean validate(

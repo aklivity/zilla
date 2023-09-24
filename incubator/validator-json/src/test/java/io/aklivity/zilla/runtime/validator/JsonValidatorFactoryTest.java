@@ -17,14 +17,12 @@ package io.aklivity.zilla.runtime.validator;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
@@ -37,7 +35,11 @@ public class JsonValidatorFactoryTest
     public void shouldCreate()
     {
         // GIVEN
-        ValidatorConfig validator = new JsonValidatorConfig(List.of(new CatalogedConfig("test0", List.of())));
+        ValidatorConfig validator = JsonValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .build()
+                .build();
         ToLongFunction<String> resolveId = i -> 0L;
         LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
         JsonValidatorFactory factory = new JsonValidatorFactory();

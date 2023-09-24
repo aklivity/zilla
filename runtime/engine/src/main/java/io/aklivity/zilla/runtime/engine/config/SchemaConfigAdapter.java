@@ -85,6 +85,12 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         {
             id = object.getInt(ID_NAME);
         }
-        return new SchemaConfig(schema, strategy, subject, version, id);
+        return SchemaConfig.builder()
+                .schema(schema)
+                    .strategy(strategy)
+                    .subject(subject)
+                    .version(version)
+                    .id(id)
+                    .build();
     }
 }
