@@ -24,6 +24,7 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
 {
     private static final String SCHEMA_NAME = "schema";
     private static final String STRATEGY_NAME = "strategy";
+    private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String ID_NAME = "id";
 
@@ -39,6 +40,10 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         if (schema.strategy != null)
         {
             object.add(STRATEGY_NAME, schema.strategy);
+        }
+        if (schema.subject != null)
+        {
+            object.add(SUBJECT_NAME, schema.subject);
         }
         if (schema.version != null)
         {
@@ -65,6 +70,11 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         {
             strategy = object.getString(STRATEGY_NAME);
         }
+        String subject = null;
+        if (object.containsKey(SUBJECT_NAME))
+        {
+            subject = object.getString(SUBJECT_NAME);
+        }
         String version = null;
         if (object.containsKey(VERSION_NAME))
         {
@@ -75,6 +85,6 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         {
             id = object.getInt(ID_NAME);
         }
-        return new SchemaConfig(schema, strategy, version, id);
+        return new SchemaConfig(schema, strategy, subject, version, id);
     }
 }

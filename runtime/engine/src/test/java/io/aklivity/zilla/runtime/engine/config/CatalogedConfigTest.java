@@ -28,7 +28,7 @@ public class CatalogedConfigTest
     public void shouldWork()
     {
         // WHEN
-        SchemaConfig schema = new SchemaConfig("schema", "strategy", "version", 42);
+        SchemaConfig schema = new SchemaConfig("schema", "strategy", null, "version", 42);
         CatalogedConfig cataloged = new CatalogedConfig("test", List.of(schema));
 
         // THEN
