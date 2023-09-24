@@ -1210,7 +1210,7 @@ public final class KafkaClientConnectionPool
 
             streamsByInitialIds.forEach((k, v) ->
             {
-                if(v.connection == this)
+                if (v.connection == this)
                 {
                     v.cleanupStream(traceId);
                 }
