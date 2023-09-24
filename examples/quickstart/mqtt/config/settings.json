@@ -1,0 +1,120 @@
+{
+    "BROKER_URL": "zilla",
+    "BROKER_PORT": 1883,
+    "PROTOCOL_VERSION": 5,
+    "CLEAN_SESSION": false,
+    "QOS": 0,
+    "RETAINED": true,
+    "TOPICS": [
+        {
+            "TYPE": "multiple",
+            "PREFIX": "lamp",
+            "RANGE_START": 1,
+            "RANGE_END": 2,
+            "TIME_INTERVAL": 4,
+            "DATA": [
+                {
+                    "NAME": "on",
+                    "TYPE": "bool",
+                    "RETAIN_PROBABILITY": 0.85
+                },
+                {
+                    "NAME": "temperature",
+                    "TYPE": "int",
+                    "INITIAL_VALUE": 2750,
+                    "MIN_VALUE": 2700,
+                    "MAX_VALUE": 6500,
+                    "MAX_STEP": 250,
+                    "RETAIN_PROBABILITY": 0.3,
+                    "RESET_PROBABILITY": 0.1,
+                    "INCREASE_PROBABILITY": 0.8,
+                    "RESTART_ON_BOUNDARIES": true
+                }
+            ]
+        },
+        {
+            "TYPE": "single",
+            "PREFIX": "air_quality",
+            "TIME_INTERVAL": 6,
+            "DATA": [
+                {
+                    "NAME": "pollution_particles",
+                    "TYPE": "float",
+                    "MIN_VALUE": 0,
+                    "MAX_VALUE": 1,
+                    "MAX_STEP": 0.15,
+                    "RETAIN_PROBABILITY": 0.9
+                },
+                {
+                    "NAME": "alert",
+                    "TYPE": "bool",
+                    "RETAIN_PROBABILITY": 0.9
+                }
+            ]
+        },
+        {
+            "TYPE": "list",
+            "PREFIX": "temperature",
+            "LIST": ["roof", "basement"],
+            "TIME_INTERVAL": 8,
+            "DATA": [
+                {
+                    "NAME": "temperature",
+                    "TYPE": "float",
+                    "MIN_VALUE": 20,
+                    "MAX_VALUE": 55,
+                    "MAX_STEP": 3,
+                    "RETAIN_PROBABILITY": 0.5,
+                    "INCREASE_PROBABILITY": 0.6
+                }
+            ]
+        },
+        {
+            "TYPE": "single",
+            "PREFIX": "freezer",
+            "TIME_INTERVAL": 6,
+            "DATA": [
+                {
+                    "NAME": "temperature",
+                    "TYPE": "math_expression",
+                    "RETAIN_PROBABILITY": 0.1,
+                    "MATH_EXPRESSION": "2*math.pow(x,2)+1",
+                    "INTERVAL_START": 0,
+                    "INTERVAL_END": 5,
+                    "MIN_DELTA": 0.3,
+                    "MAX_DELTA": 0.5
+                }
+            ]
+        },
+        {
+            "TYPE": "single",
+            "PREFIX": "location",
+            "TIME_INTERVAL": 5,
+            "DATA": [
+                {
+                    "NAME": "coordinate",
+                    "TYPE": "raw_values",
+                    "RESTART_ON_END": true,
+                    "VALUES": [
+                        {
+                            "lat": -121.883682,
+                            "long": 37.354635
+                        },
+                        {
+                            "lat": -121.883352,
+                            "long": 37.354192
+                        },
+                        {
+                            "lat": -121.884284,
+                            "long": 37.353757
+                        },
+                        {
+                            "lat": -121.885227,
+                            "long": 37.353324
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
