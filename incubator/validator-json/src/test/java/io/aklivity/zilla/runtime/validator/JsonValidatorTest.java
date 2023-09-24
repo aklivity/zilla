@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.validator.avro;
+package io.aklivity.zilla.runtime.validator;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertFalse;
@@ -38,26 +38,39 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.validator.config.JsonValidatorConfig;
 
-public class AvroValidatorTest
+public class JsonValidatorTest
 {
-    private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-            "{\"name\":\"status\",\"type\":\"string\"}]," +
-            "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+    private static final String SCHEMA = "{" +
+                    "\"type\": \"object\"," +
+                    "\"properties\": " +
+                    "{" +
+                        "\"id\": {" +
+                        "\"type\": \"string\"" +
+                        "}," +
+                        "\"status\": {" +
+                        "\"type\": \"string\"" +
+                        "}" +
+                    "}," +
+                    "\"required\": [" +
+                    "\"id\"," +
+                    "\"status\"" +
+                    "]" +
+                "}";
 
-    private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
+    private final JsonValidatorConfig config = JsonValidatorConfig.builder()
             .catalog()
                 .name("test0")
                     .schema()
                         .schema(null)
                         .strategy("topic")
+                        .subject(null)
                         .version("latest")
-                        .subject("test-value")
+                        .id(0)
                         .build()
                 .build()
             .build();
-
     private LabelManager labels;
     private ToLongFunction<String> resolveId;
     private CatalogContext context;
@@ -75,59 +88,38 @@ public class AvroValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidAvroEvent()
+    public void shouldVerifyValidJsonData()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        String payload = "{" +
+                "\"id\": \"123\"," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertTrue(validator.write(data, 0, data.capacity()));
     }
 
     @Test
-    public void shouldVerifyInvalidAvroEvent()
+    public void shouldVerifyInvalidJsonData()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
+        String payload = "{" +
+                "\"id\": 123," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
-    }
-
-    @Test
-    public void shouldVerifyMagicBytes()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = "Invalid Event".getBytes();
-        data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
-    }
-
-    @Test
-    public void shouldVerifyInvalidSchemaId()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
-        data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertFalse(validator.write(data, 0, data.capacity()));
     }
 }

@@ -24,6 +24,7 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
     private String schema;
     private String strategy;
     private String version;
+    private String subject;
     private int id;
 
     public SchemaConfigBuilder(
@@ -53,6 +54,13 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
         return this;
     }
 
+    public SchemaConfigBuilder<T> subject(
+        String subject)
+    {
+        this.subject = subject;
+        return this;
+    }
+
     public SchemaConfigBuilder<T> version(
         String version)
     {
@@ -70,6 +78,6 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaConfig(schema, strategy, version, id));
+        return mapper.apply(new SchemaConfig(schema, strategy, subject, version, id));
     }
 }

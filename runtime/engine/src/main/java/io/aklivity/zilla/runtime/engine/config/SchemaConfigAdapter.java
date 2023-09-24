@@ -24,6 +24,7 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
 {
     private static final String SCHEMA_NAME = "schema";
     private static final String STRATEGY_NAME = "strategy";
+    private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String ID_NAME = "id";
 
@@ -40,6 +41,10 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         {
             object.add(STRATEGY_NAME, schema.strategy);
         }
+        if (schema.subject != null)
+        {
+            object.add(SUBJECT_NAME, schema.subject);
+        }
         if (schema.version != null)
         {
             object.add(VERSION_NAME, schema.version);
@@ -55,26 +60,33 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
     public SchemaConfig adaptFromJson(
         JsonObject object)
     {
-        String schema = null;
+        SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder();
+
         if (object.containsKey(SCHEMA_NAME))
         {
-            schema = object.getString(SCHEMA_NAME);
+            builder.schema(object.getString(SCHEMA_NAME));
         }
-        String strategy = null;
+
         if (object.containsKey(STRATEGY_NAME))
         {
-            strategy = object.getString(STRATEGY_NAME);
+            builder.strategy(object.getString(STRATEGY_NAME));
         }
-        String version = null;
+
+        if (object.containsKey(SUBJECT_NAME))
+        {
+            builder.subject(object.getString(SUBJECT_NAME));
+        }
+
         if (object.containsKey(VERSION_NAME))
         {
-            version = object.getString(VERSION_NAME);
+            builder.version(object.getString(VERSION_NAME));
         }
-        int id = 0;
+
         if (object.containsKey(ID_NAME))
         {
-            id = object.getInt(ID_NAME);
+            builder.id(object.getInt(ID_NAME));
         }
-        return new SchemaConfig(schema, strategy, version, id);
+
+        return builder.build();
     }
 }
