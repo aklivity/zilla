@@ -237,6 +237,114 @@
                                 {
                                     "type": "string"
                                 }
+                            },
+                            "requests":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "path":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "method":
+                                        {
+                                            "type": "string",
+                                            "enum":
+                                            [
+                                                "GET",
+                                                "PUT",
+                                                "POST",
+                                                "DELETE",
+                                                "OPTIONS",
+                                                "HEAD",
+                                                "PATCH",
+                                                "TRACE"
+                                            ]
+                                        },
+                                        "content-type":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "headers":
+                                        {
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                {
+                                                    "$ref": "#/$defs/validator/type"
+                                                }
+                                            }
+                                        },
+                                        "params":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "path":
+                                                {
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "$ref": "#/$defs/validator/type"
+                                                        }
+                                                    }
+                                                },
+                                                "query":
+                                                {
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "$ref": "#/$defs/validator/type"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "content":
+                                        {
+                                            "$ref": "#/$defs/validator/type"
+                                        }
+                                    },
+                                    "anyOf":
+                                    [
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "headers"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "params"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "content"
+                                            ]
+                                        }
+                                    ],
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false
