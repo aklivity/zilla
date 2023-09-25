@@ -1,7 +1,7 @@
 # mqtt.kafka.reflect
 
-Listens on mqtt port `1883` and will forward mqtt publish messages to Kafka, broadcasting to all subscribed mqtt clients.
-Listens on mqtts port `8883` and will forward mqtt publish messages to Kafka, broadcasting to all subscribed mqtt clients.
+Listens on mqtt port `1883` and will forward mqtt publish messages to Kafka, delivering to all mqtt clients subscribed to the same topic.
+Listens on mqtts port `8883` and will forward mqtt publish messages to Kafka, delivering to all mqtt clients subscribed to the same topic.
 
 ### Requirements
 
@@ -24,32 +24,32 @@ The `setup.sh` script:
 $./setup.sh   
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + VERSION=0.9.46
-+ helm install zilla-mqtt-kafka-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-mqtt-kafka-reflect --create-namespace --wait [...]
-NAME: zilla-mqtt-kafka-reflect
++ helm install zilla-mqtt-kafka-broker oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-mqtt-kafka-broker --create-namespace --wait [...]
+NAME: zilla-mqtt-kafka-broker
 LAST DEPLOYED: [...]
-NAMESPACE: zilla-mqtt-kafka-reflect
+NAMESPACE: zilla-mqtt-kafka-broker
 STATUS: deployed
 REVISION: 1
 NOTES:
 Zilla has been installed.
-+ helm install zilla-mqtt-kafka-reflect-kafka chart --namespace zilla-mqtt-kafka-reflect --create-namespace --wait
-NAME: zilla-mqtt-kafka-reflect-kafka
++ helm install zilla-mqtt-kafka-broker-kafka chart --namespace zilla-mqtt-kafka-broker --create-namespace --wait
+NAME: zilla-mqtt-kafka-broker-kafka
 LAST DEPLOYED: [...]
-NAMESPACE: zilla-mqtt-kafka-reflect
+NAMESPACE: zilla-mqtt-kafka-broker
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-++ kubectl get pods --namespace zilla-mqtt-kafka-reflect --selector app.kubernetes.io/instance=kafka -o name
+++ kubectl get pods --namespace zilla-mqtt-kafka-broker --selector app.kubernetes.io/instance=kafka -o name
 + KAFKA_POD=pod/kafka-74675fbb8-g56l9
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-messages --if-not-exists
++ kubectl exec --namespace zilla-mqtt-kafka-broker pod/kafka-74675fbb8-g56l9 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-messages --if-not-exists
 Created topic mqtt-messages.
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-retained --config cleanup.policy=compact --if-not-exists
++ kubectl exec --namespace zilla-mqtt-kafka-broker pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-retained --config cleanup.policy=compact --if-not-exists
 Created topic mqtt-retained.
-+ kubectl exec --namespace zilla-mqtt-kafka-reflect pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-sessions --config cleanup.policy=compact --if-not-exists
++ kubectl exec --namespace zilla-mqtt-kafka-broker pod/kafka-74675fbb8-w42xt -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic mqtt-sessions --config cleanup.policy=compact --if-not-exists
 Created topic mqtt-sessions.
-+ kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/zilla-mqtt-kafka-reflect 1883 8883
++ kubectl port-forward --namespace zilla-mqtt-kafka-broker service/zilla-mqtt-kafka-broker 1883 8883
 + nc -z localhost 1883
-+ kubectl port-forward --namespace zilla-mqtt-kafka-reflect service/kafka 9092 29092
++ kubectl port-forward --namespace zilla-mqtt-kafka-broker service/kafka 9092 29092
 + sleep 1
 + nc -z localhost 1883
 Connection to localhost port 1883 [tcp/ibm-mqisdp] succeeded!
@@ -205,9 +205,9 @@ output:
 99998
 99999
 + killall kubectl
-+ helm uninstall zilla-mqtt-kafka-reflect zilla-mqtt-kafka-reflect-kafka --namespace zilla-mqtt-kafka
-release "zilla-mqtt-kafka-reflect" uninstalled
-release "zilla-mqtt-kafka-reflect-kafka" uninstalled
++ helm uninstall zilla-mqtt-kafka-broker zilla-mqtt-kafka-broker-kafka --namespace zilla-mqtt-kafka
+release "zilla-mqtt-kafka-broker" uninstalled
+release "zilla-mqtt-kafka-broker-kafka" uninstalled
 + kubectl delete namespace zilla-mqtt-kafka
 namespace "zilla-mqtt-kafka" deleted
 ```

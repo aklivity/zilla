@@ -1,6 +1,3 @@
-image:
-  tag: develop-SNAPSHOT
-
 args: ["start", "-v", "-e"]
 
 env:

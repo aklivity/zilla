@@ -1,7 +1,4 @@
-image:
-  tag: develop-SNAPSHOT
-
-args: ["start", "-v", "-e", "-P", "zilla.binding.mqtt.sessions.available=false"]
+args: ["start", "-v", "-e", "-P", "zilla.binding.kafka.client.connection.pool=false"]
 
 env:
   - name: KEYSTORE_PASSWORD

@@ -33,8 +33,8 @@ You can install `helm` with `$ brew install helm`.
 | [grpc.kafka.proxy](grpc.kafka.proxy)                               | Correlates gRPC requests and responses over separate Kafka topics                                   |
 | [grpc.proxy](grpc.proxy)                                           | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client                      |
 | [amqp.reflect](amqp.reflect)                                       | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients            |
-| [mqtt.kafka.reflect](mqtt.kafka.reflect)                           | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients                |
-| [mqtt.kafka.reflect.jwt](mqtt.kafka.reflect.jwt)                   | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed JWT-authorized MQTT clients |
+| [mqtt.kafka.broker](mqtt.kafka.broker)                             | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients                |
+| [mqtt.kafka.broker.jwt](mqtt.kafka.broker.jwt)                     | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed JWT-authorized MQTT clients |
 | [mqtt.proxy](mqtt.proxy)                                           | Forwards MQTT publish messages and proxies subscribes to an MQTT broker                             |
 | [sse.kafka.fanout](sse.kafka.fanout)                               | Streams messages published to a Kafka topic, applying conflation based on log compaction            |
 | [sse.proxy.jwt](sse.proxy.jwt)                                     | Proxies messages delivered by the SSE server, enforcing streaming security constraints              |

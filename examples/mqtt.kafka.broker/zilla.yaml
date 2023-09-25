@@ -57,6 +57,7 @@ bindings:
     kind: cache_server
     options:
       bootstrap:
+        - mqtt-messages
         - mqtt-retained
     exit: kafka_client0
   kafka_client0:
