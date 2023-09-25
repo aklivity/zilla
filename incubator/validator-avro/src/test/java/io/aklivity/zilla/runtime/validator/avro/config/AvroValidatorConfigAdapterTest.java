@@ -78,7 +78,7 @@ public class AvroValidatorConfigAdapterTest
         assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
         assertThat(validator.catalogs.get(0).schemas.get(1).schema, equalTo("cat"));
         assertThat(validator.catalogs.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(validator.catalogs.get(0).schemas.get(1).version, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
         assertThat(validator.catalogs.get(0).schemas.get(2).schema, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
