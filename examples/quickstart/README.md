@@ -1,6 +1,6 @@
 # quickstart
 
-Creates a full featured instance of Zilla on port `7114`. Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/quickstart) to discover some of what Zilla can do!
+Creates a full featured instance of Zilla on port `7114`. Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html) to discover some of what Zilla can do!
 
 ## Requirements
 
