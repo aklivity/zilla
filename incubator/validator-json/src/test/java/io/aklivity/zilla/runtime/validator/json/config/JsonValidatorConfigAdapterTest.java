@@ -39,7 +39,7 @@ public class JsonValidatorConfigAdapterTest
     }
 
     @Test
-    public void shouldReadAvroValidator()
+    public void shouldReadJsonValidator()
     {
         // GIVEN
         String json =
@@ -87,7 +87,7 @@ public class JsonValidatorConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteAvroValidator()
+    public void shouldWriteJsonValidator()
     {
         // GIVEN
         String expectedJson =
