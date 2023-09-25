@@ -16,5 +16,6 @@ package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
 public class Item
 {
+    public String type;
     public String description;
 }

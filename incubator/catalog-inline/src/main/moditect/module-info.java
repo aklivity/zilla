@@ -16,9 +16,11 @@ module io.aklivity.zilla.runtime.catalog.inline
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.catalog.inline.config;
+
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.inline.internal.InlineCatalogFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineOptionsConfigAdapter;
+        with io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigAdapter;
 }

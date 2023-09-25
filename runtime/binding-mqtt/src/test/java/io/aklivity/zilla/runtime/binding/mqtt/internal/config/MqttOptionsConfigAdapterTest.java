@@ -33,6 +33,11 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class MqttOptionsConfigAdapterTest

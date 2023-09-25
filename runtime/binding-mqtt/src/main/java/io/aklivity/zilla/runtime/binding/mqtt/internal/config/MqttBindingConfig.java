@@ -25,7 +25,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;

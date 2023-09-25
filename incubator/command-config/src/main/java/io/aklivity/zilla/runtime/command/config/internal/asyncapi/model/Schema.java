@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
+import java.util.List;
 import java.util.Map;
 
 public class Schema
 {
     public Map<String, Item> properties;
+    public List<String> required;
 }

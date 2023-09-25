@@ -10,4 +10,9 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
+  Jackson-annotations under The Apache Software License, Version 2.0
+  Jackson-core under The Apache Software License, Version 2.0
+  jackson-databind under The Apache Software License, Version 2.0
+  Jackson-dataformat-YAML under The Apache Software License, Version 2.0
+  SnakeYAML under Apache License, Version 2.0
 

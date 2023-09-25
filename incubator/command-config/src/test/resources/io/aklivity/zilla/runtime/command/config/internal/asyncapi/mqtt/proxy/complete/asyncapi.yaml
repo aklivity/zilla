@@ -59,3 +59,28 @@ components:
         properties:
           item:
             $ref: "#/components/schemas/item"
+    thing:
+      name: thing
+      title: A thing
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          item:
+            $ref: "#/components/schemas/thing"
+  schemas:
+    item:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+      required:
+        - id
+        - status
+    thing:
+      type: object
+      properties:
+        sunshine:
+          type: integer

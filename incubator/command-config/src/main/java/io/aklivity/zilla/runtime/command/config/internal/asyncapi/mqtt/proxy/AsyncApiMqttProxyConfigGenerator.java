@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.mqtt.proxy;
 
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
@@ -30,23 +32,41 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.config.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Channel;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Message;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.model.Schema;
+import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.config.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
-    private final InputStream inputStream;
+    private static final String INLINE_CATALOG_NAME = "catalog0";
+    private static final String INLINE_CATALOG_TYPE = "inline";
+    private static final String APPLICATION_JSON = "application/json";
+    private static final String VERSION_LATEST = "latest";
+
+    private final InputStream input;
 
     private AsyncApi asyncApi;
     private int[] allPorts;
@@ -58,13 +78,13 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
     public AsyncApiMqttProxyConfigGenerator(
         InputStream input)
     {
-        this.inputStream = input;
+        this.input = input;
     }
 
     @Override
     public String generate()
     {
-        this.asyncApi = parseAsyncApi(inputStream);
+        this.asyncApi = parseAsyncApi(input);
         this.allPorts = resolveAllPorts();
         this.mqttPorts = resolvePortsForScheme("mqtt");
         this.mqttsPorts = resolvePortsForScheme("mqtts");
@@ -153,6 +173,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                 .name("mqtt_server0")
                 .type("mqtt")
                 .kind(SERVER)
+                .inject(this::injectMqttServerOptions)
                 .inject(this::injectMqttServerRoutes)
                 .build()
             .binding()
@@ -172,6 +193,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build()
                 .build()
             .inject(this::injectVaults)
+            .inject(this::injectCatalog)
             .build();
     }
 
@@ -227,6 +249,60 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build();
         }
         return namespace;
+    }
+
+    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttServerOptions(
+        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    {
+        for (Map.Entry<String, Channel> channelEntry : asyncApi.channels.entrySet())
+        {
+            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
+            Map<String, Message> messages = channelEntry.getValue().messages;
+            Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
+            String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
+            if (APPLICATION_JSON.equals(contentType))
+            {
+                binding
+                    .options(MqttOptionsConfig::builder)
+                        .topic()
+                            .name(topic)
+                            .content(JsonValidatorConfig::builder)
+                                .catalog()
+                                    .name(INLINE_CATALOG_NAME)
+                                    .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))
+                                    .build()
+                                .build()
+                            .build()
+                        .build()
+                    .build();
+            }
+        }
+        return binding;
+    }
+
+    private <C> CatalogedConfigBuilder<C> injectJsonSchemas(
+        CatalogedConfigBuilder<C> cataloged,
+        Map<String, Message> messages,
+        String contentType)
+    {
+        for (Map.Entry<String, Message> messageEntry : messages.entrySet())
+        {
+            MessageView message = MessageView.of(asyncApi.components.messages, messageEntry.getValue());
+            String schema = messageEntry.getKey();
+            if (message.contentType().equals(contentType))
+            {
+                cataloged
+                    .schema()
+                        .schema(schema)
+                        .build()
+                    .build();
+            }
+            else
+            {
+                throw new RuntimeException("Invalid content type");
+            }
+        }
+        return cataloged;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectMqttServerRoutes(
@@ -306,6 +382,70 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build();
         }
         return namespace;
+    }
+
+    private NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
+        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    {
+        if (asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
+        {
+            namespace
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .type(INLINE_CATALOG_TYPE)
+                    .options(InlineOptionsConfig::builder)
+                        .subjects()
+                            .inject(this::injectSubjects)
+                            .build()
+                        .build()
+                    .build();
+
+        }
+        return namespace;
+    }
+
+    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
+        InlineSchemaConfigBuilder<C> subjects)
+    {
+        try (Jsonb jsonb = JsonbBuilder.create())
+        {
+            YAMLMapper yaml = YAMLMapper.builder()
+                .disable(WRITE_DOC_START_MARKER)
+                .enable(MINIMIZE_QUOTES)
+                .build();
+            for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
+            {
+                subjects
+                    .subject(entry.getKey())
+                        .version(VERSION_LATEST)
+                        .schema(writeSchemaYaml(jsonb, yaml, entry.getValue()))
+                        .build();
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return subjects;
+    }
+
+    private static String writeSchemaYaml(
+        Jsonb jsonb,
+        YAMLMapper yaml,
+        Schema schema)
+    {
+        String result = null;
+        try
+        {
+            String schemaJson = jsonb.toJson(schema);
+            JsonNode json = new ObjectMapper().readTree(schemaJson);
+            result = yaml.writeValueAsString(json);
+        }
+        catch (JsonProcessingException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return result;
     }
 
     private JsonPatch createEnvVarsPatch()
