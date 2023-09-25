@@ -505,7 +505,7 @@ public final class KafkaCachePartition
                 if (key != null &&
                     !type.key.read(key.value(), key.offset(), key.sizeof()))
                 {
-                    System.out.println("Key Validation failed");
+                    // Placeholder to log Invalid events
                 }
             }
 
@@ -515,7 +515,7 @@ public final class KafkaCachePartition
                 if (value != null &&
                     !type.value.read(value.value(), value.offset(), value.sizeof()))
                 {
-                    System.out.println("Value Validation failed");
+                    // Placeholder to log Invalid events
                 }
             }
         }
@@ -644,7 +644,6 @@ public final class KafkaCachePartition
             !validator.write(data.value(), data.offset(), data.sizeof()))
         {
             status = false;
-            System.out.println("Validation failed");
         }
 
         return status;
@@ -670,7 +669,6 @@ public final class KafkaCachePartition
             !validator.write(value.value(), value.offset(), value.sizeof()))
         {
             status = false;
-            System.out.println("Validation failed");
         }
 
         return status;
