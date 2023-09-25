@@ -56,14 +56,14 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
     private static final String INLINE_CATALOG_NAME = "catalog0";
     private static final String INLINE_CATALOG_TYPE = "inline";
-    private static final String APPLICATION_AVRO = "application/avro";
+    private static final String APPLICATION_JSON = "application/json";
     private static final String VERSION_LATEST = "latest";
 
     private final InputStream input;
@@ -260,16 +260,16 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
             Map<String, Message> messages = channelEntry.getValue().messages;
             Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
             String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
-            if (APPLICATION_AVRO.equals(contentType))
+            if (APPLICATION_JSON.equals(contentType))
             {
                 binding
                     .options(MqttOptionsConfig::builder)
                         .topic()
                             .name(topic)
-                            .content(AvroValidatorConfig::builder)
+                            .content(JsonValidatorConfig::builder)
                                 .catalog()
                                     .name(INLINE_CATALOG_NAME)
-                                    .inject(cataloged -> injectAvroSchemas(cataloged, messages, APPLICATION_AVRO))
+                                    .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))
                                     .build()
                                 .build()
                             .build()
@@ -280,7 +280,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
         return binding;
     }
 
-    private <C> CatalogedConfigBuilder<C> injectAvroSchemas(
+    private <C> CatalogedConfigBuilder<C> injectJsonSchemas(
         CatalogedConfigBuilder<C> cataloged,
         Map<String, Message> messages,
         String contentType)

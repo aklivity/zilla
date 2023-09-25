@@ -17,7 +17,7 @@ bindings:
       topics:
       - name: smartylighting/streetlights/1/0/event/*/lighting/measured
         content:
-          type: avro
+          type: json
           catalog:
             catalog0:
             - schema: items

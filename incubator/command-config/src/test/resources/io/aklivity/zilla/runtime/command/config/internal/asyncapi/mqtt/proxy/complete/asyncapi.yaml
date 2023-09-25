@@ -53,7 +53,7 @@ components:
           id:
             description: Street Light ID
             type: string
-      contentType: application/avro
+      contentType: application/json
       payload:
         type: object
         properties:
@@ -62,7 +62,7 @@ components:
     thing:
       name: thing
       title: A thing
-      contentType: application/avro
+      contentType: application/json
       payload:
         type: object
         properties:
