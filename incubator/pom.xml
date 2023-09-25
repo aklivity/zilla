@@ -23,6 +23,7 @@
     <module>exporter-otlp.spec</module>
     <module>validator-avro.spec</module>
     <module>validator-core.spec</module>
+    <module>validator-json.spec</module>
 
     <module>binding-amqp</module>
 
@@ -38,6 +39,7 @@
 
     <module>validator-avro</module>
     <module>validator-core</module>
+    <module>validator-json</module>
   </modules>
 
   <dependencyManagement>

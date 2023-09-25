@@ -15,22 +15,38 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import java.util.function.Function;
+
 public class SchemaConfig
 {
     public final String schema;
     public final String strategy;
     public final String version;
+    public final String subject;
     public final int id;
 
-    public SchemaConfig(
+    SchemaConfig(
         String schema,
         String strategy,
+        String subject,
         String version,
         int id)
     {
         this.schema = schema;
         this.strategy = strategy;
         this.version = version;
+        this.subject = subject;
         this.id = id;
+    }
+
+    public static <T> SchemaConfigBuilder<T> builder(
+        Function<SchemaConfig, T> mapper)
+    {
+        return new SchemaConfigBuilder<>(mapper::apply);
+    }
+
+    public static SchemaConfigBuilder<SchemaConfig> builder()
+    {
+        return new SchemaConfigBuilder<>(SchemaConfig.class::cast);
     }
 }
