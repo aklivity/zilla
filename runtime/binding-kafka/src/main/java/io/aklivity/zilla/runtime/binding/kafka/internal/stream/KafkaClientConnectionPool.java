@@ -1198,7 +1198,7 @@ public final class KafkaClientConnectionPool
 
             doConnectionEnd(traceId);
 
-            streamsByInitialIds.forEach((k, v) -> v.cleanupStream(traceId));
+            cleanupStreams(traceId);
         }
 
         private void onConnectionAbort(
@@ -1208,6 +1208,12 @@ public final class KafkaClientConnectionPool
 
             doConnectionAbort(traceId);
 
+            cleanupStreams(traceId);
+        }
+
+        private void cleanupStreams(
+            long traceId)
+        {
             streamsByInitialIds.forEach((k, v) ->
             {
                 if (v.connection == this)
@@ -1246,7 +1252,7 @@ public final class KafkaClientConnectionPool
 
             doConnectionReset(traceId);
 
-            streamsByInitialIds.forEach((k, v) -> v.cleanupStream(traceId));
+            cleanupStreams(traceId);
         }
 
         private void onConnectionWindow(
