@@ -50,6 +50,7 @@
     "io.aklivity.zilla:metrics-grpc",
     "io.aklivity.zilla:validator-avro",
     "io.aklivity.zilla:validator-core",
+    "io.aklivity.zilla:validator-json",
     "io.aklivity.zilla:vault-filesystem",
     "org.slf4j:slf4j-simple",
     "org.antlr:antlr4-runtime"

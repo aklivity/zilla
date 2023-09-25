@@ -16,9 +16,13 @@ module io.aklivity.zilla.runtime.validator.json
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    requires org.leadpony.justify;
+
+    exports io.aklivity.zilla.runtime.validator.json.config;
+
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.validator.config.JsonValidatorConfigAdapter;
+        with io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.validator.JsonValidatorFactory;
+        with io.aklivity.zilla.runtime.validator.json.JsonValidatorFactory;
 }

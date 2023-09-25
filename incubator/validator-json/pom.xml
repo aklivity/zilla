@@ -102,7 +102,7 @@
                                 <fileMappers>
                                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                         <pattern>^\Qio/aklivity/zilla/specs/validator/json/\E</pattern>
-                                        <replacement>io/aklivity/zilla/runtime/validator/json/internal/</replacement>
+                                        <replacement>io/aklivity/zilla/runtime/validator/json/</replacement>
                                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                 </fileMappers>
                             </artifactItem>

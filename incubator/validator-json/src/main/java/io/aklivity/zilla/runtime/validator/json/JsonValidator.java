@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.validator;
+package io.aklivity.zilla.runtime.validator.json;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.validator.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidator implements Validator
 {
