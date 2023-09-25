@@ -43,6 +43,23 @@ public class AsyncApiMqttProxyConfigGeneratorTest
     }
 
     @Test
+    public void shouldGenerateValidatorConfig() throws Exception
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream("validator/asyncapi.yaml"))
+        {
+            // GIVEN
+            String expectedResult = Files.readString(Path.of(getClass().getResource("validator/zilla.yaml").getFile()));
+            AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(inputStream);
+
+            // WHEN
+            String result = generator.generate();
+
+            // THEN
+            assertThat(result, equalTo(expectedResult));
+        }
+    }
+
+    @Test
     public void shouldGenerateTlsConfig() throws Exception
     {
         try (InputStream inputStream = getClass().getResourceAsStream("tls/asyncapi.yaml"))

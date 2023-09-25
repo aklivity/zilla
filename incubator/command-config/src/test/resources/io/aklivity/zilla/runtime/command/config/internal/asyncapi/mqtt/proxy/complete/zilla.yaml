@@ -30,6 +30,14 @@ bindings:
   mqtt_server0:
     type: mqtt
     kind: server
+    options:
+      topics:
+      - name: smartylighting/streetlights/1/0/event/*/lighting/measured
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - schema: items
     routes:
     - exit: mqtt_client0
       when:
@@ -75,3 +83,25 @@ vaults:
         store: "${{env.KEYSTORE_PATH}}"
         type: "${{env.KEYSTORE_TYPE}}"
         password: "${{env.KEYSTORE_PASSWORD}}"
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+            required:
+            - id
+            - status
+          version: latest
+        thing:
+          schema: |
+            properties:
+              sunshine:
+                type: integer
+          version: latest

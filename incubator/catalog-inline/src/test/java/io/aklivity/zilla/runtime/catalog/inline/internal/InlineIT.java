@@ -23,8 +23,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.internal.config.InlineSchemaConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 
 public class InlineIT
 {

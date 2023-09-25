@@ -16,6 +16,8 @@ module io.aklivity.zilla.runtime.validator.avro
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.validator.avro.config;
+
     uses io.aklivity.zilla.runtime.validator.avro.internal.avro.Conversion;
     uses io.aklivity.zilla.runtime.validator.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
 

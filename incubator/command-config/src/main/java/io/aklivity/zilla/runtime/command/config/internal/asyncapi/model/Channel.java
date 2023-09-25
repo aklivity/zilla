@@ -14,11 +14,14 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
+import java.util.LinkedHashMap;
+
 import jakarta.json.bind.annotation.JsonbProperty;
 
 public class Channel
 {
     public String address;
+    public LinkedHashMap<String, Message> messages;
 
     @JsonbProperty("$ref")
     public String ref;

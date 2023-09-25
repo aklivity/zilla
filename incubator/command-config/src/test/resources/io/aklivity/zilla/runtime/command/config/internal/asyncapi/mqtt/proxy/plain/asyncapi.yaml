@@ -50,9 +50,3 @@ components:
           id:
             description: Street Light ID
             type: string
-      contentType: application/json
-      payload:
-        type: object
-        properties:
-          item:
-            $ref: "#/components/schemas/item"

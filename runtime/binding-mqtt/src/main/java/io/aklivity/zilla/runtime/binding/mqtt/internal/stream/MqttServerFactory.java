@@ -103,12 +103,12 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;

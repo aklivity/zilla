@@ -353,6 +353,12 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>catalog-inline</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>catalog-schema-registry</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
@@ -390,6 +396,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>validator-core</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-json</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

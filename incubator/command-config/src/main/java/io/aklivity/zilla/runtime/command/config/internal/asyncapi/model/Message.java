@@ -14,7 +14,13 @@
  */
 package io.aklivity.zilla.runtime.command.config.internal.asyncapi.model;
 
+import jakarta.json.bind.annotation.JsonbProperty;
+
 public class Message
 {
     public Schema headers;
+    public String contentType;
+
+    @JsonbProperty("$ref")
+    public String ref;
 }
