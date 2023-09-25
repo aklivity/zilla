@@ -1,4 +1,4 @@
-# mqtt.kafka.reflect-jwt
+# mqtt.kafka.broker.jwt
 
 Listens on mqtt port `1883` and will forward mqtt publish messages from an authorized mqtt client to Kafka, delivering to all authorized mqtt clients subscribed to the same topic.
 Listens on mqtts port `8883` and will forward mqtt publish messages from an authorized mqtt client to Kafka, delivering to all authorized mqtt clients subscribed to the same topic.

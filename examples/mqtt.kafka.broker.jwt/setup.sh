@@ -29,7 +29,7 @@ kubectl exec --namespace zilla-mqtt-kafka-broker-jwt "$KAFKA_POD" -- \
         --config "cleanup.policy=compact" \
         --if-not-exists
 
-kubectl exec --namespace zilla-mqtt-kafka-reflect "$KAFKA_POD" -- \
+kubectl exec --namespace zilla-mqtt-kafka-broker-jwt "$KAFKA_POD" -- \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --create \
