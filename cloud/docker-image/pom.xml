@@ -383,7 +383,7 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>command-config</artifactId>
+          <artifactId>command-generate</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

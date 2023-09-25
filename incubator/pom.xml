@@ -32,8 +32,8 @@
 
     <module>command-log</module>
     <module>command-dump</module>
+    <module>command-generate</module>
     <module>command-tune</module>
-    <module>command-config</module>
 
     <module>exporter-otlp</module>
 
@@ -76,7 +76,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>command-config</artifactId>
+        <artifactId>command-generate</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
