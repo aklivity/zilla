@@ -14,6 +14,9 @@
  */
 module io.aklivity.zilla.runtime.validator.avro
 {
+    requires com.fasterxml.jackson.core;
+    requires com.fasterxml.jackson.databind;
+    requires org.slf4j;
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.validator.avro.config;

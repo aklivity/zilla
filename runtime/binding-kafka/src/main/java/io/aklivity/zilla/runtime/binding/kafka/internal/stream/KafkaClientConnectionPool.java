@@ -1012,6 +1012,8 @@ public final class KafkaClientConnectionPool
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
+
+                cleanupBudgetCreditorIfNecessary();
             }
         }
 
@@ -1024,6 +1026,8 @@ public final class KafkaClientConnectionPool
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
+
+                cleanupBudgetCreditorIfNecessary();
             }
         }
 
@@ -1204,7 +1208,13 @@ public final class KafkaClientConnectionPool
 
             doConnectionAbort(traceId);
 
-            streamsByInitialIds.forEach((k, v) -> v.cleanupStream(traceId));
+            streamsByInitialIds.forEach((k, v) ->
+            {
+                if (v.connection == this)
+                {
+                    v.cleanupStream(traceId);
+                }
+            });
         }
 
         private void onConnectionSignal(
@@ -1311,8 +1321,6 @@ public final class KafkaClientConnectionPool
         {
             doConnectionAbort(traceId);
             doConnectionReset(traceId);
-
-            cleanupBudgetCreditorIfNecessary();
         }
 
         private void cleanupBudgetCreditorIfNecessary()

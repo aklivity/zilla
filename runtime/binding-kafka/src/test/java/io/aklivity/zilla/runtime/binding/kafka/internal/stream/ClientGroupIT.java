@@ -60,6 +60,16 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/client.sent.write.abort.after.sync.group.response/client",
+        "${net}/client.sent.write.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/rebalance.protocol.highlander/client",
         "${net}/rebalance.protocol.highlander/server"})
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
