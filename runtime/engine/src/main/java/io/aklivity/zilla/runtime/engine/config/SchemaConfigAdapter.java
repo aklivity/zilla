@@ -26,6 +26,7 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
     private static final String STRATEGY_NAME = "strategy";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String VERSION_DEFAULT = "latest";
     private static final String ID_NAME = "id";
 
     @Override
@@ -77,9 +78,13 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
             builder.subject(object.getString(SUBJECT_NAME));
         }
 
-        if (object.containsKey(VERSION_NAME))
+        if (object.containsKey(STRATEGY_NAME) ||
+            object.containsKey(SUBJECT_NAME))
         {
-            builder.version(object.getString(VERSION_NAME));
+            String version = object.containsKey(VERSION_NAME)
+                    ? object.getString(VERSION_NAME)
+                    : VERSION_DEFAULT;
+            builder.version(version);
         }
 
         if (object.containsKey(ID_NAME))

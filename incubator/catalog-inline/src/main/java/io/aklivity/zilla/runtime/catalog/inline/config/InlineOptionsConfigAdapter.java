@@ -27,6 +27,7 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
     private static final String SUBJECTS_NAME = "subjects";
     private static final String VERSION_NAME = "version";
     private static final String SCHEMA_NAME = "schema";
+    private static final String VERSION_DEFAULT = "latest";
 
     @Override
     public Kind kind()
@@ -85,7 +86,7 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
 
                     String version = schemaJson.containsKey(VERSION_NAME)
                             ? schemaJson.getString(VERSION_NAME)
-                            : null;
+                            : VERSION_DEFAULT;
 
                     String schema = schemaJson.containsKey(SCHEMA_NAME)
                             ? schemaJson.getString(SCHEMA_NAME)

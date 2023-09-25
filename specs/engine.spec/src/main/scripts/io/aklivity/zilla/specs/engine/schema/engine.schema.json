@@ -438,7 +438,8 @@
                             },
                             "version":
                             {
-                                "type": "string"
+                                "type": "string",
+                                "default": "latest"
                             }
                         },
                         "required":
@@ -457,12 +458,33 @@
                             },
                             "version":
                             {
-                                "type": "string"
+                                "type": "string",
+                                "default": "latest"
                             }
                         },
                         "required":
                         [
                             "strategy"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "subject":
+                            {
+                                "type": "string"
+                            },
+                            "version":
+                            {
+                                "type": "string",
+                                "default": "latest"
+                            }
+                        },
+                        "required":
+                        [
+                            "subject"
                         ],
                         "additionalProperties": false
                     }
