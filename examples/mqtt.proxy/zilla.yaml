@@ -7,19 +7,27 @@ bindings:
       host: 0.0.0.0
       port: 1883
     routes:
-      - exit: mqtt_server0
-        when:
-          - port: 1883
+    - exit: mqtt_server0
+      when:
+      - port: 1883
   mqtt_server0:
     type: mqtt
     kind: server
+    options:
+      topics:
+      - name: smartylighting/streetlights/1/0/event/1/lighting/measured
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
     routes:
-      - exit: mqtt_client0
-        when:
-          - publish:
-              - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
-          - subscribe:
-              - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+    - exit: mqtt_client0
+      when:
+      - publish:
+        - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
+      - subscribe:
+        - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
   mqtt_client0:
     type: mqtt
     kind: client
@@ -30,3 +38,19 @@ bindings:
     options:
       host: mosquitto
       port: 1884
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+            required:
+            - id
+            - status
+          version: latest

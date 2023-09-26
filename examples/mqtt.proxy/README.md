@@ -71,56 +71,46 @@ brew install mosquitto
 
 ### Verify behavior
 
-Connect a subscribing client to Zilla to default port `1883`. Using mosquitto_pub client publish `Hello, world`  to the mosquitto broker on port `1884`. Verify that the message arrived to on the first client.
-
+Connect a subscribing client to mosquitto broker to port `1884`. Using mosquitto_pub client publish `{"id":"1","status":"on"}` to Zilla on port `1883`. Verify that the message arrived to on the first client.
 ```bash
-mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d
+mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d -p 1884
 ```
-
 output:
-
-```text
+```
 Client null sending CONNECT
-Client 38c92d43-eac3-440d-b5b6-9ee64fb6b0ca received CONNACK (0)
-Client 38c92d43-eac3-440d-b5b6-9ee64fb6b0ca sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
-Client 38c92d43-eac3-440d-b5b6-9ee64fb6b0ca received SUBACK
+Client auto-5A1C0A41-0D16-497D-6C3B-527A93E421E6 received CONNACK (0)
+Client auto-5A1C0A41-0D16-497D-6C3B-527A93E421E6 sending SUBSCRIBE (Mid: 1, Topic: smartylighting/streetlights/1/0/event/+/lighting/measured, QoS: 0, Options: 0x00)
+Client auto-5A1C0A41-0D16-497D-6C3B-527A93E421E6 received SUBACK
 Subscribed (mid: 1): 0
-Client 38c92d43-eac3-440d-b5b6-9ee64fb6b0ca received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
-Hello, world
+{"id":"1","status":"on"}
 ```
 
 ```bash
-mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/0/lighting/measured' -m 'Hello, world' -d -p 1884
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","status":"on"}' -d
 ```
-
 output:
-
-```text
+```
 Client null sending CONNECT
-Client auto-E62BEB8F-0F7F-42E5-001F-A25C2F715B0B received CONNACK (0)
-Client auto-E62BEB8F-0F7F-42E5-001F-A25C2F715B0B sending PUBLISH (d0, q0, r0, m1, 'zilla', ... (12 bytes))
-Client auto-E62BEB8F-0F7F-42E5-001F-A25C2F715B0B sending DISCONNECT
+Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec received CONNACK (0)
+Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec sending PUBLISH (d0, q0, r0, m1, 'smartylighting/streetlights/1/0/event/1/lighting/measured', ... (24 bytes))
+Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec sending DISCONNECT
 ```
 
-The other direction. Connect a subscribing client to mosquitto broker to port `1884`. Using mosquitto_pub client publish `Hello, world`  to Zilla on port `1883`. Verify that the message arrived to on the first client.
-```bash
-$ mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d -p 1884
-Client null sending CONNECT
-Client 42adb530-b483-4c73-9682-6fcc370ba871 received CONNACK (0)
-Client 42adb530-b483-4c73-9682-6fcc370ba871 sending PUBLISH (d0, q0, r1, m1, 'zilla', ... (16 bytes))
-Client 42adb530-b483-4c73-9682-6fcc370ba871 sending DISCONNECT
-```
+Now attempt to publish an invalid message, with property `stat` instead of `status`.
 
 ```bash
-$ mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m 'Hello, world' -d
-Client null sending CONNECT
-Client auto-31F1B4CC-4F2A-27E0-ABCC-C00822CFA973 received CONNACK (0)
-Client auto-31F1B4CC-4F2A-27E0-ABCC-C00822CFA973 sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
-Client auto-31F1B4CC-4F2A-27E0-ABCC-C00822CFA973 received SUBACK
-Subscribed (mid: 1): 0
-Client auto-31F1B4CC-4F2A-27E0-ABCC-C00822CFA973 received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
-Hello, world
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","stat":"off"}' -d -repeat 2 --repeat-delay 3
 ```
+output:
+```
+Client null sending CONNECT
+Client e7e9ddb0-f8c9-43a0-840f-dab9981a9de3 received CONNACK (0)
+Client e7e9ddb0-f8c9-43a0-840f-dab9981a9de3 sending PUBLISH (d0, q0, r0, m1, 'smartylighting/streetlights/1/0/event/1/lighting/measured', ... (23 bytes))
+Received DISCONNECT (153)
+Error: The client is not currently connected.
+```
+
+Note that the invalid message is rejected with error code `153` `payload format error`, and therefore not received by the subscriber.
 
 ### Teardown
 
