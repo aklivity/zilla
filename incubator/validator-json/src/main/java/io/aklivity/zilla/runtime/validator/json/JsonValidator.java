@@ -104,7 +104,7 @@ public class JsonValidator implements Validator
         else if (catalog != null)
         {
             schemaId = handler.resolve(catalog.subject, catalog.version);
-            if (schemaId > 0)
+            if (schemaId != 0)
             {
                 schema = handler.resolve(schemaId);
             }
