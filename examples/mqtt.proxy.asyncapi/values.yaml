@@ -4,6 +4,10 @@ image:
 args: ["start", "-v", "-e"]
 
 env:
+  - name: TCP_CLIENT_HOST
+    value: mosquitto
+  - name: TCP_CLIENT_PORT
+    value: '"1884"'
 
 livenessProbePort: 1883
 readinessProbePort: 1883

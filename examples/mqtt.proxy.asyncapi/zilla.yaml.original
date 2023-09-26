@@ -36,8 +36,8 @@ bindings:
     type: tcp
     kind: client
     options:
-      host: "${{env.TCP_CLIENT_HOST}}"
-      port: ${{env.TCP_CLIENT_PORT}}
+      host: mosquitto
+      port: 1884
 catalogs:
   catalog0:
     type: inline

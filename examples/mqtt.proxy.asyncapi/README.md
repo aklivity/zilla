@@ -9,7 +9,7 @@ For example:
 cat asyncapi.yaml | \
   docker run -i ghcr.io/aklivity/zilla:develop-SNAPSHOT \
     generate --template asyncapi.mqtt.proxy --input /dev/stdin --output /dev/stdout | \
-  tee zilla.yaml.generated
+  tee zilla.yaml
 ```
 
 ### Requirements
