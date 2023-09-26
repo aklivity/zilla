@@ -99,7 +99,7 @@ Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec sending DISCONNECT
 Now attempt to publish an invalid message, with property `stat` instead of `status`.
 
 ```bash
-mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","stat":"off"}' -d -repeat 2 --repeat-delay 3
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","stat":"off"}' -d --repeat 2 --repeat-delay 3
 ```
 output:
 ```
