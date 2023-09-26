@@ -47,6 +47,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
+    private final EngineContext context;
 
     public KafkaCacheClientFactory(
         KafkaConfiguration config,
@@ -94,13 +95,14 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
     }
 

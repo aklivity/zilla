@@ -18,16 +18,21 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class MqttBindingConfig
 {
@@ -39,10 +44,12 @@ public final class MqttBindingConfig
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
+    public final Map<String, Validator> topics;
     public final ToLongFunction<String> resolveId;
 
     public MqttBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -52,6 +59,11 @@ public final class MqttBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
             asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.topics = options != null &&
+            options.topics != null
+            ? options.topics.stream()
+            .collect(Collectors.toMap(t -> t.name,
+                t -> context.createValidator(t.content, resolveId))) : null;
     }
 
     public MqttRouteConfig resolve(

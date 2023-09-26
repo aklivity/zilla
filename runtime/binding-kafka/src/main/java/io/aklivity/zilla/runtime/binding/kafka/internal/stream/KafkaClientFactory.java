@@ -44,6 +44,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
+    private final EngineContext context;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -95,13 +96,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
 
         KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);

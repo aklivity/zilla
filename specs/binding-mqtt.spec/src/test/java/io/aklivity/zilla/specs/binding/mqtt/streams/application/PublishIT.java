@@ -162,4 +162,22 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.invalid.message/client",
+        "${app}/publish.invalid.message/server"})
+    public void shouldPublishInvalidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.valid.message/client",
+        "${app}/publish.valid.message/server"})
+    public void shouldPublishValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

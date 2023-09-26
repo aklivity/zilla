@@ -108,6 +108,27 @@
                                     }
                                 },
                                 "maxProperties": 1
+                            },
+                            "topics":
+                            {
+                                "title": "Topics",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "content":
+                                        {
+                                            "$ref": "#/$defs/validator/type"
+                                        }
+                                    }
+                                }
                             }
                         },
                         "additionalProperties": false

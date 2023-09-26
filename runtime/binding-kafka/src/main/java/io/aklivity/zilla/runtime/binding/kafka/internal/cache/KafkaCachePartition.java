@@ -52,6 +52,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -63,6 +64,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class KafkaCachePartition
 {
@@ -320,13 +322,14 @@ public final class KafkaCachePartition
         OctetsFW value,
         KafkaCacheEntryFW ancestor,
         int entryFlags,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaTopicType type)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
         writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType);
+        writeEntryFinish(headers, deltaType, type);
     }
 
     public void writeEntryStart(
@@ -417,7 +420,8 @@ public final class KafkaCachePartition
 
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaTopicType type)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -493,6 +497,28 @@ public final class KafkaCachePartition
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
         }
 
+        if (type != null)
+        {
+            if (type.key != null)
+            {
+                OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
+                if (key != null &&
+                    !type.key.read(key.value(), key.offset(), key.sizeof()))
+                {
+                    // Placeholder to log Invalid events
+                }
+            }
+
+            if (type.value != null)
+            {
+                OctetsFW value = headEntry.value();
+                if (value != null &&
+                    !type.value.read(value.value(), value.offset(), value.sizeof()))
+                {
+                    // Placeholder to log Invalid events
+                }
+            }
+        }
         headSegment.lastOffset(progress);
     }
 
@@ -603,6 +629,49 @@ public final class KafkaCachePartition
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        boolean isKey,
+        OctetsFW data)
+    {
+        boolean status = true;
+
+        Validator validator = isKey ? type.key : type.value;
+        if (data != null &&
+            validator != null &&
+            !validator.write(data.value(), data.offset(), data.sizeof()))
+        {
+            status = false;
+        }
+
+        return status;
+    }
+
+    public boolean validProduceEntry(
+        KafkaTopicType type,
+        boolean isKey,
+        Node head)
+    {
+        final KafkaCacheSegment segment = head.segment;
+        assert segment != null;
+
+        final KafkaCacheFile logFile = segment.logFile();
+
+        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
+        boolean status = true;
+
+        OctetsFW value = headEntry.value();
+        Validator validator = isKey ? type.key : type.value;
+        if (value != null &&
+            validator != null &&
+            !validator.write(value.value(), value.offset(), value.sizeof()))
+        {
+            status = false;
+        }
+
+        return status;
     }
 
     public long retainAt(

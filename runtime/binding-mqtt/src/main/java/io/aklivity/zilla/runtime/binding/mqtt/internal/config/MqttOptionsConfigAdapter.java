@@ -15,17 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttPatternConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -34,8 +42,9 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
-    private static final String AUTHORIZATION_CREDENTIALS_USERNAME_NAME = "username";
-    private static final String AUTHORIZATION_CREDENTIALS_PASSWORD_NAME = "password";
+    private static final String TOPICS_NAME = "topics";
+
+    private final MqttTopicConfigAdapter mqttTopic = new MqttTopicConfigAdapter();
 
     @Override
     public Kind kind()
@@ -86,6 +95,15 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             object.add(AUTHORIZATION_NAME, authorizations);
         }
 
+        if (mqttOptions.topics != null)
+        {
+            JsonArrayBuilder topics = Json.createArrayBuilder();
+            mqttOptions.topics.stream()
+                .map(mqttTopic::adaptToJson)
+                .forEach(topics::add);
+            object.add(TOPICS_NAME, topics);
+        }
+
         return object.build();
     }
 
@@ -93,58 +111,48 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        MqttAuthorizationConfig newAuthorization = null;
+        MqttOptionsConfigBuilder<MqttOptionsConfig> mqttOptions = MqttOptionsConfig.builder();
 
-        JsonObject authorizations = object.containsKey(AUTHORIZATION_NAME)
-            ? object.getJsonObject(AUTHORIZATION_NAME)
-            : null;
-
-        if (authorizations != null)
+        if (object.containsKey(AUTHORIZATION_NAME))
         {
+            MqttAuthorizationConfigBuilder<?> mqttAuthorization = mqttOptions.authorization();
+
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
+
             for (String name : authorizations.keySet())
             {
                 JsonObject authorization = authorizations.getJsonObject(name);
-
-                MqttCredentialsConfig newCredentials = null;
-
                 JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
-
                 if (credentials != null)
                 {
-                    List<MqttPatternConfig> newConnect =
-                        adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_CONNECT_NAME);
+                    MqttCredentialsConfigBuilder<?> mqttCredentials = mqttAuthorization
+                        .name(name)
+                        .credentials();
 
-                    newCredentials = new MqttCredentialsConfig(newConnect);
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_CONNECT_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_CONNECT_NAME)
+                            .forEach((n, v) -> mqttCredentials.connect()
+                                .property(MqttPatternConfig.MqttConnectProperty.ofName(n))
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
+
+                    mqttCredentials.build();
                 }
-
-                newAuthorization = new MqttAuthorizationConfig(name, newCredentials);
             }
+
+            mqttAuthorization.build();
         }
 
-        return new MqttOptionsConfig(newAuthorization);
-    }
-
-    private List<MqttPatternConfig> adaptPatternFromJson(
-        JsonObject object,
-        String property)
-    {
-        List<MqttPatternConfig> newPatterns = null;
-        if (object.containsKey(property))
+        if (object.containsKey(TOPICS_NAME))
         {
-            newPatterns = new ArrayList<>();
-
-            JsonObject patterns = object.getJsonObject(property);
-            for (String name : patterns.keySet())
-            {
-                name = name.toLowerCase();
-                if (name.equals(AUTHORIZATION_CREDENTIALS_USERNAME_NAME) ||
-                    name.equals(AUTHORIZATION_CREDENTIALS_PASSWORD_NAME))
-                {
-                    String pattern = patterns.getString(name);
-                    newPatterns.add(new MqttPatternConfig(MqttAuthorizationConfig.MqttConnectProperty.ofName(name), pattern));
-                }
-            }
+            List<MqttTopicConfig> topics = object.getJsonArray(TOPICS_NAME).stream()
+                .map(item -> mqttTopic.adaptFromJson((JsonObject) item))
+                .collect(Collectors.toList());
+            mqttOptions.topics(topics);
         }
-        return newPatterns;
+
+        return mqttOptions.build();
     }
 }

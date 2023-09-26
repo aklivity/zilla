@@ -26,12 +26,16 @@ Zilla abstracts Apache Kafka® for web applications, IoT clients and microservic
 
 Zilla has no external dependencies and does not rely on the Kafka Consumer/Producer API or Kafka Connect. Instead, it natively supports the Kafka wire protocol and uses advanced protocol mediation to establish stateless API entry points into Kafka. Zilla also addresses security enforcement, observability and connection offloading on the data path.
 
-When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet streamlined event-driven architecture becomes possible.
+When Zilla is deployed alongside Apache Kafka®, any application or service can seamlessly be made event-driven.
 
 ## Contents
 
 - [Quickstart](#quickstart)
 - [Key Features](#key-features)
+    - [REST-Kafka Proxying](#rest-kafka-proxying)
+    - [SSE-Kafka Proxying](#sse-kafka-proxying)
+    - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
+    - [MQTT-Kafka Proxying]((#mqtt-kafka-proxying))
 - [Resources](#resources)
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
@@ -39,11 +43,12 @@ When Zilla is deployed alongside Apache Kafka®, achieving an extensible yet str
 - [License](#license)
 
 ## <a name="quickstart"> Quickstart
-The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, and `SSE` API endpoints. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
+The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, `SSE` and `MQTT` API entry points. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
 
 ## <a name="key-features"> Key Features
 
-### REST-Kafka Proxying
+### <a name="rest-kafka-proxying"> REST-Kafka Proxying
+
 - [x] **Correlated Request-Response (sync)** —  `HTTP` request-response over a pair of Kafka topics with correlation. Supports synchronous interaction, blocked waiting for a correlated response. 
 - [x] **Correlated Request-Response (async)** — `HTTP` request-response over a pair of Kafka topics with correlation. Supports asynchronous interaction, returning immediately with `202 Accepted` plus location to retrieve a correlated response. Supports `prefer: wait=N` to retrieve the correlated response immediately as soon as it becomes available, with no need for client polling.
 
@@ -52,15 +57,28 @@ The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.i
 Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none-match request`, returning `304` if not modified or `200` if modified (with a new `etag` header). Supports `prefer: wait=N` to respond as soon as messages become available, no need for client polling.
 - [x] **Authorization** — Routed requests can be guarded to enforce required client privileges.
 
-### SSE-Kafka Proxying
+### <a name="sse-kafka-proxying"> SSE-Kafka Proxying
 
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
 - [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
 - [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
-### gRPC-Kafka Proxying
+### <a name="grpc-kafka-proxying"> gRPC-Kafka Proxying
+
 - [x] **Correlated Request-Response (sync)** — `gRPC` request-response over a pair of Kafka topics with correlation. All forms of `gRPC` communication supported: `unary`, `client streaming`, `server streaming`, and `bidirectional streaming`. Supports synchronous interaction with blocked waiting for a correlated response.
 - [x] **Reliable Delivery (server streaming)** — Supports `message-id` field and `last-message-id` request metadata to recover from an interrupted stream without message loss, and the client does not need to acknowledge the message receipt.
+
+### <a name="mqtt-kafka-proxying"> MQTT-Kafka Proxying
+
+- [x] **Publish** — Publish messages to Kafka topics, marking specific messages as retained. (`QoS 0` now, `QoS 1` and `QoS 2` coming)
+- [x] **Subscribe** — Subscribe to receive messages from Kafka topics, supporting `replay-on-subscribe` of messages marked as retained during publish.
+- [x] **Last Will and Testament (LWT)** — Clients can specify a `last will` message that is delivered when the client disconnects abruptly and fails to reconnect before session timeout.
+- [x] **Reconnect** - Clients reconnecting with the same `client-id`, even to a different Zilla instance, will automatically remain subscribed to `MQTT` topics previously subscribed while previously connected.
+- [x] **Session Takeover** - A client connecting with the same `client-id`, even to a different Zilla instance, will automatically disconnect the original `MQTT` client and take over the session.
+- [x] **Redirect** - Clients can be redirected to a specific Zilla instance, sharding client session state across Zilla instances, without needing to replicate every client's session state on each Zilla instance.
+- [x] **Security** - Integrated with [Zilla Guards](https://docs.aklivity.io/zilla/latest/reference/config/overview.html#guards) for `MQTT` client authorization. Supports `JWT` access tokens, with fine-grained privileges enforced to publish or subscribe to `MQTT` topics.
+- [x] **Correlated Request-Response** - Support correlated `MQTT` request-response messages over Kafka topics.
+- [x] **Protocol** - Support `MQTT v5` standard protocol (`MQTT v3.1.1` coming)
 
 ### Deployment, Performance & Other
 

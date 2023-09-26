@@ -1,0 +1,46 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "schema":
+                            {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

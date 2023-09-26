@@ -20,12 +20,14 @@ module io.aklivity.zilla.runtime.engine
 
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
+    exports io.aklivity.zilla.runtime.engine.catalog;
     exports io.aklivity.zilla.runtime.engine.exporter;
     exports io.aklivity.zilla.runtime.engine.guard;
     exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
+    exports io.aklivity.zilla.runtime.engine.validator;
 
     exports io.aklivity.zilla.runtime.engine.ext;
 
@@ -42,15 +44,19 @@ module io.aklivity.zilla.runtime.engine
     requires com.fasterxml.jackson.databind;
     requires jdk.unsupported;
     requires java.net.http;
+    requires org.slf4j;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;

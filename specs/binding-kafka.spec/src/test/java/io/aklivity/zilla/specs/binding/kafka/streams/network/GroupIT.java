@@ -65,6 +65,24 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/client.sent.read.abort.after.sync.group.response/client",
+        "${net}/client.sent.read.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.write.close.after.sync.group.response/client",
+        "${net}/client.sent.write.close.after.sync.group.response/server"})
+    public void shouldHandleClientSentWriteClosetAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/coordinator.not.available/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception

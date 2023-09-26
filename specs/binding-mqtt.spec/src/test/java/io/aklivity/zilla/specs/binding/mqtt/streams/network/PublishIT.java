@@ -309,4 +309,22 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.invalid.message/client",
+        "${net}/publish.invalid.message/server"})
+    public void shouldPublishInvalidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.valid.message/client",
+        "${net}/publish.valid.message/server"})
+    public void shouldPublishValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

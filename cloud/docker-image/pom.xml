@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.53</version>
+    <version>0.9.54</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -215,6 +215,7 @@
             <exclude>src/main/docker/*/zpmw</exclude>
             <exclude>src/main/docker/*/zilla</exclude>
             <exclude>src/main/docker/*/zilla.properties</exclude>
+            <exclude>src/main/docker/*/zilla.yaml</exclude>
             <exclude>src/main/docker/*/.zilla/**</exclude>
             <exclude>src/main/docker/*/zpm.json.template</exclude>
             <exclude>src/main/docker/*/zpm.json</exclude>
@@ -277,9 +278,11 @@
                             <include>io/aklivity/zilla/runtime/**</include>
                             <include>io/aklivity/zilla/engine/**</include>
                             <include>io/aklivity/zilla/binding-*/**</include>
+                            <include>io/aklivity/zilla/catalog-*/**</include>
                             <include>io/aklivity/zilla/exporter-*/**</include>
                             <include>io/aklivity/zilla/guard-*/**</include>
                             <include>io/aklivity/zilla/metrics-*/**</include>
+                            <include>io/aklivity/zilla/validator-*/**</include>
                             <include>io/aklivity/zilla/vault-*/**</include>
                             <include>io/aklivity/zilla/command/**</include>
                             <include>io/aklivity/zilla/command-*/**</include>
@@ -287,6 +290,7 @@
                             <include>io/aklivity/zilla/incubator/**</include>
                             <include>org/agrona/**</include>
                             <include>org/apache/apache/**</include>
+                            <include>org/apache/avro/**</include>
                             <include>org/apache/maven/maven/**</include>
                             <include>org/apache/maven/maven-parent/**</include>
                             <include>jakarta/json/**</include>
@@ -349,6 +353,18 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
+          <artifactId>catalog-inline</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>catalog-schema-registry</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
           <artifactId>command-dump</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
@@ -367,7 +383,25 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>command-config</artifactId>
+          <artifactId>command-generate</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-avro</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-core</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-json</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

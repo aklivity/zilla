@@ -422,6 +422,26 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.client.options.validate.yaml")
+    @Specification({
+        "${app}/merged.produce.message.value.valid/client",
+        "${app}/unmerged.produce.message.value.valid/server"})
+    public void shouldProduceMergedMessageValueValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.client.options.validate.yaml")
+    @Specification({
+        "${app}/merged.produce.message.value.invalid/client",
+        "${app}/unmerged.produce.message.value.invalid/server"})
+    public void shouldProduceMergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.close/client",

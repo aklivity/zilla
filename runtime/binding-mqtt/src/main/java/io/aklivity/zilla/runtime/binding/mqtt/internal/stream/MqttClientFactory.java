@@ -385,7 +385,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding);
+        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, null);
         bindings.put(binding.id, mqttBinding);
     }
 

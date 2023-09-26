@@ -33,6 +33,8 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/mqtt/schema/mqtt.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/validator/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
     @Ignore("TODO")
@@ -92,6 +94,14 @@ public class SchemaTest
     public void shouldValidateServerWithAuthorizationOptions()
     {
         JsonObject config = schema.validate("server.credentials.username.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithTopicValidators()
+    {
+        JsonObject config = schema.validate("server.validator.yaml");
 
         assertThat(config, not(nullValue()));
     }

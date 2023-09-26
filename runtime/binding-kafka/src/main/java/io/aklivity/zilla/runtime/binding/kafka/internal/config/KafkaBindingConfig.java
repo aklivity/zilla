@@ -15,13 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -32,15 +39,26 @@ public final class KafkaBindingConfig
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
+    public final ToLongFunction<String> resolveId;
+    public final Map<String, KafkaTopicType> topics;
 
     public KafkaBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
+        this.resolveId = binding.resolveId;
+        this.topics = options != null &&
+                options.topics != null
+                    ? options.topics.stream()
+                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
+                    t.key != null ? context.createValidator(t.key, resolveId) : null,
+                    t.value != null ? context.createValidator(t.value, resolveId) : null
+                    ))) : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -86,5 +104,20 @@ public final class KafkaBindingConfig
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;
+    }
+
+    public KafkaDeltaType supplyDeltaType(
+        String topic,
+        KafkaDeltaType deltaType)
+    {
+        KafkaTopicConfig config = topic(topic);
+        return config != null && config.deltaType != null ? config.deltaType : deltaType;
+    }
+
+    public KafkaOffsetType supplyDefaultOffset(
+        String topic)
+    {
+        KafkaTopicConfig config = topic(topic);
+        return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
     }
 }

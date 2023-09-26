@@ -103,12 +103,12 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttAuthorizationConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
@@ -165,6 +165,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -307,6 +308,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
     private final IntSupplier supplySubscriptionId;
+    private final EngineContext context;
+
     private int maximumPacketSize;
 
     {
@@ -360,10 +363,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final boolean noLocal;
     private final int sessionExpiryGracePeriod;
     private final Supplier<String16FW> supplyClientId;
-
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
 
+    private Map<String, Validator> validators;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -391,6 +394,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyGuard = context::supplyGuard;
+        this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
@@ -405,7 +409,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
         this.supplySubscriptionId = config.subscriptionId();
-
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
     }
@@ -414,7 +417,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding);
+        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, context);
         bindings.put(binding.id, mqttBinding);
     }
 
@@ -447,6 +450,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long affinity = begin.affinity();
             final long replyId = supplyReplyId.applyAsLong(initialId);
             final long budgetId = supplyBudgetId.getAsLong();
+            this.validators = binding.topics;
 
             newStream = new MqttServer(
                 binding.credentials(),
@@ -936,11 +940,20 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW payload = publish.payload();
                 final int payloadSize = payload.sizeof();
 
+                if (validators != null && !validContent(mqttPublishHeader.topic, payload))
+                {
+                    reasonCode = PAYLOAD_FORMAT_INVALID;
+                    server.onDecodeError(traceId, authorization, reasonCode);
+                    server.decoder = decodeIgnoreAll;
+                    break decode;
+                }
+
                 if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
                 {
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
                     server.decoder = decodeIgnoreAll;
+                    break decode;
                 }
 
                 boolean canPublish = MqttState.initialOpened(publisher.state);
@@ -970,6 +983,14 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return progress;
+    }
+
+    private boolean validContent(
+        String topic,
+        OctetsFW payload)
+    {
+        final Validator contentValidator = validators.get(topic);
+        return contentValidator == null || contentValidator.write(payload.value(), payload.offset(), payload.sizeof());
     }
 
     private boolean invalidUtf8(
