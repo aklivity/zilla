@@ -38,5 +38,5 @@ module io.aklivity.zilla.runtime.command.generate
     opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
 
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
-        with io.aklivity.zilla.runtime.command.generate.internal.ZillaConfigCommandSpi;
+        with io.aklivity.zilla.runtime.command.generate.internal.ZillaGenerateCommandSpi;
 }

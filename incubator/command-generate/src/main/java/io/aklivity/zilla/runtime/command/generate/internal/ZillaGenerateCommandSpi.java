@@ -17,14 +17,14 @@ package io.aklivity.zilla.runtime.command.generate.internal;
 import com.github.rvesse.airline.builder.CliBuilder;
 
 import io.aklivity.zilla.runtime.command.ZillaCommandSpi;
-import io.aklivity.zilla.runtime.command.generate.internal.airline.ZillaConfigCommand;
+import io.aklivity.zilla.runtime.command.generate.internal.airline.ZillaGenerateCommand;
 
-public class ZillaConfigCommandSpi implements ZillaCommandSpi
+public class ZillaGenerateCommandSpi implements ZillaCommandSpi
 {
     @Override
     public void mixin(
         CliBuilder<Runnable> builder)
     {
-        builder.withCommand(ZillaConfigCommand.class);
+        builder.withCommand(ZillaGenerateCommand.class);
     }
 }
