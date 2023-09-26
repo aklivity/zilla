@@ -14,5 +14,3 @@ service:
   ports:
     - port: 1883
       name: mqtt
-    - port: 8883
-      name: mqtts

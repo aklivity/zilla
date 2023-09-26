@@ -1,13 +1,4 @@
----
 name: example
-vaults:
-  server:
-    type: filesystem
-    options:
-      keys:
-        store: tls/localhost.p12
-        type: pkcs12
-        password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
   tcp_server0:
     type: tcp
@@ -15,28 +6,20 @@ bindings:
     options:
       host: 0.0.0.0
       port: 1883
-    exit: mqtt_server0
-  tcp_server1:
-    type: tcp
-    kind: server
-    options:
-      host: 0.0.0.0
-      port: 8883
-    exit: tls_server0
-  tls_server0:
-    type: tls
-    kind: server
-    vault: server
-    options:
-      keys:
-        - localhost
-      sni:
-        - localhost
-    exit: mqtt_server0
+    routes:
+      - exit: mqtt_server0
+        when:
+          - port: 1883
   mqtt_server0:
     type: mqtt
     kind: server
-    exit: mqtt_client0
+    routes:
+      - exit: mqtt_client0
+        when:
+          - publish:
+              - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+          - subscribe:
+              - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
   mqtt_client0:
     type: mqtt
     kind: client
@@ -47,4 +30,3 @@ bindings:
     options:
       host: mosquitto
       port: 1884
-
