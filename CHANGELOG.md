@@ -1,5 +1,38 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.53...HEAD)
+
+**Fixed bugs:**
+
+- Additional scenarios in connection pool cleanup can trigger exception [\#475](https://github.com/aklivity/zilla/issues/475)
+
+**Merged pull requests:**
+
+- Integrate inline catalog and json validator with mqtt binding [\#479](https://github.com/aklivity/zilla/pull/479) ([jfallows](https://github.com/jfallows))
+- Refactor config command [\#477](https://github.com/aklivity/zilla/pull/477) ([jfallows](https://github.com/jfallows))
+- Remove streams only related to specific connection for additional scenarios [\#476](https://github.com/aklivity/zilla/pull/476) ([akrambek](https://github.com/akrambek))
+- Cleanup log statements [\#474](https://github.com/aklivity/zilla/pull/474) ([aDaemonThread](https://github.com/aDaemonThread))
+- Json Validator and Inline Schema fix [\#473](https://github.com/aklivity/zilla/pull/473) ([aDaemonThread](https://github.com/aDaemonThread))
+- Http request validators feature flag [\#472](https://github.com/aklivity/zilla/pull/472) ([jfallows](https://github.com/jfallows))
+- Avro validator module fix [\#470](https://github.com/aklivity/zilla/pull/470) ([aDaemonThread](https://github.com/aDaemonThread))
+- Include validators in the mqtt config generator [\#467](https://github.com/aklivity/zilla/pull/467) ([attilakreiner](https://github.com/attilakreiner))
+- Json Validator [\#466](https://github.com/aklivity/zilla/pull/466) ([aDaemonThread](https://github.com/aDaemonThread))
+- Extract core validators [\#463](https://github.com/aklivity/zilla/pull/463) ([attilakreiner](https://github.com/attilakreiner))
+- Mqtt validator implementation [\#452](https://github.com/aklivity/zilla/pull/452) ([bmaidics](https://github.com/bmaidics))
+- Cache support for Schema Registry [\#447](https://github.com/aklivity/zilla/pull/447) ([aDaemonThread](https://github.com/aDaemonThread))
+- Inline Catalog [\#445](https://github.com/aklivity/zilla/pull/445) ([aDaemonThread](https://github.com/aDaemonThread))
+- Extract avro validator  [\#440](https://github.com/aklivity/zilla/pull/440) ([attilakreiner](https://github.com/attilakreiner))
+- Introduce validators in the http binding [\#435](https://github.com/aklivity/zilla/pull/435) ([attilakreiner](https://github.com/attilakreiner))
+- Schema Registry and Kafka Produce Validator [\#434](https://github.com/aklivity/zilla/pull/434) ([aDaemonThread](https://github.com/aDaemonThread))
+- Move validators from binding-kafka to engine [\#415](https://github.com/aklivity/zilla/pull/415) ([attilakreiner](https://github.com/attilakreiner))
+- Schema syntax validation for validator config  [\#412](https://github.com/aklivity/zilla/pull/412) ([attilakreiner](https://github.com/attilakreiner))
+- Schema registry docker build shaded [\#411](https://github.com/aklivity/zilla/pull/411) ([jfallows](https://github.com/jfallows))
+- Schema registry Implementation [\#402](https://github.com/aklivity/zilla/pull/402) ([aDaemonThread](https://github.com/aDaemonThread))
+- UTF16 Validation implementation [\#401](https://github.com/aklivity/zilla/pull/401) ([aDaemonThread](https://github.com/aDaemonThread))
+- API abstraction for SchemaRegistry in Zilla [\#311](https://github.com/aklivity/zilla/pull/311) ([aDaemonThread](https://github.com/aDaemonThread))
+
 ## [0.9.53](https://github.com/aklivity/zilla/tree/0.9.53) (2023-09-24)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.52...0.9.53)
