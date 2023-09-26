@@ -2,7 +2,15 @@
 
 Listens on mqtt port `1883` and will forward mqtt publish messages and proxies subscribes to mosquitto MQTT broker listening on `1884` for topic `smartylighting/streetlights/1/0/event/+/lighting/measured`.
 
-Note: The `zilla.yaml` config used by the proxy was generated based on `asyncapi.yaml`.
+Note that the `zilla.yaml` config used by the proxy was generated based on `asyncapi.yaml`.
+
+For example:
+```
+cat asyncapi.yaml | \
+  docker run -i ghcr.io/aklivity/zilla:develop-SNAPSHOT \
+    generate --template asyncapi.mqtt.proxy --input /dev/stdin --output /dev/stdout | \
+  tee zilla.yaml.generated
+```
 
 ### Requirements
 
