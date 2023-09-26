@@ -293,7 +293,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
             {
                 cataloged
                     .schema()
-                        .schema(schema)
+                        .subject(schema)
                         .build()
                     .build();
             }

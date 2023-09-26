@@ -37,7 +37,7 @@ bindings:
           type: json
           catalog:
             catalog0:
-            - schema: items
+            - subject: items
     routes:
     - exit: mqtt_client0
       when:

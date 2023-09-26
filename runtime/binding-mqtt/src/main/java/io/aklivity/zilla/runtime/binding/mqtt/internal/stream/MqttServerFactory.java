@@ -945,6 +945,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
                     server.decoder = decodeIgnoreAll;
+                    break decode;
                 }
 
                 if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
@@ -952,6 +953,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
                     server.decoder = decodeIgnoreAll;
+                    break decode;
                 }
 
                 boolean canPublish = MqttState.initialOpened(publisher.state);
