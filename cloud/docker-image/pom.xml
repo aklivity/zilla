@@ -256,11 +256,12 @@
           <images>
             <image>
               <alias>zilla</alias>
-              <name>ghcr.io/aklivity/zilla:%v</name>
+              <name>ghcr.io/aklivity/zilla</name>
               <build>
                 <contextDir>${docker.context}</contextDir>
                 <tags>
-                  <tag>latest</tag>
+                  <tag>${project.version}${docker.tagSuffix}</tag>
+                  <tag>${docker.tagAlt}</tag>
                 </tags>
                 <buildx>
                   <platforms>

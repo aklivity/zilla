@@ -580,7 +580,9 @@
 
       <properties>
         <docker.context>incubator</docker.context>
-        <docker.platforms>linux/x86_64</docker.platforms>
+        <docker.platforms>linux/x86_64,linux/arm64</docker.platforms>
+        <docker.tagSuffix>-rc</docker.tagSuffix>
+        <docker.tagAlt>local</docker.tagAlt>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
       </properties>
@@ -616,6 +618,81 @@
     </profile>
 
     <profile>
+      <id>alpine</id>
+      <activation>
+        <property>
+          <name>release</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <distributionManagement>
+        <downloadUrl>https://maven.pkg.github.com/aklivity/zilla/</downloadUrl>
+        <repository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/aklivity/zilla/</url>
+        </repository>
+        <snapshotRepository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/aklivity/zilla/</url>
+        </snapshotRepository>
+      </distributionManagement>
+
+      <properties>
+        <docker.context>alpine</docker.context>
+        <docker.platforms>linux/x86_64</docker.platforms>
+        <docker.tagSuffix>-alpine</docker.tagSuffix>
+        <docker.tagAlt>alpine</docker.tagAlt>
+        <docker.skip.push>false</docker.skip.push>
+        <docker.skip.tag>false</docker.skip.tag>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-no-snapshots</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireReleaseDeps>
+                      <message>No Snapshots Allowed!</message>
+                    </requireReleaseDeps>
+                    <requireJavaVersion>
+                      <version>[13,14)</version>
+                    </requireJavaVersion>
+                    <requireProperty>
+                      <property>release</property>
+                      <regex>true</regex>
+                    </requireProperty>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
       <id>release</id>
       <activation>
         <property>
@@ -638,7 +715,8 @@
 
       <properties>
         <docker.context>release</docker.context>
-        <docker.platforms>linux/x86_64</docker.platforms>
+        <docker.platforms>linux/x86_64,linux/arm64</docker.platforms>
+        <docker.tagAlt>latest</docker.tagAlt>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
       </properties>
