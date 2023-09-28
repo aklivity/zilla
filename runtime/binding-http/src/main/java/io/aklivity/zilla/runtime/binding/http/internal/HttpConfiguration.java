@@ -35,7 +35,6 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
     public static final PropertyDef<String> HTTP_SERVER_HEADER;
     public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
-    public static final BooleanPropertyDef HTTP_REQUEST_VALIDATORS;
 
     private static final ConfigurationDef HTTP_CONFIG;
 
@@ -53,7 +52,6 @@ public class HttpConfiguration extends Configuration
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
-        HTTP_REQUEST_VALIDATORS = config.property("request.validators", false);
         HTTP_CONFIG = config;
     }
 
@@ -113,11 +111,6 @@ public class HttpConfiguration extends Configuration
     public int maxConcurrentApplicationHeaders()
     {
         return HTTP_MAX_CONCURRENT_APPLICATION_HEADERS.getAsInt(this);
-    }
-
-    public boolean requestValidators()
-    {
-        return HTTP_REQUEST_VALIDATORS.getAsBoolean(this);
     }
 
     public String16FW serverHeader()
