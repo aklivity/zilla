@@ -41,10 +41,7 @@ public final class HttpBinding implements Binding
     @Override
     public URL type()
     {
-        String patch = config.requestValidators()
-            ? "schema/http.with.validators.schema.patch.json"
-            : "schema/http.schema.patch.json";
-        return getClass().getResource(patch);
+        return getClass().getResource("schema/http.schema.patch.json");
     }
 
     @Override
