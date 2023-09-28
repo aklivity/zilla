@@ -19,9 +19,12 @@ import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAM
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
@@ -30,10 +33,15 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class HttpBindingConfig
 {
@@ -49,9 +57,17 @@ public final class HttpBindingConfig
     public final List<HttpRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
+    public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
         BindingConfig binding)
+    {
+        this(binding, null);
+    }
+
+    public HttpBindingConfig(
+        BindingConfig binding,
+        BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -61,6 +77,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.requests = createValidator == null ? null : createRequests(createValidator);
     }
 
     public HttpRouteConfig resolve(
@@ -162,6 +179,53 @@ public final class HttpBindingConfig
         }
 
         return accessor;
+    }
+
+    private List<HttpRequestType> createRequests(
+        BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
+    {
+        List<HttpRequestType> result = new LinkedList<>();
+        if (this.options != null && this.options.requests != null)
+        {
+            for (HttpRequestConfig request : this.options.requests)
+            {
+                HttpRequestType requestType = new HttpRequestType();
+                requestType.path = request.path;
+                requestType.method = request.method;
+                requestType.contentType = request.contentType;
+                if (request.headers != null)
+                {
+                    requestType.headers = new HashMap<>();
+                    for (HttpParamConfig header : request.headers)
+                    {
+                        String8FW name = new String8FW(header.name);
+                        requestType.headers.put(name, createValidator.apply(header.validator, this.resolveId));
+                    }
+                }
+                if (request.pathParams != null)
+                {
+                    requestType.pathParams = new HashMap<>();
+                    for (HttpParamConfig pathParam : request.pathParams)
+                    {
+                        requestType.pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
+                    }
+                }
+                if (request.queryParams != null)
+                {
+                    requestType.queryParams = new HashMap<>();
+                    for (HttpParamConfig queryParam : request.queryParams)
+                    {
+                        requestType.queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
+                    }
+                }
+                if (request.content != null)
+                {
+                    requestType.content = createValidator.apply(request.content, this.resolveId);
+                }
+                result.add(requestType);
+            }
+        }
+        return result;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(
