@@ -10,7 +10,7 @@
             "TYPE": "multiple",
             "PREFIX": "lamp",
             "RANGE_START": 1,
-            "RANGE_END": 2,
+            "RANGE_END": 200,
             "TIME_INTERVAL": 4,
             "DATA": [
                 {
