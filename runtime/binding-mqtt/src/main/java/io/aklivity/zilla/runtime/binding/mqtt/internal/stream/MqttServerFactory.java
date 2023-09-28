@@ -2372,7 +2372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 cleanupStreamsUsingAbort(traceId);
                 break;
             }
-            if (connected)
+            if (connected || reasonCode == SESSION_TAKEN_OVER)
             {
                 doEncodeDisconnect(traceId, authorization, reasonCode, null);
             }
