@@ -50,7 +50,6 @@ public class AvroValidatorTest
             .catalog()
                 .name("test0")
                     .schema()
-                        .schema(null)
                         .strategy("topic")
                         .version("latest")
                         .subject("test-value")

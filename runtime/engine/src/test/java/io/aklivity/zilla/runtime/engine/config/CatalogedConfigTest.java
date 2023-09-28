@@ -28,7 +28,6 @@ public class CatalogedConfigTest
     public void shouldWork()
     {
         SchemaConfig schema = SchemaConfig.builder()
-                .schema("schema")
                     .strategy("strategy")
                     .subject(null)
                     .version("version")
@@ -37,7 +36,6 @@ public class CatalogedConfigTest
         CatalogedConfig cataloged = new CatalogedConfig("test", List.of(schema));
 
         assertThat(cataloged.name, equalTo("test"));
-        assertThat(cataloged.schemas.get(0).schema, equalTo("schema"));
         assertThat(cataloged.schemas.get(0).strategy, equalTo("strategy"));
         assertThat(cataloged.schemas.get(0).version, equalTo("version"));
         assertThat(cataloged.schemas.get(0).id, equalTo(42));
