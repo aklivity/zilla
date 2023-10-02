@@ -49,7 +49,7 @@ public class MqttConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt");
-        PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.SECONDS.toSeconds(30));
+        PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.MINUTES.toSeconds(2));
         CONNECT_TIMEOUT = config.property("connect.timeout", TimeUnit.SECONDS.toSeconds(3));
         CONNACK_TIMEOUT = config.property("connack.timeout", TimeUnit.SECONDS.toSeconds(3));
         //TODO: better default values?

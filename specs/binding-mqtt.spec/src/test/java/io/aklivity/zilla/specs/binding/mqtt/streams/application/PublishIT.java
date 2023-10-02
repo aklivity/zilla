@@ -65,6 +65,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.multiple.messages.timeout/client",
+        "${app}/publish.multiple.messages.timeout/server"})
+    public void shouldPublishMultipleMessagesTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldSendWithUserProperty() throws Exception
