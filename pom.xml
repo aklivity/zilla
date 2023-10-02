@@ -581,7 +581,6 @@
       <properties>
         <docker.context>incubator</docker.context>
         <docker.platforms>linux/x86_64,linux/arm64</docker.platforms>
-        <docker.tagSuffix>-rc</docker.tagSuffix>
         <docker.tagAlt>edge</docker.tagAlt>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
