@@ -29,6 +29,9 @@ RUN ./zpmw clean --keep-image
 
 FROM alpine:3.18.3
 
+LABEL maintainer="Aklivity Docker Maintainers <support@aklivity.io>"
+ENV ZILLA_VERSION ${project.version}
+
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
 COPY zilla.properties /opt/zilla/.zilla/zilla.properties
