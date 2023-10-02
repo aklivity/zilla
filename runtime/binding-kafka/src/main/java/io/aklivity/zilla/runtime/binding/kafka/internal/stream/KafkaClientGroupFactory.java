@@ -1939,6 +1939,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (KafkaState.closed(state))
             {
+                initialSeq = 0;
+                initialAck = 0;
                 replyAck = 0;
                 replySeq = 0;
                 state = 0;
@@ -2676,6 +2678,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (KafkaState.closed(state))
             {
+                initialSeq = 0;
+                initialAck = 0;
                 replyAck = 0;
                 replySeq = 0;
                 state = 0;
@@ -3389,6 +3393,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (KafkaState.closed(state))
             {
+                initialSeq = 0;
+                initialAck = 0;
                 replyAck = 0;
                 replySeq = 0;
                 state = 0;
