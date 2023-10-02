@@ -260,7 +260,7 @@
               <build>
                 <contextDir>${docker.context}</contextDir>
                 <tags>
-                  <tag>${project.version}${docker.tagSuffix}</tag>
+                  <tag>${docker.tag}</tag>
                   <tag>${docker.tagAlt}</tag>
                 </tags>
                 <buildx>

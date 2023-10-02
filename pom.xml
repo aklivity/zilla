@@ -581,6 +581,7 @@
       <properties>
         <docker.context>incubator</docker.context>
         <docker.platforms>linux/x86_64,linux/arm64</docker.platforms>
+        <docker.tag>${project.version}</docker.tag>
         <docker.tagAlt>edge</docker.tagAlt>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
@@ -640,7 +641,7 @@
       <properties>
         <docker.context>alpine</docker.context>
         <docker.platforms>linux/x86_64</docker.platforms>
-        <docker.tagSuffix>-alpine</docker.tagSuffix>
+        <docker.tag>${project.version}-alpine</docker.tag>
         <docker.tagAlt>alpine</docker.tagAlt>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
@@ -715,6 +716,7 @@
       <properties>
         <docker.context>release</docker.context>
         <docker.platforms>linux/x86_64,linux/arm64</docker.platforms>
+        <docker.tag>${project.version}</docker.tag>
         <docker.tagAlt>latest</docker.tagAlt>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
