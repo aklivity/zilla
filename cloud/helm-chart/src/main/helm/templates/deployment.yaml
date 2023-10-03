@@ -50,9 +50,11 @@ spec:
           args:
             {{- toYaml .Values.args | nindent 12 }}
           env:
+            - name: ZILLA_VERSION
+              value: "{{ .Values.image.tag | default .Chart.AppVersion }}"
           {{- range $env := .Values.env }}
-          - name: {{ $env.name }}
-            value: {{ $env.value }}
+            - name: {{ $env.name }}
+              value: {{ $env.value }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
