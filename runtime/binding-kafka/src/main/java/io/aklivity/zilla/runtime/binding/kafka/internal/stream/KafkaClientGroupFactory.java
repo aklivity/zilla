@@ -120,6 +120,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short ERROR_MEMBER_ID_REQUIRED = 79;
     private static final short ERROR_REBALANCE_IN_PROGRESS = 27;
     private static final short SIGNAL_NEXT_REQUEST = 1;
+    private static final short SIGNAL_SYNC_GROUP_REQUEST = 2;
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
     private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
     private static final byte RESOURCE_TYPE_BROKER = 4;
@@ -3379,10 +3380,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = signal.traceId();
             final int signalId = signal.signalId();
+            final OctetsFW payload = signal.payload();
 
-            if (signalId == SIGNAL_NEXT_REQUEST)
+            switch (signalId)
             {
+            case SIGNAL_NEXT_REQUEST:
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
+                break;
+            case SIGNAL_SYNC_GROUP_REQUEST:
+                assignment = payload;
+                doEncodeRequestIfNecessary(traceId, initialBudgetId);
+                break;
             }
         }
 
@@ -3911,10 +3919,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long budgetId,
             OctetsFW assignment)
         {
-            this.assignment = assignment;
+            final DirectBuffer buffer = assignment.value();
+            final int offset = 0;
+            final int sizeof = assignment.sizeof();
 
             encoder = encodeSyncGroupRequest;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+                buffer, offset, sizeof);
         }
 
         private void doJoinGroupRequest(
