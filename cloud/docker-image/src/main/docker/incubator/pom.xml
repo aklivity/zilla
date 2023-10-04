@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.aklivity.zilla</groupId>
+    <artifactId>docker-image</artifactId>
+    <version>develop-SNAPSHOT</version>
+    <relativePath>../../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>incubator</artifactId>
+  <packaging>pom</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <configuration>
+          <images>
+            <image>
+              <alias>zilla-incubator</alias>
+              <name>ghcr.io/aklivity/zilla:%v</name>
+              <build>
+                <contextDir>./</contextDir>
+                <tags>
+                  <tag>edge</tag>
+                </tags>
+                <buildx>
+                  <platforms>
+                    <platform>linux/x86_64,linux/arm64</platform>
+                  </platforms>
+                </buildx>
+              </build>
+            </image>
+          </images>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

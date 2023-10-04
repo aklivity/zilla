@@ -27,9 +27,8 @@ RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM ubuntu:jammy
+FROM ubuntu:jammy-20230916
 
-LABEL maintainer="Aklivity Docker Maintainers <support@aklivity.io>"
 ENV ZILLA_VERSION ${project.version}
 
 COPY --from=build /.zpm /opt/zilla/.zpm

@@ -17,8 +17,8 @@ FROM eclipse-temurin:20-alpine AS build
 
 COPY maven /root/.m2/repository
 
-COPY zpmw zpmw
-COPY zpm.json.template zpm.json.template
+COPY ../zpmw zpmw
+COPY ../zpm.json.template zpm.json.template
 
 RUN apk add --no-cache gettext
 RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
@@ -29,11 +29,10 @@ RUN ./zpmw clean --keep-image
 
 FROM alpine:3.18.3
 
-LABEL maintainer="Aklivity Docker Maintainers <support@aklivity.io>"
 ENV ZILLA_VERSION ${project.version}
 
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
-COPY zilla.properties /opt/zilla/.zilla/zilla.properties
+COPY ../zilla.properties /opt/zilla/.zilla/zilla.properties
 
 ENTRYPOINT ["/opt/zilla/zilla"]
