@@ -48,4 +48,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWhenMqttTopicWithKafkaTopic()
+    {
+        JsonObject config = schema.validate("proxy.when.mqtt.topic.with.kafka.topic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

@@ -79,7 +79,49 @@
                         ],
                         "additionalProperties": false
                     },
-                    "routes": false
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
+                    }
                 },
                 "anyOf":
                 [
@@ -88,6 +130,12 @@
                         [
                             "exit",
                             "options"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
                         ]
                     }
                 ]

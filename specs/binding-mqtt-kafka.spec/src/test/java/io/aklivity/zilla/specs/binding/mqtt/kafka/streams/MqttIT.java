@@ -127,6 +127,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.topic.space/client",
+        "${mqtt}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.retained/client",
         "${mqtt}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception
@@ -391,6 +400,15 @@ public class MqttIT
         "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.space/client",
+        "${mqtt}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
     {
         k3po.finish();
     }
