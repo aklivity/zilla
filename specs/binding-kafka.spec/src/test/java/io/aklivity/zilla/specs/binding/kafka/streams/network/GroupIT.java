@@ -152,4 +152,14 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/rebalance.multiple.members.with.same.group.id/client",
+        "${net}/rebalance.multiple.members.with.same.group.id/server"})
+    public void shouldRebalanceMultipleMembersWithSameGroupId() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
