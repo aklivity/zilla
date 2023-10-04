@@ -53,7 +53,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
   zilla:
-    image: ghcr.io/aklivity/zilla:local
+    image: ghcr.io/aklivity/zilla:0.9.54
     container_name: zilla-zq
     restart: unless-stopped
     depends_on:
