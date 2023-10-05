@@ -14,26 +14,35 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import static java.util.stream.Collectors.toList;
 
 public class MqttKafkaRouteConfig
 {
     public final long id;
 
-    //TODO: add when: capabilities, with: kafka_topic_name
-    //private final List<MqttKafkaConditionMatcher> when;
+    public final Optional<MqttKafkaWithResolver> with;
+
+    private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
 
     public MqttKafkaRouteConfig(
+        MqttKafkaOptionsConfig options,
         RouteConfig route)
     {
         this.id = route.id;
-        //        this.when = route.when.stream()
-        //            .map(MqttKafkaConditionConfig.class::cast)
-        //            .map(MqttKafkaConditionMatcher::new)
-        //            .collect(toList());
+        this.with = Optional.ofNullable(route.with)
+            .map(MqttKafkaWithConfig.class::cast)
+            .map(c -> new MqttKafkaWithResolver(options, c));
+        this.when = route.when.stream()
+            .map(MqttKafkaConditionConfig.class::cast)
+            .map(MqttKafkaConditionMatcher::new)
+            .collect(toList());
         this.authorized = route.authorized;
     }
 
@@ -43,9 +52,9 @@ public class MqttKafkaRouteConfig
         return authorized.test(authorization);
     }
 
-    //    boolean matches(
-    //        String topic)
-    //    {
-    //        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
-    //    }
+    boolean matches(
+        String topic)
+    {
+        return when.isEmpty() || topic != null && when.stream().anyMatch(m -> m.matches(topic));
+    }
 }

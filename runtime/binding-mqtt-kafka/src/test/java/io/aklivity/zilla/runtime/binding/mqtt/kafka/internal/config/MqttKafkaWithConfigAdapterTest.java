@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 
-public class MqttKafkaConditionConfigAdapterTest
+public class MqttKafkaWithConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -36,28 +36,28 @@ public class MqttKafkaConditionConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new MqttKafkaConditionConfigAdapter());
+                .withAdapters(new MqttKafkaWithConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadCondition()
+    public void shouldReadWith()
     {
         String text =
             "{\"topic\":\"test\"}";
 
-        MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
+        MqttKafkaWithConfig with = jsonb.fromJson(text, MqttKafkaWithConfig.class);
 
-        assertThat(condition, not(nullValue()));
-        assertThat(condition.topic, equalTo("test"));
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("test"));
     }
 
     @Test
-    public void shouldWriteCondition()
+    public void shouldWriteWith()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("test");
+        MqttKafkaWithConfig with = new MqttKafkaWithConfig("test");
 
-        String text = jsonb.toJson(condition);
+        String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"topic\":\"test\"}"));

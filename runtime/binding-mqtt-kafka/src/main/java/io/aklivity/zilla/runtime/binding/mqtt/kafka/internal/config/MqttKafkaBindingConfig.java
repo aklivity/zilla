@@ -38,7 +38,7 @@ public class MqttKafkaBindingConfig
         this.id = binding.id;
         this.kind = binding.kind;
         this.options = (MqttKafkaOptionsConfig) binding.options;
-        this.routes = binding.routes.stream().map(MqttKafkaRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
     }
 
     public MqttKafkaRouteConfig resolve(
@@ -46,6 +46,16 @@ public class MqttKafkaBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public MqttKafkaRouteConfig resolve(
+        long authorization,
+        String topic)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(topic))
             .findFirst()
             .orElse(null);
     }

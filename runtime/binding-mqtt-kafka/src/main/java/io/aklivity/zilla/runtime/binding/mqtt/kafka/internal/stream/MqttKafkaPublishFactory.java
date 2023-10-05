@@ -136,17 +136,25 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final OctetsFW extension = begin.extension();
+        final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+        assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
+        final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
-        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
+        final MqttKafkaRouteConfig resolved = binding != null ?
+            binding.resolve(authorization, mqttPublishBeginEx.topic().asString()) : null;
         MessageConsumer newStream = null;
+
+        final String16FW kafkaTopic = resolved.with.isPresent() ? resolved.with.get().topic() : binding.messagesTopic() ;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
             newStream = new MqttPublishProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.messagesTopic(), binding.retainedTopic())::onMqttMessage;
+                kafkaTopic, binding.retainedTopic())::onMqttMessage;
         }
 
         return newStream;
