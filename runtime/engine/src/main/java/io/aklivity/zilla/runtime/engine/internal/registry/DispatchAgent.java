@@ -1786,6 +1786,21 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId,
+                buffer, offset, length);
+        }
+
+        @Override
         public boolean cancel(
             long cancelId)
         {
@@ -1841,6 +1856,39 @@ public class DispatchAgent implements EngineContext, Agent
             final long timestamp = timestamps ? System.nanoTime() : 0L;
 
             final SignalFW signal = signalRW.get()
+                .rewrap()
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(0)
+                .timestamp(timestamp)
+                .traceId(supplyTraceId())
+                .cancelId(cancelId)
+                .signalId(signalId)
+                .contextId(contextId)
+                .build();
+
+            streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());
+        }
+
+        private void signal(
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long cancelId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            final long timestamp = timestamps ? System.nanoTime() : 0L;
+
+            final SignalFW signal = signalRW.get()
                                             .rewrap()
                                             .originId(originId)
                                             .routedId(routedId)
@@ -1853,6 +1901,7 @@ public class DispatchAgent implements EngineContext, Agent
                                             .cancelId(cancelId)
                                             .signalId(signalId)
                                             .contextId(contextId)
+                                            .payload(buffer, offset, length)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());
