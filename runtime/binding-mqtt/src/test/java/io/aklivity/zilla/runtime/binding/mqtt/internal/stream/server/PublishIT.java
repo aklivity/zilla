@@ -162,7 +162,7 @@ public class PublishIT
     {
         k3po.start();
         k3po.awaitBarrier("PUBLISHED_MESSAGE_TWO");
-        Thread.sleep(1500);
+        Thread.sleep(2500);
         k3po.notifyBarrier("PUBLISH_MESSAGE_THREE");
         k3po.finish();
     }

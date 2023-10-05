@@ -1103,6 +1103,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
+            doClientFanInitialAbortIfNecessary(traceId);
+
             members.forEach((s, m) -> m.doClientReplyAbortIfNecessary(traceId));
 
             state = KafkaState.closedReply(state);
