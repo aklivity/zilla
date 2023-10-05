@@ -148,7 +148,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             binding.resolve(authorization, mqttPublishBeginEx.topic().asString()) : null;
         MessageConsumer newStream = null;
 
-        final String16FW kafkaTopic = resolved.with.isPresent() ? resolved.with.get().topic() : binding.messagesTopic() ;
+        final String16FW kafkaTopic = resolved.with.isPresent() ? resolved.with.get().topic() : binding.messagesTopic();
 
         if (resolved != null)
         {

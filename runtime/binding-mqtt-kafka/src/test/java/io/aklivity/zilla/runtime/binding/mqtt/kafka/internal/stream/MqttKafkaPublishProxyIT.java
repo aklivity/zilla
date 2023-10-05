@@ -183,6 +183,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.mqtt.topic.with.kafka.topic.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.topic.space/client",
+        "${kafka}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({

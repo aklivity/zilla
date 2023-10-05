@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 
 public class MqttKafkaConditionMatcher
 {
