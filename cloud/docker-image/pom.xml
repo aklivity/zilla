@@ -253,7 +253,7 @@
         <version>0.43.2</version>
         <configuration>
           <filter>${*}</filter>
-          <images>
+          <images combine.children="append">
             <image>
               <alias>zilla</alias>
               <name>ghcr.io/aklivity/zilla:%v</name>
@@ -262,9 +262,12 @@
                 <tags>
                   <tag>latest</tag>
                 </tags>
-                <createImageOptions>
-                  <platform>linux/x86_64</platform>
-                </createImageOptions>
+                <buildx>
+                  <platforms>
+                    <platform>linux/amd64</platform>
+                    <platform>linux/arm64</platform>
+                  </platforms>
+                </buildx>
                 <assemblies>
                   <assembly>
                     <inline>
@@ -406,6 +409,44 @@
           <scope>runtime</scope>
         </dependency>
       </dependencies>
+    </profile>
+
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>release</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <images>
+                <image>
+                  <alias>zilla-alpine</alias>
+                  <name>ghcr.io/aklivity/zilla:%v-alpine</name>
+                  <build>
+                    <dockerFile>${docker.context}/alpine.Dockerfile</dockerFile>
+                    <tags>
+                      <tag>alpine</tag>
+                    </tags>
+                    <buildx>
+                      <platforms>
+                        <platform>linux/amd64</platform>
+                      </platforms>
+                    </buildx>
+                  </build>
+                </image>
+              </images>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
