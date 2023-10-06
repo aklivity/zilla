@@ -270,55 +270,7 @@
                 </buildx>
                 <assemblies>
                   <assembly>
-                    <inline>
-                      <fileSets>
-                        <fileSet>
-                          <directory>${settings.localRepository}</directory>
-                          <outputDirectory>./</outputDirectory>
-                          <useDefaultExcludes>false</useDefaultExcludes>
-                          <includes>
-                            <include>io/aklivity/zilla/zilla/**</include>
-                            <include>io/aklivity/zilla/runtime/**</include>
-                            <include>io/aklivity/zilla/engine/**</include>
-                            <include>io/aklivity/zilla/binding-*/**</include>
-                            <include>io/aklivity/zilla/catalog-*/**</include>
-                            <include>io/aklivity/zilla/exporter-*/**</include>
-                            <include>io/aklivity/zilla/guard-*/**</include>
-                            <include>io/aklivity/zilla/metrics-*/**</include>
-                            <include>io/aklivity/zilla/validator-*/**</include>
-                            <include>io/aklivity/zilla/vault-*/**</include>
-                            <include>io/aklivity/zilla/command/**</include>
-                            <include>io/aklivity/zilla/command-*/**</include>
-                            <include>io/aklivity/zilla/manager/**</include>
-                            <include>io/aklivity/zilla/incubator/**</include>
-                            <include>org/agrona/**</include>
-                            <include>org/apache/apache/**</include>
-                            <include>org/apache/avro/**</include>
-                            <include>org/apache/maven/maven/**</include>
-                            <include>org/apache/maven/maven-parent/**</include>
-                            <include>jakarta/json/**</include>
-                            <include>jakarta/inject/**</include>
-                            <include>org/leadpony/justify/**</include>
-                            <include>org/leadpony/joy/**</include>
-                            <include>org/snakeyaml/snakeyaml-engine/**</include>
-                            <include>org/eclipse/yasson/**</include>
-                            <include>org/glassfish/**</include>
-                            <include>com/github/rvesse/**</include>
-                            <include>com/guicedee/**</include>
-                            <include>org/eclipse/ee4j/**</include>
-                            <include>com/ibm/icu/**</include>
-                            <include>org/bitbucket/b_c/jose4j/**</include>
-                            <include>org/slf4j/**</include>
-                            <include>org/antlr/**</include>
-                            <include>org/sonatype/oss/**</include>
-                            <include>com/fasterxml/oss-parent/**</include>
-                            <include>com/fasterxml/jackson/**</include>
-                            <include>org/yaml/snakeyaml/**</include>
-                            <include>org/junit/**</include>
-                          </includes>
-                        </fileSet>
-                      </fileSets>
-                    </inline>
+                    <descriptor>assembly.xml</descriptor>
                   </assembly>
                 </assemblies>
               </build>
@@ -412,7 +364,7 @@
     </profile>
 
     <profile>
-      <id>release</id>
+      <id>alpine</id>
       <activation>
         <property>
           <name>release</name>
@@ -440,6 +392,11 @@
                         <platform>linux/amd64</platform>
                       </platforms>
                     </buildx>
+                    <assemblies>
+                      <assembly>
+                        <descriptor>assembly.xml</descriptor>
+                      </assembly>
+                    </assemblies>
                   </build>
                 </image>
               </images>
