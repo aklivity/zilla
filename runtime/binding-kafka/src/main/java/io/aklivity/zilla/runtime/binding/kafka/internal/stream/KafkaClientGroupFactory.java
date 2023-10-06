@@ -722,7 +722,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeIgnoreAll;
                 break decode;
             }
 
@@ -833,7 +832,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeClusterIgnoreAll;
                 break decode;
             }
 
@@ -943,8 +941,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeJoinGroupResponse;
-                progress = limit;
                 break decode;
             }
 
@@ -1043,7 +1039,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeCoordinatorIgnoreAll;
                 break decode;
             }
 
@@ -1108,7 +1103,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeCoordinatorIgnoreAll;
                 break decode;
             }
 
@@ -1175,7 +1169,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
             if (responseHeader == null)
             {
-                client.decoder = decodeCoordinatorIgnoreAll;
                 break decode;
             }
 
