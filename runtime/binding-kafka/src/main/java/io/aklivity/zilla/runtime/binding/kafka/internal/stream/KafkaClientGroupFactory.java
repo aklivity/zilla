@@ -1126,6 +1126,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
+                else if (heartbeatResponse.errorCode() == ERROR_UNKNOWN_MEMBER)
+                {
+                    client.onJoinGroupMemberIdError(traceId, authorization, UNKNOWN_MEMBER_ID);
+                }
                 else if (heartbeatResponse.errorCode() == ERROR_REBALANCE_IN_PROGRESS)
                 {
                     client.onRebalanceError(traceId, authorization);
@@ -4199,6 +4203,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             nextResponseId++;
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+
+            encoder = encodeJoinGroupRequest;
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 

@@ -95,10 +95,36 @@ read  119                               # size
         [0..14]                              # metadata
 
 
+write 34                                                # size
+      ${newRequestId}
+      0                                                 # throttle time
+      79s                                               # member id required
+      -1                                                # generated id
+      0s                                                # protocol name
+      0s                                                # leader id
+      10s "memberId-1"                                  # consumer member group id
+      0                                                 # members
+
+read  129                               # size
+      11s                               # join group
+      5s                                # v5
+      (int:newRequestId)
+      5s "zilla"                        # no client id
+      4s "test"                         # consumer group
+      30000                             # session timeout
+      4000                              # rebalance timeout
+      10s "memberId-1"                  # consumer group member
+      42s [0..42]                       # group instance id
+      8s "consumer"                     # protocol type
+      1                                 # group protocol
+        10s "highlander"                    # protocol name
+        14                                   # metadata size
+        [0..14]                              # metadata
+
 write 24                                                # size
       ${newRequestId}
       0                                                 # throttle time
-      25s                                               # member id required
+      25s                                               # unknown member
       -1                                                # generated id
       0s                                                # protocol name
       0s                                                # leader id
