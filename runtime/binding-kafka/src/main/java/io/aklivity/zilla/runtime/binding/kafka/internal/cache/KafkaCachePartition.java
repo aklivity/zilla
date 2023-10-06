@@ -654,10 +654,19 @@ public final class KafkaCachePartition
 
         Validator validator = isKey ? type.key : type.value;
         if (data != null &&
-            validator != null &&
-            validator.write(data.value(), data.offset(), data.sizeof()) == null)
+            validator != null)
         {
-            status = false;
+            DirectBuffer buffer = validator.write(data.value(), data.offset(), data.sizeof());
+            if (buffer == null)
+            {
+                status = false;
+                // TODO: assign incoming valid buffer to existing value
+            }
+            else
+            {
+                // TODO: in case we update the return type,
+                //  add some identifier to show validation failure
+            }
         }
 
         return status;

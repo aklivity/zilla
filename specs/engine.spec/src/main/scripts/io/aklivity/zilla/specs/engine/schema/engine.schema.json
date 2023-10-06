@@ -372,6 +372,14 @@
                         "type": "object",
                         "properties":
                         {
+                            "expect":
+                            {
+                                "type": "string",
+                                "enum":
+                                [
+                                    "json"
+                                ]
+                            },
                             "type":
                             {
                                 "$ref": "#/$defs/validator/types"
