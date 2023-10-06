@@ -50,7 +50,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWhenMqttTopicWithKafkaTopic()
+    public void shouldValidateProxyWhenTopicWithMessages()
     {
         JsonObject config = schema.validate("proxy.when.mqtt.topic.with.kafka.topic.yaml");
 

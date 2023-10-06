@@ -21,7 +21,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionCon
 
 public class MqttKafkaConditionMatcher
 {
-
     private final Matcher topic;
 
     public MqttKafkaConditionMatcher(
@@ -41,7 +40,6 @@ public class MqttKafkaConditionMatcher
     {
         return this.topic == null || this.topic.reset(topic).matches();
     }
-
 
     private static Matcher asMatcher(
         String wildcard)

@@ -29,7 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write notify CLIENT1_CONNECTED
+write notify PRODUCE_CONNECTED
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -43,11 +43,11 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 
-write "message1"
+write "Hello, world"
 write flush
 
 
-connect await CLIENT1_CONNECTED
+connect await PRODUCE_CONNECTED
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -77,5 +77,5 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 
-write "message1"
+write "Hello, again"
 write flush

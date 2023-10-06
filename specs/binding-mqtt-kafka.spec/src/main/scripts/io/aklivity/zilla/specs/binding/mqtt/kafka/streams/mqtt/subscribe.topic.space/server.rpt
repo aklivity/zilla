@@ -23,17 +23,49 @@ read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
+                                .filter("device/+", 1)
                                 .build()
                              .build()}
 
 connected
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("device/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+write "Hello, world"
+write flush
+
 read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .subscribe()
-                                     .filter("sensor/one", 1)
-                                     .filter("sensor/two", 1)
-                                     .filter("device/+", 2)
-                                     .build()
-                                 .build()}
+                               .typeId(zilla:id("mqtt"))
+                               .subscribe()
+                                   .filter("device/+", 1)
+                                   .filter("sensor/#", 2)
+                                   .build()
+                               .build()}
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .subscribe()
+                               .topic("sensor/two")
+                               .subscriptionId(2)
+                               .format("TEXT")
+                               .build()
+                           .build()}
+write "Hello, again"
+write flush
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .subscribe()
+                               .topic("sensor/one")
+                               .subscriptionId(2)
+                               .format("TEXT")
+                               .build()
+                           .build()}
+write "Hi, world"
+write flush

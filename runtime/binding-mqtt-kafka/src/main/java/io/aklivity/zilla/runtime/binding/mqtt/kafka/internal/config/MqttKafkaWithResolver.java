@@ -19,20 +19,18 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaWithResolver
 {
-    private final MqttKafkaWithConfig with;
-    private final MqttKafkaOptionsConfig options;
+    private final String16FW topic;
 
 
     public MqttKafkaWithResolver(
         MqttKafkaOptionsConfig options,
         MqttKafkaWithConfig with)
     {
-        this.options = options;
-        this.with = with;
+        this.topic = with.topic == null ? options.topics.messages : new String16FW(with.topic);
     }
 
     public String16FW topic()
     {
-        return with.topic == null ? options.topics.messages : new String16FW(with.topic);
+        return topic;
     }
 }

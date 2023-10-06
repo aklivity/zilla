@@ -23,45 +23,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
-                                .topic("mqtt-sensors")
-                                .filter()
-                                    .headers("zilla:filter")
-                                        .sequence("sensor")
-                                        .sequence("one")
-                                        .build()
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-connected
-
-read advised zilla:flush ${kafka:flushEx()
-                                .typeId(zilla:id("kafka"))
-                                .merged()
-                                  .fetch()
-                                    .capabilities("FETCH_ONLY")
-                                    .filter()
-                                        .headers("zilla:filter")
-                                            .sequence("sensor")
-                                            .sequence("one")
-                                            .build()
-                                        .build()
-                                    .filter()
-                                        .headers("zilla:filter")
-                                            .sequence("sensor")
-                                            .sequence("two")
-                                            .build()
-                                        .build()
-                                    .build()
-                                .build()}
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
                                 .topic("mqtt-devices")
                                 .filter()
                                     .headers("zilla:filter")
@@ -74,3 +35,98 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("device/one")
+                                .header("zilla:filter", "device")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client-2")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+write "Hello, world"
+write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                  .fetch()
+                                    .capabilities("FETCH_ONLY")
+                                    .filter()
+                                        .headers("zilla:filter")
+                                            .sequence("device")
+                                            .skip(1)
+                                            .build()
+                                        .build()
+                                    .filter()
+                                        .headers("zilla:filter")
+                                            .sequence("sensor")
+                                            .skipMany()
+                                            .build()
+                                        .build()
+                                    .build()
+                                .build()}
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .filters(2)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "two")
+                                .header("zilla:local", "client-2")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+write "Hello, again"
+write flush
+write notify SENT_SENSOR_TWO_DATA
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-sensors")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .skipMany()
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+write await SENT_SENSOR_TWO_DATA
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client-2")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+write "Hi, world"
+write flush

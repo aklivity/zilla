@@ -106,9 +106,9 @@
                                     {
                                         "properties":
                                         {
-                                            "topic":
+                                            "messages":
                                             {
-                                                "title": "Topic",
+                                                "title": "Messages Topic",
                                                 "type": "string"
                                             }
                                         },
@@ -123,13 +123,16 @@
                         }
                     }
                 },
+                "required":
+                [
+                    "options"
+                ],
                 "anyOf":
                 [
                     {
                         "required":
                         [
-                            "exit",
-                            "options"
+                            "exit"
                         ]
                     },
                     {

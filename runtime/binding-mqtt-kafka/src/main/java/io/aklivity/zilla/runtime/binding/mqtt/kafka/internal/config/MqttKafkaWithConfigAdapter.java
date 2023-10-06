@@ -37,13 +37,13 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     public JsonObject adaptToJson(
         WithConfig with)
     {
-        MqttKafkaWithConfig mqttKafkaWith = (MqttKafkaWithConfig) with;
+        MqttKafkaWithConfig config = (MqttKafkaWithConfig) with;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mqttKafkaWith.topic != null)
+        if (config.topic != null)
         {
-            object.add(TOPIC_NAME, mqttKafkaWith.topic);
+            object.add(TOPIC_NAME, config.topic);
         }
 
         return object.build();

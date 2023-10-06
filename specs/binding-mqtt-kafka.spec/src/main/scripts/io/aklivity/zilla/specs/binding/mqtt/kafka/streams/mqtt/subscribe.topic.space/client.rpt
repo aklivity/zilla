@@ -21,17 +21,47 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
+                                .filter("device/+", 1)
                                 .build()
                              .build()}
 
 connected
 
+read zilla:data.ext ${mqtt:matchDataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("device/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+read "Hello, world"
+
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 1)
-                                     .filter("sensor/two", 1)
-                                     .filter("device/+", 2)
+                                     .filter("device/+", 1)
+                                     .filter("sensor/#", 2)
                                      .build()
                                  .build()}
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/two")
+                                 .subscriptionId(2)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+read "Hello, again"
+
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(2)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+read "Hi, world"

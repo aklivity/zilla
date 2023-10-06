@@ -28,11 +28,11 @@ bindings:
       - exit: kafka0
         when:
           - topic: sensor/one
-          - topic: sensor/two
         with:
-          topic: mqtt-sensors
+          messages: mqtt-sensors
       - exit: kafka0
         when:
           - topic: device/*
+          - topic: sensor/two
         with:
-          topic: mqtt-devices
+          messages: mqtt-devices
