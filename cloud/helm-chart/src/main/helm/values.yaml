@@ -17,8 +17,6 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/aklivity/zilla
-  pullPolicy: IfNotPresent
-  tag: latest
 
 imagePullSecrets: []
 nameOverride: ""

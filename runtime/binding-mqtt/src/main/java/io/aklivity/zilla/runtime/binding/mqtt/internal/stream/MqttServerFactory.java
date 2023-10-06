@@ -2372,7 +2372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 cleanupStreamsUsingAbort(traceId);
                 break;
             }
-            if (connected)
+            if (connected || reasonCode == SESSION_TAKEN_OVER)
             {
                 doEncodeDisconnect(traceId, authorization, reasonCode, null);
             }
@@ -3964,6 +3964,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (!MqttState.initialClosed(state))
                 {
                     doCancelPublishExpiration();
+                    publishStreams.remove(topicKey);
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, sessionId, EMPTY_OCTETS);
                 }
