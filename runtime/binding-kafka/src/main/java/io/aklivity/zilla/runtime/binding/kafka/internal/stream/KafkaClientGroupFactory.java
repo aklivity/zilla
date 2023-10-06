@@ -26,6 +26,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -121,6 +122,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short ERROR_REBALANCE_IN_PROGRESS = 27;
     private static final short SIGNAL_NEXT_REQUEST = 1;
     private static final short SIGNAL_SYNC_GROUP_REQUEST = 2;
+    private static final short SIGNAL_HEARTBEAT_REQUEST = 3;
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
     private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
     private static final byte RESOURCE_TYPE_BROKER = 4;
@@ -1349,10 +1351,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
-            if (coordinatorClient.nextJoinGroupRequestId == 0)
-            {
-                clusterClient.doNetworkBeginIfNecessary(traceId, authorization, affinity);
-            }
+            clusterClient.doNetworkBeginIfNecessary(traceId, authorization, affinity);
 
             doStreamWindow(traceId, 0L, 0, 0, 0);
         }
@@ -3126,11 +3125,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final LongLongConsumer encodeSyncGroupRequest = this::doEncodeSyncGroupRequest;
         private final LongLongConsumer encodeHeartbeatRequest = this::doEncodeHeartbeatRequest;
         private final LongLongConsumer encodeLeaveGroupRequest = this::doEncodeLeaveGroupRequest;
-        private final List<MemberProtocol> members;
+
         private final KafkaGroupStream delegate;
+        private final List<MemberProtocol> members;
+        private final ArrayDeque<LongLongConsumer> encoderQueue;
+        private final ArrayDeque<KafkaGroupCoordinatorClientDecoder> decoderQueue;
 
+        private BudgetDebitor initialDeb;
+        private KafkaGroupCoordinatorClientDecoder decoder;
+        private OctetsFW assignment = EMPTY_OCTETS;
         private MessageConsumer network;
-
         private int state;
         private long authorization;
 
@@ -3155,16 +3159,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int decodeSlotReserved;
 
         private int nextResponseId;
-        private long heartbeatRequestId = NO_CANCEL_ID;
-
-
         private int generationId;
-        private int nextJoinGroupRequestId;
-        private int nextJoinGroupResponseId;
-        private KafkaGroupCoordinatorClientDecoder decoder;
-        private LongLongConsumer encoder;
-        private OctetsFW assignment = EMPTY_OCTETS;
-        private BudgetDebitor initialDeb;
+        private long heartbeatRequestId = NO_CANCEL_ID;
 
         CoordinatorClient(
             long originId,
@@ -3174,10 +3170,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             super(sasl, originId, routedId);
 
-            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest;
             this.delegate = delegate;
             this.decoder = decodeCoordinatorReject;
             this.members = new ArrayList<>();
+            this.encoderQueue = new ArrayDeque<>();
+            this.decoderQueue = new ArrayDeque<>();
+            encoderQueue.add(sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest);
         }
 
         private void onNetwork(
@@ -3386,6 +3384,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assignment = payload;
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
                 break;
+            case SIGNAL_HEARTBEAT_REQUEST:
+                encoderQueue.add(encodeHeartbeatRequest);
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                break;
             }
         }
 
@@ -3401,8 +3403,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 replyAck = 0;
                 replySeq = 0;
                 state = 0;
-                nextJoinGroupRequestId = 0;
-                nextJoinGroupResponseId = 0;
                 nextRequestId = 0;
                 nextResponseId = 0;
             }
@@ -3420,8 +3420,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-
-            nextJoinGroupRequestId++;
 
             state = KafkaState.openingInitial(state);
 
@@ -3536,6 +3534,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (nextRequestId == nextResponseId)
             {
+                LongLongConsumer encoder = encoderQueue.remove();
                 encoder.accept(traceId, budgetId);
             }
         }
@@ -3918,7 +3917,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int offset = 0;
             final int sizeof = assignment.sizeof();
 
-            encoder = encodeSyncGroupRequest;
+            encoderQueue.add(encodeSyncGroupRequest);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_SYNC_GROUP_REQUEST, 0,
                 buffer, offset, sizeof);
         }
@@ -3932,19 +3931,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            if (nextJoinGroupRequestId != 0 &&
-                nextJoinGroupRequestId == nextJoinGroupResponseId)
-            {
-                encoder = encodeJoinGroupRequest;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
-            }
-
-            nextJoinGroupRequestId++;
+            encoderQueue.add(encodeJoinGroupRequest);
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void doHeartbeat(
             long traceId)
         {
+            LongLongConsumer encoder = encoderQueue.peek();
+
             if (encoder != encodeJoinGroupRequest)
             {
                 if (heartbeatRequestId != NO_CANCEL_ID)
@@ -3953,7 +3948,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     heartbeatRequestId = NO_CANCEL_ID;
                 }
 
-                encoder = encodeHeartbeatRequest;
+                encoderQueue.add(encodeHeartbeatRequest);
                 signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
         }
@@ -3967,7 +3962,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            encoder = encodeLeaveGroupRequest;
+            encoderQueue.add(encodeLeaveGroupRequest);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
@@ -4140,7 +4135,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             switch (errorCode)
             {
             case ERROR_NONE:
-                encoder = encodeSaslAuthenticateRequest;
+                encoderQueue.add(encodeSaslAuthenticateRequest);
                 decoder = decodeCoordinatorSaslAuthenticateResponse;
                 break;
             default:
@@ -4159,7 +4154,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             switch (errorCode)
             {
             case ERROR_NONE:
-                encoder = encodeJoinGroupRequest;
+                encoderQueue.add(encodeJoinGroupRequest);
                 decoder = decodeJoinGroupResponse;
                 break;
             default:
@@ -4197,7 +4192,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
-            encoder = encodeJoinGroupRequest;
+            encoderQueue.add(encodeJoinGroupRequest);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
@@ -4208,57 +4203,48 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             String memberId)
         {
             nextResponseId++;
-            nextJoinGroupResponseId++;
 
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
-            if (nextJoinGroupRequestId == nextJoinGroupResponseId)
-            {
-                delegate.doStreamFlush(traceId, authorization,
-                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .group(g -> g.leaderId(leaderId)
-                            .memberId(memberId)
-                            .members(gm -> members.forEach(m ->
+            delegate.doStreamFlush(traceId, authorization,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .group(g -> g.leaderId(leaderId)
+                        .memberId(memberId)
+                        .members(gm -> members.forEach(m ->
+                        {
+                            OctetsFW metadata = m.metadata;
+                            DirectBuffer buffer = metadata.value();
+                            final int limit = metadata.sizeof();
+
+                            int progress = 0;
+
+                            ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
+                                .wrap(buffer, 0, metadata.sizeof());
+                            progress = newGroupMetadata.limit();
+
+                            for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
                             {
-                                OctetsFW metadata = m.metadata;
-                                DirectBuffer buffer = metadata.value();
-                                final int limit = metadata.sizeof();
+                                ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
+                                progress = topic.limit();
+                            }
 
-                                int progress = 0;
+                            ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
 
-                                ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
-                                    .wrap(buffer, 0, metadata.sizeof());
-                                progress = newGroupMetadata.limit();
-
-                                for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
+                            gm.item(i ->
+                            {
+                                KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
+                                OctetsFW newUserdata = userdata.userdata();
+                                if (newUserdata.sizeof() > 0)
                                 {
-                                    ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
-                                    progress = topic.limit();
+                                    builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
                                 }
+                            });
+                        })))
+                    .build()
+                    .sizeof()));
 
-                                ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
-
-                                gm.item(i ->
-                                {
-                                    KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
-                                    OctetsFW newUserdata = userdata.userdata();
-                                    if (newUserdata.sizeof() > 0)
-                                    {
-                                        builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
-                                    }
-                                });
-                            })))
-                        .build()
-                        .sizeof()));
-
-                encoder = encodeSyncGroupRequest;
-            }
-            else
-            {
-                encoder = encodeJoinGroupRequest;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
-            }
+            encoderQueue.add(encodeSyncGroupRequest);
         }
 
         private void onSynGroupRebalance(
@@ -4267,9 +4253,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            nextJoinGroupRequestId++;
-
-            encoder = encodeJoinGroupRequest;
+            encoderQueue.add(encodeJoinGroupRequest);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
@@ -4341,10 +4325,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            encoder = encodeHeartbeatRequest;
-
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
+                originId, routedId, initialId,  SIGNAL_HEARTBEAT_REQUEST, 0);
         }
 
         private void onHeartbeatResponse(
@@ -4359,9 +4341,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            encoder = encodeHeartbeatRequest;
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                originId, routedId, initialId,  SIGNAL_NEXT_REQUEST, 0);
+                originId, routedId, initialId,  SIGNAL_HEARTBEAT_REQUEST, 0);
         }
 
         private void onLeaveGroupResponse(
@@ -4380,9 +4361,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            nextJoinGroupRequestId++;
-
-            encoder = encodeJoinGroupRequest;
+            encoderQueue.add(encodeJoinGroupRequest);
             signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
