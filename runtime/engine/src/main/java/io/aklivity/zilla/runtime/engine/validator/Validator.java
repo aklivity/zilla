@@ -19,12 +19,12 @@ import org.agrona.DirectBuffer;
 
 public interface Validator
 {
-    boolean read(
+    DirectBuffer read(
         DirectBuffer data,
         int index,
         int length);
 
-    boolean write(
+    DirectBuffer write(
         DirectBuffer data,
         int index,
         int length);

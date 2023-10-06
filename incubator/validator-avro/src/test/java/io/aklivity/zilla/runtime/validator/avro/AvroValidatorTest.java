@@ -15,8 +15,7 @@
 package io.aklivity.zilla.runtime.validator.avro;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.Properties;
@@ -85,7 +84,27 @@ public class AvroValidatorTest
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertEquals(data, validator.read(data, 0, data.capacity()));
+    }
+
+    @Test
+    public void shouldWriteValidAvroEvent()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
+            0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        byte[] expectedBytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        DirectBuffer expected = new UnsafeBuffer();
+        expected.wrap(expectedBytes);
+        assertEquals(expected, validator.write(data, 0, data.capacity()));
     }
 
     @Test
@@ -99,7 +118,7 @@ public class AvroValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
     }
 
     @Test
@@ -113,7 +132,7 @@ public class AvroValidatorTest
 
         byte[] bytes = "Invalid Event".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
     }
 
     @Test
@@ -127,6 +146,77 @@ public class AvroValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
+    }
+
+    @Test
+    public void shouldReadAvroEventExpectJson()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .expect("json")
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroValidator validator = new AvroValidator(config, resolveId, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+                0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        String expected = "{" +
+                "\"id\":\"id0\"," +
+                "\"status\":\"positive\"" +
+                "}";
+
+        DirectBuffer buffer = validator.read(data, 0, data.capacity());
+        byte[] payloadBytes = new byte[buffer.capacity()];
+        buffer.getBytes(0, payloadBytes);
+
+        assertEquals(expected, new String(payloadBytes));
+    }
+
+    @Test
+    public void shouldWriteJsonEventExpectAvro()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .expect("json")
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroValidator validator = new AvroValidator(config, resolveId, handler);
+
+        DirectBuffer expected = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
+                0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        expected.wrap(bytes, 0, bytes.length);
+
+        String payload = "{" +
+                "\"id\":\"id0\"," +
+                "\"status\":\"positive\"" +
+                "}";
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(payload.getBytes(), 0, payload.getBytes().length);
+
+        assertEquals(expected, validator.write(data, 0, data.capacity()));
     }
 }

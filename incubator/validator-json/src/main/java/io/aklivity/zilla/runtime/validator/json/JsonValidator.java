@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.validator.json;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -27,7 +29,9 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -41,6 +45,8 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidator implements Validator
 {
+    private static final byte MAGIC_BYTE = 0x0;
+
     private final JsonProvider schemaProvider;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final JsonValidationService service;
@@ -48,6 +54,7 @@ public class JsonValidator implements Validator
     private final List<CatalogedConfig> catalogs;
     private final SchemaConfig catalog;
     private final CatalogHandler handler;
+    private final String subject;
 
     public JsonValidator(
         JsonValidatorConfig config,
@@ -66,51 +73,95 @@ public class JsonValidator implements Validator
         }).collect(Collectors.toList());
         this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
         this.handler = handlersById.get(catalogs.get(0).id);
+        this.subject = catalog != null &&
+            catalog.subject != null ?
+            catalog.subject : config.subject;
     }
 
     @Override
-    public boolean read(
+    public DirectBuffer read(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
+        DirectBuffer value = new UnsafeBuffer();
+
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
+        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
+
+        int schemaId;
+        String schema;
+        if (byteBuf.get() == MAGIC_BYTE)
+        {
+            schemaId = byteBuf.getInt();
+            int valLength = length - 1 - 4;
+            byte[] valBytes = new byte[valLength];
+            data.getBytes(length - valLength, valBytes);
+            schema = fetchSchema(schemaId);
+            if (schema != null && validate(schema, valBytes))
+            {
+                value.wrap(data);
+            }
+        }
+        else
+        {
+            schemaId = catalog != null &&
+                catalog.id > 0 ?
+                catalog.id :
+                handler.resolve(catalog.subject, catalog.version);
+            schema = fetchSchema(schemaId);
+            if (schema != null && validate(schema, payloadBytes))
+            {
+                value.wrap(data);
+            }
+        }
+        return value;
     }
 
     @Override
-    public boolean write(
+    public DirectBuffer write(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
-    }
-
-    private boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        String schema = null;
-        int schemaId = catalog != null ? catalog.id : 0;
+        MutableDirectBuffer value = null;
 
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
 
+        int schemaId = catalog != null &&
+            catalog.id > 0 ?
+            catalog.id :
+            handler.resolve(catalog.subject, catalog.version);
+        String schema = fetchSchema(schemaId);
+
+        if (schema != null && validate(schema, payloadBytes))
+        {
+            value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+            value.putByte(0, MAGIC_BYTE);
+            value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+            value.putBytes(5, payloadBytes);
+        }
+        return value;
+    }
+
+    private String fetchSchema(
+        int schemaId)
+    {
+        String schema = null;
         if (schemaId > 0)
         {
             schema = handler.resolve(schemaId);
         }
         else if (catalog != null)
         {
-            schemaId = handler.resolve(catalog.subject, catalog.version);
-            if (schemaId != 0)
+            if (schemaId > 0)
             {
                 schema = handler.resolve(schemaId);
             }
         }
-
-        return schema != null && validate(schema, payloadBytes);
+        return schema;
     }
 
     private boolean validate(

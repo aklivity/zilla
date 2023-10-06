@@ -36,6 +36,8 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
     private static final String JSON = "json";
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String EXPECT = "expect";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -92,7 +94,11 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
                 catalogs.add(new CatalogedConfig(catalogName, schemas));
             }
 
-            result = new JsonValidatorConfig(catalogs);
+            String subject = object.containsKey(SUBJECT_NAME)
+                    ? object.getString(SUBJECT_NAME)
+                    : null;
+
+            result = new JsonValidatorConfig(catalogs, subject);
         }
         return result;
     }

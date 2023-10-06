@@ -502,20 +502,34 @@ public final class KafkaCachePartition
             if (type.key != null)
             {
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
-                if (key != null &&
-                    !type.key.read(key.value(), key.offset(), key.sizeof()))
+                if (key != null)
                 {
-                    // Placeholder to log Invalid events
+                    DirectBuffer buffer = type.key.read(key.value(), key.offset(), key.sizeof());
+                    if (buffer != null)
+                    {
+                        // TODO: assign incoming valid buffer to existing key
+                    }
+                    else
+                    {
+                        // Placeholder to log Invalid events
+                    }
                 }
             }
 
             if (type.value != null)
             {
                 OctetsFW value = headEntry.value();
-                if (value != null &&
-                    !type.value.read(value.value(), value.offset(), value.sizeof()))
+                if (value != null)
                 {
-                    // Placeholder to log Invalid events
+                    DirectBuffer buffer = type.value.read(value.value(), value.offset(), value.sizeof());
+                    if (buffer != null)
+                    {
+                        // TODO: assign incoming valid buffer to existing value
+                    }
+                    else
+                    {
+                        // Placeholder to log Invalid events
+                    }
                 }
             }
         }
@@ -641,7 +655,7 @@ public final class KafkaCachePartition
         Validator validator = isKey ? type.key : type.value;
         if (data != null &&
             validator != null &&
-            !validator.write(data.value(), data.offset(), data.sizeof()))
+            validator.write(data.value(), data.offset(), data.sizeof()) == null)
         {
             status = false;
         }
@@ -661,16 +675,23 @@ public final class KafkaCachePartition
 
         final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
         boolean status = true;
-
         OctetsFW value = headEntry.value();
         Validator validator = isKey ? type.key : type.value;
         if (value != null &&
-            validator != null &&
-            !validator.write(value.value(), value.offset(), value.sizeof()))
+            validator != null)
         {
-            status = false;
+            DirectBuffer buffer = validator.write(value.value(), value.offset(), value.sizeof());
+            if (buffer == null)
+            {
+                status = false;
+                // TODO: assign incoming valid buffer to existing value
+            }
+            else
+            {
+                // TODO: in case we update the return type,
+                //  add some identifier to show validation failure
+            }
         }
-
         return status;
     }
 

@@ -27,21 +27,21 @@ public class LongValidator implements Validator
     }
 
     @Override
-    public boolean read(
+    public DirectBuffer read(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
+        return validate(data, index, length) ? data : null;
     }
 
     @Override
-    public boolean write(
+    public DirectBuffer write(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
+        return validate(data, index, length) ? data : null;
     }
 
     private boolean validate(

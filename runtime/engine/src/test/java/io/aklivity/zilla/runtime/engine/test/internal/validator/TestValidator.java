@@ -22,28 +22,20 @@ import io.aklivity.zilla.runtime.engine.validator.Validator;
 public class TestValidator implements Validator
 {
     @Override
-    public boolean read(
+    public DirectBuffer read(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
+        return length == 18 ? data : null;
     }
 
     @Override
-    public boolean write(
+    public DirectBuffer write(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
-    }
-
-    private boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        return length == 13;
+        return length == 13 ? data : null;
     }
 }

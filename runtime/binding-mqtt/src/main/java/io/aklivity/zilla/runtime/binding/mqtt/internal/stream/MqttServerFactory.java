@@ -990,7 +990,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         OctetsFW payload)
     {
         final Validator contentValidator = validators.get(topic);
-        return contentValidator == null || contentValidator.write(payload.value(), payload.offset(), payload.sizeof());
+        return contentValidator == null || contentValidator.write(payload.value(), payload.offset(), payload.sizeof()) != null;
     }
 
     private boolean invalidUtf8(

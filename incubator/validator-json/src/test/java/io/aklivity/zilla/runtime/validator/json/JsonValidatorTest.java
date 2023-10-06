@@ -15,8 +15,7 @@
 package io.aklivity.zilla.runtime.validator.json;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.Properties;
@@ -24,6 +23,7 @@ import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -101,7 +101,7 @@ public class JsonValidatorTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.write(data, 0, data.capacity()));
+        assertEquals(data, validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -119,6 +119,34 @@ public class JsonValidatorTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+
+        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+        value.putBytes(5, bytes);
+
+        assertEquals(null, validator.write(data, 0, data.capacity()));
+    }
+
+    @Test
+    public void shouldWriteValidJsonData()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "{" +
+                "\"id\": \"123\"," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+
+        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+        value.putBytes(5, bytes);
+
+        assertEquals(value, validator.write(data, 0, data.capacity()));
     }
 }

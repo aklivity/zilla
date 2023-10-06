@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -35,7 +34,7 @@ public class IntegerValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertEquals(data, validator.read(data, 0, data.capacity()));
     }
 
     @Test
@@ -45,6 +44,6 @@ public class IntegerValidatorTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertEquals(null, validator.write(data, 0, data.capacity()));
     }
 }

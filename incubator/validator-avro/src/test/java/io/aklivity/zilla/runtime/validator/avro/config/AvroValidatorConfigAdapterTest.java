@@ -44,6 +44,7 @@ public class AvroValidatorConfigAdapterTest
         // GIVEN
         String json =
             "{" +
+                "\"expect\":\"json\"," +
                 "\"type\": \"avro\"," +
                 "\"catalog\":" +
                 "{" +
@@ -69,6 +70,7 @@ public class AvroValidatorConfigAdapterTest
 
         // THEN
         assertThat(validator, not(nullValue()));
+        assertThat(validator.expect, equalTo("json"));
         assertThat(validator.type, equalTo("avro"));
         assertThat(validator.catalogs.size(), equalTo(1));
         assertThat(validator.catalogs.get(0).name, equalTo("test0"));
@@ -90,6 +92,7 @@ public class AvroValidatorConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
+                "\"expect\":\"json\"," +
                 "\"type\":\"avro\"," +
                 "\"catalog\":" +
                 "{" +
@@ -110,6 +113,7 @@ public class AvroValidatorConfigAdapterTest
                 "}" +
             "}";
         AvroValidatorConfig validator = AvroValidatorConfig.builder()
+            .expect("json")
             .catalog()
                 .name("test0")
                     .schema()
