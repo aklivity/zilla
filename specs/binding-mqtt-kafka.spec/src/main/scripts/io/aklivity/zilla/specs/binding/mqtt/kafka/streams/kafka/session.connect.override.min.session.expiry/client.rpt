@@ -60,7 +60,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .group()
                                    .groupId("client-1")
                                    .protocol("highlander")
-                                   .timeout("0x7fff_ffff")
+                                   .timeout(2147483647)
                                    .build()
                                .build()}
 
