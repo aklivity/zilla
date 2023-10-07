@@ -3817,12 +3817,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         String16FW clientId,
         int sessionExpiryMs)
     {
+        final int timeout = sessionExpiryMs == 0 ? Integer.MAX_VALUE : sessionExpiryMs;
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(sessionExpiryMs))
+                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(timeout))
                 .build();
-
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
