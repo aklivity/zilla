@@ -849,21 +849,23 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     break decode;
                 }
-                else if (findCoordinatorResponse.errorCode() == ERROR_COORDINATOR_NOT_AVAILABLE)
-                {
-                    client.onCoordinatorNotAvailable(traceId, authorization);
-                }
-                else if (findCoordinatorResponse.errorCode() == ERROR_NONE)
-                {
-                    client.onFindCoordinator(traceId, authorization, findCoordinatorResponse.nodeId(),
-                        findCoordinatorResponse.host(), findCoordinatorResponse.port());
-                }
-                else
-                {
-                    client.decoder = decodeClusterIgnoreAll;
-                }
 
                 progress = findCoordinatorResponse.limit();
+
+                switch (findCoordinatorResponse.errorCode())
+                {
+                case ERROR_COORDINATOR_NOT_AVAILABLE:
+                    client.onCoordinatorNotAvailable(traceId, authorization);
+                    break;
+                case ERROR_NONE:
+                    client.onFindCoordinator(traceId, authorization, findCoordinatorResponse.nodeId(),
+                        findCoordinatorResponse.host(), findCoordinatorResponse.port());
+                    break;
+                default:
+                    client.decoder = decodeClusterIgnoreAll;
+                    break;
+                }
+
             }
         }
 
@@ -959,30 +961,26 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     break decode;
                 }
-                else if (errorCode == ERROR_NOT_COORDINATOR_FOR_CONSUMER)
+
+                progress = joinGroupResponse.limit();
+
+                switch (errorCode)
                 {
+                case ERROR_NOT_COORDINATOR_FOR_CONSUMER:
                     client.onNotCoordinatorError(traceId, authorization);
-                    progress = joinGroupResponse.limit();
-                }
-                else if (errorCode == ERROR_UNKNOWN_MEMBER)
-                {
+                    break;
+                case ERROR_UNKNOWN_MEMBER:
                     client.onJoinGroupMemberIdError(traceId, authorization, UNKNOWN_MEMBER_ID);
-                    progress = joinGroupResponse.limit();
-                }
-                else if (errorCode == ERROR_MEMBER_ID_REQUIRED)
-                {
+                    break;
+                case ERROR_MEMBER_ID_REQUIRED:
                     client.onJoinGroupMemberIdError(traceId, authorization,
                         joinGroupResponse.memberId().asString());
-                    progress = joinGroupResponse.limit();
-                }
-                else if (errorCode == ERROR_NONE)
-                {
-                    progress = joinGroupResponse.limit();
+                    break;
+                case ERROR_NONE:
                     client.members.clear();
 
                     client.generationId = joinGroupResponse.generatedId();
 
-                    metadata:
                     for (int i = 0; i < joinGroupResponse.memberCount(); i++)
                     {
                         final MemberMetadataFW memberMetadata = memberMetadataRO.tryWrap(buffer, progress, limit);
@@ -994,19 +992,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         }
                         else
                         {
-                            break metadata;
+                            break decode;
                         }
                     }
 
                     client.onJoinGroupResponse(traceId, authorization, joinGroupResponse.leader().asString(),
                         joinGroupResponse.memberId().asString());
-                }
-                else
-                {
+                    break;
+                default:
                     client.decoder = decodeCoordinatorIgnoreAll;
-                    break decode;
+                    break;
                 }
-
             }
         }
 
