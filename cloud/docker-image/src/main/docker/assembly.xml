@@ -1,0 +1,67 @@
+<!--
+
+    Copyright 2021-2023 Aklivity Inc
+
+    Licensed under the Aklivity Community License (the "License"); you may not use
+    this file except in compliance with the License.  You may obtain a copy of the
+    License at
+
+      https://www.aklivity.io/aklivity-community-license/
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations under the License.
+
+-->
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.2.0 https://maven.apache.org/xsd/assembly-2.2.0.xsd">
+  <fileSets>
+    <fileSet>
+      <directory>${settings.localRepository}</directory>
+      <outputDirectory>./</outputDirectory>
+      <useDefaultExcludes>false</useDefaultExcludes>
+      <includes>
+        <include>io/aklivity/zilla/zilla/**</include>
+        <include>io/aklivity/zilla/runtime/**</include>
+        <include>io/aklivity/zilla/engine/**</include>
+        <include>io/aklivity/zilla/binding-*/**</include>
+        <include>io/aklivity/zilla/catalog-*/**</include>
+        <include>io/aklivity/zilla/exporter-*/**</include>
+        <include>io/aklivity/zilla/guard-*/**</include>
+        <include>io/aklivity/zilla/metrics-*/**</include>
+        <include>io/aklivity/zilla/validator-*/**</include>
+        <include>io/aklivity/zilla/vault-*/**</include>
+        <include>io/aklivity/zilla/command/**</include>
+        <include>io/aklivity/zilla/command-*/**</include>
+        <include>io/aklivity/zilla/manager/**</include>
+        <include>io/aklivity/zilla/incubator/**</include>
+        <include>org/agrona/**</include>
+        <include>org/apache/apache/**</include>
+        <include>org/apache/avro/**</include>
+        <include>org/apache/maven/maven/**</include>
+        <include>org/apache/maven/maven-parent/**</include>
+        <include>jakarta/json/**</include>
+        <include>jakarta/inject/**</include>
+        <include>org/leadpony/justify/**</include>
+        <include>org/leadpony/joy/**</include>
+        <include>org/snakeyaml/snakeyaml-engine/**</include>
+        <include>org/eclipse/yasson/**</include>
+        <include>org/glassfish/**</include>
+        <include>com/github/rvesse/**</include>
+        <include>com/guicedee/**</include>
+        <include>org/eclipse/ee4j/**</include>
+        <include>com/ibm/icu/**</include>
+        <include>org/bitbucket/b_c/jose4j/**</include>
+        <include>org/slf4j/**</include>
+        <include>org/antlr/**</include>
+        <include>org/sonatype/oss/**</include>
+        <include>com/fasterxml/oss-parent/**</include>
+        <include>com/fasterxml/jackson/**</include>
+        <include>org/yaml/snakeyaml/**</include>
+        <include>org/junit/**</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+</assembly>
