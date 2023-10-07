@@ -198,7 +198,7 @@ write 119                               # size
         ${kafka:randomBytes(14)}            # metadata
 
 
-read  202                                               # size
+read 128                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
@@ -210,11 +210,10 @@ read  202                                               # size
          10s "memberId-2"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          14                                                # metadata size
-         2s                                               # version
-         0                                                # topics
-         0                                                # userdata
-         0                                                # partitions
-
+         2s                                                # version
+         0                                                 # topics
+         0                                                 # userdata
+         0                                                 # partitions
 write 101                                           # size
       14s                                           # sync group
       3s                                            # v3
@@ -222,7 +221,7 @@ write 101                                           # size
       5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberId-1"                              # consumer member group id
+      10s "memberId-2"                              # consumer member group id
       42s ${instanceId}                             # group instance id
       1                                             # assignments
         10s "memberId-2"                             # consumer member group id

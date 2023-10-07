@@ -62,9 +62,8 @@ read advised zilla:flush
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .leaderId("memberId-1")
-                                 .memberId("memberId-1")
-                                 .members("memberId-1")
+                                 .leaderId("memberId-2")
+                                 .memberId("memberId-2")
                                  .members("memberId-2")
                                  .build()
                              .build()}

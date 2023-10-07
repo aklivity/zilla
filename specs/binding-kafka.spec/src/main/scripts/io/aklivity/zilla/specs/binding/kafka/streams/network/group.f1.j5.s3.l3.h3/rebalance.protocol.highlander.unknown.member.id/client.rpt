@@ -123,12 +123,12 @@ write  129                               # size
       30000                             # session timeout
       4000                              # rebalance timeout
       10s "memberId-1"                  # consumer group member
-      42s [0..42]                       # group instance id
+      42s ${instanceId}                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
-        14                                   # metadata size
-        [0..14]                              # metadata
+        14                                  # metadata size
+        ${kafka:randomBytes(14)}            # metadata
 
 
 read  24                                                # size

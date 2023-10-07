@@ -206,7 +206,7 @@ write 128                                               # size
          0                                                 # userdata
          0                                                 # partitions
 
-read 129                                           # size
+read 101                                           # size
      14s                                           # sync group
      3s                                            # v3
      (int:newRequestId)
@@ -215,7 +215,7 @@ read 129                                           # size
      3                                             # generation id
      10s "memberId-2"                              # consumer member group id
      42s [0..42]                                   # group instance id
-     2                                             # assignments
+     1                                             # assignments
        10s "memberId-2"                             # consumer member group id
        0                                            # metadata
 
