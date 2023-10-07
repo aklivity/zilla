@@ -80,7 +80,7 @@ public final class EngineRule implements TestRule
         this.builder = Engine.builder();
         this.properties = new Properties();
 
-        configure(ENGINE_DRAIN_ON_CLOSE, false);
+        configure(ENGINE_DRAIN_ON_CLOSE, true);
         configure(ENGINE_SYNTHETIC_ABORT, true);
         configure(ENGINE_ROUTED_DELAY_MILLIS, 500L);
         configure(ENGINE_WORKERS, 1);
