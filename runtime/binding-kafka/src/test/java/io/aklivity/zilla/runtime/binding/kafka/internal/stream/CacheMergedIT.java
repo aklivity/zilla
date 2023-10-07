@@ -629,7 +629,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.group.produce.message.value/client",
         "${app}/unmerged.group.produce.message.value/server"})
-    public void shouldProduceMergedMergedMessageValue() throws Exception
+    public void shouldProduceMergedMessageValue() throws Exception
     {
         k3po.finish();
     }
