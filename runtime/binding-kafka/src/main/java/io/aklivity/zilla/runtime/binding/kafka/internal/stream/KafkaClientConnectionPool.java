@@ -1341,10 +1341,7 @@ public final class KafkaClientConnectionPool
                 long initialId = signalerCorrelations.remove(contextId);
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-                if (stream != null)
-                {
-                    stream.onSignal(signal);
-                }
+                stream.onSignal(signal);
             }
         }
 

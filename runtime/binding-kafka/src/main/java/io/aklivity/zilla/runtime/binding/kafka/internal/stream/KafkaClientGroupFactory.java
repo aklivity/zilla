@@ -1104,6 +1104,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (length >= responseHeader.sizeof() + responseSize)
             {
+                progress = responseHeader.limit();
 
                 final HeartbeatResponseFW heartbeatResponse =
                     heartbeatResponseRO.tryWrap(buffer, progress, limit);
@@ -1113,7 +1114,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break decode;
                 }
 
-                progress = responseHeader.limit();
+                progress = heartbeatResponse.limit();
 
                 switch (heartbeatResponse.errorCode())
                 {
@@ -1174,7 +1175,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 if (leaveGroupResponse == null)
                 {
-                    client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
                 else
@@ -3280,7 +3280,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (!delegate.isStreamReplyOpen())
             {
-                onError(traceId);
+                //onError(traceId);
             }
         }
 
@@ -3945,8 +3945,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     heartbeatRequestId = NO_CANCEL_ID;
                 }
 
-                encoders.add(encodeHeartbeatRequest);
-                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
             }
         }
 
@@ -4327,6 +4326,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
                 originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
+
+            if (!encoders.isEmpty())
+            {
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void onHeartbeatResponse(
@@ -4343,6 +4347,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
                 originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
+
+            if (!encoders.isEmpty())
+            {
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void onLeaveGroupResponse(
