@@ -3960,7 +3960,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             encoders.add(encodeLeaveGroupRequest);
-;            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void encodeNetwork(
@@ -4241,7 +4241,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .build()
                     .sizeof()));
 
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            if (!encoders.isEmpty())
+            {
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void onSynGroupRebalance(
