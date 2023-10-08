@@ -1385,7 +1385,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             doNetworkBegin(traceId, authorization);
             doNetworkWindow(traceId, authorization, 0, 0L, 0, bufferPool.slotCapacity());
-            doSignalConnectTimeout();
+            doSignalConnectTimeout(traceId);
         }
 
         private void onNetworkData(
@@ -1559,7 +1559,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             else
             {
                 keepAliveTimeoutId =
-                    signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
+                    signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, traceId,
+                        KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
             }
         }
 
@@ -1686,7 +1687,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             serverDefinedKeepAlive = keepAlive != connect.keepAlive();
             keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
             connectFlags = connect.flags();
-            doSignalKeepAliveTimeout();
+            doSignalKeepAliveTimeout(traceId);
             doCancelConnectTimeout();
 
             progress = connect.limit();
@@ -1937,7 +1938,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     stream.doPublishData(traceId, reserved, payload, dataEx);
                 }
-                doSignalKeepAliveTimeout();
+                doSignalKeepAliveTimeout(traceId);
             }
         }
 
@@ -2092,7 +2093,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionStream.doSessionData(traceId, payloadSize, sessionDataExBuilder.build(), sessionState);
                 }
             }
-            doSignalKeepAliveTimeout();
+            doSignalKeepAliveTimeout(traceId);
         }
 
         private void openSubscribeStreams(
@@ -2200,7 +2201,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     sendUnsuback(packetId, traceId, authorization, topicFilters, null, false);
                 }
-                doSignalKeepAliveTimeout();
+                doSignalKeepAliveTimeout(traceId);
             }
         }
 
@@ -2284,7 +2285,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             MqttPingReqFW ping)
         {
-            doSignalKeepAliveTimeout();
+            doSignalKeepAliveTimeout(traceId);
             doEncodePingResp(traceId, authorization);
         }
 
@@ -3034,7 +3035,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private void doSignalKeepAliveTimeout()
+        private void doSignalKeepAliveTimeout(
+            long traceId)
         {
             if (keepAlive > 0)
             {
@@ -3043,18 +3045,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (keepAliveTimeoutId == NO_CANCEL_ID)
                 {
                     keepAliveTimeoutId =
-                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
+                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, traceId,
+                            KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
                 }
             }
         }
 
-        private void doSignalConnectTimeout()
+        private void doSignalConnectTimeout(
+            long traceId)
         {
             connectTimeoutAt = System.currentTimeMillis() + connectTimeoutMillis;
 
             if (connectTimeoutId == NO_CANCEL_ID)
             {
-                connectTimeoutId = signaler.signalAt(connectTimeoutAt, originId, routedId, replyId, CONNECT_TIMEOUT_SIGNAL, 0);
+                connectTimeoutId = signaler.signalAt(connectTimeoutAt, originId, routedId, replyId,
+                    traceId, CONNECT_TIMEOUT_SIGNAL, 0);
             }
         }
 
@@ -3676,7 +3681,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     application = newStream(this::onPublish, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, sessionId, affinity, beginEx);
 
-                    doSignalPublishExpiration();
+                    doSignalPublishExpiration(traceId);
                     doPublishWindow(traceId, 0, 0);
                 }
             }
@@ -3701,7 +3706,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
 
-                doSignalPublishExpiration();
+                doSignalPublishExpiration(traceId);
             }
 
             private void doPublishAbort(
@@ -3898,18 +3903,20 @@ public final class MqttServerFactory implements MqttStreamFactory
                 else
                 {
                     publishExpiresId = NO_CANCEL_ID;
-                    doSignalPublishExpiration();
+                    doSignalPublishExpiration(traceId);
                 }
             }
 
-            private void doSignalPublishExpiration()
+            private void doSignalPublishExpiration(
+                long traceId)
             {
                 publishExpiresAt = System.currentTimeMillis() + publishTimeoutMillis;
 
                 if (publishExpiresId == NO_CANCEL_ID)
                 {
                     publishExpiresId =
-                        signaler.signalAt(publishExpiresAt, originId, routedId, initialId, PUBLISH_EXPIRED_SIGNAL, 0);
+                        signaler.signalAt(publishExpiresAt, originId, routedId, initialId, traceId,
+                            PUBLISH_EXPIRED_SIGNAL, 0);
                 }
             }
 

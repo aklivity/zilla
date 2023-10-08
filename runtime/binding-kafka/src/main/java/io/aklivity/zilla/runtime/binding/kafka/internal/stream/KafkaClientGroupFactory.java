@@ -2302,7 +2302,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId)
         {
             nextResponseId++;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onCoordinatorNotAvailable(
@@ -2312,7 +2312,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             nextResponseId++;
 
             encoder = encodeFindCoordinatorRequest;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onFindCoordinator(
@@ -3042,7 +3042,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId)
         {
             nextResponseId++;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onDecodeDescribeResponse(
@@ -3373,7 +3373,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 break;
             case SIGNAL_HEARTBEAT_REQUEST:
                 encoders.add(encodeHeartbeatRequest);
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
                 break;
             }
         }
@@ -3907,7 +3907,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int sizeof = assignment.sizeof();
 
             encoders.add(encodeSyncGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
                 buffer, offset, sizeof);
         }
 
@@ -3924,7 +3924,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 decoder != decodeJoinGroupResponse)
             {
                 encoders.add(encodeJoinGroupRequest);
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
             else
             {
@@ -3946,7 +3946,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 encoders.add(encodeHeartbeatRequest);
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
         }
 
@@ -3960,7 +3960,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             encoders.add(encodeLeaveGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void encodeNetwork(
@@ -4166,7 +4166,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId)
         {
             nextResponseId++;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onNotCoordinatorError(
@@ -4190,7 +4190,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
 
             encoders.add(encodeJoinGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onJoinGroupResponse(
@@ -4243,7 +4243,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (!encoders.isEmpty())
             {
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
         }
 
@@ -4254,7 +4254,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             nextResponseId++;
 
             encoders.add(encodeJoinGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onSyncGroupResponse(
@@ -4326,7 +4326,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                originId, routedId, initialId,  SIGNAL_HEARTBEAT_REQUEST, 0);
+                originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
         }
 
         private void onHeartbeatResponse(
@@ -4342,7 +4342,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                originId, routedId, initialId,  SIGNAL_HEARTBEAT_REQUEST, 0);
+                originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
         }
 
         private void onLeaveGroupResponse(
@@ -4362,7 +4362,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             nextResponseId++;
 
             encoders.add(encodeJoinGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void cleanupNetwork(

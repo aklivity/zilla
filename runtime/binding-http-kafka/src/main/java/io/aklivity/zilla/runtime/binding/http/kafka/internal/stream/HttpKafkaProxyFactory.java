@@ -1386,7 +1386,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (timeout > 0L)
             {
                 cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
-                        SIGNAL_WAIT_EXPIRED, 0);
+                        traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
         }
 
@@ -3342,7 +3342,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (timeout > 0L)
             {
                 cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
-                        SIGNAL_WAIT_EXPIRED, 0);
+                        traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
             doKafkaWindow(traceId);
         }

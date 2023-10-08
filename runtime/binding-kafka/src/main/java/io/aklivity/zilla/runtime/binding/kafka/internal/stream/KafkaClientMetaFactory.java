@@ -1762,7 +1762,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeMetaResponse(
@@ -1799,7 +1799,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 nextResponseId++;
                 nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis,
-                        originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                        originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(

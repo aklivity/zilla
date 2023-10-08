@@ -476,13 +476,14 @@ public final class KafkaClientConnectionPool
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            stream.doStreamSignalNow(signalId);
+            stream.doStreamSignalNow(traceId, signalId);
         }
 
         @Override
@@ -490,6 +491,7 @@ public final class KafkaClientConnectionPool
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId,
             DirectBuffer buffer,
@@ -499,7 +501,7 @@ public final class KafkaClientConnectionPool
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            stream.doStreamSignalNow(signalId, buffer, offset, length);
+            stream.doStreamSignalNow(traceId, signalId, buffer, offset, length);
         }
         @Override
         public long signalAt(
@@ -507,13 +509,14 @@ public final class KafkaClientConnectionPool
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            return stream.doStreamSignalAt(timeMillis, signalId);
+            return stream.doStreamSignalAt(traceId, timeMillis, signalId);
         }
 
         @Override
@@ -522,6 +525,7 @@ public final class KafkaClientConnectionPool
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
@@ -655,7 +659,7 @@ public final class KafkaClientConnectionPool
 
             connection.doConnectionBegin(traceId, host, port);
 
-            connection.doConnectionSignalNow(initialId, SIGNAL_STREAM_REPLY_BEGIN);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_BEGIN);
         }
 
         private void onStreamData(
@@ -694,25 +698,31 @@ public final class KafkaClientConnectionPool
         private void onStreamEnd(
             EndFW end)
         {
+            final long traceId = end.traceId();
+
             state = KafkaState.closedInitial(state);
 
-            connection.doConnectionSignalNow(initialId, SIGNAL_STREAM_REPLY_END);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_END);
         }
 
         private void onStreamAbort(
             AbortFW abort)
         {
+            final long traceId = abort.traceId();
+
             state = KafkaState.closedInitial(state);
 
-            connection.doConnectionSignalNow(initialId, SIGNAL_STREAM_REPLY_ABORT);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_ABORT);
         }
 
         private void onStreamReset(
             ResetFW reset)
         {
+            final long traceId = reset.traceId();
+
             state = KafkaState.closingReply(state);
 
-            connection.doConnectionSignalNow(initialId, SIGNAL_STREAM_INITIAL_RESET);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_INITIAL_RESET);
         }
 
         private void onStreamWindow(
@@ -859,26 +869,29 @@ public final class KafkaClientConnectionPool
         }
 
         private void doStreamSignalNow(
+            long traceId,
             int signalId)
         {
-            connection.doConnectionSignalNow(initialId, signalId);
+            connection.doConnectionSignalNow(initialId, traceId, signalId);
         }
 
         private void doStreamSignalNow(
+            long traceId,
             int signalId,
             DirectBuffer buffer,
             int offset,
             int length)
         {
-            connection.doConnectionSignalNow(initialId, signalId, buffer, offset, length);
+            connection.doConnectionSignalNow(initialId, traceId, signalId, buffer, offset, length);
         }
 
 
         private long doStreamSignalAt(
             long timeMillis,
+            long traceId,
             int signalId)
         {
-            return connection.doConnectionSignalAt(initialId, timeMillis, signalId);
+            return connection.doConnectionSignalAt(initialId, traceId, timeMillis, signalId);
         }
 
         private void cleanup(
@@ -1090,15 +1103,17 @@ public final class KafkaClientConnectionPool
 
         private void doConnectionSignalNow(
             long streamId,
+            long traceId,
             int signalId)
         {
             nextContextId++;
             signalerCorrelations.put(nextContextId, streamId);
-            signaler.delegate.signalNow(originId, routedId, this.initialId, signalId, nextContextId);
+            signaler.delegate.signalNow(originId, routedId, this.initialId, traceId, signalId, nextContextId);
         }
 
         private void doConnectionSignalNow(
             long streamId,
+            long traceId,
             int signalId,
             DirectBuffer buffer,
             int offset,
@@ -1106,19 +1121,20 @@ public final class KafkaClientConnectionPool
         {
             nextContextId++;
             signalerCorrelations.put(nextContextId, streamId);
-            signaler.delegate.signalNow(originId, routedId, this.initialId, signalId, nextContextId,
+            signaler.delegate.signalNow(originId, routedId, this.initialId, traceId, signalId, nextContextId,
                 buffer, offset, length);
         }
 
         private long doConnectionSignalAt(
             long streamId,
+            long traceId,
             long timeMillis,
             int signalId)
         {
             nextContextId++;
             signalerCorrelations.put(nextContextId, streamId);
             return signaler.delegate.signalAt(
-                timeMillis, originId, routedId, this.initialId, signalId, nextContextId);
+                timeMillis, originId, routedId, this.initialId, traceId, signalId, nextContextId);
         }
 
         private void doConnectionReset(
