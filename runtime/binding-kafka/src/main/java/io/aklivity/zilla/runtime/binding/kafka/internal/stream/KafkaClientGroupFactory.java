@@ -1047,26 +1047,26 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 final short errorCode = syncGroupResponse != null ? syncGroupResponse.errorCode() : ERROR_EXISTS;
 
+
                 if (syncGroupResponse == null)
                 {
-                    client.decoder = decodeCoordinatorIgnoreAll;
-                    break decode;
-                }
-                else if (errorCode == ERROR_REBALANCE_IN_PROGRESS)
-                {
-                    client.onSynGroupRebalance(traceId, authorization);
-                }
-                else if (errorCode == ERROR_NONE)
-                {
-                    client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
-                }
-                else
-                {
-                    client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
 
                 progress = syncGroupResponse.limit();
+
+                switch (errorCode)
+                {
+                case ERROR_REBALANCE_IN_PROGRESS:
+                    client.onSynGroupRebalance(traceId, authorization);
+                    break;
+                case ERROR_NONE:
+                    client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
+                    break;
+                default:
+                    client.decoder = decodeCoordinatorIgnoreAll;
+                    break;
+                }
             }
         }
 
@@ -1104,35 +1104,32 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (length >= responseHeader.sizeof() + responseSize)
             {
-                progress = responseHeader.limit();
 
                 final HeartbeatResponseFW heartbeatResponse =
                     heartbeatResponseRO.tryWrap(buffer, progress, limit);
 
                 if (heartbeatResponse == null)
                 {
-                    client.decoder = decodeCoordinatorIgnoreAll;
-                    break decode;
-                }
-                else if (heartbeatResponse.errorCode() == ERROR_UNKNOWN_MEMBER)
-                {
-                    client.onJoinGroupMemberIdError(traceId, authorization, UNKNOWN_MEMBER_ID);
-                }
-                else if (heartbeatResponse.errorCode() == ERROR_REBALANCE_IN_PROGRESS)
-                {
-                    client.onRebalanceError(traceId, authorization);
-                }
-                else if (heartbeatResponse.errorCode() == ERROR_NONE)
-                {
-                    client.onHeartbeatResponse(traceId, authorization);
-                }
-                else
-                {
-                    client.decoder = decodeCoordinatorIgnoreAll;
                     break decode;
                 }
 
-                progress = heartbeatResponse.limit();
+                progress = responseHeader.limit();
+
+                switch (heartbeatResponse.errorCode())
+                {
+                case ERROR_UNKNOWN_MEMBER:
+                    client.onJoinGroupMemberIdError(traceId, authorization, UNKNOWN_MEMBER_ID);
+                    break;
+                case ERROR_REBALANCE_IN_PROGRESS:
+                    client.onRebalanceError(traceId, authorization);
+                    break;
+                case ERROR_NONE:
+                    client.onHeartbeatResponse(traceId, authorization);
+                    break;
+                default:
+                    client.decoder = decodeCoordinatorIgnoreAll;
+                    break;
+                }
             }
         }
 
@@ -1354,7 +1351,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final long traceId = data.traceId();
             final long budgetId = data.budgetId();
 
-            coordinatorClient.doSyncRequest(traceId, budgetId, data.payload());
+            coordinatorClient.doSyncGroupRequest(traceId, budgetId, data.payload());
         }
 
         private void onStreamEnd(
@@ -1412,7 +1409,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
             else
             {
-                coordinatorClient.doHeartbeat(traceId);
+                coordinatorClient.doHeartbeatRequest(traceId);
             }
         }
 
@@ -3900,7 +3897,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             decoder = decodeLeaveGroupResponse;
         }
 
-        private void doSyncRequest(
+        private void doSyncGroupRequest(
             long traceId,
             long budgetId,
             OctetsFW assignment)
@@ -3935,7 +3932,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
-        private void doHeartbeat(
+        private void doHeartbeatRequest(
             long traceId)
         {
             final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
@@ -3963,7 +3960,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             encoders.add(encodeLeaveGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+;            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void encodeNetwork(
@@ -4243,6 +4240,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         })))
                     .build()
                     .sizeof()));
+
+            signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
         }
 
         private void onSynGroupRebalance(
