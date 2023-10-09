@@ -42,12 +42,12 @@ public class MqttKafkaWithConfigAdapterTest
     public void shouldReadWith()
     {
         String text =
-            "{\"topic\":\"test\"}";
+            "{\"messages\":\"test\"}";
 
         MqttKafkaWithConfig with = jsonb.fromJson(text, MqttKafkaWithConfig.class);
 
         assertThat(with, not(nullValue()));
-        assertThat(with.topic, equalTo("test"));
+        assertThat(with.messages, equalTo("test"));
     }
 
     @Test
@@ -58,6 +58,6 @@ public class MqttKafkaWithConfigAdapterTest
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\"}"));
+        assertThat(text, equalTo("{\"messages\":\"test\"}"));
     }
 }

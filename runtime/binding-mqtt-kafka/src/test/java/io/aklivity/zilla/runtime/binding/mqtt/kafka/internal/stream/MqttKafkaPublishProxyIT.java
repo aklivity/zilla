@@ -183,7 +183,7 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
-    @Configuration("proxy.when.mqtt.topic.with.kafka.topic.yaml")
+    @Configuration("proxy.when.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.topic.space/client",

@@ -26,7 +26,7 @@ public class MqttKafkaWithResolver
         MqttKafkaOptionsConfig options,
         MqttKafkaWithConfig with)
     {
-        this.topic = with.topic == null ? options.topics.messages : new String16FW(with.topic);
+        this.topic = with.messages == null ? options.topics.messages : new String16FW(with.messages);
     }
 
     public String16FW topic()

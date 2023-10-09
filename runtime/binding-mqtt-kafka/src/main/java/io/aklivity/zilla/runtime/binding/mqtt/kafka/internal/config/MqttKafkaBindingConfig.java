@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -58,6 +59,16 @@ public class MqttKafkaBindingConfig
             .filter(r -> r.authorized(authorization) && r.matches(topic))
             .findFirst()
             .orElse(null);
+    }
+
+    public List<MqttKafkaRouteConfig> resolve(
+        long authorization,
+        List<String> topicFilters)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && topicFilters.stream().anyMatch(r::matchesTopicFilter))
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     public String16FW messagesTopic()

@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
-    private static final String TOPIC_NAME = "topic";
+    private static final String MESSAGES_NAME = "messages";
 
     @Override
     public String type()
@@ -41,9 +41,9 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (config.topic != null)
+        if (config.messages != null)
         {
-            object.add(TOPIC_NAME, config.topic);
+            object.add(MESSAGES_NAME, config.messages);
         }
 
         return object.build();
@@ -53,8 +53,8 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String topic = object.containsKey(TOPIC_NAME)
-            ? object.getString(TOPIC_NAME)
+        String topic = object.containsKey(MESSAGES_NAME)
+            ? object.getString(MESSAGES_NAME)
             : null;
 
         return new MqttKafkaWithConfig(topic);

@@ -18,11 +18,11 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public class MqttKafkaWithConfig extends WithConfig
 {
-    public final String topic;
+    public final String messages;
 
     public MqttKafkaWithConfig(
-        String topic)
+        String messages)
     {
-        this.topic = topic;
+        this.messages = messages;
     }
 }

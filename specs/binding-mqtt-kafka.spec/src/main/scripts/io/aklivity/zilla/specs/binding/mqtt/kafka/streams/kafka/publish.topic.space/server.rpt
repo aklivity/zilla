@@ -19,7 +19,7 @@ accept "zilla://streams/kafka0"
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -45,12 +45,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 
-read "message1"
+read "Hello, world"
 
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -76,5 +76,5 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 
-read "message1"
+read "Hello, again"
 

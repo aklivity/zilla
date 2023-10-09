@@ -19,6 +19,8 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongPredicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -57,5 +59,30 @@ public class MqttKafkaRouteConfig
         String topic)
     {
         return when.isEmpty() || topic != null && when.stream().anyMatch(m -> m.matches(topic));
+    }
+
+    public boolean matchesTopicFilter(
+        String topicFilter)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> matchTopicFilter(topicFilter, m.topic));
+    }
+
+    private boolean matchTopicFilter(
+        String topicFilter,
+        String topic)
+    {
+        Matcher topicFilterMatcher = asTopicFilterMatcher(topicFilter);
+        return topicFilterMatcher.reset(topic).matches();
+    }
+
+    private static Matcher asTopicFilterMatcher(
+        String wildcard)
+    {
+        return Pattern.compile(
+                wildcard.replace(".", "\\.")
+                    .replace("+", "[^/]+")
+                    .replace("#", ".*")
+                    .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>[^/]+)"))
+            .matcher("");
     }
 }

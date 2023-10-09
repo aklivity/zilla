@@ -21,12 +21,14 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionCon
 
 public class MqttKafkaConditionMatcher
 {
-    private final Matcher topic;
+    private final Matcher topicMatcher;
+    public final String topic;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.topic = condition.topic != null ? asMatcher(condition.topic) : null;
+        this.topic = condition.topic;
+        this.topicMatcher = condition.topic != null ? asMatcher(condition.topic) : null;
     }
 
     public boolean matches(
@@ -38,7 +40,7 @@ public class MqttKafkaConditionMatcher
     private boolean matchTopic(
         CharSequence topic)
     {
-        return this.topic == null || this.topic.reset(topic).matches();
+        return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
     }
 
     private static Matcher asMatcher(

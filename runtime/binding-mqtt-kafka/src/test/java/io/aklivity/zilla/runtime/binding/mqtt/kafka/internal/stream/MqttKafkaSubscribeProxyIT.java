@@ -163,6 +163,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.topic.space/client",
+        "${kafka}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
