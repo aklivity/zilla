@@ -72,6 +72,7 @@ public final class KafkaClientConnectionPool
     private static final int SIGNAL_STREAM_REPLY_BEGIN = 0x80000002;
     private static final int SIGNAL_STREAM_REPLY_END = 0x80000003;
     private static final int SIGNAL_STREAM_REPLY_ABORT = 0x80000004;
+    private static final int SIGNAL_STREAM_REPLY_WINDOW = 0x80000005;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -699,6 +700,8 @@ public final class KafkaClientConnectionPool
             assert requestBytes >= 0;
 
             initialSeq += reserved;
+
+            connection.doConnectionWindow(traceId, authorization, 0);
         }
 
         private void onStreamEnd(
@@ -749,23 +752,7 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.openedReply(state);
 
-            final long replySeqOffsetPeek = replySeqOffset.peekLong();
-
-            if (replySeqOffsetPeek != NO_OFFSET)
-            {
-                assert replyAck <= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
-
-                // TODO: && responseAckBytes == 0
-                if (replyAck == replySeq)
-                {
-                    replyAckOffset.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
-
-                    replySeqOffset.removeLong();
-                    replyAckSnapshot = replyAck;
-                }
-            }
-
-            connection.doConnectionWindow(traceId, authorization, budgetId);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_WINDOW);
         }
 
         private void doStreamWindow(
@@ -888,6 +875,28 @@ public final class KafkaClientConnectionPool
             }
         }
 
+        private void doStreamWindow(
+            long traceId)
+        {
+            final long replySeqOffsetPeek = replySeqOffset.peekLong();
+
+            if (replySeqOffsetPeek != NO_OFFSET)
+            {
+                assert replyAck >= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
+
+                // TODO: && responseAckBytes == 0
+                if (replyAck == replySeq)
+                {
+                    replyAckOffset.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
+
+                    replySeqOffset.removeLong();
+                    replyAckSnapshot = replyAck;
+                }
+            }
+
+            connection.doConnectionWindow(traceId, authorization, replyBud);
+        }
+
         private void doStreamSignalNow(
             long traceId,
             int signalId)
@@ -942,6 +951,9 @@ public final class KafkaClientConnectionPool
             case SIGNAL_STREAM_INITIAL_RESET:
                 doStreamReset(traceId);
                 break;
+            case SIGNAL_STREAM_REPLY_WINDOW:
+                doStreamWindow(traceId);
+                break;
             default:
                 doSignal(sender, originId, routedId, initialId, initialSeq,
                     initialAck, connection.initialMax, traceId, signalId, payload);
@@ -958,6 +970,7 @@ public final class KafkaClientConnectionPool
         private final LongArrayQueue requests;
         private final LongArrayQueue responses;
         private final LongArrayQueue responseAcks;
+        private final LongHashSet responseRsts;
         private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
@@ -996,6 +1009,7 @@ public final class KafkaClientConnectionPool
             this.requests = new LongArrayQueue();
             this.responses = new LongArrayQueue();
             this.responseAcks = new LongArrayQueue();
+            this.responseRsts = new LongHashSet();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
@@ -1094,8 +1108,6 @@ public final class KafkaClientConnectionPool
             initialSeq += reserved;
 
             assert initialSeq <= initialAck + initialMax;
-
-            doConnectionWindow(traceId, authorization, 0);
         }
 
         private void doConnectionEnd(
@@ -1181,7 +1193,7 @@ public final class KafkaClientConnectionPool
         {
             long maxReplyAck = replyAck;
             int maxReplyPad = replyPad;
-            int maxReplyMax = replyMax;
+            int minReplyMax = replyMax;
 
             if (!responseAcks.isEmpty())
             {
@@ -1189,30 +1201,36 @@ public final class KafkaClientConnectionPool
                 for (LongArrayQueue.LongIterator i = responseAcks.iterator(); i.hasNext();)
                 {
                     long responseAck = i.nextValue();
-                    KafkaClientStream stream = streamsByInitialIds.get(responseAck);
-
-                    maxReplyPad = Math.max(stream.replyPad, maxReplyPad);
-                    maxReplyMax = Math.max(stream.replyMax, maxReplyMax);
-
-                    if (stream.replyAck < stream.replySeq)
+                    if (!responseRsts.remove(responseAck))
                     {
-                        maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
-                        break ack;
+                        KafkaClientStream stream = streamsByInitialIds.get(responseAck);
+
+                        maxReplyPad = stream.replyPad;
+                        minReplyMax = stream.replyMax;
+
+                        if (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty())
+                        {
+                            if (!stream.replySeqOffset.isEmpty())
+                            {
+                                maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
+                            }
+                            break ack;
+                        }
+                        maxReplyAck = stream.replyAckOffset.removeLong();
                     }
 
-                    maxReplyAck = stream.replyAckOffset.removeLong();
-                    i.remove();
+                    responseAcks.removeLong();
                 }
             }
 
             final long newReplyAck = Math.max(maxReplyAck, replyAck);
 
-            if (newReplyAck == 0 || newReplyAck > replyAck || maxReplyMax > replyMax)
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
-                replyMax = maxReplyMax;
+                replyMax = minReplyMax;
 
                 state = KafkaState.openedReply(state);
 
@@ -1357,6 +1375,10 @@ public final class KafkaClientConnectionPool
         private void cleanupStreams(
             long traceId)
         {
+            requests.clear();
+            responses.clear();
+            responseAcks.clear();
+            responseRsts.clear();
             streams.forEach(s -> streamsByInitialIds.remove(s).cleanup(traceId));
             streams.clear();
         }
@@ -1376,7 +1398,10 @@ public final class KafkaClientConnectionPool
                 long initialId = signalerCorrelations.remove(contextId);
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-                stream.onSignal(signal);
+                if (stream != null)
+                {
+                    stream.onSignal(signal);
+                }
             }
         }
 
@@ -1496,6 +1521,7 @@ public final class KafkaClientConnectionPool
         private void onStreamClosed(
             long streamId)
         {
+            responseRsts.add(streamId);
             streams.remove(streamId);
             streamsByInitialIds.remove(streamId);
         }

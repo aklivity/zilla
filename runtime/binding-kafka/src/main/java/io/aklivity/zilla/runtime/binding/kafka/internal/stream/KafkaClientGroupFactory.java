@@ -3960,7 +3960,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             encoders.add(encodeLeaveGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+
+            if (KafkaState.initialOpened(state))
+            {
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+            }
         }
 
         private void encodeNetwork(
