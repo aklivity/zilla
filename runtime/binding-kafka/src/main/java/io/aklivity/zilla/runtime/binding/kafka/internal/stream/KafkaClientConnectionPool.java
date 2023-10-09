@@ -33,6 +33,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.MutableInteger;
+import org.agrona.collections.MutableLong;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -96,7 +97,7 @@ public final class KafkaClientConnectionPool
 
     private final RequestHeaderFW requestHeaderRO = new RequestHeaderFW();
 
-    private final MutableInteger replyNoAckRW = new MutableInteger();
+    private final MutableLong replyAckRW = new MutableLong();
     private final MutableInteger replyPadRW = new MutableInteger();
     private final MutableInteger replyMaxRW = new MutableInteger();
 
@@ -562,6 +563,9 @@ public final class KafkaClientConnectionPool
 
         private long replySeq;
         private long replyAck;
+        private final LongArrayQueue replySeqOffset;
+        private final LongArrayQueue replyAckOffset;
+        private long replyAckSnapshot;
         private int replyMax;
         private int replyPad;
         private long replyBud;
@@ -590,6 +594,8 @@ public final class KafkaClientConnectionPool
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.initialSeqOffset = new LongArrayQueue(NO_OFFSET);
+            this.replySeqOffset = new LongArrayQueue(NO_OFFSET);
+            this.replyAckOffset = new LongArrayQueue(NO_OFFSET);
         }
 
         private int replyNoAck()
@@ -743,7 +749,23 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.openedReply(state);
 
-            connection.doConnectionWindow(traceId, acknowledge, budgetId);
+            final long replySeqOffsetPeek = replySeqOffset.peekLong();
+
+            if (replySeqOffsetPeek != NO_OFFSET)
+            {
+                assert replyAck <= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
+
+                // TODO: && responseAckBytes == 0
+                if (replyAck == replySeq)
+                {
+                    replyAckOffset.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
+
+                    replySeqOffset.removeLong();
+                    replyAckSnapshot = replyAck;
+                }
+            }
+
+            connection.doConnectionWindow(traceId, authorization, budgetId);
         }
 
         private void doStreamWindow(
@@ -783,19 +805,15 @@ public final class KafkaClientConnectionPool
         private void doStreamData(
             long traceId,
             int flags,
-            long sequence,
-            long acknowledge,
             int reserved,
             DirectBuffer payload,
             int offset,
             int length,
             Flyweight extension)
         {
-            replySeq = sequence;
-            replyAck = acknowledge;
-
             if (responseBytes == 0)
             {
+                replySeqOffset.add(connection.replySeq - reserved);
                 nexResponseId++;
                 final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(payload, offset, offset + length);
                 responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
@@ -807,6 +825,8 @@ public final class KafkaClientConnectionPool
             {
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
+
+                replySeq += reserved;
             }
             else
             {
@@ -937,6 +957,7 @@ public final class KafkaClientConnectionPool
         private final LongHashSet streams;
         private final LongArrayQueue requests;
         private final LongArrayQueue responses;
+        private final LongArrayQueue responseAcks;
         private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
@@ -974,6 +995,7 @@ public final class KafkaClientConnectionPool
             this.streams = new LongHashSet();
             this.requests = new LongArrayQueue();
             this.responses = new LongArrayQueue();
+            this.responseAcks = new LongArrayQueue();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
@@ -1033,6 +1055,7 @@ public final class KafkaClientConnectionPool
 
                 requests.add(streamId);
                 responses.add(streamId);
+                responseAcks.add(streamId);
 
                 final DirectBuffer buffer = payload.buffer();
                 final int offset = payload.offset();
@@ -1071,6 +1094,8 @@ public final class KafkaClientConnectionPool
             initialSeq += reserved;
 
             assert initialSeq <= initialAck + initialMax;
+
+            doConnectionWindow(traceId, authorization, 0);
         }
 
         private void doConnectionEnd(
@@ -1154,30 +1179,40 @@ public final class KafkaClientConnectionPool
             long authorization,
             long budgetId)
         {
-            replyNoAckRW.value = 0;
-            replyPadRW.value = 0;
-            replyMaxRW.value = Integer.MAX_VALUE;
+            long maxReplyAck = replyAck;
+            int maxReplyPad = replyPad;
+            int maxReplyMax = replyMax;
 
-            streams.forEach(s ->
+            if (!responseAcks.isEmpty())
             {
-                KafkaClientStream stream = streamsByInitialIds.get(s);
-                replyNoAckRW.value = Math.max(stream.replyNoAck(), replyNoAckRW.value);
-                replyPadRW.value = Math.max(stream.replyPad, replyPadRW.value);
-                replyMaxRW.value = Math.min(stream.replyMax, replyMaxRW.value);
-            });
+                ack:
+                for (LongArrayQueue.LongIterator i = responseAcks.iterator(); i.hasNext();)
+                {
+                    long responseAck = i.nextValue();
+                    KafkaClientStream stream = streamsByInitialIds.get(responseAck);
 
-            int maxReplyNoAck = replyNoAckRW.value;
-            int maxReplyPad = replyPadRW.value;
-            int minReplyMax = replyMaxRW.value;
+                    maxReplyPad = Math.max(stream.replyPad, maxReplyPad);
+                    maxReplyMax = Math.max(stream.replyMax, maxReplyMax);
 
-            final long newReplyAck = Math.max(replySeq - maxReplyNoAck, replyAck);
+                    if (stream.replyAck < stream.replySeq)
+                    {
+                        maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
+                        break ack;
+                    }
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax)
+                    maxReplyAck = stream.replyAckOffset.removeLong();
+                    i.remove();
+                }
+            }
+
+            final long newReplyAck = Math.max(maxReplyAck, replyAck);
+
+            if (newReplyAck == 0 || newReplyAck > replyAck || maxReplyMax > replyMax)
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
-                replyMax = minReplyMax;
+                replyMax = maxReplyMax;
 
                 state = KafkaState.openedReply(state);
 
@@ -1277,14 +1312,14 @@ public final class KafkaClientConnectionPool
 
                 KafkaClientStream stream = streamsByInitialIds.get(initialId);
 
-                stream.doStreamData(traceId, flags | FLAG_INIT | FLAG_FIN, sequence,
-                    acknowledge, reserved, buffer, progress, responseBytesMin, extension);
+                stream.doStreamData(traceId, flags | FLAG_INIT | FLAG_FIN,
+                    reserved, buffer, progress, responseBytesMin, extension);
 
                 progress += responseBytesMin;
 
                 if (responseBytes == 0)
                 {
-                    responses.remove();
+                    responses.removeLong();
                 }
             }
         }

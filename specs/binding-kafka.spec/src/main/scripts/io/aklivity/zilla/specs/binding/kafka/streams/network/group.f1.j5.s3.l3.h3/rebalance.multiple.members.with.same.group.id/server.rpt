@@ -217,13 +217,14 @@ read 81                                            # size
        10s "memberId-1"                             # consumer member group id
        42s [0..42]                                  # group instance id
 
-write 70                                           # size
+write 72                                           # size
       ${newRequestId}
       0                                            # throttle time
       0s                                           # no error
       1                                            # assignments
         10s "memberId-1"                             # consumer member group id
         42s ${instanceId}                            # group instance id
+        0s                                           # no error
 
 #Second try
 

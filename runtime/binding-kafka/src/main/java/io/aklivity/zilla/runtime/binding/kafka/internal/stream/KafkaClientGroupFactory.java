@@ -75,7 +75,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGr
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.LeaveGroupRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.LeaveGroupResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.LeaveMemberFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.LeaveMemberRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.LeaveMemberResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.MemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.ProtocolMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.SyncGroupRequestFW;
@@ -182,7 +183,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final AssignmentFW.Builder assignmentRW = new AssignmentFW.Builder();
     private final HeartbeatRequestFW.Builder heartbeatRequestRW = new HeartbeatRequestFW.Builder();
     private final LeaveGroupRequestFW.Builder leaveGroupRequestRW = new LeaveGroupRequestFW.Builder();
-    private final LeaveMemberFW.Builder leaveMemberRW = new LeaveMemberFW.Builder();
+    private final LeaveMemberRequestFW.Builder leaveMemberRequestRW = new LeaveMemberRequestFW.Builder();
     private final ConsumerSubscriptionMetadataFW.Builder groupSubscriptionMetadataRW =
         new ConsumerSubscriptionMetadataFW.Builder();
     private final ConsumerAssignmentMetadataFW.Builder assignmentMetadataRW = new ConsumerAssignmentMetadataFW.Builder();
@@ -206,7 +207,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final SyncGroupResponseFW syncGroupResponseRO = new SyncGroupResponseFW();
     private final HeartbeatResponseFW heartbeatResponseRO = new HeartbeatResponseFW();
     private final LeaveGroupResponseFW leaveGroupResponseRO = new LeaveGroupResponseFW();
-    private final LeaveMemberFW leaveMemberRO = new LeaveMemberFW();
+    private final LeaveMemberResponseFW leaveMemberResponseRO = new LeaveMemberResponseFW();
     private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicPartitionsRW =
         new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
     private final ConsumerSubscriptionMetadataFW subscriptionMetadataRO = new ConsumerSubscriptionMetadataFW();
@@ -1184,7 +1185,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     members:
                     for (int i = 0; i < leaveGroupResponse.memberCount(); i++)
                     {
-                        final LeaveMemberFW member = leaveMemberRO.tryWrap(buffer, progress, limit);
+                        final LeaveMemberResponseFW member = leaveMemberResponseRO.tryWrap(buffer, progress, limit);
                         if (member != null)
                         {
                             progress = member.limit();
@@ -3874,7 +3875,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final String memberId = delegate.groupMembership.memberIds.get(delegate.groupId);
 
-            final LeaveMemberFW leaveMember = leaveMemberRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+            final LeaveMemberRequestFW leaveMember = leaveMemberRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .memberId(memberId)
                 .groupInstanceId(delegate.groupMembership.instanceId)
                 .build();
