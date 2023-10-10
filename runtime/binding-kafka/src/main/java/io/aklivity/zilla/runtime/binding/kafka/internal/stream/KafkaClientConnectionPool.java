@@ -1384,7 +1384,12 @@ public final class KafkaClientConnectionPool
             responses.clear();
             responseAcks.clear();
             responseRsts.clear();
-            streams.forEach(s -> streamsByInitialIds.remove(s).cleanup(traceId));
+            streams.forEach(s ->
+            {
+                KafkaClientStream stream = streamsByInitialIds.get(s);
+                stream.cleanup(traceId);
+                streamsByInitialIds.remove(s);
+            });
             streams.clear();
         }
 
@@ -1529,7 +1534,7 @@ public final class KafkaClientConnectionPool
             streams.remove(streamId);
 
             KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            if (stream != null && stream.replyAck == stream.replySeq)
+            if (stream.replyAck == stream.replySeq)
             {
                 doConnectionWindow(traceId, authorization, 0);
             }
