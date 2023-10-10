@@ -67,12 +67,13 @@ public final class KafkaClientConnectionPool
     private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final int SIGNAL_STREAM_RESET = 0x80000001;
-    private static final int SIGNAL_STREAM_BEGIN = 0x80000002;
+    private static final int SIGNAL_STREAM_BEGIN = 0x80000001;
+    private static final int SIGNAL_STREAM_DATA = 0x80000002;
     private static final int SIGNAL_STREAM_END = 0x80000003;
     private static final int SIGNAL_STREAM_ABORT = 0x80000004;
-    private static final int SIGNAL_STREAM_WINDOW = 0x80000005;
-    private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000006;
+    private static final int SIGNAL_STREAM_RESET = 0x80000005;
+    private static final int SIGNAL_STREAM_WINDOW = 0x80000006;
+    private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000007;
     private static final String CLUSTER = "";
 
     private final BeginFW beginRO = new BeginFW();
@@ -599,11 +600,6 @@ public final class KafkaClientConnectionPool
             this.replyAckOffset = new LongArrayQueue(NO_OFFSET);
         }
 
-        private int replyNoAck()
-        {
-            return (int)(replySeq - replyAck);
-        }
-
         private void onStreamMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -614,27 +610,38 @@ public final class KafkaClientConnectionPool
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onStreamBegin(begin);
+
+                final long traceId = begin.traceId();
+                final OctetsFW extension = begin.extension();
+                final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
+
+                String host = null;
+                int port = 0;
+
+                if (proxyBeginEx != null)
+                {
+                    final ProxyAddressInetFW inet = proxyBeginEx.address().inet();
+                    host = inet.destination().asString();
+                    port = inet.destinationPort();
+                }
+
+                connection.doConnectionBegin(traceId, host, port);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_BEGIN, buffer, index, length);
                 break;
             case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onStreamData(data);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_DATA, buffer, index, length);
                 break;
             case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onStreamEnd(end);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_END, buffer, index, length);
                 break;
             case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onStreamAbort(abort);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_ABORT, buffer, index, length);
                 break;
             case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onStreamWindow(window);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_WINDOW, buffer, index, length);
                 break;
             case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onStreamReset(reset);
+                connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_RESET, buffer, index, length);
                 break;
             default:
                 break;
@@ -649,24 +656,9 @@ public final class KafkaClientConnectionPool
 
             assert (initialId & 0x0000_0000_0000_0001L) != 0L;
 
-            final OctetsFW extension = begin.extension();
-            final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
-
             state = KafkaState.openingInitial(state);
 
-            String host = null;
-            int port = 0;
-
-            if (proxyBeginEx != null)
-            {
-                final ProxyAddressInetFW inet = proxyBeginEx.address().inet();
-                host = inet.destination().asString();
-                port = inet.destinationPort();
-            }
-
-            connection.doConnectionBegin(traceId, host, port);
-
-            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_BEGIN);
+            doStreamBegin(authorization, traceId);
         }
 
         private void onStreamData(
@@ -717,7 +709,7 @@ public final class KafkaClientConnectionPool
             }
             else
             {
-                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_END);
+                doStreamEnd(traceId);
             }
         }
 
@@ -734,7 +726,7 @@ public final class KafkaClientConnectionPool
             }
             else
             {
-                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_ABORT);
+                doStreamAbort(traceId);
             }
         }
 
@@ -746,7 +738,12 @@ public final class KafkaClientConnectionPool
             state = KafkaState.closedReply(state);
 
             replyAck = replySeq;
-            onStreamSignalWindow(traceId);
+
+            // TODO: responseAckBytes == 0, remove if
+            if (responseBytes == 0)
+            {
+                doStreamWindow(traceId);
+            }
 
             if (KafkaState.closed(state))
             {
@@ -754,7 +751,7 @@ public final class KafkaClientConnectionPool
             }
             else
             {
-                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_RESET);
+                doStreamReset(traceId);
             }
         }
 
@@ -776,7 +773,7 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.openedReply(state);
 
-            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_WINDOW);
+            doStreamWindow(traceId);
         }
 
         private void doStreamWindow(
@@ -802,7 +799,7 @@ public final class KafkaClientConnectionPool
                 traceId, authorization, connection.initialBudId, connection.initialPad);
         }
 
-        private void onStreamSignalBegin(
+        private void doStreamBegin(
             long authorization,
             long traceId)
         {
@@ -843,7 +840,7 @@ public final class KafkaClientConnectionPool
 
                 if (responseBytes == 0 && KafkaState.replyClosing(state))
                 {
-                    onStreamSignalEnd(traceId);
+                    doStreamEnd(traceId);
                 }
             }
             else
@@ -854,30 +851,12 @@ public final class KafkaClientConnectionPool
                 // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    onStreamSignalWindow(traceId);
+                    doStreamWindow(traceId);
                 }
             }
         }
 
-        private void onStreamSignalEnd(
-            long traceId)
-        {
-            doStreamEnd(traceId);
-        }
-
-        private void onStreamSignalAbort(
-            long traceId)
-        {
-            doStreamAbort(traceId);
-        }
-
-        private void onStreamSignalReset(
-            long traceId)
-        {
-            doStreamReset(traceId);
-        }
-
-        private void onStreamSignalWindow(
+        private void doStreamWindow(
             long traceId)
         {
             final long replySeqOffsetPeek = replySeqOffset.peekLong();
@@ -995,7 +974,6 @@ public final class KafkaClientConnectionPool
         private void onSignal(
             SignalFW signal)
         {
-            final long authorization = signal.authorization();
             final long traceId = signal.traceId();
             final int signalId = signal.signalId();
             final OctetsFW payload = signal.payload();
@@ -1003,19 +981,28 @@ public final class KafkaClientConnectionPool
             switch (signalId)
             {
             case SIGNAL_STREAM_BEGIN:
-                onStreamSignalBegin(authorization, traceId);
+                final BeginFW begin = beginRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamBegin(begin);
+                break;
+            case SIGNAL_STREAM_DATA:
+                final DataFW data = dataRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamData(data);
                 break;
             case SIGNAL_STREAM_END:
-                onStreamSignalEnd(traceId);
+                final EndFW end = endRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamEnd(end);
                 break;
             case SIGNAL_STREAM_ABORT:
-                onStreamSignalAbort(traceId);
-                break;
-            case SIGNAL_STREAM_RESET:
-                onStreamSignalReset(traceId);
+                final AbortFW abort = abortRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamAbort(abort);
                 break;
             case SIGNAL_STREAM_WINDOW:
-                onStreamSignalWindow(traceId);
+                final WindowFW window = windowRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamWindow(window);
+                break;
+            case SIGNAL_STREAM_RESET:
+                final ResetFW reset = resetRO.wrap(payload.value(), 0, payload.sizeof());
+                onStreamReset(reset);
                 break;
             default:
                 doSignal(sender, originId, routedId, initialId, initialSeq,
