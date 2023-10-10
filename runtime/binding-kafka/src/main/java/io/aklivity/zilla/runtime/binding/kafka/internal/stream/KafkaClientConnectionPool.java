@@ -68,10 +68,10 @@ public final class KafkaClientConnectionPool
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000001;
-    private static final int SIGNAL_STREAM_INITIAL_RESET = 0x80000001;
+    private static final int SIGNAL_STREAM_RESET = 0x80000001;
     private static final int SIGNAL_STREAM_REPLY_BEGIN = 0x80000002;
-    private static final int SIGNAL_STREAM_REPLY_END = 0x80000003;
-    private static final int SIGNAL_STREAM_REPLY_ABORT = 0x80000004;
+    private static final int SIGNAL_STREAM_END = 0x80000003;
+    private static final int SIGNAL_STREAM_ABORT = 0x80000004;
     private static final int SIGNAL_STREAM_REPLY_WINDOW = 0x80000005;
     private static final String CLUSTER = "";
 
@@ -112,7 +112,7 @@ public final class KafkaClientConnectionPool
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
-    private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialIds;
+    private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialId;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -129,7 +129,7 @@ public final class KafkaClientConnectionPool
         this.supplyTraceId = context::supplyTraceId;
         this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
-        this.streamsByInitialIds = new Long2ObjectHashMap<>();
+        this.streamsByInitialId = new Long2ObjectHashMap<>();
     }
 
     private MessageConsumer newStream(
@@ -484,7 +484,7 @@ public final class KafkaClientConnectionPool
         {
             assert contextId == 0;
 
-            KafkaClientStream stream = streamsByInitialIds.get(streamId);
+            KafkaClientStream stream = streamsByInitialId.get(streamId);
             stream.doStreamSignalNow(traceId, signalId);
         }
 
@@ -502,7 +502,7 @@ public final class KafkaClientConnectionPool
         {
             assert contextId == 0;
 
-            KafkaClientStream stream = streamsByInitialIds.get(streamId);
+            KafkaClientStream stream = streamsByInitialId.get(streamId);
             stream.doStreamSignalNow(traceId, signalId, buffer, offset, length);
         }
         @Override
@@ -517,7 +517,7 @@ public final class KafkaClientConnectionPool
         {
             assert contextId == 0;
 
-            KafkaClientStream stream = streamsByInitialIds.get(streamId);
+            KafkaClientStream stream = streamsByInitialId.get(streamId);
             return stream.doStreamSignalAt(traceId, timeMillis, signalId);
         }
 
@@ -711,7 +711,14 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.closedInitial(state);
 
-            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_END);
+            if (KafkaState.closed(state))
+            {
+                connection.onStreamClosed(initialId);
+            }
+            else
+            {
+                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_END);
+            }
         }
 
         private void onStreamAbort(
@@ -721,7 +728,14 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.closedInitial(state);
 
-            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_ABORT);
+            if (KafkaState.closed(state))
+            {
+                connection.onStreamClosed(initialId);
+            }
+            else
+            {
+                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_ABORT);
+            }
         }
 
         private void onStreamReset(
@@ -729,9 +743,16 @@ public final class KafkaClientConnectionPool
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closingReply(state);
+            state = KafkaState.closedReply(state);
 
-            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_INITIAL_RESET);
+            if (KafkaState.closed(state))
+            {
+                connection.onStreamClosed(initialId);
+            }
+            else
+            {
+                connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_RESET);
+            }
         }
 
         private void onStreamWindow(
@@ -755,7 +776,7 @@ public final class KafkaClientConnectionPool
             connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_WINDOW);
         }
 
-        private void doStreamWindow(
+        private void onStreamSignalWindow(
             long authorization,
             long traceId)
         {
@@ -778,7 +799,7 @@ public final class KafkaClientConnectionPool
                 traceId, authorization, connection.initialBudId, connection.initialPad);
         }
 
-        private void doStreamBegin(
+        private void onStreamSignalBegin(
             long traceId)
         {
             state = KafkaState.openingReply(state);
@@ -786,7 +807,7 @@ public final class KafkaClientConnectionPool
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, connection.initialBudId, EMPTY_EXTENSION);
 
-            doStreamWindow(connection.authorization, traceId);
+            connection.doConnectionSignalNow(initialId, traceId, SIGNAL_STREAM_REPLY_WINDOW);
         }
 
         private void doStreamData(
@@ -807,75 +828,55 @@ public final class KafkaClientConnectionPool
             }
 
             responseBytes -= length;
+            assert responseBytes >= 0;
 
-            if (!KafkaState.replyClosing(state))
+            if (!KafkaState.replyClosed(state))
             {
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
 
                 replySeq += reserved;
+
+                if (responseBytes == 0 && KafkaState.replyClosing(state))
+                {
+                    onStreamSignalEnd(traceId);
+                }
             }
             else
             {
+                replySeq += reserved;
+                replyAck = replySeq;
+
+                // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    doStreamEnd(traceId);
+                    onStreamSignalWindow(traceId);
                 }
             }
         }
 
-        private void doStreamEnd(
+        private void onStreamSignalEnd(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
-            {
-                state = KafkaState.closingReply(state);
-                if (nextRequestId == nexResponseId)
-                {
-                    state = KafkaState.closedReply(state);
-
-                    doEnd(sender, originId, routedId, replyId, 0, 0, 0,
-                        traceId, authorization, EMPTY_EXTENSION);
-
-                    connection.onStreamClosed(initialId, authorization, initialId);
-                }
-            }
+            doStreamEnd(traceId);
         }
 
-        private void doStreamAbort(
+        private void onStreamSignalAbort(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
-            {
-                state = KafkaState.closingReply(state);
-
-                if (nextRequestId == nexResponseId)
-                {
-                    state = KafkaState.closedReply(state);
-
-                    doAbort(sender, originId, routedId, replyId, 0, 0, 0,
-                        traceId, authorization, EMPTY_EXTENSION);
-
-                    connection.onStreamClosed(traceId, authorization, initialId);
-                }
-            }
+            doStreamAbort(traceId);
         }
 
-        private void doStreamReset(
+        private void onStreamSignalReset(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
-            {
-                state = KafkaState.closedInitial(state);
+            replyAck = replySeq;
+            onStreamSignalWindow(traceId);
 
-                doReset(sender, originId, routedId, initialId, 0, 0, 0,
-                    traceId, authorization);
-
-                connection.onStreamClosed(traceId, authorization, initialId);
-            }
+            doStreamReset(traceId);
         }
 
-        private void doStreamWindow(
+        private void onStreamSignalWindow(
             long traceId)
         {
             final long replySeqOffsetPeek = replySeqOffset.peekLong();
@@ -895,6 +896,66 @@ public final class KafkaClientConnectionPool
             }
 
             connection.doConnectionWindow(traceId, authorization, replyBud);
+        }
+
+        private void doStreamEnd(
+            long traceId)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closingReply(state);
+                if (nextRequestId == nexResponseId)
+                {
+                    state = KafkaState.closedReply(state);
+
+                    doEnd(sender, originId, routedId, replyId, 0, 0, 0,
+                        traceId, authorization, EMPTY_EXTENSION);
+
+                    if (KafkaState.closed(state))
+                    {
+                        connection.onStreamClosed(initialId);
+                    }
+                }
+            }
+        }
+
+        private void doStreamAbort(
+            long traceId)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closingReply(state);
+
+                if (nextRequestId == nexResponseId)
+                {
+                    state = KafkaState.closedReply(state);
+
+                    doAbort(sender, originId, routedId, replyId, 0, 0, 0,
+                        traceId, authorization, EMPTY_EXTENSION);
+
+                    if (KafkaState.closed(state))
+                    {
+                        connection.onStreamClosed(initialId);
+                    }
+                }
+            }
+        }
+
+        private void doStreamReset(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                state = KafkaState.closedInitial(state);
+
+                doReset(sender, originId, routedId, initialId, 0, 0, 0,
+                    traceId, authorization);
+
+                if (KafkaState.closed(state))
+                {
+                    connection.onStreamClosed(initialId);
+                }
+            }
         }
 
         private void doStreamSignalNow(
@@ -940,23 +1001,24 @@ public final class KafkaClientConnectionPool
             switch (signalId)
             {
             case SIGNAL_STREAM_REPLY_BEGIN:
-                doStreamBegin(traceId);
+                onStreamSignalBegin(traceId);
                 break;
-            case SIGNAL_STREAM_REPLY_END:
-                doStreamEnd(traceId);
+            case SIGNAL_STREAM_END:
+                onStreamSignalEnd(traceId);
                 break;
-            case SIGNAL_STREAM_REPLY_ABORT:
-                doStreamAbort(traceId);
+            case SIGNAL_STREAM_ABORT:
+                onStreamSignalAbort(traceId);
                 break;
-            case SIGNAL_STREAM_INITIAL_RESET:
-                doStreamReset(traceId);
+            case SIGNAL_STREAM_RESET:
+                onStreamSignalReset(traceId);
                 break;
             case SIGNAL_STREAM_REPLY_WINDOW:
-                doStreamWindow(traceId);
+                onStreamSignalWindow(traceId);
                 break;
             default:
                 doSignal(sender, originId, routedId, initialId, initialSeq,
                     initialAck, connection.initialMax, traceId, signalId, payload);
+                break;
             }
         }
     }
@@ -970,7 +1032,6 @@ public final class KafkaClientConnectionPool
         private final LongArrayQueue requests;
         private final LongArrayQueue responses;
         private final LongArrayQueue responseAcks;
-        private final LongHashSet responseRsts;
         private final Long2LongHashMap signalerCorrelations;
 
         private long initialId;
@@ -1009,7 +1070,6 @@ public final class KafkaClientConnectionPool
             this.requests = new LongArrayQueue();
             this.responses = new LongArrayQueue();
             this.responseAcks = new LongArrayQueue();
-            this.responseRsts = new LongHashSet();
             this.signalerCorrelations = new Long2LongHashMap(-1L);
         }
 
@@ -1201,27 +1261,25 @@ public final class KafkaClientConnectionPool
                 for (LongArrayQueue.LongIterator i = responseAcks.iterator(); i.hasNext();)
                 {
                     long responseAck = i.nextValue();
-                    if (!responseRsts.remove(responseAck))
+                    KafkaClientStream stream = streamsByInitialId.get(responseAck);
+
+                    maxReplyPad = stream.replyPad;
+                    minReplyMax = stream.replyMax;
+
+                    if (!KafkaState.replyClosed(stream.state) &&
+                        (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty()))
                     {
-                        KafkaClientStream stream = streamsByInitialIds.get(responseAck);
-
-                        maxReplyPad = stream.replyPad;
-                        minReplyMax = stream.replyMax;
-
-                        if (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty())
+                        if (!stream.replySeqOffset.isEmpty())
                         {
-                            if (!stream.replySeqOffset.isEmpty())
-                            {
-                                maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
-                            }
-                            break ack;
+                            maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
                         }
-                        maxReplyAck = stream.replyAckOffset.removeLong();
+                        break ack;
+                    }
+                    maxReplyAck = stream.replyAckOffset.removeLong();
 
-                        if (KafkaState.closed(stream.state) && stream.replyAckOffset.isEmpty())
-                        {
-                            streamsByInitialIds.remove(responseAck);
-                        }
+                    if (KafkaState.closed(stream.state) && stream.replyAckOffset.isEmpty())
+                    {
+                        streamsByInitialId.remove(responseAck);
                     }
 
                     responseAcks.removeLong();
@@ -1333,7 +1391,7 @@ public final class KafkaClientConnectionPool
 
                 long initialId = responses.peekLong();
 
-                KafkaClientStream stream = streamsByInitialIds.get(initialId);
+                KafkaClientStream stream = streamsByInitialId.get(initialId);
 
                 stream.doStreamData(traceId, flags | FLAG_INIT | FLAG_FIN,
                     reserved, buffer, progress, responseBytesMin, extension);
@@ -1383,13 +1441,8 @@ public final class KafkaClientConnectionPool
             requests.clear();
             responses.clear();
             responseAcks.clear();
-            responseRsts.clear();
-            streams.forEach(s ->
-            {
-                KafkaClientStream stream = streamsByInitialIds.get(s);
-                stream.cleanup(traceId);
-                streamsByInitialIds.remove(s);
-            });
+            streams.forEach(s -> streamsByInitialId.get(s).cleanup(traceId));
+            streamsByInitialId.clear();
             streams.clear();
         }
 
@@ -1406,7 +1459,7 @@ public final class KafkaClientConnectionPool
             else
             {
                 long initialId = signalerCorrelations.remove(contextId);
-                KafkaClientStream stream = streamsByInitialIds.get(initialId);
+                KafkaClientStream stream = streamsByInitialId.get(initialId);
 
                 stream.onSignal(signal);
             }
@@ -1464,17 +1517,17 @@ public final class KafkaClientConnectionPool
 
             if (requests.isEmpty())
             {
-                streams.forEach(s -> streamsByInitialIds.get(s).doStreamWindow(authorization, traceId));
+                streams.forEach(s -> streamsByInitialId.get(s).onStreamSignalWindow(authorization, traceId));
             }
 
             while (credit > 0 && !requests.isEmpty())
             {
                 final long streamId = requests.peekLong();
-                KafkaClientStream stream = streamsByInitialIds.get(streamId);
+                KafkaClientStream stream = streamsByInitialId.get(streamId);
 
                 long streamAck = stream.initialAck;
 
-                stream.doStreamWindow(authorization, traceId);
+                stream.onStreamSignalWindow(authorization, traceId);
 
                 credit = Math.max(credit - (int)(streamAck - stream.initialAck), 0);
 
@@ -1501,7 +1554,7 @@ public final class KafkaClientConnectionPool
         {
             assert signalId == SIGNAL_CONNECTION_CLEANUP;
 
-            if (streamsByInitialIds.isEmpty())
+            if (streamsByInitialId.isEmpty())
             {
                 final long traceId = supplyTraceId.getAsLong();
                 cleanupConnection(traceId);
@@ -1526,18 +1579,9 @@ public final class KafkaClientConnectionPool
         }
 
         private void onStreamClosed(
-            long traceId,
-            long authorization,
             long streamId)
         {
-            responseRsts.add(streamId);
             streams.remove(streamId);
-
-            KafkaClientStream stream = streamsByInitialIds.get(streamId);
-            if (stream.replyAck == stream.replySeq)
-            {
-                doConnectionWindow(traceId, authorization, 0);
-            }
         }
 
         @Override
@@ -1555,7 +1599,7 @@ public final class KafkaClientConnectionPool
             final long authorization = begin.authorization();
 
             KafkaClientStream stream = new KafkaClientStream(this, sender, originId, routedId, initialId, authorization);
-            streamsByInitialIds.put(initialId, stream);
+            streamsByInitialId.put(initialId, stream);
             streams.add(initialId);
 
             return stream::onStreamMessage;

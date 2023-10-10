@@ -1059,7 +1059,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 switch (errorCode)
                 {
                 case ERROR_REBALANCE_IN_PROGRESS:
-                    client.onSynGroupRebalance(traceId, authorization);
+                    client.onSyncGroupRebalance(traceId, authorization);
                     break;
                 case ERROR_NONE:
                     client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
@@ -4251,7 +4251,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
-        private void onSynGroupRebalance(
+        private void onSyncGroupRebalance(
             long traceId,
             long authorization)
         {
