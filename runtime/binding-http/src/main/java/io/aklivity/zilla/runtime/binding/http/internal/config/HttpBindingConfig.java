@@ -16,14 +16,18 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -37,7 +41,9 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -58,6 +64,8 @@ public final class HttpBindingConfig
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
     public final List<HttpRequestType> requests;
+    public Map<String, String8FW> pathParams;
+    public Map<String, String8FW> queryParams;
 
     public HttpBindingConfig(
         BindingConfig binding)
@@ -226,6 +234,193 @@ public final class HttpBindingConfig
             }
         }
         return result;
+    }
+
+    public HttpRequestType resolveRequest(
+        Function<String, String> headerByName)
+    {
+        HttpRequestType result = null;
+        if (requests != null && !requests.isEmpty())
+        {
+            String path = headerByName.apply(":path");
+            String method = headerByName.apply(":method");
+            String contentType = headerByName.apply("content-type");
+            for (HttpRequestType request : requests)
+            {
+                boolean isMatch = true;
+                if (method != null && !method.equals(request.method.name()))
+                {
+                    isMatch = false;
+                }
+                if (isMatch && contentType != null && !request.contentType.contains(contentType))
+                {
+                    isMatch = false;
+                }
+                if (isMatch)
+                {
+                    isMatch = parseParams(request, path);
+                }
+                if (isMatch)
+                {
+                    result = request;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean parseParams(
+        HttpRequestType request,
+        String path)
+    {
+        boolean result = false;
+        String pattern =
+            "^" +
+            request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)") +
+            "/?(\\?(?<query0>.*))?$";
+        Matcher matcher = Pattern.compile(pattern).matcher(path);
+        if (matcher.matches())
+        {
+            this.pathParams = parsePathParams(request.path, matcher);
+            this.queryParams = parseQueryParams(matcher.group("query0"));
+            result = true;
+        }
+        return result;
+    }
+
+    private Map<String, String8FW> parsePathParams(
+        String pathTemplate,
+        Matcher matcher)
+    {
+        Map<String, String8FW> result = new HashMap<>();
+        String[] segments = pathTemplate.split("/");
+        for (String segment : segments)
+        {
+            if (segment.startsWith("{") && segment.endsWith("}"))
+            {
+                String name = segment.substring(1, segment.length() - 1);
+                String8FW value = new String8FW(URLDecoder.decode(matcher.group(name), UTF_8));
+                result.put(name, value);
+            }
+        }
+        return result;
+    }
+
+    private Map<String, String8FW> parseQueryParams(
+        String query)
+    {
+        Map<String, String8FW> queryParams = new HashMap<>();
+        if (query != null && !query.isBlank())
+        {
+            String[] paramPairs = query.split("&");
+            for (String paramPair : paramPairs)
+            {
+                String[] keyValue = paramPair.split("=");
+                if (keyValue.length == 2)
+                {
+                    String key = URLDecoder.decode(keyValue[0], UTF_8);
+                    String8FW value = new String8FW(URLDecoder.decode(keyValue[1], UTF_8));
+                    queryParams.put(key, value);
+                }
+            }
+        }
+        return queryParams;
+    }
+
+    public boolean validate(
+        HttpRequestType request,
+        HttpBeginExFW beginEx)
+    {
+        boolean isValid = true;
+        if (request != null)
+        {
+            boolean isValidHeader = validateHeaders(request, beginEx);
+            boolean isValidPathParams = validatePathParams(request);
+            boolean isValidQueryParams = validateQueryParams(request);
+            // TODO: Ati - validate content (probably somewhere else)
+            //boolean isValidContent = validateContent(requestType, beginEx);
+            isValid = isValidHeader && isValidPathParams && isValidQueryParams; // && isValidContent;
+        }
+        return isValid;
+    }
+
+    private boolean validateHeaders(
+        HttpRequestType request,
+        HttpBeginExFW beginEx)
+    {
+        AtomicBoolean isValid = new AtomicBoolean(true);
+        if (request != null && request.headers != null)
+        {
+            beginEx.headers().forEach(header ->
+            {
+                if (isValid.get())
+                {
+                    Validator validator = request.headers.get(header.name());
+                    if (validator != null)
+                    {
+                        String16FW value = header.value();
+                        if (!validator.read(value.value(), value.offset(), value.length()))
+                        {
+                            isValid.set(false);
+                        }
+                    }
+                }
+            });
+        }
+        return isValid.get();
+    }
+
+    private boolean validatePathParams(
+        HttpRequestType request)
+    {
+        boolean isValid = true;
+        for (String name : this.pathParams.keySet())
+        {
+            Validator validator = request.pathParams.get(name);
+            if (validator != null)
+            {
+                String8FW value = this.pathParams.get(name);
+                if (!validator.read(value.value(), value.offset(), value.length()))
+                {
+                    isValid = false;
+                    break;
+                }
+            }
+        }
+        return isValid;
+    }
+
+    private boolean validateQueryParams(
+        HttpRequestType request)
+    {
+        boolean isValid = true;
+        for (String name : this.queryParams.keySet())
+        {
+            Validator validator = request.queryParams.get(name);
+            if (validator != null)
+            {
+                String8FW value = this.queryParams.get(name);
+                if (!validator.read(value.value(), value.offset(), value.length()))
+                {
+                    isValid = false;
+                    break;
+                }
+            }
+        }
+        return isValid;
+    }
+
+    private boolean validateContent(
+        HttpRequestType request)
+    {
+        AtomicBoolean isValidContent = new AtomicBoolean(true);
+        if (request != null && request.content != null)
+        {
+            Validator validator = request.content;
+            // TODO: Ati
+        }
+        return isValidContent.get();
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(
