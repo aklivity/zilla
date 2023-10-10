@@ -44,7 +44,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
-import java.net.URLDecoder;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -57,7 +56,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -1061,8 +1059,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
 
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
-                        server.selectRequest(headers::get);
-                        if (route != null && server.validate(beginEx, headers))
+                        server.request = binding.resolveRequest(headers::get);
+                        if (route != null && binding.validate(server.request, beginEx))
                         {
                             if (binding.options != null && binding.options.overrides != null)
                             {
@@ -1579,8 +1577,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyBudgetId;
         private int replyMax;
         private HttpRequestType request;
-        private Map<String, String8FW> pathParams;
-        private Map<String, String8FW> queryParams;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -2236,186 +2232,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
 
             this.exchange = exchange;
-        }
-
-        private void selectRequest(
-            Function<String, String> headerByName)
-        {
-            if (binding.requests != null && !binding.requests.isEmpty())
-            {
-                String path = headerByName.apply(":path");
-                String method = headerByName.apply(":method");
-                String contentType = headerByName.apply("content-type");
-                for (HttpRequestType request : binding.requests)
-                {
-                    boolean isMatch = true;
-                    if (method != null && !method.equals(request.method.name()))
-                    {
-                        isMatch = false;
-                    }
-                    if (isMatch && contentType != null && !request.contentType.contains(contentType))
-                    {
-                        isMatch = false;
-                    }
-                    if (isMatch)
-                    {
-                        isMatch = parseParams(request, path);
-                    }
-                    if (isMatch)
-                    {
-                        this.request = request;
-                        break;
-                    }
-                }
-            }
-        }
-
-        private boolean parseParams(
-            HttpRequestType request,
-            String path)
-        {
-            boolean result = false;
-            String pattern =
-                "^" +
-                request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)") +
-                "/?(\\?(?<query0>.*))?$";
-            Matcher matcher = Pattern.compile(pattern).matcher(path);
-            if (matcher.matches())
-            {
-                this.pathParams = parsePathParams(request.path, matcher);
-                this.queryParams = parseQueryParams(matcher.group("query0"));
-                result = true;
-            }
-            return result;
-        }
-
-        private Map<String, String8FW> parsePathParams(
-            String pathTemplate,
-            Matcher matcher)
-        {
-            Map<String, String8FW> result = new HashMap<>();
-            String[] segments = pathTemplate.split("/");
-            for (String segment : segments)
-            {
-                if (segment.startsWith("{") && segment.endsWith("}"))
-                {
-                    String name = segment.substring(1, segment.length() - 1);
-                    String8FW value = new String8FW(URLDecoder.decode(matcher.group(name), UTF_8));
-                    result.put(name, value);
-                }
-            }
-            return result;
-        }
-
-        private Map<String, String8FW> parseQueryParams(
-            String query)
-        {
-            Map<String, String8FW> queryParams = new HashMap<>();
-            if (query != null && !query.isBlank())
-            {
-                String[] paramPairs = query.split("&");
-                for (String paramPair : paramPairs)
-                {
-                    String[] keyValue = paramPair.split("=");
-                    if (keyValue.length == 2)
-                    {
-                        String key = URLDecoder.decode(keyValue[0], UTF_8);
-                        String8FW value = new String8FW(URLDecoder.decode(keyValue[1], UTF_8));
-                        queryParams.put(key, value);
-                    }
-                }
-            }
-            return queryParams;
-        }
-
-        private boolean validate(
-            HttpBeginExFW beginEx,
-            Map<String, String> headers)
-        {
-            boolean isValidHeader = validateHeaders(beginEx);
-            //final String path = headers.get(":path");
-            //System.out.println(path); // TODO: Ati
-            // TODO: Ati - parse path -> pathParams, queryParams
-            boolean isValidPathParams = doValidatePathParams();
-            boolean isValidQueryParams = doValidateQueryParams();
-            // TODO: Ati - validate content (probably somewhere else)
-            //boolean isValidContent = doValidateContent(requestType, beginEx);
-            return isValidHeader && isValidPathParams && isValidQueryParams; // && isValidContent;
-        }
-
-        private boolean validateHeaders(
-            HttpBeginExFW beginEx)
-        {
-            AtomicBoolean isValid = new AtomicBoolean(true);
-            if (this.request != null && this.request.headers != null)
-            {
-                beginEx.headers().forEach(header ->
-                {
-                    if (isValid.get())
-                    {
-                        Validator validator = this.request.headers.get(header.name());
-                        if (validator != null)
-                        {
-                            String16FW value = header.value();
-                            if (!validator.read(value.value(), value.offset(), value.length()))
-                            {
-                                isValid.set(false);
-                            }
-                        }
-                    }
-                });
-            }
-            return isValid.get();
-        }
-
-        private boolean doValidatePathParams()
-        {
-            boolean isValid = true;
-            for (String name : this.pathParams.keySet())
-            {
-                Validator validator = this.request.pathParams.get(name);
-                if (validator != null)
-                {
-                    String8FW value = this.pathParams.get(name);
-                    if (!validator.read(value.value(), value.offset(), value.length()))
-                    {
-                        isValid = false;
-                        break;
-                    }
-                }
-            }
-            return isValid;
-        }
-
-        private boolean doValidateQueryParams()
-        {
-            boolean isValid = true;
-            for (String name : this.queryParams.keySet())
-            {
-                Validator validator = this.request.queryParams.get(name);
-                if (validator != null)
-                {
-                    String8FW value = this.queryParams.get(name);
-                    if (!validator.read(value.value(), value.offset(), value.length()))
-                    {
-                        isValid = false;
-                        break;
-                    }
-                }
-            }
-            return isValid;
-        }
-
-        private boolean doValidateContent(
-            Http2DataFW beginEx)
-        {
-            AtomicBoolean isValidContent = new AtomicBoolean(true);
-            if (this.request != null && this.request.content != null)
-            {
-                Validator validator = this.request.content;
-            }
-            // TODO: Ati
-            return isValidContent.get();
         }
 
         private void onDecodeHeadersOnly(
