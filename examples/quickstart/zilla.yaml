@@ -299,7 +299,13 @@ telemetry:
     - http.request.size
     - http.response.size
     - stream.opens.sent
+    - stream.opens.received
     - stream.closes.sent
+    - stream.closes.received
+    - stream.errors.sent
+    - stream.errors.received
+    - stream.active.sent
+    - stream.active.received
     - grpc.requests.per.rpc
     - grpc.responses.per.rpc
 
