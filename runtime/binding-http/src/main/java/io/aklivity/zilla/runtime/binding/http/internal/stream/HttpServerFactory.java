@@ -3729,6 +3729,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int decodedStreamId;
         private byte decodedFlags;
         private int decodableDataBytes;
+        private HttpRequestType request;
 
         private Http2Server(
             HttpBindingConfig binding,
@@ -4857,12 +4858,19 @@ public final class HttpServerFactory implements HttpStreamFactory
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
 
-                            // TODO: Ati - apply validation here
-                            exchange.doRequestBegin(traceId, beginEx);
-
-                            if (endRequest)
+                            this.request = binding.resolveRequest(headers::get);
+                            boolean isValid =  binding.validate(request, beginEx);
+                            if (isValid)
                             {
-                                exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                                exchange.doRequestBegin(traceId, beginEx);
+                                if (endRequest)
+                                {
+                                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                                }
+                            }
+                            else
+                            {
+                                doEncodeHeaders(traceId, authorization, streamId, headers404, true);
                             }
                         }
                     }
