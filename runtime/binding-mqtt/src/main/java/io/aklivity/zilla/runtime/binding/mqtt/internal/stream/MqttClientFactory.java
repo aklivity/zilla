@@ -1467,7 +1467,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             doEncodePingReq(traceId, authorization);
             keepAliveTimeoutId = NO_CANCEL_ID;
-            doSignalKeepAliveTimeout();
+            doSignalKeepAliveTimeout(traceId);
         }
 
         private void onPingRespTimeoutSignal(
@@ -1545,7 +1545,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 connectAcked = true;
 
                 doCancelConnackTimeout();
-                doSignalKeepAliveTimeout();
+                doSignalKeepAliveTimeout(traceId);
             }
 
             progress = connack.limit();
@@ -2409,7 +2409,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .build();
 
             doNetworkData(traceId, authorization, 0L, pingReq);
-            doSignalPingRespTimeout();
+            doSignalPingRespTimeout(traceId);
         }
 
         private void doEncodeDisconnect(
@@ -2624,7 +2624,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
         }
 
-        private void doSignalKeepAliveTimeout()
+        private void doSignalKeepAliveTimeout(
+            long traceId)
         {
             if (keepAliveMillis > 0)
             {
@@ -2633,29 +2634,34 @@ public final class MqttClientFactory implements MqttStreamFactory
                 if (keepAliveTimeoutId == NO_CANCEL_ID)
                 {
                     keepAliveTimeoutId =
-                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, initialId, KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
+                        signaler.signalAt(keepAliveTimeoutAt, originId, routedId, initialId, traceId,
+                            KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
                 }
             }
         }
 
-        private void doSignalConnackTimeout()
+        private void doSignalConnackTimeout(
+            long traceId)
         {
             connackTimeoutAt = System.currentTimeMillis() + connackTimeoutMillis;
 
             if (connackTimeoutId == NO_CANCEL_ID)
             {
-                connackTimeoutId = signaler.signalAt(connackTimeoutAt, originId, routedId, initialId, CONNACK_TIMEOUT_SIGNAL, 0);
+                connackTimeoutId = signaler.signalAt(connackTimeoutAt, originId, routedId, initialId, traceId,
+                    CONNACK_TIMEOUT_SIGNAL, 0);
             }
         }
 
-        private void doSignalPingRespTimeout()
+        private void doSignalPingRespTimeout(
+            long traceId)
         {
             pingRespTimeoutAt = System.currentTimeMillis() + pingRespTimeoutMillis;
 
             if (pingRespTimeoutId == NO_CANCEL_ID)
             {
                 pingRespTimeoutId =
-                    signaler.signalAt(pingRespTimeoutAt, originId, routedId, initialId, PINGRESP_TIMEOUT_SIGNAL, 0);
+                    signaler.signalAt(pingRespTimeoutAt, originId, routedId, initialId, traceId,
+                        PINGRESP_TIMEOUT_SIGNAL, 0);
             }
         }
 
@@ -2897,7 +2903,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (!isSetWillFlag(mqttSessionBeginEx.flags()))
             {
                 client.doEncodeConnect(traceId, authorization, client.clientId, client.flags, client.sessionExpiry, null);
-                client.doSignalConnackTimeout();
+                client.doSignalConnackTimeout(traceId);
             }
             doSessionWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
         }
@@ -2946,7 +2952,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
                     client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
                         client.sessionExpiry, willMessage);
-                    client.doSignalConnackTimeout();
+                    client.doSignalConnackTimeout(traceId);
                     break;
                 case STATE:
                     MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
@@ -3777,7 +3783,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             else
             {
                 publishExpiresId = NO_CANCEL_ID;
-                doSignalPublishExpiration();
+                doSignalPublishExpiration(traceId);
             }
         }
 
@@ -3806,14 +3812,15 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
         }
 
-        private void doSignalPublishExpiration()
+        private void doSignalPublishExpiration(
+            long traceId)
         {
             publishExpiresAt = System.currentTimeMillis() + publishTimeoutMillis;
 
             if (publishExpiresId == NO_CANCEL_ID)
             {
                 publishExpiresId =
-                    signaler.signalAt(publishExpiresAt, originId, routedId, initialId, PUBLISH_EXPIRED_SIGNAL, 0);
+                    signaler.signalAt(publishExpiresAt, originId, routedId, initialId, traceId, PUBLISH_EXPIRED_SIGNAL, 0);
             }
         }
 

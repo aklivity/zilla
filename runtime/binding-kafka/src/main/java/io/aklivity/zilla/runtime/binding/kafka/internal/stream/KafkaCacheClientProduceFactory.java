@@ -603,7 +603,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 else
                 {
                     this.groupCleanupId = doClientFanoutInitialSignalAt(currentTimeMillis() + SECONDS.toMillis(cleanupDelay),
-                            SIGNAL_GROUP_CLEANUP);
+                            traceId, SIGNAL_GROUP_CLEANUP);
                 }
             }
         }
@@ -744,7 +744,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if ((flags & FLAGS_INCOMPLETE) != 0x00)
             {
-                markEntryDirty(stream.partitionOffset);
+                markEntryDirty(traceId, stream.partitionOffset);
             }
 
             if (error != NO_ERROR)
@@ -1036,7 +1036,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             while (lastAckOffsetHighWatermark <= partitionOffset)
             {
-                final KafkaCacheEntryFW entry = markEntryDirty(lastAckOffsetHighWatermark);
+                final KafkaCacheEntryFW entry = markEntryDirty(traceId, lastAckOffsetHighWatermark);
                 final long memberStreamId = entry.ownerId();
                 final KafkaCacheClientProduceStream member = members.get(memberStreamId);
                 if (member != null)
@@ -1055,6 +1055,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
 
         private KafkaCacheEntryFW markEntryDirty(
+            long traceId,
             long partitionOffset)
         {
             final KafkaCachePartition.Node node = this.partition.seekNotAfter(partitionOffset);
@@ -1073,7 +1074,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 if (compactId == NO_CANCEL_ID)
                 {
                     this.compactAt = newCompactAt;
-                    this.compactId = doClientFanoutInitialSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT);
+                    this.compactId = doClientFanoutInitialSignalAt(newCompactAt, traceId, SIGNAL_SEGMENT_COMPACT);
                 }
             }
 
@@ -1133,9 +1134,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private long doClientFanoutInitialSignalAt(
             long timeMillis,
+            long traceId,
             int signalId)
         {
-            return signaler.signalAt(timeMillis, originId, routedId, initialId, signalId, 0);
+            return signaler.signalAt(timeMillis, originId, routedId, initialId, traceId, signalId, 0);
         }
     }
 
@@ -1338,7 +1340,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (partitionOffset != DEFAULT_LATEST_OFFSET && dataFlags != FLAGS_FIN)
             {
-                fan.markEntryDirty(partitionOffset);
+                fan.markEntryDirty(traceId, partitionOffset);
             }
 
             fan.onClientFanMemberClosed(traceId, this);
