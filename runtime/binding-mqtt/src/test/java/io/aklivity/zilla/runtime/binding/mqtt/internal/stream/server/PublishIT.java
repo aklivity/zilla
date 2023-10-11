@@ -155,6 +155,21 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.multiple.messages.with.delay/client",
+        "${app}/publish.multiple.messages.timeout/server"})
+    @Configure(name = PUBLISH_TIMEOUT_NAME, value = "1")
+    public void shouldPublishMultipleMessagesTimeout() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("PUBLISHED_MESSAGE_TWO");
+        Thread.sleep(2500);
+        k3po.notifyBarrier("PUBLISH_MESSAGE_THREE");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")

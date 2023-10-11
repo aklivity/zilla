@@ -2,7 +2,41 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.53...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.54...HEAD)
+
+**Implemented enhancements:**
+
+- Use 1-1 helm chart versioning strategy [\#487](https://github.com/aklivity/zilla/issues/487)
+- Generate `mqtt` server publish `validators` from `AsyncAPI` specification [\#461](https://github.com/aklivity/zilla/issues/461)
+- Integrate `mqtt` binding with `validators` [\#456](https://github.com/aklivity/zilla/issues/456)
+- Implement `json` validator [\#454](https://github.com/aklivity/zilla/issues/454)
+- Support `inline` catalog for validators [\#453](https://github.com/aklivity/zilla/issues/453)
+- Enforce inbound type checking; `kafka cache produce client` [\#312](https://github.com/aklivity/zilla/issues/312)
+
+**Fixed bugs:**
+
+- 0 for no mqtt session expiry should be mapped to max value for the group stream [\#501](https://github.com/aklivity/zilla/issues/501)
+- Group stream with same group id may get hang [\#500](https://github.com/aklivity/zilla/issues/500)
+- Not cleaning up group stream on group leave response. [\#491](https://github.com/aklivity/zilla/issues/491)
+- Connection pool flowcontrol can trigger exception [\#482](https://github.com/aklivity/zilla/issues/482)
+- `grpc` server binding sends incorrect `DATA` `flags` for fragmented messages [\#397](https://github.com/aklivity/zilla/issues/397)
+
+**Merged pull requests:**
+
+- 0 for no mqtt session expiry should be mapped to max integer value for the group stream [\#502](https://github.com/aklivity/zilla/pull/502) ([akrambek](https://github.com/akrambek))
+- Better handle request with same group id [\#498](https://github.com/aklivity/zilla/pull/498) ([akrambek](https://github.com/akrambek))
+- Remove stream on group leave response [\#492](https://github.com/aklivity/zilla/pull/492) ([akrambek](https://github.com/akrambek))
+- Connection pool flowcontrol cleanup and minor bug fixes on group [\#490](https://github.com/aklivity/zilla/pull/490) ([akrambek](https://github.com/akrambek))
+- update helm configs so appVersion is used as the tag [\#489](https://github.com/aklivity/zilla/pull/489) ([vordimous](https://github.com/vordimous))
+- Bump org.apache.avro:avro from 1.11.2 to 1.11.3 [\#486](https://github.com/aklivity/zilla/pull/486) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.18.3 to 3.18.4 in /cloud/docker-image/src/main/docker/release [\#484](https://github.com/aklivity/zilla/pull/484) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix publish timeout bug, increase default timeout [\#483](https://github.com/aklivity/zilla/pull/483) ([bmaidics](https://github.com/bmaidics))
+- Schema Config Update [\#481](https://github.com/aklivity/zilla/pull/481) ([aDaemonThread](https://github.com/aDaemonThread))
+- Feature/m1 docker build support [\#376](https://github.com/aklivity/zilla/pull/376) ([vordimous](https://github.com/vordimous))
+
+## [0.9.54](https://github.com/aklivity/zilla/tree/0.9.54) (2023-09-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.53...0.9.54)
 
 **Fixed bugs:**
 

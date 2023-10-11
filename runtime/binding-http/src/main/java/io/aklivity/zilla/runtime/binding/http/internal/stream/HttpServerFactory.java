@@ -954,7 +954,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 CharSequence.compare("PRI * HTTP/2.0\r\n", new AsciiSequenceView(buffer, offset, 16)) == 0)
             {
                 server.delegate = new Http2Server(server);
-                signaler.signalNow(server.originId, server.routedId, server.replyId, DELEGATE_SIGNAL, 0);
+                signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
                 return offset;
             }
 
@@ -2214,7 +2214,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             String origin,
             HttpBeginExFW beginEx)
         {
-            final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, policy, origin);
+            final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
             exchange.doRequestBegin(traceId, beginEx);
             exchange.doResponseWindow(traceId);
 
@@ -2693,6 +2693,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long originId,
                 long routedId,
                 long sessionId,
+                long traceId,
                 HttpPolicyConfig policy,
                 String origin)
             {
@@ -2709,7 +2710,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.responsePad = PADDING_CHUNKED;
                 this.responseRemaining = Integer.MAX_VALUE - encodeMax;
 
-                this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, 0);
+                this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, 0);
             }
 
             private void doRequestBegin(
@@ -3015,12 +3016,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else if (canChallenge(requestCaps) && guard.challenge(sessionId, now))
                 {
                     doResponseChallenge(traceId);
-                    expiringId = signaler.signalAt(expiresAt, originId, routedId, replyId, EXPIRING_SIGNAL, 0);
+                    expiringId = signaler.signalAt(expiresAt, originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
                 }
                 else
                 {
                     final long expiringAt = guard.expiringAt(sessionId);
-                    expiringId = signaler.signalAt(expiringAt, originId, routedId, replyId, EXPIRING_SIGNAL, 0);
+                    expiringId = signaler.signalAt(expiringAt, originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
                 }
             }
 
@@ -4833,8 +4834,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
                             final Http2Exchange exchange =
-                                    new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId, exchangeAuth, policy,
-                                            origin, contentLength);
+                                    new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId, exchangeAuth,
+                                        traceId, policy, origin, contentLength);
 
                             if (binding.options != null && binding.options.overrides != null)
                             {
@@ -5205,7 +5206,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, promiseId,
-                                exchangeAuth, policy, origin, contentLength);
+                                exchangeAuth, traceId, policy, origin, contentLength);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
@@ -5527,6 +5528,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long requestId,
                 int streamId,
                 long authorization,
+                long traceId,
                 HttpPolicyConfig policy,
                 String origin,
                 long requestContentLength)
@@ -5540,7 +5542,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.requestContentLength = requestContentLength;
                 this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routedId) : requestId;
                 this.responseId = supplyReplyId.applyAsLong(this.requestId);
-                this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, streamId);
+                this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, streamId);
             }
 
             private int initialWindow()
@@ -5974,12 +5976,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else if (canChallenge(requestCaps) && guard.challenge(sessionId, now))
                 {
                     doResponseChallenge(traceId);
-                    expiringId = signaler.signalAt(expiresAt, originId, routedId, replyId, EXPIRING_SIGNAL, streamId);
+                    expiringId = signaler.signalAt(expiresAt, originId, routedId, replyId, traceId, EXPIRING_SIGNAL, streamId);
                 }
                 else
                 {
                     final long expiringAt = guard.expiringAt(sessionId);
-                    expiringId = signaler.signalAt(expiringAt, originId, routedId, replyId, EXPIRING_SIGNAL, streamId);
+                    expiringId = signaler.signalAt(expiringAt, originId, routedId, replyId, traceId, EXPIRING_SIGNAL, streamId);
                 }
             }
 
@@ -6804,6 +6806,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         long originId,
         long routedId,
         long streamId,
+        long traceId,
         int contextId)
     {
         long expiringId = NO_CANCEL_ID;
@@ -6812,7 +6815,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             final long expiringAt = guard.expiringAt(sessionId);
             if (expiringAt != EXPIRES_NEVER)
             {
-                expiringId = signaler.signalAt(expiringAt, originId, routedId, streamId, EXPIRING_SIGNAL, contextId);
+                expiringId = signaler.signalAt(expiringAt, originId, routedId, streamId, traceId,
+                    EXPIRING_SIGNAL, contextId);
             }
         }
 

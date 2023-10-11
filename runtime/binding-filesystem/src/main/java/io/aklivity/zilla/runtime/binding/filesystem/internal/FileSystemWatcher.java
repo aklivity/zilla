@@ -173,7 +173,7 @@ public class FileSystemWatcher implements Callable<Void>
         public void signalChange(
             Signaler signaler)
         {
-            signaler.signalNow(originId, routedId, replyId, FILE_CHANGED_SIGNAL_ID, 0);
+            signaler.signalNow(originId, routedId, replyId, 0, FILE_CHANGED_SIGNAL_ID, 0);
         }
 
         private void register(

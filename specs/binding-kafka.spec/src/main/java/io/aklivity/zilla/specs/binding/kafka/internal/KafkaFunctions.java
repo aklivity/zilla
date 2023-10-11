@@ -4462,7 +4462,7 @@ public final class KafkaFunctions
         {
             private String16FW groupId;
             private String16FW protocol;
-            private int timeout;
+            private Integer timeout;
 
             private byte[] metadata;
 
@@ -4529,7 +4529,7 @@ public final class KafkaFunctions
             private boolean matchTimeout(
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
-                return timeout == 0 || timeout == groupBeginExFW.timeout();
+                return timeout == null || timeout == groupBeginExFW.timeout();
             }
 
             private boolean matchMetadata(

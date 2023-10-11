@@ -464,10 +464,17 @@ scope protocol
                 int32 memberCount;
             }
 
-            struct LeaveMember
+            struct LeaveMemberRequest
             {
                 string16 memberId;
                 string16 groupInstanceId = null;
+            }
+
+            struct LeaveMemberResponse
+            {
+                string16 memberId;
+                string16 groupInstanceId = null;
+                int16 errorCode;
             }
 
             struct OffsetFetchRequest

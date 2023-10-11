@@ -56,7 +56,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .group()
                                    .groupId("client-1")
                                    .protocol("highlander")
-                                   .timeout(0)
+                                   .timeout(2147483647)
                                    .build()
                                .build()}
 
