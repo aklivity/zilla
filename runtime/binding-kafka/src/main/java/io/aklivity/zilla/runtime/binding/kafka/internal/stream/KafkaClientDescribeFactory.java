@@ -1502,7 +1502,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeDescribeResponse(
@@ -1536,7 +1536,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 }
 
                 nextResponseId++;
-                signaler.signalAt(currentTimeMillis() + maxAgeMillis, originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalAt(currentTimeMillis() + maxAgeMillis, originId, routedId, initialId,
+                    traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(

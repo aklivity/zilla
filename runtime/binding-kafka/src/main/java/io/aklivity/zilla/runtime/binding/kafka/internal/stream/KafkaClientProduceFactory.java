@@ -1754,12 +1754,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 {
                     if (produceRequestMaxDelay == 0)
                     {
-                        signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                        signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
                     }
                     else
                     {
                         signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, originId, routedId,
-                                initialId, SIGNAL_NEXT_REQUEST, 0);
+                                initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
                     }
                     signaledRequestId = nextRequestId + 1;
                 }
@@ -2211,7 +2211,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeProduceResponse(
@@ -2227,7 +2227,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (encodeSlot != NO_SLOT)
                 {
-                    signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                    signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
                 }
             }
 

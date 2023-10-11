@@ -494,7 +494,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (grpcTimeout > 0L)
             {
                 expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout,
-                        originId, routedId, replyId, EXPIRING_SIGNAL, 0);
+                        originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
             }
         }
 

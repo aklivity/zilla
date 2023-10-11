@@ -179,9 +179,9 @@ write 81                                            # size
 read  10                                                # size
       (int:newRequestId)
       0                                                 # throttle time
-      27s                                               # REBALANCE_IN_PROGRESS
+      25s                                               # unknown member id
 
-write 129                               # size
+write 119                               # size
       11s                               # join group
       5s                                # v5
       ${newRequestId}
@@ -189,7 +189,7 @@ write 129                               # size
       4s "test"                         # consumer group
       30000                             # session timeout
       4000                              # rebalance timeout
-      10s "memberId-1"                  # consumer member group id
+      0s                                # consumer member group id
       42s ${instanceId}                 # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
@@ -198,22 +198,15 @@ write 129                               # size
         ${kafka:randomBytes(14)}            # metadata
 
 
-read  202                                               # size
+read 128                                               # size
       (int:newRequestId)
       0                                                 # throttle time
       0s                                                # no error
       3                                                 # generated id
       10s "highlander"                                  # protocol name
-      10s "memberId-1"                                  # leader id
-      10s "memberId-1"                                  # consumer member group id
-      2                                                 # members
-         10s "memberId-1"                                  # consumer member group id
-         42s [0..42]                                       # group instance id
-         14                                                # metadata size
-         2s                                               # version
-         0                                                # topics
-         0                                                # userdata
-         0                                                # partitions
+      10s "memberId-2"                                  # leader id
+      10s "memberId-2"                                  # consumer member group id
+      1                                                 # members
          10s "memberId-2"                                  # consumer member group id
          42s [0..42]                                       # group instance id
          14                                                # metadata size
@@ -221,19 +214,16 @@ read  202                                               # size
          0                                                 # topics
          0                                                 # userdata
          0                                                 # partitions
-
-write 117                                           # size
+write 101                                           # size
       14s                                           # sync group
       3s                                            # v3
       ${newRequestId}
       5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       3                                             # generation id
-      10s "memberId-1"                              # consumer member group id
+      10s "memberId-2"                              # consumer member group id
       42s ${instanceId}                             # group instance id
-      2                                             # assignments
-        10s "memberId-1"                             # consumer member group id
-        0                                            # metadata
+      1                                             # assignments
         10s "memberId-2"                             # consumer member group id
         0                                            # metadata
 
@@ -250,7 +240,7 @@ write 81                                            # size
       5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       1                                             # assignments
-        10s "memberId-1"                             # consumer member group id
+        10s "memberId-2"                             # consumer member group id
         42s ${instanceId}                            # group instance id
 
 read  72                                           # size
@@ -258,7 +248,7 @@ read  72                                           # size
       0                                            # throttle time
       0s                                           # no error
       1                                            # assignments
-        10s "memberId-1"                             # consumer member group id
+        10s "memberId-2"                             # consumer member group id
         42s [0..42]                                  # group instance id
         0s                                           # no error
 

@@ -225,13 +225,14 @@ write 81                                            # size
         10s "memberId-1"                             # consumer member group id
         42s ${instanceId}                            # group instance id
 
-read  70                                           # size
+read  72                                           # size
       (int:newRequestId)
       0                                            # throttle time
       0s                                           # no error
       1                                            # assignments
         10s "memberId-1"                             # consumer member group id
         42s [0..42]                                  # group instance id
+        0s                                           # no error
 
 write 119                                # size
       11s                               # join group

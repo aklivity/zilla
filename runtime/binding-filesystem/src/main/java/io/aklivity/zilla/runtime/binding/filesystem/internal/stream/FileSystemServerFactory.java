@@ -352,7 +352,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             else
             {
                 long timeoutAt = now().toEpochMilli() + beginEx.timeout();
-                long timeoutId = signaler.signalAt(timeoutAt, originId, routedId, replyId, TIMEOUT_EXPIRED_SIGNAL_ID, 0);
+                long timeoutId = signaler.signalAt(timeoutAt, originId, routedId, replyId, traceId,
+                    TIMEOUT_EXPIRED_SIGNAL_ID, 0);
                 watchedFile = new FileSystemWatcher.WatchedFile(
                     resolvedPath, symlinks, this::calculateTag, tag, timeoutId, originId, routedId, replyId);
                 fileSystemWatcher.watch(watchedFile);
