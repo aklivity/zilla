@@ -610,22 +610,7 @@ public final class KafkaClientConnectionPool
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-
-                final long traceId = begin.traceId();
-                final OctetsFW extension = begin.extension();
-                final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
-
-                String host = null;
-                int port = 0;
-
-                if (proxyBeginEx != null)
-                {
-                    final ProxyAddressInetFW inet = proxyBeginEx.address().inet();
-                    host = inet.destination().asString();
-                    port = inet.destinationPort();
-                }
-
-                connection.doConnectionBegin(traceId, host, port);
+                onStreamBeginInit(begin);
                 connection.doConnectionSignalNow(initialId, 0, SIGNAL_STREAM_BEGIN, buffer, index, length);
                 break;
             case DataFW.TYPE_ID:
@@ -647,6 +632,28 @@ public final class KafkaClientConnectionPool
                 break;
             }
         }
+
+        private void onStreamBeginInit(
+            BeginFW begin)
+        {
+
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
+
+            String host = null;
+            int port = 0;
+
+            if (proxyBeginEx != null)
+            {
+                final ProxyAddressInetFW inet = proxyBeginEx.address().inet();
+                host = inet.destination().asString();
+                port = inet.destinationPort();
+            }
+
+            connection.doConnectionBegin(traceId, host, port);
+        }
+
 
         private void onStreamBegin(
             BeginFW begin)
@@ -742,7 +749,7 @@ public final class KafkaClientConnectionPool
             // TODO: responseAckBytes == 0, remove if
             if (responseBytes == 0)
             {
-                doStreamWindow(traceId);
+                flushStreamWindow(traceId);
             }
 
             if (KafkaState.closed(state))
@@ -773,7 +780,7 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.openedReply(state);
 
-            doStreamWindow(traceId);
+            flushStreamWindow(traceId);
         }
 
         private void doStreamWindow(
@@ -851,12 +858,12 @@ public final class KafkaClientConnectionPool
                 // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    doStreamWindow(traceId);
+                    flushStreamWindow(traceId);
                 }
             }
         }
 
-        private void doStreamWindow(
+        private void flushStreamWindow(
             long traceId)
         {
             final long replySeqOffsetPeek = replySeqOffset.peekLong();
@@ -971,7 +978,7 @@ public final class KafkaClientConnectionPool
             doStreamAbort(traceId);
         }
 
-        private void onSignal(
+        private void onStreamSignal(
             SignalFW signal)
         {
             final long traceId = signal.traceId();
@@ -1456,7 +1463,7 @@ public final class KafkaClientConnectionPool
 
                 if (stream != null)
                 {
-                    stream.onSignal(signal);
+                    stream.onStreamSignal(signal);
                 }
             }
         }
