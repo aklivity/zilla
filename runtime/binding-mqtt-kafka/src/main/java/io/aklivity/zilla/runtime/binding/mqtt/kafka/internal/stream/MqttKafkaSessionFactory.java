@@ -1230,7 +1230,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             expiryClientIds.put(contextId, expiryClientId);
 
                             final long signalId =
-                                signaler.signalAt(expireAt, originId, routedId, initialId, SIGNAL_EXPIRE_SESSION, contextId);
+                                signaler.signalAt(expireAt, originId, routedId, initialId, traceId,
+                                    SIGNAL_EXPIRE_SESSION, contextId);
                             sessionExpiryIds.put(expiryClientId, signalId);
                             break;
                         }
@@ -1964,7 +1965,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (!wasOpen)
             {
                 final long signalId =
-                    signaler.signalAt(deliverAt, originId, routedId, initialId, SIGNAL_DELIVER_WILL_MESSAGE, 0);
+                    signaler.signalAt(deliverAt, originId, routedId, initialId, traceId,
+                        SIGNAL_DELIVER_WILL_MESSAGE, 0);
                 willDeliverIds.computeIfAbsent(delegate.clientId, k -> new LongArrayList()).add(signalId);
             }
             if (initialAck == delegate.messageSlotReserved)
@@ -3817,12 +3819,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         String16FW clientId,
         int sessionExpiryMs)
     {
+        final int timeout = sessionExpiryMs == 0 ? Integer.MAX_VALUE : sessionExpiryMs;
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(sessionExpiryMs))
+                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(timeout))
                 .build();
-
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)

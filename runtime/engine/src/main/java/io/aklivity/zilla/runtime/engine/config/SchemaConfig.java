@@ -19,20 +19,17 @@ import java.util.function.Function;
 
 public class SchemaConfig
 {
-    public final String schema;
     public final String strategy;
     public final String version;
     public final String subject;
     public final int id;
 
     SchemaConfig(
-        String schema,
         String strategy,
         String subject,
         String version,
         int id)
     {
-        this.schema = schema;
         this.strategy = strategy;
         this.version = version;
         this.subject = subject;

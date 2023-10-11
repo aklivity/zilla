@@ -13,26 +13,26 @@
 # specific language governing permissions and limitations under the License.
 #
 
-FROM eclipse-temurin:20-jdk AS build
-
-RUN apt update && apt install -y gettext
+FROM eclipse-temurin:20-alpine AS build
 
 COPY maven /root/.m2/repository
 
-COPY zpmw zpmw
-COPY zpm.json.template zpm.json.template
+COPY ../zpmw zpmw
+COPY ../zpm.json.template zpm.json.template
 
+RUN apk add --no-cache gettext
 RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
 
+RUN apk add --no-cache wget
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM ubuntu:jammy-20230916
+FROM alpine:3.18.4
 
 ENV ZILLA_VERSION ${project.version}
 
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
-COPY zilla.properties /opt/zilla/.zilla/zilla.properties
+COPY ../zilla.properties /opt/zilla/.zilla/zilla.properties
 
 ENTRYPOINT ["/opt/zilla/zilla"]

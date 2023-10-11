@@ -54,7 +54,7 @@ public class JsonValidatorConfigAdapterTest
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
-                            "\"schema\": \"cat\"," +
+                            "\"strategy\": \"topic\"," +
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
@@ -72,15 +72,12 @@ public class JsonValidatorConfigAdapterTest
         assertThat(validator.type, equalTo("json"));
         assertThat(validator.catalogs.size(), equalTo(1));
         assertThat(validator.catalogs.get(0).name, equalTo("test0"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).schema, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(0).subject, equalTo("subject1"));
         assertThat(validator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
         assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(1).schema, equalTo("cat"));
-        assertThat(validator.catalogs.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(1).version, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(1).strategy, equalTo("topic"));
+        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
         assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(2).schema, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).version, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).id, equalTo(42));
@@ -102,7 +99,7 @@ public class JsonValidatorConfigAdapterTest
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
-                            "\"schema\":\"cat\"," +
+                            "\"strategy\":\"topic\"," +
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
@@ -119,7 +116,7 @@ public class JsonValidatorConfigAdapterTest
                         .version("latest")
                         .build()
                     .schema()
-                        .schema("cat")
+                        .strategy("topic")
                         .version("latest")
                         .build()
                     .schema()

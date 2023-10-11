@@ -162,4 +162,13 @@ public class GroupIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
+        "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
+    public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

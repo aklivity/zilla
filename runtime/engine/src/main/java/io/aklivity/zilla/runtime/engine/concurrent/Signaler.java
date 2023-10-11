@@ -25,14 +25,14 @@ public interface Signaler
 
     long signalAt(long timeMillis, int signalId, IntConsumer handler);
 
-    void signalNow(long originId, long routedId, long streamId, int signalId, int contextId);
+    void signalNow(long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
 
-    void signalNow(long originId, long routedId, long streamId, int signalId, int contextId,
+    void signalNow(long originId, long routedId, long streamId, long traceId, int signalId, int contextId,
                    DirectBuffer buffer, int offset, int length);
 
-    long signalAt(long timeMillis, long originId, long routedId, long streamId, int signalId, int contextId);
+    long signalAt(long timeMillis, long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
 
-    long signalTask(Runnable task, long originId, long routedId, long streamId, int signalId, int contextId);
+    long signalTask(Runnable task, long originId, long routedId, long streamId, long traceId, int signalId, int contextId);
 
     boolean cancel(long cancelId);
 }

@@ -186,4 +186,14 @@ public class ClientGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
+        "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
+    public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
 }
