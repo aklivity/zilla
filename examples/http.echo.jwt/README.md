@@ -35,8 +35,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-http-echo-jwt oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-echo-jwt --create-namespace --wait [...]
++ helm install zilla-http-echo-jwt oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-echo-jwt --create-namespace --wait [...]
 NAME: zilla-http-echo-jwt
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-echo-jwt

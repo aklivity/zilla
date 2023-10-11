@@ -3,8 +3,7 @@ set -ex
 
 # Install Zilla (config) to the Kubernetes cluster with helm and wait for the pod to start up
 ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-VERSION=0.9.46
-helm install zilla-config-server-config $ZILLA_CHART --version $VERSION --namespace zilla-config-server --create-namespace --wait \
+helm install zilla-config-server-config $ZILLA_CHART --namespace zilla-config-server --create-namespace --wait \
     --values zilla-config/values.yaml \
     --set-file zilla\\.yaml=zilla-config/zilla.yaml \
     --set-file secrets.tls.data.localhost\\.p12=tls/localhost.p12
@@ -14,7 +13,7 @@ ZILLA_CONFIG_POD=$(kubectl get pods --namespace zilla-config-server --selector a
 kubectl cp --namespace zilla-config-server www "$ZILLA_CONFIG_POD:/var/"
 
 # Install Zilla (http) to the Kubernetes cluster with helm and wait for the pod to start up
-helm install zilla-config-server-http $ZILLA_CHART --version $VERSION --namespace zilla-config-server --create-namespace --wait \
+helm install zilla-config-server-http $ZILLA_CHART --namespace zilla-config-server --create-namespace --wait \
     --values zilla-http/values.yaml \
     --set-file configMaps.prop.data.zilla\\.properties=zilla-http/zilla.properties
 

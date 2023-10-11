@@ -31,12 +31,12 @@ The `setup.sh` script:
 - starts port forwarding
 
 ```bash
-$./setup.sh 
+./setup.sh 
+```
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install mqtt-proxy-asyncapi oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace mqtt-proxy-asyncapi --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
-Pulled: ghcr.io/aklivity/charts/zilla:0.9.46
-Digest: sha256:4b0a63b076db9b53a9484889a11590b77f3184217c3d039973c532f25940adbc
++ helm install mqtt-proxy-asyncapi oci://ghcr.io/aklivity/charts/zilla --namespace mqtt-proxy-asyncapi --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
 NAME: mqtt-proxy-asyncapi
 LAST DEPLOYED: [...]
 NAMESPACE: mqtt-proxy-asyncapi

@@ -36,7 +36,6 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
 + helm install zilla-http-redpanda-sasl-scram ./zilla-0.1.0.tgz --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait [...]
 NAME: zilla-http-redpanda-sasl-scram
 LAST DEPLOYED: [...]

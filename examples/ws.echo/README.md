@@ -26,8 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-ws-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-ws-echo --create-namespace --wait [...]
++ helm install zilla-ws-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-echo --create-namespace --wait [...]
 NAME: zilla-ws-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-ws-echo

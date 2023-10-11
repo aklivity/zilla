@@ -26,8 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-grpc-kafka-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-kafka-echo --wait [...]
++ helm install zilla-grpc-kafka-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-echo --wait [...]
 NAME: zilla-grpc-kafka-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-echo

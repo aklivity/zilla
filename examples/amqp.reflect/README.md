@@ -27,8 +27,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-amqp-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-amqp-reflect --create-namespace --wait [...]
++ helm install zilla-amqp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-amqp-reflect --create-namespace --wait [...]
 NAME: zilla-amqp-reflect
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-amqp-reflect

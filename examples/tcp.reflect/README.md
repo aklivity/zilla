@@ -24,8 +24,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-tcp-reflect oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-tcp-reflect [...]
++ helm install zilla-tcp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tcp-reflect [...]
 NAME: zilla-tcp-reflect
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-tcp-reflect

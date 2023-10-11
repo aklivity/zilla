@@ -36,10 +36,12 @@ The `setup.sh` script:
 - starts port forwarding
 
 ```bash
-$./setup.sh   
+./setup.sh   
+```
+
+```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-mqtt-kafka-broker-jwt oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-mqtt-kafka-broker-jwt --create-namespace --wait [...]
++ helm install zilla-mqtt-kafka-broker-jwt oci://ghcr.io/aklivity/charts/zilla --namespace zilla-mqtt-kafka-broker-jwt --create-namespace --wait [...]
 NAME: zilla-mqtt-kafka-broker-jwt
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-mqtt-kafka-broker-jwt

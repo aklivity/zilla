@@ -6,8 +6,7 @@ docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.R
 
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-VERSION=0.9.46
-helm install zilla-sse-proxy-jwt $ZILLA_CHART --version $VERSION --namespace zilla-sse-proxy-jwt --create-namespace --wait \
+helm install zilla-sse-proxy-jwt $ZILLA_CHART --namespace zilla-sse-proxy-jwt --create-namespace --wait \
     --values values.yaml \
     --set-file zilla\\.yaml=zilla.yaml \
     --set-file secrets.tls.data.localhost\\.p12=tls/localhost.p12

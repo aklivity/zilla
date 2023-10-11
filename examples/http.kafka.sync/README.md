@@ -35,8 +35,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-http-kafka-sync oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-http-kafka-sync --create-namespace --wait
++ helm install zilla-http-kafka-sync oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-sync --create-namespace --wait
 NAME: zilla-http-kafka-sync
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-sync

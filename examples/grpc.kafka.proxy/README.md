@@ -41,8 +41,7 @@ output:
 + docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
++ helm install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-proxy
 LAST [...]
 NAMESPACE: zilla-grpc-kafka-proxy

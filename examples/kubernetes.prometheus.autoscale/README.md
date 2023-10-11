@@ -28,8 +28,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-kubernetes-prometheus-autoscale oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait [...]
++ helm install zilla-kubernetes-prometheus-autoscale oci://ghcr.io/aklivity/charts/zilla --namespace zilla-kubernetes-prometheus-autoscale --create-namespace --wait [...]
 NAME: zilla-kubernetes-prometheus-autoscale
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-kubernetes-prometheus-autoscale

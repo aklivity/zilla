@@ -25,8 +25,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ VERSION=0.9.46
-+ helm install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --version 0.9.46 --namespace zilla-grpc-echo --wait [...]
++ helm install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-echo --wait [...]
 NAME: zilla-grpc-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-echo

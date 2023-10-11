@@ -1,4 +1,4 @@
-args: ["start", "-v", "-e", "-P", "zilla.binding.kafka.client.connection.pool=false"]
+args: ["start", "-v", "-e"]
 
 env:
   - name: KEYSTORE_PASSWORD
