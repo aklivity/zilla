@@ -23,25 +23,32 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {
     public final long id;
+    public final long order;
 
-    public final Optional<MqttKafkaWithResolver> with;
-
+    private final Optional<MqttKafkaWithResolver> with;
     private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
+
+    public final String16FW messages;
+    public final String16FW retained;
 
     public MqttKafkaRouteConfig(
         MqttKafkaOptionsConfig options,
         RouteConfig route)
     {
         this.id = route.id;
+        this.order = route.order;
         this.with = Optional.ofNullable(route.with)
             .map(MqttKafkaWithConfig.class::cast)
             .map(c -> new MqttKafkaWithResolver(options, c));
+        this.messages = with.isPresent() ? with.get().messages() : options.topics.messages;
+        this.retained = options.topics.retained;
         this.when = route.when.stream()
             .map(MqttKafkaConditionConfig.class::cast)
             .map(MqttKafkaConditionMatcher::new)

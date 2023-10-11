@@ -20,7 +20,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -61,12 +64,12 @@ public class MqttKafkaBindingConfig
             .orElse(null);
     }
 
-    public List<MqttKafkaRouteConfig> resolve(
+    public List<MqttKafkaRouteConfig> resolveAll(
         long authorization,
-        List<String> topicFilters)
+        Array32FW<MqttTopicFilterFW> filters)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && topicFilters.stream().anyMatch(r::matchesTopicFilter))
+            .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesTopicFilter(f.pattern().asString())))
             .distinct()
             .collect(Collectors.toList());
     }

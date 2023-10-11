@@ -31,7 +31,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -174,19 +173,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final List<String> topicFilters = new ArrayList<>();
-        mqttSubscribeBeginEx.filters().forEach(f -> topicFilters.add(f.pattern().asString()));
 
         final List<MqttKafkaRouteConfig> routes = binding != null ?
-            binding.resolve(authorization, topicFilters) : null;
+            binding.resolveAll(authorization, mqttSubscribeBeginEx.filters()) : null;
         MessageConsumer newStream = null;
 
         if (routes != null && !routes.isEmpty())
         {
-            final String16FW defaultMessagesTopic = binding.messagesTopic();
-            final String16FW retainedTopic = binding.retainedTopic();
-            newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, routes,
-                defaultMessagesTopic, retainedTopic)::onMqttMessage;
+            newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, routes)::onMqttMessage;
         }
 
         return newStream;
@@ -199,7 +193,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final Object2ObjectHashMap<MqttKafkaRouteConfig, KafkaMessagesProxy> messages;
+        private final Long2ObjectHashMap<KafkaMessagesProxy> messages;
         private final KafkaRetainedProxy retained;
 
         private int state;
@@ -226,9 +220,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long originId,
             long routedId,
             long initialId,
-            List<MqttKafkaRouteConfig> routes,
-            String16FW defaultMessagesTopic,
-            String16FW retainedTopic)
+            List<MqttKafkaRouteConfig> routes)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -238,14 +230,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
             this.retainAsPublished = new Long2ObjectHashMap<>();
-            this.messages = new Object2ObjectHashMap<>();
-            routes.forEach(r ->
-            {
-                final long resolvedId = r.id;
-                final String16FW messagesTopic = r.with.isPresent() ? r.with.get().topic() : defaultMessagesTopic;
-                messages.put(r, new KafkaMessagesProxy(originId, resolvedId, messagesTopic, r, this));
-            });
-            this.retained = new KafkaRetainedProxy(originId, routes.get(0).id, retainedTopic, this);
+            this.messages = new Long2ObjectHashMap<>();
+            routes.forEach(r -> messages.put(r.order, new KafkaMessagesProxy(originId, r, this)));
+            final MqttKafkaRouteConfig retainedRoute = routes.get(0);
+            this.retained = new KafkaRetainedProxy(originId, retainedRoute.id, retainedRoute.retained, this);
         }
 
         private void onMqttMessage(
@@ -370,27 +358,24 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final MqttSubscribeFlushExFW mqttSubscribeFlushEx = mqttFlushEx.subscribe();
 
             final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeFlushEx.filters();
-            final List<String> topicFilters = new ArrayList<>();
-            filters.forEach(f -> topicFilters.add(f.pattern().asString()));
 
             final List<MqttKafkaRouteConfig> routes = binding != null ?
-                binding.resolve(authorization, topicFilters) : null;
+                binding.resolveAll(authorization, filters) : null;
 
             if (routes != null)
             {
                 routes.forEach(r ->
                 {
-                    if (!messages.containsKey(r))
+                    final long routeOrder = r.order;
+                    if (!messages.containsKey(routeOrder))
                     {
-                        final long resolvedId = r.id;
-                        final String16FW messagesTopic = r.with.isPresent() ? r.with.get().topic() : binding.messagesTopic();
-                        KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(originId, resolvedId, messagesTopic, r, this);
-                        messages.put(r, messagesProxy);
+                        KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(originId, r, this);
+                        messages.put(routeOrder, messagesProxy);
                         messagesProxy.doKafkaBegin(traceId, authorization, 0, filters);
                     }
                     else
                     {
-                        messages.get(r).doKafkaFlush(traceId, authorization, budgetId, reserved, filters);
+                        messages.get(routeOrder).doKafkaFlush(traceId, authorization, budgetId, reserved, filters);
                     }
                 });
             }
@@ -706,14 +691,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private KafkaMessagesProxy(
             long originId,
-            long routedId,
-            String16FW topic,
             MqttKafkaRouteConfig routeConfig,
             MqttSubscribeProxy mqtt)
         {
             this.originId = originId;
-            this.routedId = routedId;
-            this.topic = topic;
+            this.routedId = routeConfig.id;
+            this.topic = routeConfig.messages;
             this.routeConfig = routeConfig;
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
