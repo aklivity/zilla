@@ -1,8 +1,14 @@
 # Changelog
 
+<<<<<<< HEAD
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.54...HEAD)
+=======
+## [0.9.55](https://github.com/aklivity/zilla/tree/0.9.55) (2023-10-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.54...0.9.55)
+>>>>>>> da6753468 (Update CHANGELOG.md)
 
 **Implemented enhancements:**
 
