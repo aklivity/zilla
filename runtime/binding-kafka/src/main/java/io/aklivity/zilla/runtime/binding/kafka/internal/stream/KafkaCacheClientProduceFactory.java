@@ -687,11 +687,18 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                if (type != null &&
-                    !partition.validProduceEntry(type, true, key.value()))
+                if (type != null)
                 {
-                    error = ERROR_INVALID_RECORD;
-                    break init;
+                    int status = partition.validProduceEntry(type, true, key.value());
+                    if (status == -1)
+                    {
+                        error = ERROR_INVALID_RECORD;
+                        break init;
+                    }
+                    else
+                    {
+                        // TODO: do we update stream.segment with progress received from Validator
+                    }
                 }
 
                 stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
@@ -720,10 +727,17 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
 
             if ((flags & FLAGS_FIN) != 0x00 &&
-                type != null &&
-                !partition.validProduceEntry(type, false, stream.segment))
+                type != null)
             {
-                error = ERROR_INVALID_RECORD;
+                int status = partition.validProduceEntry(type, false, stream.segment);
+                if (status == -1)
+                {
+                    error = ERROR_INVALID_RECORD;
+                }
+                else
+                {
+                    // TODO: do we update stream.segment with progress received from Validator
+                }
             }
 
             if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)

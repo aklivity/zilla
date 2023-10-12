@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public final class StringValidator implements Validator
@@ -34,21 +35,23 @@ public final class StringValidator implements Validator
     }
 
     @Override
-    public DirectBuffer read(
+    public int read(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
-        return validate(data, index, length) ? data : null;
+        return !validate(data, index, length) ? -1 : next.applyAsInt(data, index, length);
     }
 
     @Override
-    public DirectBuffer write(
+    public int write(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
-        return validate(data, index, length) ? data : null;
+        return !validate(data, index, length) ? -1 : next.applyAsInt(data, index, length);
     }
 
     private boolean validate(

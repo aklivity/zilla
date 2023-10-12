@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidator implements Validator
@@ -79,10 +80,11 @@ public class JsonValidator implements Validator
     }
 
     @Override
-    public DirectBuffer read(
+    public int read(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
         DirectBuffer value = new UnsafeBuffer();
 
@@ -116,14 +118,15 @@ public class JsonValidator implements Validator
                 value.wrap(data);
             }
         }
-        return value;
+        return value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
     }
 
     @Override
-    public DirectBuffer write(
+    public int write(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
         MutableDirectBuffer value = null;
 
@@ -143,7 +146,8 @@ public class JsonValidator implements Validator
             value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
             value.putBytes(5, payloadBytes);
         }
-        return value;
+        return value == null ||
+            value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
     }
 
     private String fetchSchema(

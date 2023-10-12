@@ -372,40 +372,9 @@
                         "type": "object",
                         "properties":
                         {
-                            "expect":
-                            {
-                                "type": "string",
-                                "enum":
-                                [
-                                    "json"
-                                ]
-                            },
                             "type":
                             {
                                 "$ref": "#/$defs/validator/types"
-                            },
-                            "encoding":
-                            {
-                                "type": "string",
-                                "enum":
-                                [
-                                    "utf_8"
-                                ]
-                            },
-                            "catalog":
-                            {
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "type": "array",
-                                        "items":
-                                        {
-                                            "$ref": "#/$defs/validator/schema"
-                                        }
-                                    }
-                                }
                             }
                         },
                         "additionalProperties": false

@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorTest
@@ -58,6 +59,8 @@ public class JsonValidatorTest
                     "\"status\"" +
                     "]" +
                 "}";
+
+    private final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
 
     private final JsonValidatorConfig config = JsonValidatorConfig.builder()
             .catalog()
@@ -101,7 +104,7 @@ public class JsonValidatorTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data, validator.read(data, 0, data.capacity()));
+        assertEquals(data.capacity(), validator.read(data, 0, data.capacity(), valueFunction));
     }
 
     @Test
@@ -124,7 +127,7 @@ public class JsonValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(null, validator.write(data, 0, data.capacity()));
+        assertEquals(-1, validator.read(data, 0, data.capacity(), valueFunction));
     }
 
     @Test
@@ -147,6 +150,6 @@ public class JsonValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(value, validator.write(data, 0, data.capacity()));
+        assertEquals(value.capacity(), validator.write(data, 0, data.capacity(), valueFunction));
     }
 }

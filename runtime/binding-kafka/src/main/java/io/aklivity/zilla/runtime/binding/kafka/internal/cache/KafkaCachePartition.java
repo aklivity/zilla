@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 
 public final class KafkaCachePartition
 {
@@ -504,14 +505,15 @@ public final class KafkaCachePartition
                 OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
                 if (key != null)
                 {
-                    DirectBuffer buffer = type.key.read(key.value(), key.offset(), key.sizeof());
-                    if (buffer != null)
+                    final ToIntValueFunction function = (buffer, index, length) -> length;
+                    int progress = type.key.read(key.value(), key.offset(), key.sizeof(), function);
+                    if (progress == -1)
                     {
-                        // TODO: assign incoming valid buffer to existing key
+                        // Placeholder to log Invalid events
                     }
                     else
                     {
-                        // Placeholder to log Invalid events
+                        // TODO: do we update headEntry with progress received from Validator
                     }
                 }
             }
@@ -521,14 +523,15 @@ public final class KafkaCachePartition
                 OctetsFW value = headEntry.value();
                 if (value != null)
                 {
-                    DirectBuffer buffer = type.value.read(value.value(), value.offset(), value.sizeof());
-                    if (buffer != null)
+                    final ToIntValueFunction function = (buffer, index, length) -> length;
+                    int progress = type.value.read(value.value(), value.offset(), value.sizeof(), function);
+                    if (progress == -1)
                     {
-                        // TODO: assign incoming valid buffer to existing value
+                        // Placeholder to log Invalid events
                     }
                     else
                     {
-                        // Placeholder to log Invalid events
+                        // TODO: do we update headEntry with progress received from Validator
                     }
                 }
             }
@@ -645,34 +648,24 @@ public final class KafkaCachePartition
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
     }
 
-    public boolean validProduceEntry(
+    public int validProduceEntry(
         KafkaTopicType type,
         boolean isKey,
         OctetsFW data)
     {
-        boolean status = true;
-
         Validator validator = isKey ? type.key : type.value;
+        int progress = data == null ? 0 : data.sizeof();
         if (data != null &&
             validator != null)
         {
-            DirectBuffer buffer = validator.write(data.value(), data.offset(), data.sizeof());
-            if (buffer == null)
-            {
-                status = false;
-                // TODO: assign incoming valid buffer to existing value
-            }
-            else
-            {
-                // TODO: in case we update the return type,
-                //  add some identifier to show validation failure
-            }
+            final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
+            progress = validator.write(data.value(), data.offset(), data.sizeof(), valueFunction);
         }
 
-        return status;
+        return progress;
     }
 
-    public boolean validProduceEntry(
+    public int validProduceEntry(
         KafkaTopicType type,
         boolean isKey,
         Node head)
@@ -683,25 +676,16 @@ public final class KafkaCachePartition
         final KafkaCacheFile logFile = segment.logFile();
 
         final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
-        boolean status = true;
         OctetsFW value = headEntry.value();
+        int progress = value == null ? 0 : value.sizeof();
         Validator validator = isKey ? type.key : type.value;
         if (value != null &&
             validator != null)
         {
-            DirectBuffer buffer = validator.write(value.value(), value.offset(), value.sizeof());
-            if (buffer == null)
-            {
-                status = false;
-                // TODO: assign incoming valid buffer to existing value
-            }
-            else
-            {
-                // TODO: in case we update the return type,
-                //  add some identifier to show validation failure
-            }
+            final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
+            progress = validator.write(value.value(), value.offset(), progress, valueFunction);
         }
-        return status;
+        return progress;
     }
 
     public long retainAt(

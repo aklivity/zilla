@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroValidatorTest
@@ -44,6 +45,8 @@ public class AvroValidatorTest
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
+    private final ToIntValueFunction fragmentFunction = (buffer, index, length) -> length;
 
     private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
             .catalog()
@@ -84,7 +87,7 @@ public class AvroValidatorTest
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data, validator.read(data, 0, data.capacity()));
+        assertEquals(data.capacity(), validator.read(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -104,7 +107,7 @@ public class AvroValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes);
-        assertEquals(expected, validator.write(data, 0, data.capacity()));
+        assertEquals(expected.capacity(), validator.write(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -118,7 +121,7 @@ public class AvroValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
+        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -132,7 +135,7 @@ public class AvroValidatorTest
 
         byte[] bytes = "Invalid Event".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
+        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -146,7 +149,7 @@ public class AvroValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(0, validator.read(data, 0, data.capacity()).capacity());
+        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -173,16 +176,16 @@ public class AvroValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        String expected = "{" +
+        String json = "{" +
                 "\"id\":\"id0\"," +
                 "\"status\":\"positive\"" +
                 "}";
 
-        DirectBuffer buffer = validator.read(data, 0, data.capacity());
-        byte[] payloadBytes = new byte[buffer.capacity()];
-        buffer.getBytes(0, payloadBytes);
+        DirectBuffer expected = new UnsafeBuffer();
+        expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
-        assertEquals(expected, new String(payloadBytes));
+        int progress = validator.read(data, 0, data.capacity(), fragmentFunction);
+        assertEquals(expected.capacity(), progress);
     }
 
     @Test
@@ -216,7 +219,7 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
-
-        assertEquals(expected, validator.write(data, 0, data.capacity()));
+        int progress = validator.write(data, 0, data.capacity(), fragmentFunction);
+        assertEquals(expected.capacity(), progress);
     }
 }

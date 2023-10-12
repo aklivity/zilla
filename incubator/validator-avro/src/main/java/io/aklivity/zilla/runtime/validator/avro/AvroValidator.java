@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public final class AvroValidator implements Validator
@@ -85,10 +86,11 @@ public final class AvroValidator implements Validator
     }
 
     @Override
-    public DirectBuffer read(
+    public int read(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
         MutableDirectBuffer value = new UnsafeBuffer();
 
@@ -114,14 +116,15 @@ public final class AvroValidator implements Validator
             convertResponse(data, value, payloadBytes, schema);
         }
 
-        return value;
+        return value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
     }
 
     @Override
-    public DirectBuffer write(
+    public int write(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ToIntValueFunction next)
     {
         MutableDirectBuffer value = null;
 
@@ -146,7 +149,8 @@ public final class AvroValidator implements Validator
                 value = buildRequest(payloadBytes, schemaId);
             }
         }
-        return value;
+        return value == null ||
+            value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
     }
 
     private MutableDirectBuffer buildRequest(

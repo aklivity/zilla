@@ -20,12 +20,14 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
 public class LongValidatorTest
 {
     private final LongValidatorConfig config = new LongValidatorConfig();
     private final LongValidator validator = new LongValidator(config);
+    private final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
 
     @Test
     public void shouldVerifyValidLong()
@@ -34,7 +36,7 @@ public class LongValidatorTest
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data, validator.read(data, 0, data.capacity()));
+        assertEquals(data.capacity(), validator.read(data, 0, data.capacity(), valueFunction));
     }
 
     @Test
@@ -44,6 +46,6 @@ public class LongValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(null, validator.write(data, 0, data.capacity()));
+        assertEquals(-1, validator.write(data, 0, data.capacity(), valueFunction));
     }
 }

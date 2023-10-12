@@ -3,5 +3,40 @@
         "op": "add",
         "path": "/$defs/validator/types/enum/-",
         "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "utf_8"
+                        ]
+                    }
+                }
+            }
+        }
     }
 ]
