@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,7 @@ public class MqttKafkaConditionMatcher
         MqttKafkaConditionConfig condition)
     {
         this.topic = condition.topic;
-        this.topicMatcher = condition.topic != null ? asMatcher(condition.topic) : null;
+        this.topicMatcher = condition.topic != null ? asTopicMatcher(condition.topic) : null;
     }
 
     public boolean matches(
@@ -43,13 +45,47 @@ public class MqttKafkaConditionMatcher
         return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
     }
 
-    private static Matcher asMatcher(
+    private static Matcher asTopicMatcher(
         String wildcard)
     {
-        return Pattern.compile(
-                wildcard.replace(".", "\\.")
-                    .replace("*", ".*")
-                    .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)"))
-            .matcher("");
+        List<String> patterns = new ArrayList<>();
+        String[] filterLevels = wildcard.split("/");
+
+        StringBuilder regex = new StringBuilder();
+        for (int i = 0; i < filterLevels.length; i++)
+        {
+            String level = filterLevels[i];
+
+            if (level.isEmpty())
+            {
+                patterns.add("/#");
+            }
+            else
+            {
+                if (i > 0)
+                {
+                    regex.append("/");
+                }
+                if ("*".equals(level))
+                {
+                    regex.append(".*");
+                    patterns.add(regex.toString());
+                }
+                else
+                {
+                    regex.append("(").append(level).append("|\\+)");
+                    if (i == filterLevels.length - 1)
+                    {
+                        patterns.add(regex.toString());
+                    }
+                    patterns.add(regex + "/#");
+                }
+            }
+        }
+
+        patterns.add(0, "#");
+        String combinedPattern = String.join("|", patterns);
+
+        return Pattern.compile(combinedPattern).matcher("");
     }
 }
