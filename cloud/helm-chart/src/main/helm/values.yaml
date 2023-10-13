@@ -34,7 +34,6 @@ readinessProbePort: 0
 initContainers: []
 
 args: ["start", "-v", "-e"]
-env: []
 extraEnv: []
 configPath: /etc/zilla
 configMaps: {}
