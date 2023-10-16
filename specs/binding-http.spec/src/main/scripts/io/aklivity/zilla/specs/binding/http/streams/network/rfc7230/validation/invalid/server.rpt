@@ -26,22 +26,11 @@ read "POST /valid/1234567890123/123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
 
-read notify REQUEST_ONE_RECEIVED
-write await WRITE_RESPONSE_ONE
-
-#write "HTTP/1.1 200 OK\r\n"
-#write "Content-Length: 9" "\r\n"
-#write "\r\n"
-#write "response1"
 write "HTTP/1.1 404 Not Found\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close
 
-
-accept "zilla://streams/net0"
-  option zilla:window ${serverInitialWindow}
-  option zilla:transmission "duplex"
 accepted
 connected
 
@@ -49,21 +38,11 @@ read "POST /valid/1234567890123/1234567890123?page=123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
 
-read notify REQUEST_TWO_RECEIVED
-write await WRITE_RESPONSE_TWO
-
-#write "HTTP/1.1 200 OK\r\n"
-#write "Content-Length: 9" "\r\n"
-#write "\r\n"
-#write "response1"
 write "HTTP/1.1 404 Not Found\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close
 
-accept "zilla://streams/net0"
-  option zilla:window ${serverInitialWindow}
-  option zilla:transmission "duplex"
 accepted
 connected
 
@@ -72,13 +51,6 @@ read "Host: localhost:8080" "\r\n"
 read "Code: 123" "\r\n"
 read "\r\n"
 
-read notify REQUEST_THREE_RECEIVED
-write await WRITE_RESPONSE_THREE
-
-#write "HTTP/1.1 200 OK\r\n"
-#write "Content-Length: 9" "\r\n"
-#write "\r\n"
-#write "response1"
 write "HTTP/1.1 404 Not Found\r\n"
 write "Connection: close\r\n"
 write "\r\n"

@@ -34,8 +34,6 @@ connect "zilla://streams/net0"
   option zilla:transmission "duplex"
 connected
 
-write notify WRITE_RESPONSE_ONE
-
 # Request 2 - invalid query param
 write "POST /valid/1234567890123/1234567890123?page=123 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
@@ -50,8 +48,6 @@ connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 connected
-
-write notify WRITE_RESPONSE_TWO
 
 # Request 3 - invalid header field
 write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"

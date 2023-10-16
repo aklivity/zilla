@@ -34,7 +34,7 @@ public class ValidationIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/validation")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/validation/");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/validation");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
