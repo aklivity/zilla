@@ -43,9 +43,6 @@ public class ValidationIT
     public void validRequests() throws Exception
     {
         k3po.start();
-        k3po.notifyBarrier("WRITE_RESPONSE_ONE");
-        k3po.notifyBarrier("WRITE_RESPONSE_TWO");
-        k3po.notifyBarrier("WRITE_RESPONSE_THREE");
         k3po.finish();
     }
 
@@ -56,9 +53,6 @@ public class ValidationIT
     public void invalidRequests() throws Exception
     {
         k3po.start();
-        k3po.notifyBarrier("WRITE_RESPONSE_ONE");
-        k3po.notifyBarrier("WRITE_RESPONSE_TWO");
-        k3po.notifyBarrier("WRITE_RESPONSE_THREE");
         k3po.finish();
     }
 }
