@@ -51,7 +51,6 @@ public class MqttKafkaConditionMatcher
         if (hierarchicalString.isEmpty()) {
             return "";
         }
-        //        (\/(\+|some)((\/\+|\/hierarchical)((\/\+|\/topic)(\/\+|\/name)(\/\#)?))?)?\/?\#?
 
         String[] parts = hierarchicalString.split("/", 2);
         String currentPart = parts[0];
@@ -60,12 +59,16 @@ public class MqttKafkaConditionMatcher
         String pattern;
         if (currentPart.equals(""))
         {
-            pattern = "(\\/";
+            pattern = "\\/";
             // decrease level so at the next level we recognise that we're at the first non-empty segment
             level--;
         }
         else
         {
+            if ("*".equals(currentPart))
+            {
+                currentPart = ".*";
+            }
             if (level > 0)
             {
                 pattern = "(\\/\\+|\\/" + currentPart + ")";
@@ -82,52 +85,34 @@ public class MqttKafkaConditionMatcher
         }
         pattern += nextPart;
 
+        if (nextPart.equals(""))
+        {
+            StringBuilder end = new StringBuilder("(\\/\\#)?");
+            for (int i = 0; i < level - 1; i++)
+            {
+                if (i == 0)
+                {
+                    end.append(")");
+                }
+                else
+                {
+                    end.append(")?");
+                }
+            }
+            pattern += end.toString();
+        }
         return pattern;
     }
 
     private static Matcher asTopicMatcher(
         String wildcard)
     {
-        List<String> patterns = new ArrayList<>();
-        String[] filterLevels = wildcard.split("/");
-
-        StringBuilder regex = new StringBuilder();
-        for (int i = 0; i < filterLevels.length; i++)
+        String pattern = "";
+        if (!wildcard.startsWith("/"))
         {
-            String level = filterLevels[i];
-
-            if (level.isEmpty())
-            {
-                patterns.add("/#");
-            }
-            else
-            {
-                if (i > 0)
-                {
-                    regex.append("/");
-                }
-                if ("*".equals(level))
-                {
-                    regex.append(".*");
-                    patterns.add(regex.toString());
-                }
-                else
-                {
-                    regex.append("(").append(level).append("|\\+)");
-                    if (i == filterLevels.length - 1)
-                    {
-                        patterns.add(regex.toString());
-                    }
-                    patterns.add(regex + "/#");
-                }
-            }
+            pattern = "^(?!\\/)";
         }
-
-        patterns.add(0, "#");
-        String combinedPattern = String.join("|", patterns);
-
-        String pattern = "((\\/\\+|\\/some)((\\/\\+|\\/hierarchical)((\\/\\+|\\/topic)(\\/\\+|\\/name)(\\/\\#)?))?)?\\/?\\#?";
-        String pattern2 = generateRegexPattern(wildcard, 0) + "(\\/\\#)?))?)?\\/?\\#?";
-        return Pattern.compile(pattern2).matcher("");
+        pattern += "(" + generateRegexPattern(wildcard, 0) + ")?\\/?\\#?";
+        return Pattern.compile(pattern).matcher("");
     }
 }
