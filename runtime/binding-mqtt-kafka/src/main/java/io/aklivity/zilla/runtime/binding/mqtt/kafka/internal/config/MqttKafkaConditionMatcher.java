@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,12 +44,17 @@ public class MqttKafkaConditionMatcher
     }
 
 
-    public static String generateRegexPattern(String hierarchicalString, int level) {
-        if (hierarchicalString.isEmpty()) {
+    public static String generateRegexPattern(
+        String wildcard,
+        int level,
+        boolean fixedLength) {
+
+        if (wildcard.isEmpty())
+        {
             return "";
         }
 
-        String[] parts = hierarchicalString.split("/", 2);
+        String[] parts = wildcard.split("/", 2);
         String currentPart = parts[0];
         String remainingParts = (parts.length > 1) ? parts[1] : "";
 
@@ -60,7 +62,6 @@ public class MqttKafkaConditionMatcher
         if (currentPart.equals(""))
         {
             pattern = "\\/";
-            // decrease level so at the next level we recognise that we're at the first non-empty segment
             level--;
         }
         else
@@ -69,17 +70,11 @@ public class MqttKafkaConditionMatcher
             {
                 currentPart = ".*";
             }
-            if (level > 0)
-            {
-                pattern = "(\\/\\+|\\/" + currentPart + ")";
-            }
-            else
-            {
-                pattern = "(\\+|" + currentPart + ")";
-            }
+            pattern = (level > 0) ? "(\\/\\+|\\/" + currentPart + ")" : "(\\+|" + currentPart + ")";
         }
-        String nextPart = generateRegexPattern(remainingParts, level + 1);
-        if (level > 0  && !nextPart.equals(""))
+
+        String nextPart = generateRegexPattern(remainingParts, level + 1, fixedLength);
+        if (level > 0)
         {
             pattern = "(" + pattern;
         }
@@ -87,32 +82,17 @@ public class MqttKafkaConditionMatcher
 
         if (nextPart.equals(""))
         {
-            StringBuilder end = new StringBuilder("(\\/\\#)?");
-            for (int i = 0; i < level - 1; i++)
-            {
-                if (i == 0)
-                {
-                    end.append(")");
-                }
-                else
-                {
-                    end.append(")?");
-                }
-            }
-            pattern += end.toString();
+            String endParentheses = fixedLength ? ")" : ")?";
+            pattern += "(\\/\\#)?" + endParentheses.repeat(Math.max(0, level));
         }
         return pattern;
     }
 
-    private static Matcher asTopicMatcher(
-        String wildcard)
-    {
-        String pattern = "";
-        if (!wildcard.startsWith("/"))
-        {
-            pattern = "^(?!\\/)";
-        }
-        pattern += "(" + generateRegexPattern(wildcard, 0) + ")?\\/?\\#?";
-        return Pattern.compile(pattern).matcher("");
+    private static Matcher asTopicMatcher(String wildcard) {
+        String patternBegin = (wildcard.startsWith("/") ?
+            "(" : "^(?!\\/)(");
+        String fixedPattern = patternBegin + generateRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
+        String nonFixedPattern = patternBegin + generateRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+        return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
     }
 }

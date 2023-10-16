@@ -35,6 +35,7 @@ public class MqttKafkaConditionMatcherTest
         assertTrue(matcher.matches("/some/+/topic/+"));
         assertTrue(matcher.matches("/some/hierarchical/topic/+"));
         assertTrue(matcher.matches("/some/#"));
+        assertTrue(matcher.matches("/some/hierarchical/#"));
         assertTrue(matcher.matches("#"));
         assertTrue(matcher.matches("/#"));
     }
@@ -48,6 +49,34 @@ public class MqttKafkaConditionMatcherTest
         assertFalse(matcher.matches("/some/+"));
         assertFalse(matcher.matches("/some/hierarchical/+"));
         assertFalse(matcher.matches("/some/hierarchical/topic/name/something"));
+    }
+
+    @Test
+    public void shouldMatchSimpleConditions2()
+    {
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("/some/hierarchical/topic"));
+        assertTrue(matcher.matches("/some/hierarchical/topic/#"));
+        assertTrue(matcher.matches("/some/hierarchical/+/#"));
+        assertTrue(matcher.matches("/some/+/topic"));
+        assertTrue(matcher.matches("/some/+/#"));
+        assertTrue(matcher.matches("/some/hierarchical/+"));
+        assertTrue(matcher.matches("/some/#"));
+        assertTrue(matcher.matches("#"));
+        assertTrue(matcher.matches("/#"));
+    }
+
+    @Test
+    public void shouldNotMatchSimpleConditions2()
+    {
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertFalse(matcher.matches("/some/+"));
+        assertFalse(matcher.matches("/some/something/else"));
+        assertFalse(matcher.matches("/some/hierarchical/topic/name"));
     }
 
     @Test
