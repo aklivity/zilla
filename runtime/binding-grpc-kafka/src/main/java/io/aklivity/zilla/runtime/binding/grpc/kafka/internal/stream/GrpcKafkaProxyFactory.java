@@ -1320,8 +1320,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     if (grpcStatus != null &&
                         !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
                     {
+                        OctetsFW value = grpcStatus.value();
                         String16FW status = statusRW
-                            .set(grpcStatus.value().buffer(), grpcStatus.offset(), grpcStatus.sizeof())
+                            .set(value.buffer(), value.offset(), value.sizeof())
                             .build();
                         doGrpcAbort(traceId, authorization, status);
                     }
