@@ -47,8 +47,8 @@ public class MqttKafkaConditionMatcher
     public static String generateRegexPattern(
         String wildcard,
         int level,
-        boolean fixedLength) {
-
+        boolean fixedLength)
+    {
         if (wildcard.isEmpty())
         {
             return "";
@@ -59,7 +59,7 @@ public class MqttKafkaConditionMatcher
         String remainingParts = (parts.length > 1) ? parts[1] : "";
 
         String pattern;
-        if (currentPart.equals(""))
+        if ("".equals(currentPart))
         {
             pattern = "\\/";
             level--;
@@ -80,7 +80,7 @@ public class MqttKafkaConditionMatcher
         }
         pattern += nextPart;
 
-        if (nextPart.equals(""))
+        if ("".equals(nextPart))
         {
             String endParentheses = fixedLength ? ")" : ")?";
             pattern += "(\\/\\#)?" + endParentheses.repeat(Math.max(0, level));
@@ -88,9 +88,10 @@ public class MqttKafkaConditionMatcher
         return pattern;
     }
 
-    private static Matcher asTopicMatcher(String wildcard) {
-        String patternBegin = (wildcard.startsWith("/") ?
-            "(" : "^(?!\\/)(");
+    private static Matcher asTopicMatcher(
+        String wildcard)
+    {
+        String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
         String fixedPattern = patternBegin + generateRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
         String nonFixedPattern = patternBegin + generateRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
         return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
