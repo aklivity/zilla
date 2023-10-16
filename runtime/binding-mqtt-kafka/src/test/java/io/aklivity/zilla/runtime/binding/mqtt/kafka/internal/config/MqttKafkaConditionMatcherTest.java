@@ -31,6 +31,8 @@ public class MqttKafkaConditionMatcherTest
 
         assertTrue(matcher.matches("/some/hierarchical/topic/name"));
         assertTrue(matcher.matches("/some/hierarchical/topic/name/#"));
+        assertTrue(matcher.matches("/some/hierarchical/+/name/#"));
+        assertTrue(matcher.matches("/some/+/topic/+"));
         assertTrue(matcher.matches("/some/hierarchical/topic/+"));
         assertTrue(matcher.matches("/some/#"));
         assertTrue(matcher.matches("#"));
@@ -45,7 +47,6 @@ public class MqttKafkaConditionMatcherTest
 
         assertFalse(matcher.matches("/some/+"));
         assertFalse(matcher.matches("/some/hierarchical/+"));
-        assertFalse(matcher.matches("/some/+"));
         assertFalse(matcher.matches("/some/hierarchical/topic/name/something"));
     }
 

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +44,45 @@ public class MqttKafkaConditionMatcher
         CharSequence topic)
     {
         return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
+    }
+
+
+    public static String generateRegexPattern(String hierarchicalString, int level) {
+        if (hierarchicalString.isEmpty()) {
+            return "";
+        }
+        //        (\/(\+|some)((\/\+|\/hierarchical)((\/\+|\/topic)(\/\+|\/name)(\/\#)?))?)?\/?\#?
+
+        String[] parts = hierarchicalString.split("/", 2);
+        String currentPart = parts[0];
+        String remainingParts = (parts.length > 1) ? parts[1] : "";
+
+        String pattern;
+        if (currentPart.equals(""))
+        {
+            pattern = "(\\/";
+            // decrease level so at the next level we recognise that we're at the first non-empty segment
+            level--;
+        }
+        else
+        {
+            if (level > 0)
+            {
+                pattern = "(\\/\\+|\\/" + currentPart + ")";
+            }
+            else
+            {
+                pattern = "(\\+|" + currentPart + ")";
+            }
+        }
+        String nextPart = generateRegexPattern(remainingParts, level + 1);
+        if (level > 0  && !nextPart.equals(""))
+        {
+            pattern = "(" + pattern;
+        }
+        pattern += nextPart;
+
+        return pattern;
     }
 
     private static Matcher asTopicMatcher(
@@ -86,6 +126,8 @@ public class MqttKafkaConditionMatcher
         patterns.add(0, "#");
         String combinedPattern = String.join("|", patterns);
 
-        return Pattern.compile(combinedPattern).matcher("");
+        String pattern = "((\\/\\+|\\/some)((\\/\\+|\\/hierarchical)((\\/\\+|\\/topic)(\\/\\+|\\/name)(\\/\\#)?))?)?\\/?\\#?";
+        String pattern2 = generateRegexPattern(wildcard, 0) + "(\\/\\#)?))?)?\\/?\\#?";
+        return Pattern.compile(pattern2).matcher("");
     }
 }
