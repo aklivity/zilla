@@ -49,6 +49,7 @@ public class MqttKafkaConditionMatcherTest
         assertFalse(matcher.matches("/some/+"));
         assertFalse(matcher.matches("/some/hierarchical/+"));
         assertFalse(matcher.matches("/some/hierarchical/topic/name/something"));
+        assertFalse(matcher.matches("some/hierarchical/topic/name"));
     }
 
     @Test
@@ -77,6 +78,7 @@ public class MqttKafkaConditionMatcherTest
         assertFalse(matcher.matches("/some/+"));
         assertFalse(matcher.matches("/some/something/else"));
         assertFalse(matcher.matches("/some/hierarchical/topic/name"));
+        assertFalse(matcher.matches("some/hierarchical/topic"));
     }
 
     @Test

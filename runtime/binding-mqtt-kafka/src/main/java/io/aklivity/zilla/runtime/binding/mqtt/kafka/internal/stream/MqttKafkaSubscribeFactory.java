@@ -691,13 +691,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private KafkaMessagesProxy(
             long originId,
-            MqttKafkaRouteConfig routeConfig,
+            MqttKafkaRouteConfig route,
             MqttSubscribeProxy mqtt)
         {
             this.originId = originId;
-            this.routedId = routeConfig.id;
-            this.topic = routeConfig.messages;
-            this.routeConfig = routeConfig;
+            this.routedId = route.id;
+            this.topic = route.messages;
+            this.routeConfig = route;
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
