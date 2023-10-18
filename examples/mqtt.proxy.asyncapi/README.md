@@ -118,7 +118,7 @@ Received DISCONNECT (153)
 Error: The client is not currently connected.
 ```
 
-Note that the invalid message is rejected with error code `153` `payload format error`, and therefore not received by the subscriber.
+Note that the invalid message is rejected with error code `153` `payload format invalid`, and therefore not received by the subscriber.
 
 ### Teardown
 
