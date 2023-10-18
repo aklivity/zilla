@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
-import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaTransmission.HALF_DUPLEX;
 
 import java.nio.file.Path;
 import java.util.function.LongSupplier;
@@ -214,7 +213,7 @@ public final class ZillaScope implements AutoCloseable
         ZillaTarget target = supplyTarget(channel);
         target.doClose(channel, handlerFuture);
 
-        if (!readClosed && channel.getConfig().getTransmission() == HALF_DUPLEX)
+        if (!readClosed)
         {
             final ChannelFuture abortFuture = Channels.future(channel);
             source.doAbortInput(channel, abortFuture);
