@@ -30,18 +30,29 @@ import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
 public class LongValidatorFactoryTest
 {
+    // GIVEN
+    ValidatorConfig validator = new LongValidatorConfig();
+    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+    LongValidatorFactory factory = new LongValidatorFactory();
+
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
-        // GIVEN
-        ValidatorConfig validator = new LongValidatorConfig();
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        LongValidatorFactory factory = new LongValidatorFactory();
-
         // WHEN
-        Validator longValidator = factory.create(validator, resolveId, supplyCatalog);
+        Validator longValidator = factory.createReadValidator(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(longValidator, instanceOf(LongValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateWriteValidator()
+    {
+        // WHEN
+        Validator longValidator = factory.createWriteValidator(validator, resolveId, supplyCatalog);
 
         // THEN
         assertThat(longValidator, instanceOf(LongValidator.class));

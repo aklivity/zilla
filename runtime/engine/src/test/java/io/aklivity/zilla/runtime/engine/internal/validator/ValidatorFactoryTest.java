@@ -44,7 +44,7 @@ public class ValidatorFactoryTest
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        Validator validator = factory.create(testValidator, resolveId, supplyCatalog);
+        Validator validator = factory.createReadValidator(testValidator, resolveId, supplyCatalog);
 
         // THEN
         assertThat(validator, instanceOf(TestValidator.class));

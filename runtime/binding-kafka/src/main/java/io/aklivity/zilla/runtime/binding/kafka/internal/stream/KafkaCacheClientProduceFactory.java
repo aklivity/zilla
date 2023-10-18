@@ -251,7 +251,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
-                final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
+                final KafkaTopicType type = binding.resolveWriteValidator(topicName);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
                             partition, cacheRoute, topicName, type);
@@ -687,20 +687,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                if (type != null)
-                {
-                    int status = partition.validProduceEntry(type, true, key.value());
-                    if (status == -1)
-                    {
-                        error = ERROR_INVALID_RECORD;
-                        break init;
-                    }
-                    else
-                    {
-                        // TODO: do we update stream.segment with progress received from Validator
-                    }
-                }
-
                 stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
 
                 if (stream.segment != null)
@@ -710,8 +696,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                     final long keyHash = partition.computeKeyHash(key);
-                    partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                        timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength, headers, trailersSizeMax);
+                    if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark,
+                        stream.position, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
+                        headers, trailersSizeMax, type.key) == -1)
+                    {
+                        error = ERROR_INVALID_RECORD;
+                        break init;
+                    }
                     stream.partitionOffset = partitionOffset;
                     partitionOffset++;
                 }
@@ -723,20 +714,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                partition.writeProduceEntryContinue(stream.segment, stream.position, valueFragment);
-            }
-
-            if ((flags & FLAGS_FIN) != 0x00 &&
-                type != null)
-            {
-                int status = partition.validProduceEntry(type, false, stream.segment);
-                if (status == -1)
+                if (partition.writeProduceEntryContinue(stream.segment, stream.position, valueFragment, type.value) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
-                }
-                else
-                {
-                    // TODO: do we update stream.segment with progress received from Validator
                 }
             }
 

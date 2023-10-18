@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public final class StringValidator implements Validator
@@ -35,33 +35,22 @@ public final class StringValidator implements Validator
     }
 
     @Override
-    public int read(
+    public int validate(
         DirectBuffer data,
         int index,
         int length,
-        ToIntValueFunction next)
+        ValueConsumer next)
     {
-        return !validate(data, index, length) ? -1 : next.applyAsInt(data, index, length);
-    }
-
-    @Override
-    public int write(
-        DirectBuffer data,
-        int index,
-        int length,
-        ToIntValueFunction next)
-    {
-        return !validate(data, index, length) ? -1 : next.applyAsInt(data, index, length);
-    }
-
-    private boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
+        int valLength = -1;
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
-        return predicate.test(payloadBytes);
+
+        if (predicate.test(payloadBytes))
+        {
+            next.accept(data, index, length);
+            valLength = length;
+        }
+        return valLength;
     }
 
     private boolean isValidUTF8(

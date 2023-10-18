@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorTest
@@ -60,7 +60,7 @@ public class JsonValidatorTest
                     "]" +
                 "}";
 
-    private final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
+    private final ValueConsumer valueFunction = (buffer, index, length) -> {};
 
     private final JsonValidatorConfig config = JsonValidatorConfig.builder()
             .catalog()
@@ -94,7 +94,7 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+        JsonValidator validator = new JsonReadValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -104,7 +104,7 @@ public class JsonValidatorTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.read(data, 0, data.capacity(), valueFunction));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), valueFunction));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+        JsonValidator validator = new JsonReadValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -127,7 +127,7 @@ public class JsonValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(-1, validator.read(data, 0, data.capacity(), valueFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), valueFunction));
     }
 
     @Test
@@ -135,7 +135,7 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+        JsonValidator validator = new JsonWriteValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -150,6 +150,6 @@ public class JsonValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(value.capacity(), validator.write(data, 0, data.capacity(), valueFunction));
+        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), valueFunction));
     }
 }

@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class KafkaCachePartition
 {
@@ -328,9 +328,9 @@ public final class KafkaCachePartition
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
-        writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType, type);
+        writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType, type.key);
+        writeEntryContinue(value, type.value);
+        writeEntryFinish(headers, deltaType);
     }
 
     public void writeEntryStart(
@@ -342,7 +342,8 @@ public final class KafkaCachePartition
         int valueLength,
         KafkaCacheEntryFW ancestor,
         int entryFlags,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        Validator validator)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -383,7 +384,18 @@ public final class KafkaCachePartition
         entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
-        logFile.appendBytes(key);
+        if (key != null)
+        {
+            final ValueConsumer writeValue = (buffer, index, length) ->
+            {
+                logFile.appendBytes(key);
+            };
+            OctetsFW value = key.value();
+            if (value != null)
+            {
+                validator.validate(value.value(), value.offset(), value.sizeof(), writeValue);
+            }
+        }
         logFile.appendInt(valueLength);
 
         final long hashEntry = keyHash << 32 | logFile.markValue();
@@ -402,7 +414,8 @@ public final class KafkaCachePartition
     }
 
     public void writeEntryContinue(
-        OctetsFW payload)
+        OctetsFW payload,
+        Validator validator)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -416,13 +429,19 @@ public final class KafkaCachePartition
         final int logRequired = payload.sizeof();
         assert logAvailable >= logRequired;
 
-        logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+        if (payload != null)
+        {
+            final ValueConsumer writeValue = (buffer, index, length) ->
+            {
+                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+            };
+            validator.validate(payload.value(), payload.offset(), payload.sizeof(), writeValue);
+        }
     }
 
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
-        KafkaDeltaType deltaType,
-        KafkaTopicType type)
+        KafkaDeltaType deltaType)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -498,48 +517,10 @@ public final class KafkaCachePartition
             deltaFile.appendBytes(diffBuffer, 0, Integer.BYTES + deltaLength);
         }
 
-        if (type != null)
-        {
-            if (type.key != null)
-            {
-                OctetsFW key = headEntry.key() != null ? headEntry.key().value() : null;
-                if (key != null)
-                {
-                    final ToIntValueFunction function = (buffer, index, length) -> length;
-                    int progress = type.key.read(key.value(), key.offset(), key.sizeof(), function);
-                    if (progress == -1)
-                    {
-                        // Placeholder to log Invalid events
-                    }
-                    else
-                    {
-                        // TODO: do we update headEntry with progress received from Validator
-                    }
-                }
-            }
-
-            if (type.value != null)
-            {
-                OctetsFW value = headEntry.value();
-                if (value != null)
-                {
-                    final ToIntValueFunction function = (buffer, index, length) -> length;
-                    int progress = type.value.read(value.value(), value.offset(), value.sizeof(), function);
-                    if (progress == -1)
-                    {
-                        // Placeholder to log Invalid events
-                    }
-                    else
-                    {
-                        // TODO: do we update headEntry with progress received from Validator
-                    }
-                }
-            }
-        }
         headSegment.lastOffset(progress);
     }
 
-    public void writeProduceEntryStart(
+    public int writeProduceEntryStart(
         long offset,
         Node head,
         MutableInteger entryMark,
@@ -552,7 +533,8 @@ public final class KafkaCachePartition
         long keyHash,
         int valueLength,
         ArrayFW<KafkaHeaderFW> headers,
-        int trailersSizeMax)
+        int trailersSizeMax,
+        Validator validator)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -577,7 +559,18 @@ public final class KafkaCachePartition
         entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
 
         logFile.appendBytes(entryInfo);
-        logFile.appendBytes(key);
+
+        int validated = 0;
+
+        if (key != null && key.value() != null)
+        {
+            final ValueConsumer writeValue = (buffer, index, length) ->
+            {
+                logFile.appendBytes(key);
+            };
+            OctetsFW value = key.value();
+            validated = validator.validate(value.value(), value.offset(), value.sizeof(), writeValue);
+        }
         logFile.appendInt(valueLength);
 
         position.value = logFile.capacity();
@@ -598,12 +591,15 @@ public final class KafkaCachePartition
         final long indexEntry = (offsetDelta << 32) | entryMark.value;
         assert indexFile.available() >= Long.BYTES;
         indexFile.appendLong(indexEntry);
+
+        return validated;
     }
 
-    public void writeProduceEntryContinue(
+    public int writeProduceEntryContinue(
         Node head,
         MutableInteger position,
-        OctetsFW payload)
+        OctetsFW payload,
+        Validator validator)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -612,9 +608,18 @@ public final class KafkaCachePartition
 
         final int payloadLength = payload.sizeof();
 
-        logFile.writeBytes(position.value, payload);
+        int validated = 0;
 
-        position.value += payloadLength;
+        if (payload != null)
+        {
+            final ValueConsumer writeValue = (buffer, index, length) ->
+            {
+                logFile.writeBytes(position.value, buffer, index, length);
+                position.value += payloadLength;
+            };
+            validated = validator.validate(payload.value(), payload.offset(), payloadLength, writeValue);
+        }
+        return validated;
     }
 
     public void writeProduceEntryFin(
@@ -646,46 +651,6 @@ public final class KafkaCachePartition
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
-    }
-
-    public int validProduceEntry(
-        KafkaTopicType type,
-        boolean isKey,
-        OctetsFW data)
-    {
-        Validator validator = isKey ? type.key : type.value;
-        int progress = data == null ? 0 : data.sizeof();
-        if (data != null &&
-            validator != null)
-        {
-            final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
-            progress = validator.write(data.value(), data.offset(), data.sizeof(), valueFunction);
-        }
-
-        return progress;
-    }
-
-    public int validProduceEntry(
-        KafkaTopicType type,
-        boolean isKey,
-        Node head)
-    {
-        final KafkaCacheSegment segment = head.segment;
-        assert segment != null;
-
-        final KafkaCacheFile logFile = segment.logFile();
-
-        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
-        OctetsFW value = headEntry.value();
-        int progress = value == null ? 0 : value.sizeof();
-        Validator validator = isKey ? type.key : type.value;
-        if (value != null &&
-            validator != null)
-        {
-            final ToIntValueFunction valueFunction = (buffer, index, length) -> length;
-            progress = validator.write(value.value(), value.offset(), progress, valueFunction);
-        }
-        return progress;
     }
 
     public long retainAt(

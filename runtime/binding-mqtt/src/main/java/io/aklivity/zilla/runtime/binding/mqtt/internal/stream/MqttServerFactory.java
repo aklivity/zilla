@@ -166,7 +166,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -991,9 +991,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         OctetsFW payload)
     {
         final Validator contentValidator = validators.get(topic);
-        final ToIntValueFunction function = (buffer, index, length) -> length;
+        final ValueConsumer function = (buffer, index, length) -> {};
         return contentValidator == null ||
-            contentValidator.write(payload.value(), payload.offset(), payload.sizeof(), function) != -1;
+            contentValidator.validate(payload.value(), payload.offset(), payload.sizeof(), function) != -1;
     }
 
     private boolean invalidUtf8(

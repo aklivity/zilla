@@ -13,19 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.validator;
+package io.aklivity.zilla.runtime.engine.validator.function;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
-
-public interface Validator
+@FunctionalInterface
+public interface ValueConsumer
 {
-    Validator NONE = (data, index, length, next) -> length;
-
-    int validate(
-        DirectBuffer data,
+    void accept(
+        DirectBuffer buffer,
         int index,
-        int length,
-        ValueConsumer next);
+        int length);
 }

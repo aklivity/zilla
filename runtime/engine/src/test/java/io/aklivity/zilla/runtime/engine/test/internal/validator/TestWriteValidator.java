@@ -13,16 +13,27 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.validator.function;
+package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import org.agrona.DirectBuffer;
 
-@FunctionalInterface
-public interface ToIntValueFunction
-{
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-    int applyAsInt(
-        DirectBuffer buffer,
+public class TestWriteValidator extends TestValidator
+{
+    @Override
+    public int validate(
+        DirectBuffer data,
         int index,
-        int length);
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
+        if (length == 13)
+        {
+            next.accept(data, index, length);
+            valLength = length;
+        }
+        return valLength;
+    }
 }

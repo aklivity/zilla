@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroValidatorTest
@@ -46,7 +46,7 @@ public class AvroValidatorTest
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-    private final ToIntValueFunction fragmentFunction = (buffer, index, length) -> length;
+    private final ValueConsumer fragmentFunction = (buffer, index, length) -> {};
 
     private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
             .catalog()
@@ -80,14 +80,14 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidator validator = new AvroReadValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.read(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidator validator = new AvroWriteValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -107,7 +107,7 @@ public class AvroValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes);
-        assertEquals(expected.capacity(), validator.write(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -115,13 +115,13 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidator validator = new AvroReadValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -129,13 +129,13 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidator validator = new AvroReadValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Invalid Event".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -143,13 +143,13 @@ public class AvroValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidator validator = new AvroReadValidator(avroConfig, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.read(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
     }
 
     @Test
@@ -168,7 +168,7 @@ public class AvroValidatorTest
                         .build()
                     .build()
                 .build();
-        AvroValidator validator = new AvroValidator(config, resolveId, handler);
+        AvroValidator validator = new AvroReadValidator(config, resolveId, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -184,7 +184,7 @@ public class AvroValidatorTest
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
-        int progress = validator.read(data, 0, data.capacity(), fragmentFunction);
+        int progress = validator.validate(data, 0, data.capacity(), fragmentFunction);
         assertEquals(expected.capacity(), progress);
     }
 
@@ -204,7 +204,7 @@ public class AvroValidatorTest
                         .build()
                     .build()
                 .build();
-        AvroValidator validator = new AvroValidator(config, resolveId, handler);
+        AvroValidator validator = new AvroWriteValidator(config, resolveId, handler);
 
         DirectBuffer expected = new UnsafeBuffer();
 
@@ -219,7 +219,7 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
-        int progress = validator.write(data, 0, data.capacity(), fragmentFunction);
+        int progress = validator.validate(data, 0, data.capacity(), fragmentFunction);
         assertEquals(expected.capacity(), progress);
     }
 }

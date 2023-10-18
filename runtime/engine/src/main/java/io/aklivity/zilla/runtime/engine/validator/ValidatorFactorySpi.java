@@ -28,7 +28,12 @@ public interface ValidatorFactorySpi
 
     URL schema();
 
-    Validator create(
+    Validator createReadValidator(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog);
+
+    Validator createWriteValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog);

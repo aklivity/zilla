@@ -232,7 +232,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
+                final KafkaTopicType type = binding.resolveReadValidator(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
                         affinity, partition, routeDeltaType, defaultOffset, type);
@@ -868,12 +868,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(partitionOffset, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType);
+                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, type.key);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(valueFragment);
+                partition.writeEntryContinue(valueFragment, type.value);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)
@@ -892,7 +892,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType, type);
+                partition.writeEntryFinish(headers, deltaType);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

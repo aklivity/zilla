@@ -31,21 +31,31 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorFactoryTest
 {
-    @Test
-    public void shouldCreate()
-    {
-        // GIVEN
-        ValidatorConfig validator = JsonValidatorConfig.builder()
-                .catalog()
-                    .name("test0")
-                    .build()
-                .build();
-        ToLongFunction<String> resolveId = i -> 0L;
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
-        JsonValidatorFactory factory = new JsonValidatorFactory();
+    // GIVEN
+    ValidatorConfig validator = JsonValidatorConfig.builder()
+            .catalog()
+                .name("test0")
+                .build()
+            .build();
+    ToLongFunction<String> resolveId = i -> 0L;
+    LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+    JsonValidatorFactory factory = new JsonValidatorFactory();
 
+    @Test
+    public void shouldCreateReadValidator()
+    {
         // WHEN
-        Validator jsonValidator = factory.create(validator, resolveId, supplyCatalog);
+        Validator jsonValidator = factory.createReadValidator(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(jsonValidator, instanceOf(JsonValidator.class));
+    }
+
+    @Test
+    public void shouldCreateWriteValidator()
+    {
+        // WHEN
+        Validator jsonValidator = factory.createWriteValidator(validator, resolveId, supplyCatalog);
 
         // THEN
         assertThat(jsonValidator, instanceOf(JsonValidator.class));

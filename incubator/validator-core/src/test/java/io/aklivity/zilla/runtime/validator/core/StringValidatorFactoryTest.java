@@ -30,18 +30,29 @@ import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public class StringValidatorFactoryTest
 {
+    // GIVEN
+    ValidatorConfig validator = new StringValidatorConfig("utf_8");
+    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+    StringValidatorFactory factory = new StringValidatorFactory();
+
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
-        // GIVEN
-        ValidatorConfig validator = new StringValidatorConfig("utf_8");
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        StringValidatorFactory factory = new StringValidatorFactory();
-
         // WHEN
-        Validator stringValidator = factory.create(validator, resolveId, supplyCatalog);
+        Validator stringValidator = factory.createReadValidator(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(stringValidator, instanceOf(StringValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateWriteValidator()
+    {
+        // WHEN
+        Validator stringValidator = factory.createWriteValidator(validator, resolveId, supplyCatalog);
 
         // THEN
         assertThat(stringValidator, instanceOf(StringValidator.class));

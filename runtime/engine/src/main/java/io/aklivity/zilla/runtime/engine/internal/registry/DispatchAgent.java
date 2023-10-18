@@ -860,11 +860,19 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public Validator createValidator(
+    public Validator createReadValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId)
     {
-        return validatorFactory.create(validator, resolveId, this::supplyCatalog);
+        return validatorFactory.createReadValidator(validator, resolveId, this::supplyCatalog);
+    }
+
+    @Override
+    public Validator createWriteValidator(
+        ValidatorConfig validator,
+        ToLongFunction<String> resolveId)
+    {
+        return validatorFactory.createWriteValidator(validator, resolveId, this::supplyCatalog);
     }
 
     private void onSystemMessage(

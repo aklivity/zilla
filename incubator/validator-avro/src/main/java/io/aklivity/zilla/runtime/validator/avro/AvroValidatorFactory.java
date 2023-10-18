@@ -38,11 +38,20 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public Validator createReadValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new AvroReadValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+    }
+
+    @Override
+    public Validator createWriteValidator(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new AvroWriteValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
     }
 }

@@ -14,54 +14,39 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
-import org.apache.avro.io.JsonEncoder;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.avro.specific.SpecificRecord;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.function.ToIntValueFunction;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public final class AvroValidator implements Validator
+public abstract class AvroValidator implements Validator
 {
-    private static final byte MAGIC_BYTE = 0x0;
+    static final byte MAGIC_BYTE = 0x0;
 
-    private final List<CatalogedConfig> catalogs;
-    private final SchemaConfig catalog;
-    private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final CatalogHandler handler;
-    private final DecoderFactory decoder;
-    private final EncoderFactory encoder;
-    private final String subject;
-    private final String expect;
-    private DatumReader reader;
-    private DatumWriter writer;
+    final List<CatalogedConfig> catalogs;
+    final SchemaConfig catalog;
+    final Long2ObjectHashMap<CatalogHandler> handlersById;
+    final CatalogHandler handler;
+    final DecoderFactory decoder;
+    final EncoderFactory encoder;
+    final String subject;
+    final String expect;
+    DatumReader reader;
+    DatumWriter writer;
 
     public AvroValidator(
         AvroValidatorConfig config,
@@ -85,105 +70,7 @@ public final class AvroValidator implements Validator
             catalog.subject : config.subject;
     }
 
-    @Override
-    public int read(
-        DirectBuffer data,
-        int index,
-        int length,
-        ToIntValueFunction next)
-    {
-        MutableDirectBuffer value = new UnsafeBuffer();
-
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
-
-        int schemaId;
-        Schema schema;
-        if (byteBuf.get() == MAGIC_BYTE)
-        {
-            schemaId = byteBuf.getInt();
-            int valLength = length - 1 - 4;
-            byte[] valBytes = new byte[valLength];
-            data.getBytes(length - valLength, valBytes);
-            schema = fetchSchema(schemaId);
-            convertResponse(data, value, valBytes, schema);
-        }
-        else
-        {
-            schemaId = catalog != null ? catalog.id : 0;
-            schema = fetchSchema(schemaId);
-            convertResponse(data, value, payloadBytes, schema);
-        }
-
-        return value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
-    }
-
-    @Override
-    public int write(
-        DirectBuffer data,
-        int index,
-        int length,
-        ToIntValueFunction next)
-    {
-        MutableDirectBuffer value = null;
-
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-
-        int schemaId = catalog != null &&
-            catalog.id > 0 ?
-            catalog.id :
-            handler.resolve(catalog.subject, catalog.version);
-        Schema schema = fetchSchema(schemaId);
-
-        if (schema != null)
-        {
-            if ("json".equals(expect))
-            {
-                byte[] record = serializeJsonRecord(schema, payloadBytes);
-                value = buildRequest(record, schemaId);
-            }
-            else if (validate(schema, payloadBytes))
-            {
-                value = buildRequest(payloadBytes, schemaId);
-            }
-        }
-        return value == null ||
-            value.capacity() == 0 ? -1 : next.applyAsInt(value, index, value.capacity());
-    }
-
-    private MutableDirectBuffer buildRequest(
-        byte[] payloadBytes,
-        int schemaId)
-    {
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[payloadBytes.length + 5]);
-        value.putByte(0, MAGIC_BYTE);
-        value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-        value.putBytes(5, payloadBytes);
-        return value;
-    }
-
-    private void convertResponse(
-        DirectBuffer data,
-        MutableDirectBuffer value,
-        byte[] payloadBytes,
-        Schema schema)
-    {
-        if (schema != null)
-        {
-            if ("json".equals(expect))
-            {
-                value.wrap(serializeAvroRecord(schema, payloadBytes));
-            }
-            else if (validate(schema, payloadBytes))
-            {
-                value.wrap(data);
-            }
-        }
-    }
-
-    private Schema fetchSchema(
+    Schema fetchSchema(
         int schemaId)
     {
         String schema = null;
@@ -202,7 +89,7 @@ public final class AvroValidator implements Validator
         return schema != null ? new Schema.Parser().parse(schema) : null;
     }
 
-    private boolean validate(
+    boolean validate(
         Schema schema,
         byte[] payloadBytes)
     {
@@ -217,52 +104,5 @@ public final class AvroValidator implements Validator
         {
         }
         return status;
-    }
-
-    private byte[] serializeJsonRecord(
-        Schema schema,
-        byte[] payloadBytes)
-    {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try
-        {
-            reader = new GenericDatumReader(schema);
-            GenericRecord genericRecord = new GenericData.Record(schema);
-            GenericRecord record = (GenericRecord) reader.read(genericRecord,
-                decoder.jsonDecoder(schema, new ByteArrayInputStream(payloadBytes)));
-            writer = new GenericDatumWriter<>(schema);
-            BinaryEncoder binaryEncoder = encoder.binaryEncoder(outputStream, null);
-            writer.write(record, binaryEncoder);
-            binaryEncoder.flush();
-            outputStream.close();
-        }
-        catch (Exception e)
-        {
-        }
-        return outputStream.toByteArray();
-    }
-
-    private byte[] serializeAvroRecord(
-        Schema schema,
-        byte[] payloadBytes)
-    {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try
-        {
-            reader = new GenericDatumReader(schema);
-            GenericRecord record = (GenericRecord) reader.read(null,
-                    decoder.binaryDecoder(payloadBytes, null));
-            JsonEncoder jsonEncoder = encoder.jsonEncoder(record.getSchema(), outputStream);
-            writer = record instanceof SpecificRecord ?
-                new SpecificDatumWriter<>(record.getSchema()) :
-                new GenericDatumWriter<>(record.getSchema());
-            writer.write(record, jsonEncoder);
-            jsonEncoder.flush();
-            outputStream.close();
-        }
-        catch (Exception e)
-        {
-        }
-        return outputStream.toByteArray();
     }
 }

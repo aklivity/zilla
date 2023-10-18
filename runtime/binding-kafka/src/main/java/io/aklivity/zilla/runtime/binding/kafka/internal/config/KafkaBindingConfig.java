@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class KafkaBindingConfig
 {
@@ -40,7 +41,8 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final Map<String, KafkaTopicType> topics;
+    public final Map<String, KafkaTopicType> readValidator;
+    public final Map<String, KafkaTopicType> writeValidator;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -52,13 +54,20 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.topics = options != null &&
+        this.readValidator = options != null &&
                 options.topics != null
                     ? options.topics.stream()
                     .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                    t.key != null ? context.createValidator(t.key, resolveId) : null,
-                    t.value != null ? context.createValidator(t.value, resolveId) : null
+                    t.key != null ? context.createReadValidator(t.key, resolveId) : null,
+                    t.value != null ? context.createReadValidator(t.value, resolveId) : null
                     ))) : null;
+        this.writeValidator = options != null &&
+                options.topics != null
+                ? options.topics.stream()
+                .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
+                t.key != null ? context.createWriteValidator(t.key, resolveId) : null,
+                t.value != null ? context.createWriteValidator(t.value, resolveId) : null
+                ))) : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -119,5 +128,41 @@ public final class KafkaBindingConfig
     {
         KafkaTopicConfig config = topic(topic);
         return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
+    }
+
+    public KafkaTopicType resolveReadValidator(
+        String topic)
+    {
+        KafkaTopicType type;
+
+        if (readValidator != null && readValidator.containsKey(topic))
+        {
+            type = new KafkaTopicType(
+                readValidator.get(topic).key != null ? readValidator.get(topic).key : Validator.NONE,
+                readValidator.get(topic).value != null ? readValidator.get(topic).value : Validator.NONE);
+        }
+        else
+        {
+            type = new KafkaTopicType(Validator.NONE, Validator.NONE);
+        }
+        return type;
+    }
+
+    public KafkaTopicType resolveWriteValidator(
+        String topic)
+    {
+        KafkaTopicType type;
+
+        if (writeValidator != null && writeValidator.containsKey(topic))
+        {
+            type = new KafkaTopicType(
+                writeValidator.get(topic).key != null ? writeValidator.get(topic).key : Validator.NONE,
+                writeValidator.get(topic).value != null ? writeValidator.get(topic).value : Validator.NONE);
+        }
+        else
+        {
+            type = new KafkaTopicType(Validator.NONE, Validator.NONE);
+        }
+        return type;
     }
 }

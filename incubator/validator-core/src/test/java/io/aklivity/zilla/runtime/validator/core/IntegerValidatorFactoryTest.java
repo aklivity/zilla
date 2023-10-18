@@ -30,18 +30,29 @@ import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
 public class IntegerValidatorFactoryTest
 {
+    // GIVEN
+    ValidatorConfig validator = new IntegerValidatorConfig();
+    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+    IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
-        // GIVEN
-        ValidatorConfig validator = new IntegerValidatorConfig();
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        IntegerValidatorFactory factory = new IntegerValidatorFactory();
-
         // WHEN
-        Validator integerValidator = factory.create(validator, resolveId, supplyCatalog);
+        Validator integerValidator = factory.createReadValidator(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(integerValidator, instanceOf(IntegerValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateWriteValidator()
+    {
+        // WHEN
+        Validator integerValidator = factory.createWriteValidator(validator, resolveId, supplyCatalog);
 
         // THEN
         assertThat(integerValidator, instanceOf(IntegerValidator.class));

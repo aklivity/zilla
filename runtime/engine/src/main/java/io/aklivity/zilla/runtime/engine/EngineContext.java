@@ -134,7 +134,11 @@ public interface EngineContext
     Metric resolveMetric(
         String name);
 
-    Validator createValidator(
+    Validator createReadValidator(
+        ValidatorConfig validator,
+        ToLongFunction<String> resolveId);
+
+    Validator createWriteValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId);
 

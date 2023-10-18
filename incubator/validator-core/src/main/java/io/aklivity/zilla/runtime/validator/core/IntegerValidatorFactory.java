@@ -39,7 +39,16 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public Validator createReadValidator(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
+    }
+
+    @Override
+    public Validator createWriteValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)

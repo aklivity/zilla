@@ -39,11 +39,20 @@ public class TestValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public Validator createReadValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestValidator();
+        return new TestReadValidator();
+    }
+
+    @Override
+    public Validator createWriteValidator(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new TestWriteValidator();
     }
 }

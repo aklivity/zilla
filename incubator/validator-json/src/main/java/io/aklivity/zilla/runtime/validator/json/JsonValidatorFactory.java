@@ -38,11 +38,20 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public Validator createReadValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new JsonReadValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+    }
+
+    @Override
+    public Validator createWriteValidator(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new JsonWriteValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
     }
 }
