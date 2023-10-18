@@ -66,10 +66,11 @@ public class MqttKafkaConditionMatcher
         }
         else
         {
-            if ("*".equals(currentPart))
-            {
-                currentPart = ".*";
-            }
+            currentPart = currentPart
+                .replace(".", "\\.")
+                .replace("$", "\\$")
+                .replace("+", "[^/]*")
+                .replace("#", ".*");
             pattern = (level > 0) ? "(\\/\\+|\\/" + currentPart + ")" : "(\\+|" + currentPart + ")";
         }
 

@@ -84,7 +84,7 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldMatchWildcardConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/*");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/#");
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertTrue(matcher.matches("device/one"));
