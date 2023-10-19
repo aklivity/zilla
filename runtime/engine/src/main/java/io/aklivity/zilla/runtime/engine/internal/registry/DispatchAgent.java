@@ -713,19 +713,6 @@ public class DispatchAgent implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        final long closeAt = System.nanoTime();
-        while (config.drainOnClose() &&
-               streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
-        {
-            System.out.println(String.format("consumer: %d", streamsBuffer.consumerPosition()));
-            System.out.println(String.format("producer: %d", streamsBuffer.producerPosition()));
-            ThreadHints.onSpinWait();
-
-            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
-            {
-                break;
-            }
-        }
         configuration.detachAll();
 
         poller.onClose();
@@ -768,6 +755,22 @@ public class DispatchAgent implements EngineContext, Agent
             throw new IllegalStateException(
                     String.format("Some resources not released: %d buffers, %d creditors, %d debitors",
                                   acquiredBuffers, acquiredCreditors, acquiredDebitors));
+        }
+    }
+
+    public void drain()
+    {
+        final long closeAt = System.nanoTime();
+        while (streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
+        {
+            System.out.println(String.format("consumer: %d", streamsBuffer.consumerPosition()));
+            System.out.println(String.format("producer: %d", streamsBuffer.producerPosition()));
+            ThreadHints.onSpinWait();
+
+            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
+            {
+                break;
+            }
         }
     }
 
