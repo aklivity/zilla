@@ -384,17 +384,14 @@ public final class KafkaCachePartition
         entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
-        if (key != null)
+        if (key != null && key.value() != null)
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
-                logFile.appendBytes(key);
+                logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            if (value != null)
-            {
-                validator.validate(value.value(), value.offset(), value.sizeof(), writeValue);
-            }
+            validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
         }
         logFile.appendInt(valueLength);
 
@@ -429,13 +426,14 @@ public final class KafkaCachePartition
         final int logRequired = payload.sizeof();
         assert logAvailable >= logRequired;
 
+        logFile.appendBytes(payload.value(), payload.offset(), payload.sizeof());
         if (payload != null)
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
-                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+                logFile.appendBytes(buffer, index, length);
             };
-            validator.validate(payload.value(), payload.offset(), payload.sizeof(), writeValue);
+            validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
         }
     }
 
@@ -566,10 +564,10 @@ public final class KafkaCachePartition
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
-                logFile.appendBytes(key);
+                logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            validated = validator.validate(value.value(), value.offset(), value.sizeof(), writeValue);
+            validated = validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
         }
         logFile.appendInt(valueLength);
 
@@ -615,9 +613,9 @@ public final class KafkaCachePartition
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
                 logFile.writeBytes(position.value, buffer, index, length);
-                position.value += payloadLength;
+                position.value += length;
             };
-            validated = validator.validate(payload.value(), payload.offset(), payloadLength, writeValue);
+            validated = validator.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
         }
         return validated;
     }

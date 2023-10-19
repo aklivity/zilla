@@ -21,7 +21,11 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public interface Validator
 {
-    Validator NONE = (data, index, length, next) -> length;
+    Validator NONE = (data, index, length, next) ->
+    {
+        next.accept(data, index, length);
+        return length;
+    };
 
     int validate(
         DirectBuffer data,
