@@ -264,7 +264,7 @@ public class NamespaceRegistry
     private void detachVault(
         VaultConfig config)
     {
-        int vaultId = supplyLabelId.applyAsInt(config.name);
+        int vaultId = NamespacedId.localId(config.id);
         VaultRegistry context = vaultsById.remove(vaultId);
         if (context != null)
         {
@@ -287,7 +287,7 @@ public class NamespaceRegistry
     private void detachGuard(
         GuardConfig config)
     {
-        int guardId = supplyLabelId.applyAsInt(config.name);
+        int guardId = NamespacedId.localId(config.id);
         GuardRegistry context = guardsById.remove(guardId);
         if (context != null)
         {
@@ -310,7 +310,7 @@ public class NamespaceRegistry
     private void detachCatalog(
         CatalogConfig config)
     {
-        int catalogId = supplyLabelId.applyAsInt(config.name);
+        int catalogId = NamespacedId.localId(config.id);
         CatalogRegistry context = catalogsById.remove(catalogId);
         if (context != null)
         {
@@ -330,7 +330,7 @@ public class NamespaceRegistry
     private void detachMetric(
         MetricConfig config)
     {
-        int metricId = supplyLabelId.applyAsInt(config.name);
+        int metricId = NamespacedId.localId(config.id);
         metricsById.remove(metricId);
     }
 
@@ -349,7 +349,7 @@ public class NamespaceRegistry
     private void detachExporter(
         ExporterConfig config)
     {
-        int exporterId = supplyLabelId.applyAsInt(config.name);
+        int exporterId = NamespacedId.localId(config.id);
         ExporterRegistry registry = exportersById.remove(exporterId);
         if (registry != null)
         {
