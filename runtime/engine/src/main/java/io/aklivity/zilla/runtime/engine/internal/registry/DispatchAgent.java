@@ -763,8 +763,6 @@ public class DispatchAgent implements EngineContext, Agent
         final long closeAt = System.nanoTime();
         while (streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
         {
-            System.out.println(String.format("consumer: %d", streamsBuffer.consumerPosition()));
-            System.out.println(String.format("producer: %d", streamsBuffer.producerPosition()));
             ThreadHints.onSpinWait();
 
             if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
