@@ -704,7 +704,6 @@ public class DispatchAgent implements EngineContext, Agent
         {
             ex.addSuppressed(new Exception(String.format("[%s]\t[0x%016x] %s",
                                                          agentName, lastReadStreamId, streamsLayout)));
-            ex.printStackTrace();
             throw new AgentTerminationException(ex);
         }
 

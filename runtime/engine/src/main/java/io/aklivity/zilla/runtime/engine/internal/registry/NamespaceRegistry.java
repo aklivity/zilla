@@ -240,7 +240,7 @@ public class NamespaceRegistry
     private void detachBinding(
         BindingConfig config)
     {
-        int bindingId = supplyLabelId.applyAsInt(config.name);
+        int bindingId = NamespacedId.localId(config.id);
         BindingRegistry context = bindingsById.remove(bindingId);
         if (context != null)
         {
