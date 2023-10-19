@@ -94,3 +94,34 @@ read zilla:begin.ext ${http:beginEx()
 
 read "response3"
 read closed
+
+read notify RESPONSE_THREE_RECEIVED
+
+connect await RESPONSE_THREE_RECEIVED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":scheme", "http")
+                             .header(":method", "POST")
+                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
+                             .header(":authority", "localhost:8080")
+                             .header("code", "1234567890123")
+                             .header("content-type", "text/plain;charset=UTF-8")
+                             .header("content-length", "13")
+                             .build()}
+connected
+
+write "1234567890123"
+write close
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .header("content-length", "9")
+                             .build()}
+
+read "response4"
+read closed
