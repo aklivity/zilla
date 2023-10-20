@@ -22,6 +22,7 @@ accept "zilla://streams/net0"
 accepted
 connected
 
+# Request 1 - invalid path param
 read "POST /valid/1234567890123/123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
@@ -34,6 +35,7 @@ write close
 accepted
 connected
 
+# Request 2 - invalid query param
 read "POST /valid/1234567890123/1234567890123?page=123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
@@ -46,10 +48,27 @@ write close
 accepted
 connected
 
+# Request 3 - invalid header field
 read "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "Code: 123" "\r\n"
 read "\r\n"
+
+write "HTTP/1.1 404 Not Found\r\n"
+write "Connection: close\r\n"
+write "\r\n"
+write close
+
+accepted
+connected
+
+# Request 4 - invalid content
+read "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
+read "Host: localhost:8080" "\r\n"
+read "Code: 12345678901234" "\r\n"
+read "Content-Length: 3" "\r\n"
+read "\r\n"
+read "123"
 
 write "HTTP/1.1 404 Not Found\r\n"
 write "Connection: close\r\n"

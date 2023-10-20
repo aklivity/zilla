@@ -59,3 +59,21 @@ read "HTTP/1.1 404 Not Found\r\n"
 read "Connection: close\r\n"
 read "\r\n"
 read closed
+
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+connected
+
+# Request 4 - invalid content
+write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "Code: 12345678901234" "\r\n"
+write "Content-Length: 3" "\r\n"
+write "\r\n"
+write "123"
+
+read "HTTP/1.1 404 Not Found\r\n"
+read "Connection: close\r\n"
+read "\r\n"
+read closed

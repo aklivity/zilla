@@ -49,3 +49,17 @@ read "HTTP/1.1 200 OK\r\n"
 read "Content-Length: 9" "\r\n"
 read "\r\n"
 read "response3"
+
+# Request 4 - valid path params, query param, header field, valid content
+write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "Code: 1234567890123" "\r\n"
+write "Content-Length: 13" "\r\n"
+write "Content-Type: text/plain" "\r\n"
+write "\r\n"
+write "1234567890123"
+
+read "HTTP/1.1 200 OK\r\n"
+read "Content-Length: 9" "\r\n"
+read "\r\n"
+read "response4"
