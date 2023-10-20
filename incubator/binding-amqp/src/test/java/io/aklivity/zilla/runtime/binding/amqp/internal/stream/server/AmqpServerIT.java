@@ -1493,7 +1493,6 @@ public class AmqpServerIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -1580,7 +1579,6 @@ public class AmqpServerIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({

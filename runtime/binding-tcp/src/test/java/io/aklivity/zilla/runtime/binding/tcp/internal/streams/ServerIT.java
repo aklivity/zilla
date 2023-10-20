@@ -207,7 +207,6 @@ public class ServerIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -220,7 +219,6 @@ public class ServerIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.ipv6.yaml")
     @Specification({
