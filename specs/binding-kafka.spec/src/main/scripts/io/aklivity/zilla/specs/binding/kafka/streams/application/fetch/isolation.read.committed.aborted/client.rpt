@@ -69,6 +69,9 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+
+read notify SENT_ABORT
+
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()

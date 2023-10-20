@@ -90,6 +90,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world"
 
+read notify SENT_ABORT
+
 read advised zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()

@@ -73,6 +73,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 write flush
 
+write await SENT_ABORT
+
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
