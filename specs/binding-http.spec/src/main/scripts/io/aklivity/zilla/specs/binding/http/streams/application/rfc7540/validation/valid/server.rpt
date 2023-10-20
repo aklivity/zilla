@@ -28,9 +28,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -54,9 +51,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -69,6 +63,7 @@ write flush
 write "response2"
 write close
 
+
 accepted
 # Request 3 - valid path params, query param, header field
 read zilla:begin.ext ${http:matchBeginEx()
@@ -80,9 +75,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header("code", "1234567890123")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
