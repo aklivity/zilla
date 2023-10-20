@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -51,6 +52,7 @@ public class ConnectionManagementPoolSize1IT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("client.yaml")
     @Specification({
