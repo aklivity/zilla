@@ -9,14 +9,14 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 9090
-    exit: north_tls_server
-  north_tls_server:
+    exit: tls_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -27,8 +27,8 @@ bindings:
         - localhost
       alpn:
         - h2
-    exit: north_http_server
-  north_http_server:
+    exit: http_server0
+  http_server0:
     type: http
     kind: server
     options:
@@ -37,12 +37,12 @@ bindings:
       access-control:
         policy: cross-origin
     routes:
-      - exit: north_grpc_server
+      - exit: grpc_server0
         when:
           - headers:
               :scheme: https
               :authority: localhost:9090
-  north_grpc_server:
+  grpc_server0:
     type: grpc
     kind: server
     options:
@@ -51,19 +51,19 @@ bindings:
     routes:
       - when:
           - method: example.EchoService/*
-        exit: south_grpc_client
-  south_grpc_client:
+        exit: grpc_client0
+  grpc_client0:
     type: grpc
     kind: client
-    exit: south_http_client
-  south_http_client:
+    exit: http_client0
+  http_client0:
     type: http
     kind: client
     options:
       versions:
         - h2
-    exit: south_tcp_client
-  south_tcp_client:
+    exit: tcp_client0
+  tcp_client0:
     type: tcp
     kind: client
     options:

@@ -1,16 +1,16 @@
 name: example
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 1883
     routes:
-    - exit: north_mqtt_server
+    - exit: mqtt_server0
       when:
       - port: 1883
-  north_mqtt_server:
+  mqtt_server0:
     type: mqtt
     kind: server
     options:
@@ -19,27 +19,27 @@ bindings:
         content:
           type: json
           catalog:
-            inline_schema:
+            catalog0:
             - subject: item
     routes:
-    - exit: south_mqtt_client
+    - exit: mqtt_client0
       when:
       - publish:
         - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
       - subscribe:
         - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
-  south_mqtt_client:
+  mqtt_client0:
     type: mqtt
     kind: client
-    exit: south_tcp_client
-  south_tcp_client:
+    exit: tcp_client0
+  tcp_client0:
     type: tcp
     kind: client
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
       port: ${{env.TCP_CLIENT_PORT}}
 catalogs:
-  inline_schema:
+  catalog0:
     type: inline
     options:
       subjects:

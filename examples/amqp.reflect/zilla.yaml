@@ -9,7 +9,7 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
@@ -20,11 +20,11 @@ bindings:
     routes:
       - when:
           - port: 5672
-        exit: north_amqp_server
+        exit: amqp_server0
       - when:
           - port: 5671
-        exit: north_tls_server
-  north_tls_server:
+        exit: tls_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -33,18 +33,18 @@ bindings:
         - localhost
       sni:
         - localhost
-    exit: north_amqp_server
-  north_amqp_server:
+    exit: amqp_server0
+  amqp_server0:
     type: amqp
     kind: server
     routes:
       - when:
           - address: zilla
-        exit: north_fan_server
-  north_fan_server:
+        exit: fan_server0
+  fan_server0:
     type: fan
     kind: server
-    exit: north_echo_server
-  north_echo_server:
+    exit: echo_server0
+  echo_server0:
     type: echo
     kind: server

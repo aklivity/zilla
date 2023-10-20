@@ -8,7 +8,7 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
@@ -19,11 +19,11 @@ bindings:
     routes:
       - when:
           - port: 8080
-        exit: north_http_server
+        exit: http_server0
       - when:
           - port: 9090
-        exit: north_tls_server
-  north_tls_server:
+        exit: tls_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -34,8 +34,8 @@ bindings:
         - localhost
       alpn:
         - h2
-    exit: north_http_server
-  north_http_server:
+    exit: http_server0
+  http_server0:
     type: http
     kind: server
     options:
@@ -43,8 +43,8 @@ bindings:
         - h2
       access-control:
         policy: cross-origin
-    exit: north_grpc_server
-  north_grpc_server:
+    exit: grpc_server0
+  grpc_server0:
     type: grpc
     kind: server
     options:
@@ -53,7 +53,7 @@ bindings:
     routes:
       - when:
           - method: example.EchoService/*
-        exit: north_echo_server
-  north_echo_server:
+        exit: echo_server0
+  echo_server0:
     type: echo
     kind: server

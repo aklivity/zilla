@@ -9,14 +9,14 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 23456
-    exit: north_tls_server
-  north_tls_server:
+    exit: tls_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -30,11 +30,11 @@ bindings:
     routes:
       - when:
           - alpn: echo
-        exit: north_fan_server
-  north_fan_server:
+        exit: fan_server0
+  fan_server0:
     type: fan
     kind: server
-    exit: north_echo_server
-  north_echo_server:
+    exit: echo_server0
+  echo_server0:
     type: echo
     kind: server

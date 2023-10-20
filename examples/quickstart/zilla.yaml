@@ -1,8 +1,8 @@
 name: zilla-quickstart
 bindings:
 
-# Proxy service entrypoint
-  north_tcp_server:
+# Gateway ingress config
+  tcp_server:
     type: tcp
     kind: server
     options:
@@ -13,14 +13,14 @@ bindings:
     routes:
         - when: 
             - port: 7114
-          exit: north_http_server
+          exit: http_server
         - when: 
             - port: 1883
-          exit: north_mqtt_server
+          exit: mqtt_server
     telemetry:
       metrics:
         - stream.*
-  north_http_server:
+  http_server:
     type: http
     kind: server
     options:
@@ -32,25 +32,25 @@ bindings:
               :scheme: http
               :authority: localhost:7114
               :path: /sse/stream
-        exit: north_sse_server
+        exit: sse_server
       - when:
           - headers:
               :scheme: http
               :authority: localhost:7114
               :path: /sse/*
-        exit: north_sse_api_http_kafka_mapping
+        exit: sse_http_kafka_proxy
       - when:
           - headers:
               :scheme: http
               :authority: localhost:7114
               :path: /api/*
-        exit: north_rest_api_http_kafka_mapping
+        exit: http_api_kafka_proxy
       - when:
           - headers:
               :scheme: http
               :authority: localhost:7114
               :path: /iot/sse
-        exit: north_sse_server
+        exit: sse_server
       - when:
           - headers:
               :scheme: http
@@ -61,20 +61,20 @@ bindings:
           - headers:
               :scheme: http
               :authority: localhost:7114
-        exit: north_grpc_server
+        exit: grpc_server
     telemetry:
       metrics:
         - http.*
 
 # REST proxy endpoints to Kafka a topic
-  north_rest_api_http_kafka_mapping:
+  http_api_kafka_proxy:
     type: http-kafka
     kind: proxy
     routes:
       - when:
           - method: POST
             path: /api/items
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: items-crud
@@ -82,7 +82,7 @@ bindings:
       - when:
           - method: PUT
             path: /api/items/{id}
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: items-crud
@@ -90,7 +90,7 @@ bindings:
       - when:
           - method: DELETE
             path: /api/items/{id}
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: items-crud
@@ -98,7 +98,7 @@ bindings:
       - when:
           - method: GET
             path: /api/items
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: fetch
           topic: items-crud
@@ -107,7 +107,7 @@ bindings:
       - when:
           - method: GET
             path: /api/items/{id}
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: fetch
           topic: items-crud
@@ -115,14 +115,14 @@ bindings:
             - key: ${params.id}
 
 # SSE proxy endpoints to Kafka a topic
-  north_sse_api_http_kafka_mapping:
+  sse_http_kafka_proxy:
     type: http-kafka
     kind: proxy
     routes:
       - when:
           - method: POST
             path: /sse/events
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: events-sse
@@ -130,7 +130,7 @@ bindings:
       - when:
           - method: GET
             path: /sse/events
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: fetch
           topic: events-sse
@@ -139,53 +139,35 @@ bindings:
       - when:
           - method: GET
             path: /sse/events/{id}
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: fetch
           topic: events-sse
           filters:
             - key: ${params.id}
 
-# SSE Server to Kafka topics
-  north_sse_server:
+# SSE Server With an exit to Kafka
+  sse_server:
     type: sse
     kind: server
-    exit: north_sse_kafka_mapping
-  north_sse_kafka_mapping:
+    exit: sse_kafka_proxy
+  sse_kafka_proxy:
     type: sse-kafka
     kind: proxy
     routes:
       - when:
           - path: /sse/stream
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           topic: events-sse
       - when:
           - path: /iot/sse
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           topic: iot-messages
 
-# MQTT Server to Kafka topics
-  north_mqtt_server:
-    type: mqtt
-    kind: server
-    exit: north_mqtt_kafka_mapping
-    telemetry:
-      metrics:
-        - stream.*
-  north_mqtt_kafka_mapping:
-    type: mqtt-kafka
-    kind: proxy
-    options:
-      topics:
-        sessions: iot-sessions
-        messages: iot-messages
-        retained: iot-retained
-    exit: north_kafka_cache_client
-
-# gRPC service definition to Kafka topics
-  north_grpc_server:
+# gRPC service definition With an exit to Kafka
+  grpc_server:
     type: grpc
     kind: server
     options:
@@ -195,20 +177,22 @@ bindings:
     routes:
       - when:
           - method: example.EchoService/*
-        exit: north_grpc_kafka_mapping
+        exit: grpc_kafka
       - when:
           - method: routeguide.RouteGuide/*
-        exit: north_grpc_kafka_mapping
+        exit: grpc_kafka
     telemetry:
       metrics:
         - grpc.*
-  north_grpc_kafka_mapping:
+
+# gRPC proxy service to Kafka topics
+  grpc_kafka:
     type: grpc-kafka
     kind: proxy
     routes:
       - when:
           - method: example.EchoService/*
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: echo-service-messages
@@ -216,50 +200,18 @@ bindings:
           reply-to: echo-service-messages
       - when:
           - method: routeguide.RouteGuide/*
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client
         with:
           capability: produce
           topic: route-guide-requests
           acks: leader_only
           reply-to: route-guide-responses
 
-# Kafka sync layer
-  north_kafka_cache_client:
-    type: kafka
-    kind: cache_client
-    exit: south_kafka_cache_server
-  south_kafka_cache_server:
-    type: kafka
-    kind: cache_server
-    options:
-      bootstrap:
-        - items-crud
-        - route-guide-requests
-        - route-guide-responses
-        - iot-sessions
-        - iot-retained
-    exit: south_kafka_client
-
-# Connect to local Kafka
-  south_kafka_client:
-    type: kafka
-    kind: client
-    exit: south_kafka_tcp_client
-  south_kafka_tcp_client:
-    type: tcp
-    kind: client
-    options:
-      host: kafka
-      port: 29092
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
-
-# Kafka to external gRPC server
-  west_kafka_grpc_remote_server:
+# gRPC Kafka fanout to a remote server
+  route_guide_remote_server:
     type: kafka-grpc
     kind: remote_server
-    entry: north_kafka_cache_client
+    entry: kafka_cache_client
     options:
       acks: leader_only
     routes:
@@ -270,26 +222,76 @@ bindings:
         with:
           scheme: http
           authority: ${{env.ROUTE_GUIDE_SERVER_HOST}}:${{env.ROUTE_GUIDE_SERVER_PORT}}
-        exit: west_route_guide_grpc_client
+        exit: route_guide_server_grpc_client
 
-# gRPC RoutGuide server config
-  west_route_guide_grpc_client:
+# gRPC RoutGuide server
+  route_guide_server_grpc_client:
     type: grpc
     kind: client
-    exit: south_route_guide_http_client
-  west_route_guide_http_client:
+    exit: route_guide_server_http_client
+  route_guide_server_http_client:
     type: http
     kind: client
     options:
       versions:
         - h2
-    exit: south_route_guide_tcp_client
-  west_route_guide_tcp_client:
+    exit: route_guide_server_tcp_client
+  route_guide_server_tcp_client:
     type: tcp
     kind: client
     options:
       host: ${{env.ROUTE_GUIDE_SERVER_HOST}}
       port: ${{env.ROUTE_GUIDE_SERVER_PORT}}
+
+# MQTT Server With an exit to Kafka
+  mqtt_server:
+    type: mqtt
+    kind: server
+    exit: mqtt_kafka_proxy
+    telemetry:
+      metrics:
+        - stream.*
+  mqtt_kafka_proxy:
+    type: mqtt-kafka
+    kind: proxy
+    options:
+      topics:
+        sessions: iot-sessions
+        messages: iot-messages
+        retained: iot-retained
+    exit: kafka_cache_client
+
+# Kafka caching layer
+  kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server
+  kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    options:
+      bootstrap:
+        - items-crud
+        - route-guide-requests
+        - route-guide-responses
+        - iot-sessions
+        - iot-retained
+    exit: kafka_client
+
+# Connect to local Kafka
+  kafka_client:
+    type: kafka
+    kind: client
+    exit: kafka_tcp_client
+  kafka_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: kafka
+      port: 29092
+    routes:
+      - when:
+          - cidr: 0.0.0.0/0
 
 telemetry:
   # Desired metrics to track

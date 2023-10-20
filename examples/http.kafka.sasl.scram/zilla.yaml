@@ -9,7 +9,7 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
@@ -20,11 +20,11 @@ bindings:
     routes:
         - when:
             - port: 9090
-          exit: north_tls_server
+          exit: tls_server0
         - when: 
             - port: 8080
-          exit: north_http_server
-  north_tls_server:
+          exit: http_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -36,8 +36,8 @@ bindings:
       alpn:
         - http/1.1
         - h2
-    exit: north_http_server
-  north_http_server:
+    exit: http_server0
+  http_server0:
     type: http
     kind: server
     routes:
@@ -48,26 +48,26 @@ bindings:
           - headers:
               :scheme: https
               :authority: localhost:9090
-        exit: north_http_kafka_mapping
-  north_http_kafka_mapping:
+        exit: http_kafka_proxy0
+  http_kafka_proxy0:
     type: http-kafka
     kind: proxy
     routes:
       - when:
           - path: /events
-        exit: north_kafka_cache_client
+        exit: kafka_cache_client0
         with:
           capability: produce
           topic: events
-  north_kafka_cache_client:
+  kafka_cache_client0:
     type: kafka
     kind: cache_client
-    exit: south_kafka_cache_server
-  south_kafka_cache_server:
+    exit: kafka_cache_server0
+  kafka_cache_server0:
     type: kafka
     kind: cache_server
-    exit: south_kafka_client
-  south_kafka_client:
+    exit: kafka_client0
+  kafka_client0:
     type: kafka
     kind: client
     options:
@@ -75,8 +75,8 @@ bindings:
         mechanism: scram-sha-256
         username: ${{env.SASL_USERNAME}}
         password: ${{env.SASL_PASSWORD}}
-    exit: south_tcp_client
-  south_tcp_client:
+    exit: tcp_client0
+  tcp_client0:
     type: tcp
     kind: client
     options:

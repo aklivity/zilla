@@ -1,13 +1,13 @@
 ---
 name: example
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 12345
-    exit: north_echo_server
-  north_echo_server:
+    exit: echo_server0
+  echo_server0:
     type: echo
     kind: server

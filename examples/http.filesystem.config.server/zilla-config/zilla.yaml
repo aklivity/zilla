@@ -9,22 +9,21 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  north_tcp_server:
+  tcp_server0:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
-      port: 
-        - 9091
-        - 8081
-    routes:
-        - when:
-            - port: 9091
-          exit: north_tls_server
-        - when: 
-            - port: 8081
-          exit: north_http_server
-  north_tls_server:
+      port: 9091
+    exit: tls_server0
+  tcp_server1:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 8081
+    exit: http_server0
+  tls_server0:
     type: tls
     kind: server
     vault: server
@@ -36,8 +35,8 @@ bindings:
       alpn:
         - http/1.1
         - h2
-    exit: east_http_server
-  east_http_server:
+    exit: http_server0
+  http_server0:
     type: http
     kind: server
     routes:
@@ -47,17 +46,17 @@ bindings:
           - headers:
               :scheme: https
               :authority: localhost:9091
-        exit: east_http_filesystem_mapping
-  east_http_filesystem_mapping:
+        exit: http_filesystem_proxy0
+  http_filesystem_proxy0:
     type: http-filesystem
     kind: proxy
     routes:
       - when:
           - path: /{path}
-        exit: east_filesystem_server
+        exit: filesystem_server0
         with:
           path: ${params.path}
-  east_filesystem_server:
+  filesystem_server0:
     type: filesystem
     kind: server
     options:
