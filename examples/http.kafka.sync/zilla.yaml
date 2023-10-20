@@ -21,7 +21,7 @@ telemetry:
     - stream.closes.received
     - stream.closes.sent
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
@@ -32,14 +32,14 @@ bindings:
     routes:
         - when:
             - port: 9090
-          exit: tls_server0
+          exit: north_tls_server
         - when: 
             - port: 8080
-          exit: http_server0
+          exit: north_http_server
     telemetry:
       metrics:
         - stream.*
-  tls_server0:
+  north_tls_server:
     type: tls
     kind: server
     vault: server
@@ -51,11 +51,11 @@ bindings:
       alpn:
         - http/1.1
         - h2
-    exit: http_server0
+    exit: north_http_server
     telemetry:
       metrics:
         - stream.*
-  http_server0:
+  north_http_server:
     type: http
     kind: server
     routes:
@@ -66,17 +66,17 @@ bindings:
           - headers:
               :scheme: https
               :authority: localhost:9090
-        exit: http_kafka_proxy0
+        exit: north_http_kafka_mapping
     telemetry:
       metrics:
         - stream.*
-  http_kafka_proxy0:
+  north_http_kafka_mapping:
     type: http-kafka
     kind: proxy
     routes:
       - when:
           - path: /items/{id}
-        exit: kafka_cache_client0
+        exit: north_kafka_cache_client
         with:
           capability: produce
           topic: items-requests
@@ -85,31 +85,31 @@ bindings:
     telemetry:
       metrics:
         - stream.*
-  kafka_cache_client0:
+  north_kafka_cache_client:
     type: kafka
     kind: cache_client
-    exit: kafka_cache_server0
+    exit: south_kafka_cache_server
     telemetry:
       metrics:
         - stream.*
-  kafka_cache_server0:
+  south_kafka_cache_server:
     type: kafka
     kind: cache_server
     options:
       bootstrap:
         - items-responses
-    exit: kafka_client0
+    exit: south_kafka_client
     telemetry:
       metrics:
         - stream.*
-  kafka_client0:
+  south_kafka_client:
     type: kafka
     kind: client
-    exit: tcp_client0
+    exit: south_tcp_client
     telemetry:
       metrics:
         - stream.*
-  tcp_client0:
+  south_tcp_client:
     type: tcp
     kind: client
     options:

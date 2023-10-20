@@ -16,14 +16,14 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 9090
-    exit: tls_server0
-  tls_server0:
+    exit: north_tls_server
+  north_tls_server:
     type: tls
     kind: server
     vault: server
@@ -34,8 +34,8 @@ bindings:
         - localhost
       alpn:
         - h2
-    exit: http_server0
-  http_server0:
+    exit: north_http_server
+  north_http_server:
     type: http
     kind: server
     options:
@@ -47,12 +47,12 @@ bindings:
               :scheme: https
               :authority: localhost:9090
               :path: /*
-        exit: http_client0
-  http_client0:
+        exit: south_http_client
+  south_http_client:
     type: http
     kind: client
-    exit: tls_client0
-  tls_client0:
+    exit: south_tls_client
+  south_tls_client:
     type: tls
     kind: client
     vault: client
@@ -64,8 +64,8 @@ bindings:
         - nginx
       alpn:
         - h2
-    exit: tcp_client0
-  tcp_client0:
+    exit: south_tcp_client
+  south_tcp_client:
     type: tcp
     kind: client
     options:

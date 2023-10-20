@@ -9,7 +9,7 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 guards:
-  jwt0:
+  authn_jwt:
     type: jwt
     options:
       issuer: https://auth.example.com
@@ -21,21 +21,21 @@ guards:
           alg: RS256
           kid: example
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 1883
-    exit: mqtt_server0
+    exit: north_mqtt_server
   tcp_server1:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 8883
-    exit: tls_server0
-  tls_server0:
+    exit: north_tls_server
+  north_tls_server:
     type: tls
     kind: server
     vault: server
@@ -44,22 +44,22 @@ bindings:
         - localhost
       sni:
         - localhost
-    exit: mqtt_server0
-  mqtt_server0:
+    exit: north_mqtt_server
+  north_mqtt_server:
     type: mqtt
     kind: server
     options:
       authorization:
-        jwt0:
+        authn_jwt:
           credentials:
             connect:
               username: Bearer {credentials}
     routes:
       - guarded:
-          jwt0:
+          authn_jwt:
             - mqtt:stream
-        exit: mqtt_kafka_proxy0
-  mqtt_kafka_proxy0:
+        exit: north_mqtt_kafka_mapping
+  north_mqtt_kafka_mapping:
     type: mqtt-kafka
     kind: proxy
     options:
@@ -68,23 +68,23 @@ bindings:
         sessions: mqtt-sessions
         messages: mqtt-messages
         retained: mqtt-retained
-    exit: kafka_cache_client0
-  kafka_cache_client0:
+    exit: north_kafka_cache_client
+  north_kafka_cache_client:
     type: kafka
     kind: cache_client
-    exit: kafka_cache_server0
-  kafka_cache_server0:
+    exit: south_kafka_cache_server
+  south_kafka_cache_server:
     type: kafka
     kind: cache_server
     options:
       bootstrap:
         - mqtt-retained
-    exit: kafka_client0
-  kafka_client0:
+    exit: south_kafka_client
+  south_kafka_client:
     type: kafka
     kind: client
-    exit: tcp_client0
-  tcp_client0:
+    exit: south_tcp_client
+  south_tcp_client:
     type: tcp
     kind: client
     options:

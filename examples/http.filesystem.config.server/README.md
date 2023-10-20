@@ -89,21 +89,21 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 8080
-    exit: http_server0
+    exit: north_http_server
   tcp_server1:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 9090
-    exit: tls_server0
-  tls_server0:
+    exit: north_tls_server
+  north_tls_server:
     type: tls
     kind: server
     vault: server
@@ -115,8 +115,8 @@ bindings:
       alpn:
         - http/1.1
         - h2
-    exit: http_server0
-  http_server0:
+    exit: north_http_server
+  north_http_server:
     type: http
     kind: server
     routes:
@@ -129,8 +129,8 @@ bindings:
               :scheme: https
               :authority: localhost:9090
               :path: /echo
-        exit: echo_server0
-  echo_server0:
+        exit: north_echo_server
+  north_echo_server:
     type: echo
     kind: server
 ```
