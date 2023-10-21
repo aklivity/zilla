@@ -90,6 +90,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world"
 
+read notify RECEIVED_SKIPPED_MESSAGE
 
 read advised zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
@@ -99,7 +100,6 @@ read advised zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
-read notify RECEIVED_SKIPPED_MESSAGE
 
 read option zilla:flags "auto"
 read zilla:data.ext ${kafka:matchDataEx()
