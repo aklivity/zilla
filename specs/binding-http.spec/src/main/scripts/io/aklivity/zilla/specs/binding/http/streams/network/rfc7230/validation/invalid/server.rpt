@@ -67,6 +67,7 @@ read "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n
 read "Host: localhost:8080" "\r\n"
 read "Code: 12345678901234" "\r\n"
 read "Content-Length: 3" "\r\n"
+read "Content-Type: text/plain" "\r\n"
 read "\r\n"
 read "123"
 
