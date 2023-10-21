@@ -252,7 +252,7 @@ public final class Engine implements Collector, AutoCloseable
     {
         if (config.drainOnClose())
         {
-            drain();
+            dispatchers.forEach(DispatchAgent::drain);
         }
 
         final List<Throwable> errors = new ArrayList<>();
@@ -287,11 +287,6 @@ public final class Engine implements Collector, AutoCloseable
             errors.stream().filter(x -> x != t).forEach(x -> t.addSuppressed(x));
             rethrowUnchecked(t);
         }
-    }
-
-    private void drain()
-    {
-        dispatchers.forEach(d -> d.drain());
     }
 
     // required for testing

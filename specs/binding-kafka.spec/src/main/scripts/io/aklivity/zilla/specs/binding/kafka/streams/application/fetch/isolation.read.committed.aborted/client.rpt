@@ -70,7 +70,6 @@ read zilla:begin.ext ${kafka:beginEx()
                               .build()}
 
 
-read notify SENT_ABORT
 
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
@@ -78,6 +77,8 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                    .partition(0, 3, 3, 3)
                                    .build()
                                .build()}
+
+read notify RECEIVED_SKIPPED_MESSAGE
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))

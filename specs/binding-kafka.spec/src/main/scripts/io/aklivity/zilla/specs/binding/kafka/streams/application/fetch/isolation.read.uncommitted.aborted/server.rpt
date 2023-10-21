@@ -98,7 +98,6 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world"
 write flush
 
-write await SENT_ABORT
 
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
@@ -107,6 +106,8 @@ write advise zilla:flush ${kafka:flushEx()
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}
+
+write await RECEIVED_SKIPPED_MESSAGE
 
 write option zilla:flags "auto"
 write zilla:data.ext ${kafka:dataEx()
