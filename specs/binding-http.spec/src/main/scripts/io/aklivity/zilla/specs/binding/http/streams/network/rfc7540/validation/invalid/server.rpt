@@ -193,7 +193,7 @@ read [0x00 0x00 0x0c]                    # length = 12
      [0x00 0x04 0x00 0x00 0xff 0xff]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
 
 # Request 4 - invalid content
-read [0x00 0x00 0x7c]                    # length = 124
+read [0x00 0x00 0x6f]                    # length = 111
      [0x01]                              # HEADERS frame
      [0x04]                              # END_HEADERS
      [0x00 0x00 0x00 0x01]               # stream_id = 1
@@ -201,12 +201,11 @@ read [0x00 0x00 0x7c]                    # length = 124
      [0x86]                              # :scheme: http
      [0x04] [0x35]                       # :path: /valid/1234567890123/1234567890123?page=1234567890123
      "/valid/1234567890123/1234567890123?page=1234567890123"
-     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
-     [0x40] [0x04] "code"
-            [0x0d] "1234567890123"       # code: 1234567890123
-     [0x0f 0x10] [0x18]                  # content-type
-     "text/plain;charset=UTF-8"
-     [0x0f 0x0d] [0x01] "3"             # content-length
+      [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
+      [0x40] [0x04] "code"
+             [0x0e] "12345678901234"     # code: 12345678901234
+      [0x0f 0x10] [0x0a] "text/plain"    # content-type
+      [0x0f 0x0d] [0x01] "3"             # content-length
 
 write [0x00 0x00 0x00]                   # length = 0
       [0x04]                             # HTTP2 SETTINGS frame
