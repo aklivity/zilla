@@ -1411,7 +1411,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             String16FW status)
         {
-            if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
+            if (GrpcKafkaState.replyOpening(state) &&
+                !GrpcKafkaState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
 
