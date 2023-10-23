@@ -16,11 +16,7 @@ spec:
     spec:
       containers:
         - name: kafka
-          args:
-            - /bin/sh
-            - -c
-            - /opt/bitnami/scripts/kafka/setup.sh && kafka-storage.sh format --config "${KAFKA_CONF_FILE}" --cluster-id "lkorDA4qT6W1K_dk0LHvtg" --ignore-formatted && /opt/bitnami/scripts/kafka/run.sh
-          image: "bitnami/kafka:3.1.0"
+          image: "bitnami/kafka:3.2"
           env:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
@@ -43,7 +39,7 @@ spec:
             - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
               value: "INTERNAL"
             - name: KAFKA_CFG_ADVERTISED_LISTENERS
-              value: "CLIENT://localhost:9092,INTERNAL://kafka:29092"
+              value: "CLIENT://host.docker.internal:9092,INTERNAL://host.docker.internal:29092"
           ports:
             - containerPort: 9092
             - containerPort: 29092

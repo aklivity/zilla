@@ -1,0 +1,19 @@
+args: ["start", "-v", "-e"]
+
+env:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+  - name: KAFKA_HOST
+    value: "\"\""
+  - name: KAFKA_PORT
+    value: "\"\""
+
+livenessProbePort: 7183
+readinessProbePort: 7183
+
+service:
+  ports:
+    - port: 7183
+      name: mqtt
+    - port: 7883
+      name: mqtts
