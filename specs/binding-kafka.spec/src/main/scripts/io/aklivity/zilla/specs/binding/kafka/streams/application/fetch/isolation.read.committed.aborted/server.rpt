@@ -82,7 +82,6 @@ write advise zilla:flush ${kafka:flushEx()
                                     .build()
                                 .build()}
 
-
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
