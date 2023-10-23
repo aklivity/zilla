@@ -78,7 +78,6 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                    .build()
                                .build()}
 
-
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
