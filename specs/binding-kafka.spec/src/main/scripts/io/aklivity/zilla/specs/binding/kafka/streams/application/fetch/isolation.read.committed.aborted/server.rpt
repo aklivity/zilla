@@ -73,6 +73,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 write flush
 
+write await RECEIVED_SKIPPED_MESSAGE
+
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
