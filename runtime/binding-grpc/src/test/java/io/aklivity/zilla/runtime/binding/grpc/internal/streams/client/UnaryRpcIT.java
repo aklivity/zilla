@@ -134,4 +134,15 @@ public class UnaryRpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/response.missing.grpc.status/client",
+        "${net}/response.missing.grpc.status/server",
+    })
+    public void shouldAbortResponseMissingGrpcStatus() throws Exception
+    {
+        k3po.finish();
+    }
 }

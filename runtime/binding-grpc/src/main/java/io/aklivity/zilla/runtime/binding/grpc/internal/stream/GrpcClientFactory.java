@@ -856,16 +856,15 @@ public class GrpcClientFactory implements GrpcStreamFactory
             final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
             final HttpHeaderFW grpcStatus = trailers.matchFirst(t -> t.name().equals(HTTP_HEADER_GRPC_STATUS));
 
-            if (grpcStatus == null || HEADER_VALUE_GRPC_OK.equals(grpcStatus.value()))
+            if (grpcStatus != null && HEADER_VALUE_GRPC_OK.equals(grpcStatus.value()))
             {
                 delegate.doAppEnd(traceId, authorization);
             }
             else
             {
-                delegate.doAppAbortDeferring(traceId, authorization, grpcStatus.value());
+                delegate.doAppAbortDeferring(traceId, authorization,
+                        grpcStatus != null ? grpcStatus.value() : HEADER_VALUE_GRPC_INTERNAL_ERROR);
             }
-
-
         }
 
         private void onNetAbort(
