@@ -1,6 +1,0 @@
-apiVersion: v2
-name: bitnami-kafka
-description: simple one node kafka using bitnami/kafka
-type: application
-version: 0.1.0
-appVersion: "latest"

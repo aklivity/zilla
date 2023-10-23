@@ -1,79 +1,5 @@
 ---
-name: zilla-mqtt-kafka-broker
-bindings:
-
-# Proxy service entrypoint
-  north_tcp_server:
-    type: tcp
-    kind: server
-    options:
-      host: 0.0.0.0
-      port: 
-        - 7183
-        - 7883
-    routes:
-        - when: 
-            - port: 7183
-          exit: north_mqtt_server
-        - when:
-            - port: 7883
-          exit: north_tls_server
-  north_tls_server:
-    type: tls
-    kind: server
-    vault: server
-    options:
-      keys:
-        - localhost
-      sni:
-        - localhost
-    exit: north_mqtt_server
-  north_mqtt_server:
-    type: mqtt
-    kind: server
-    exit: north_mqtt_kafka_mapping
-
-# MQTT messages to Kafka topics
-  north_mqtt_kafka_mapping:
-    type: mqtt-kafka
-    kind: proxy
-    options:
-      server: localhost:7183
-      topics:
-        sessions: mqtt-sessions
-        messages: mqtt-messages
-        retained: mqtt-retained
-    exit: north_kafka_cache_client
-
-# Kafka sync layer
-  north_kafka_cache_client:
-    type: kafka
-    kind: cache_client
-    exit: south_kafka_cache_server
-  south_kafka_cache_server:
-    type: kafka
-    kind: cache_server
-    options:
-      bootstrap:
-        - mqtt-messages
-        - mqtt-retained
-    exit: south_kafka_client
-
-# Connect to Kafka
-  south_kafka_client:
-    type: kafka
-    kind: client
-    exit: south_tcp_client
-  south_tcp_client:
-    type: tcp
-    kind: client
-    options:
-      host: ${{env.KAFKA_HOST}}
-      port: ${{env.KAFKA_PORT}}
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
-
+name: example
 vaults:
   server:
     type: filesystem
@@ -82,4 +8,69 @@ vaults:
         store: tls/localhost.p12
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 
+        - 1883
+        - 8883
+    routes:
+        - when: 
+            - port: 1883
+          exit: mqtt_server0
+        - when:
+            - port: 8883
+          exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+    exit: mqtt_server0
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    exit: mqtt_kafka_proxy0
+  mqtt_kafka_proxy0:
+    type: mqtt-kafka
+    kind: proxy
+    options:
+      server: localhost:1883
+      topics:
+        sessions: mqtt-sessions
+        messages: mqtt-messages
+        retained: mqtt-retained
+    exit: kafka_cache_client0
+  kafka_cache_client0:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server0
+  kafka_cache_server0:
+    type: kafka
+    kind: cache_server
+    options:
+      bootstrap:
+        - mqtt-messages
+        - mqtt-retained
+    exit: kafka_client0
+  kafka_client0:
+    type: kafka
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: kafka
+      port: 29092
+    routes:
+      - when:
+          - cidr: 0.0.0.0/0
 
