@@ -124,4 +124,14 @@ public class UnaryRpcIT
     }
 
 
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/server.send.write.abort.on.open.response/client",
+        "${net}/response.with.grpc.error/server"
+    })
+    public void shouldAbortResponseWithGrpcError() throws Exception
+    {
+        k3po.finish();
+    }
 }
