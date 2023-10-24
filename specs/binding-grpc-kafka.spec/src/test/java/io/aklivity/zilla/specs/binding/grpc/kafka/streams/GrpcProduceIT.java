@@ -100,6 +100,15 @@ public class GrpcProduceIT
 
     @Test
     @Specification({
+        "${grpc}/unary.rpc.error/client",
+        "${grpc}/unary.rpc.error/server"})
+    public void shouldRejectUnaryRpcWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/unary.rpc.rejected/client",
         "${grpc}/unary.rpc.rejected/server"})
     public void shouldRejectUnaryRpc() throws Exception

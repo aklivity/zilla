@@ -94,4 +94,14 @@ public class UnaryRpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.missing.grpc.status/client",
+        "${app}/response.missing.grpc.status/server",
+    })
+    public void shouldAbortResponseMissingGrpcStatus() throws Exception
+    {
+        k3po.finish();
+    }
 }

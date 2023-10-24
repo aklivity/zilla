@@ -88,6 +88,26 @@ public class UnaryRpcIT
 
     @Test
     @Specification({
+        "${net}/response.with.grpc.error/client",
+        "${net}/response.with.grpc.error/server",
+    })
+    public void shouldAbortResponseOnGrpcError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.missing.grpc.status/client",
+        "${net}/response.missing.grpc.status/server",
+    })
+    public void shouldAbortResponseMissingGrpcStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.send.read.abort.on.open.request/client",
         "${net}/server.send.read.abort.on.open.request/server"
     })

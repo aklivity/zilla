@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+accept "zilla://streams/grpc0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 accepted
@@ -25,18 +25,18 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .service("example.EchoService")
                            .method("EchoUnary")
                            .metadata("custom", "test")
+                           .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                            .build()}
 connected
 
 read ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
+           .string(1, "Hello World")
+           .build()}
+
 read closed
 
 write zilla:abort.ext ${grpc:abortEx()
                             .typeId(zilla:id("grpc"))
                             .status("9")
                             .build()}
-write flush
-
 write abort
