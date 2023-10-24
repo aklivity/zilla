@@ -1,0 +1,13 @@
+service:
+  port: 8080
+yamlApplicationConfig:
+  kafka:
+    clusters:
+      - name: local
+        bootstrapServers: host.docker.internal:29092
+  auth:
+    type: disabled
+  management:
+    health:
+      ldap:
+        enabled: false
