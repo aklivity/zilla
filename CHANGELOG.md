@@ -525,7 +525,7 @@
 **Fixed bugs:**
 
 - Error running http.kafka.oneway from zilla-examples [\#117](https://github.com/aklivity/zilla/issues/117)
-- Zillla build fails on timeout [\#102](https://github.com/aklivity/zilla/issues/102)
+- Zilla build fails on timeout [\#102](https://github.com/aklivity/zilla/issues/102)
 
 **Merged pull requests:**
 
@@ -558,7 +558,7 @@
 
 **Implemented enhancements:**
 
-- Feature request:  Reqeust limiter [\#86](https://github.com/aklivity/zilla/issues/86)
+- Feature request:  Request limiter [\#86](https://github.com/aklivity/zilla/issues/86)
 - Configurable isolation level for kafka binding [\#85](https://github.com/aklivity/zilla/issues/85)
 - Configurable acknowledgement mode for kafka binding [\#84](https://github.com/aklivity/zilla/issues/84)
 
