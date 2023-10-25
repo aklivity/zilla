@@ -86,7 +86,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
 
-    private static final int KAFKA_RECORD_FRAMING = 100; // TODO
+    private static final int KAFKA_RECORD_FRAMING = 512; // TODO
 
     private static final int FLAGS_CON = 0x00;
     private static final int FLAGS_FIN = 0x01;
@@ -538,6 +538,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         client.valueChecksum = kafkaProduceDataEx.crc32c();
         final int valueSize = payload != null ? payload.sizeof() : 0;
         client.valueCompleteSize = valueSize + client.encodeableRecordBytesDeferred;
+
 
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + KAFKA_RECORD_FRAMING;
         if (client.encodeSlot != NO_SLOT &&
@@ -1191,6 +1192,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private int encodeableRecordCount;
             private int encodeableRecordBytes;
             private int encodeableRecordBytesDeferred;
+            private int encodeableRecordValueBytes;
             private int flushableRequestBytes;
 
             private int decodeSlot = NO_SLOT;
@@ -1652,6 +1654,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
                 encodeSlotLimit += encodeProgress;
+                encodeableRecordValueBytes = 0;
 
                 if (headersCount > 0)
                 {
@@ -1689,6 +1692,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
                     encodeSlotLimit += length;
+                    encodeableRecordValueBytes += length;
 
                     if ((flags & FLAGS_FIN) == 0)
                     {
@@ -1893,7 +1897,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                 final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
-                encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit);
+                final int partialValueSize = flushFlags != FLAGS_FIN ? encodeableRecordValueBytes : 0;
+                encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit - partialValueSize);
                 encodeSlotByteBuffer.position(encodeSlotBytePosition + encodeSlotOffset + crcLimit);
 
                 final CRC32C crc = crc32c;
