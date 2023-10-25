@@ -41,11 +41,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":status", "200")
                            .header("content-type", "application/grpc")
                            .header("grpc-encoding", "identity")
-                           .build()}
-
-read zilla:end.ext ${http:endEx()
-                           .typeId(zilla:id("http"))
-                           .trailer("grpc-status", "9")
+                           .header("grpc-status", "9")
                            .build()}
 
 read closed

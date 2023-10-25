@@ -44,8 +44,12 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
+write ${grpc:message()
+            .string(1, "Hello World")
+            .build()}
+write flush
+
 write zilla:end.ext ${http:endEx()
-                            .typeId(zilla:id("http"))
-                            .trailer("grpc-status", "9")
-                            .build()}
+                          .typeId(zilla:id("http"))
+                          .build()}
 write close
