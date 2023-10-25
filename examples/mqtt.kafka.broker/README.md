@@ -1,6 +1,6 @@
 # mqtt.kafka.broker
 
-This is the resource folder for the running the [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/next/how-tos/mqtt/mqtt.kafka.broker.html) found on our docs.
+This is the resource folder for the running the [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/latest/how-tos/mqtt/mqtt.kafka.broker.html) found on our docs.
 
 ## Running locally
 
@@ -26,7 +26,7 @@ Wether you chose [compose](./compose) or [k8s](./k8s/), the `setup.sh` script wi
 
 ### Using this example
 
-Follow the steps on our [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/next/how-tos/mqtt/mqtt.kafka.broker.html#send-a-greeting)
+Follow the steps on our [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/latest/how-tos/mqtt/mqtt.kafka.broker.html#send-a-greeting)
 
 ### Teardown
 
