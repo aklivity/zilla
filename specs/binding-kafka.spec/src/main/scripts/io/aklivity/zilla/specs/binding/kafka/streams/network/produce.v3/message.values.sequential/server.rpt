@@ -28,11 +28,11 @@ accepted
 
 connected
 
-read 26                                 # size
+read 21                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId)
-     5s "zilla"                         # client id
+     -1s                                # no client id
      1                                  # topics
      4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -61,7 +61,7 @@ write 97                                # size
 
 accepted
 
-read zilla:begin.ext ${proxy:matchBeginEx()
+read zilla:begin.ext ${proxy:beginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -70,18 +70,15 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
-                              .info()
-                                .authority("broker1.example.com")
-                                .build()
                               .build()}
 
 connected
 
-read 7283
+read 7278
      0s
      3s
      (int:requestId)
-     5s "zilla"                         # client id
+     -1s
      -1s
      [0..2]
      [0..4]
