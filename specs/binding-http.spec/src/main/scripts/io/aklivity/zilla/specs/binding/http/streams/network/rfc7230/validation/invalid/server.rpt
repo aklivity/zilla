@@ -27,7 +27,7 @@ read "POST /valid/1234567890123/123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
 
-write "HTTP/1.1 404 Not Found\r\n"
+write "HTTP/1.1 400 Bad Request\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close
@@ -40,7 +40,7 @@ read "POST /valid/1234567890123/1234567890123?page=123 HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
 
-write "HTTP/1.1 404 Not Found\r\n"
+write "HTTP/1.1 400 Bad Request\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close
@@ -54,7 +54,7 @@ read "Host: localhost:8080" "\r\n"
 read "Code: 123" "\r\n"
 read "\r\n"
 
-write "HTTP/1.1 404 Not Found\r\n"
+write "HTTP/1.1 400 Bad Request\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close
@@ -71,7 +71,7 @@ read "Content-Type: text/plain" "\r\n"
 read "\r\n"
 read "123"
 
-write "HTTP/1.1 404 Not Found\r\n"
+write "HTTP/1.1 400 Bad Request\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 write close

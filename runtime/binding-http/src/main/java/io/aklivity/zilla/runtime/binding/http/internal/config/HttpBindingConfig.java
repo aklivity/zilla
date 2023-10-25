@@ -34,6 +34,8 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -328,24 +330,22 @@ public final class HttpBindingConfig
         return queryParams;
     }
 
-    public boolean validate(
+    public boolean validateHeader(
         HttpRequestType request,
         HttpBeginExFW beginEx)
     {
         boolean isValid = true;
         if (request != null)
         {
-            boolean isValidHeader = validateHeaders(request, beginEx);
+            boolean isValidHeader = validateHeaderValues(request, beginEx);
             boolean isValidPathParams = validatePathParams(request);
             boolean isValidQueryParams = validateQueryParams(request);
-            // TODO: Ati - validate content (probably somewhere else)
-            //boolean isValidContent = validateContent(requestType, beginEx);
-            isValid = isValidHeader && isValidPathParams && isValidQueryParams; // && isValidContent;
+            isValid = isValidHeader && isValidPathParams && isValidQueryParams;
         }
         return isValid;
     }
 
-    private boolean validateHeaders(
+    private boolean validateHeaderValues(
         HttpRequestType request,
         HttpBeginExFW beginEx)
     {
@@ -411,16 +411,19 @@ public final class HttpBindingConfig
         return isValid;
     }
 
-    private boolean validateContent(
-        HttpRequestType request)
+    public boolean validateContent(
+        HttpRequestType request,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
-        AtomicBoolean isValidContent = new AtomicBoolean(true);
+        boolean isValid = true;
         if (request != null && request.content != null)
         {
             Validator validator = request.content;
-            // TODO: Ati
+            isValid = validator.read(buffer, index, length);
         }
-        return isValidContent.get();
+        return isValid;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(

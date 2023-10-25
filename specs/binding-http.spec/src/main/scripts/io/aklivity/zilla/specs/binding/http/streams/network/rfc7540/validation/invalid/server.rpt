@@ -64,7 +64,7 @@ write [0x00 0x00 0x05]                   # length = 5
       [0x01]                             # HTTP2 HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      [0x8d]                             # :status: 404
+      [0x8c]                             # :status: 400
       [0x0f 0x0d] [0x01] "0"             # content-length
 write close
 
@@ -113,7 +113,7 @@ write [0x00 0x00 0x05]                   # length = 5
       [0x01]                             # HTTP2 HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      [0x8d]                             # :status: 404
+      [0x8c]                             # :status: 400
       [0x0f 0x0d] [0x01] "0"             # content-length
 write close
 
@@ -164,7 +164,7 @@ write [0x00 0x00 0x05]                   # length = 5
       [0x01]                             # HTTP2 HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      [0x8d]                             # :status: 404
+      [0x8c]                             # :status: 400
       [0x0f 0x0d] [0x01] "0"             # content-length
 
 accepted
@@ -193,7 +193,7 @@ read [0x00 0x00 0x0c]                    # length = 12
      [0x00 0x04 0x00 0x00 0xff 0xff]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
 
 # Request 4 - invalid content
-read [0x00 0x00 0x6f]                    # length = 111
+read [0x00 0x00 0x6e]                    # length = 110
      [0x01]                              # HEADERS frame
      [0x04]                              # END_HEADERS
      [0x00 0x00 0x00 0x01]               # stream_id = 1
@@ -203,7 +203,7 @@ read [0x00 0x00 0x6f]                    # length = 111
      "/valid/1234567890123/1234567890123?page=1234567890123"
       [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
       [0x40] [0x04] "code"
-             [0x0e] "12345678901234"     # code: 12345678901234
+             [0x0d] "1234567890123"      # code: 1234567890123
       [0x0f 0x10] [0x0a] "text/plain"    # content-type
       [0x0f 0x0d] [0x01] "3"             # content-length
 
@@ -222,5 +222,5 @@ write [0x00 0x00 0x05]                   # length = 5
       [0x01]                             # HTTP2 HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      [0x8d]                             # :status: 404
+      [0x8c]                             # :status: 400
       [0x0f 0x0d] [0x01] "0"             # content-length
