@@ -406,6 +406,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Array32FW<HttpHeaderFW> headers400;
     private final Array32FW<HttpHeaderFW> headers403;
     private final Array32FW<HttpHeaderFW> headers404;
+    private final DirectBuffer response400;
     private final DirectBuffer response403;
     private final DirectBuffer response404;
 
@@ -582,6 +583,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.headers400 = initHeadersEmpty(config, STATUS_400);
         this.headers403 = initHeaders(config, STATUS_403);
         this.headers404 = initHeadersEmpty(config, STATUS_404);
+        this.response400 = initResponse(config, 400, "Bad Request");
         this.response403 = initResponse(config, 403, "Forbidden");
         this.response404 = initResponse(config, 404, "Not Found");
     }
@@ -1059,8 +1061,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
 
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
-                        server.request = binding.resolveRequest(headers::get);
-                        if (route != null && binding.validate(server.request, beginEx))
+                        if (route != null)
                         {
                             if (binding.options != null && binding.options.overrides != null)
                             {
@@ -1075,7 +1076,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth, policy, origin, beginEx);
+                            server.request = binding.resolveRequest(headers::get);
+                            error = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth, policy, origin,
+                                beginEx);
                         }
                         else
                         {
@@ -2215,7 +2218,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert exchange == null;
         }
 
-        private void onDecodeHeaders(
+        private DirectBuffer onDecodeHeaders(
             long originId,
             long routedId,
             long traceId,
@@ -2224,14 +2227,24 @@ public final class HttpServerFactory implements HttpStreamFactory
             String origin,
             HttpBeginExFW beginEx)
         {
-            final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
-            exchange.doRequestBegin(traceId, beginEx);
-            exchange.doResponseWindow(traceId);
+            boolean isValid = binding.validateHeader(request, beginEx);
+            DirectBuffer error = null;
+            if (isValid)
+            {
+                final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
+                exchange.doRequestBegin(traceId, beginEx);
+                exchange.doResponseWindow(traceId);
 
-            final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
-            exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
+                final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
+                exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
 
-            this.exchange = exchange;
+                this.exchange = exchange;
+            }
+            else
+            {
+                error = response400;
+            }
+            return error;
         }
 
         private void onDecodeHeadersOnly(
@@ -2254,7 +2267,18 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            return exchange.doRequestData(traceId, budgetId, buffer, offset, limit, extension);
+            boolean isValid = binding.validateContent(request, buffer, 0, limit - offset);
+            int result = 0;
+            if (isValid)
+            {
+                result = exchange.doRequestData(traceId, budgetId, buffer, offset, limit, extension);
+            }
+            else
+            {
+                doEncodeHeaders(exchange, traceId, authorization, budgetId, headers400);
+                exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+            }
+            return result;
         }
 
         private void onDecodeTrailers(
@@ -3729,7 +3753,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int decodedStreamId;
         private byte decodedFlags;
         private int decodableDataBytes;
-        private HttpRequestType request;
 
         private Http2Server(
             HttpBindingConfig binding,
@@ -4844,10 +4867,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            final Http2Exchange exchange =
-                                    new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId, exchangeAuth,
-                                        traceId, policy, origin, contentLength);
-
                             if (binding.options != null && binding.options.overrides != null)
                             {
                                 binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
@@ -4858,8 +4877,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
 
-                            this.request = binding.resolveRequest(headers::get);
-                            boolean isValid =  binding.validate(request, beginEx);
+                            HttpRequestType request = binding.resolveRequest(headers::get);
+
+                            final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
+                                exchangeAuth, traceId, policy, origin, contentLength, request);
+
+                            boolean isValid = binding.validateHeader(request, beginEx);
                             if (isValid)
                             {
                                 exchange.doRequestBegin(traceId, beginEx);
@@ -4870,7 +4893,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                doEncodeHeaders(traceId, authorization, streamId, headers404, true);
+                                doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                             }
                         }
                     }
@@ -5076,6 +5099,12 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (payloadLength > 0)
                     {
+                        boolean isValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
+                        if (!isValid)
+                        {
+                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                            exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+                        }
                         payloadRemaining.set(payloadLength);
                         exchange.doRequestData(traceId, payload, payloadRemaining);
                         progress += payloadLength - payloadRemaining.value;
@@ -5225,7 +5254,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, promiseId,
-                                exchangeAuth, traceId, policy, origin, contentLength);
+                                exchangeAuth, traceId, policy, origin, contentLength, null);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
@@ -5541,6 +5570,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseAck;
             private int responseMax;
 
+            private final HttpRequestType request;
+
             private Http2Exchange(
                 long originId,
                 long routedId,
@@ -5550,7 +5581,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 HttpPolicyConfig policy,
                 String origin,
-                long requestContentLength)
+                long requestContentLength,
+                HttpRequestType request)
             {
                 this.originId = originId;
                 this.routedId = routedId;
@@ -5562,6 +5594,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routedId) : requestId;
                 this.responseId = supplyReplyId.applyAsLong(this.requestId);
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, streamId);
+                this.request = request;
             }
 
             private int initialWindow()
