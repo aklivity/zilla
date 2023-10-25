@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.aklivity.zilla</groupId>
         <artifactId>incubator</artifactId>
-        <version>0.9.55</version>
+        <version>develop-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
