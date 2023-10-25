@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
@@ -102,6 +103,7 @@ public final class KafkaCachePartition
     private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[6 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
+    private final Varint32FW.Builder varIntRW = new Varint32FW.Builder();
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
@@ -384,14 +386,29 @@ public final class KafkaCachePartition
         entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
-        if (key != null && key.value() != null)
+        if (key.value() == null)
+        {
+            logFile.appendBytes(key);
+        }
+        else
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
+                Varint32FW newLength = varIntRW
+                        .wrap(new UnsafeBuffer(new byte[5]), 0, 5)
+                        .set(length)
+                        .build();
+                logFile.appendBytes(newLength);
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            int validated = validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            if (validated == -1)
+            {
+                logFile.appendBytes(key);
+                // For Fetch Validation failure, we still push the event to Cache
+                // TODO: Placeholder to log fetch validation failure
+            }
         }
         logFile.appendInt(valueLength);
 
@@ -426,14 +443,19 @@ public final class KafkaCachePartition
         final int logRequired = payload.sizeof();
         assert logAvailable >= logRequired;
 
-        logFile.appendBytes(payload.value(), payload.offset(), payload.sizeof());
         if (payload != null)
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
                 logFile.appendBytes(buffer, index, length);
             };
-            validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
+            int validated = validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
+            if (validated == -1)
+            {
+                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+                // For Fetch Validation failure, we still push the event to Cache
+                // TODO: Placeholder to log fetch validation failure
+            }
         }
     }
 
@@ -560,10 +582,19 @@ public final class KafkaCachePartition
 
         int validated = 0;
 
-        if (key != null && key.value() != null)
+        if (key.value() == null)
+        {
+            logFile.appendBytes(key);
+        }
+        else
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
+                Varint32FW newLength = varIntRW
+                    .wrap(new UnsafeBuffer(new byte[5]), 0, 5)
+                    .set(length)
+                    .build();
+                logFile.appendBytes(newLength);
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();

@@ -63,7 +63,7 @@ public final class MqttBindingConfig
             options.topics != null
             ? options.topics.stream()
             .collect(Collectors.toMap(t -> t.name,
-                t -> context.createValidator(t.content, resolveId))) : null;
+                t -> context.createWriteValidator(t.content, resolveId))) : null;
     }
 
     public MqttRouteConfig resolve(
