@@ -103,7 +103,7 @@ public final class KafkaCachePartition
     private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[6 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
-    private final Varint32FW.Builder varIntRW = new Varint32FW.Builder();
+    private final Varint32FW.Builder varIntRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
@@ -394,10 +394,7 @@ public final class KafkaCachePartition
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
-                Varint32FW newLength = varIntRW
-                        .wrap(new UnsafeBuffer(new byte[5]), 0, 5)
-                        .set(length)
-                        .build();
+                Varint32FW newLength = varIntRW.set(length).build();
                 logFile.appendBytes(newLength);
                 logFile.appendBytes(buffer, index, length);
             };
@@ -405,8 +402,8 @@ public final class KafkaCachePartition
             int validated = validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
             if (validated == -1)
             {
-                logFile.appendBytes(key);
                 // For Fetch Validation failure, we still push the event to Cache
+                logFile.appendBytes(key);
                 // TODO: Placeholder to log fetch validation failure
             }
         }
@@ -452,8 +449,8 @@ public final class KafkaCachePartition
             int validated = validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
             if (validated == -1)
             {
-                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
                 // For Fetch Validation failure, we still push the event to Cache
+                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
                 // TODO: Placeholder to log fetch validation failure
             }
         }
@@ -590,10 +587,7 @@ public final class KafkaCachePartition
         {
             final ValueConsumer writeValue = (buffer, index, length) ->
             {
-                Varint32FW newLength = varIntRW
-                    .wrap(new UnsafeBuffer(new byte[5]), 0, 5)
-                    .set(length)
-                    .build();
+                Varint32FW newLength = varIntRW.set(length).build();
                 logFile.appendBytes(newLength);
                 logFile.appendBytes(buffer, index, length);
             };
