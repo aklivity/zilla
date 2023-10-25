@@ -92,8 +92,7 @@ elif [[ $START_KAFKA == true ]]; then
     fi
 
     if [[ $USE_K8S == true ]]; then
-        KAFKA_FOLDER="resource.kafka.helm"
-        cd $WORKDIR/$KAFKA_FOLDER/
+        cd $WORKDIR/$KAFKA_FOLDER/$HELM_FOLDER
     else
         cd $WORKDIR/$KAFKA_FOLDER/$COMPOSE_FOLDER
     fi
