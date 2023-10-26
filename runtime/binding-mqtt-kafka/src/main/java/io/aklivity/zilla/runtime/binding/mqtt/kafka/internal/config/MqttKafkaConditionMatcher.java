@@ -43,8 +43,16 @@ public class MqttKafkaConditionMatcher
         return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
     }
 
+    private static Matcher asTopicMatcher(
+        String wildcard)
+    {
+        String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
+        String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
+        String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+        return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
+    }
 
-    public static String generateRegexPattern(
+    private static String asRegexPattern(
         String wildcard,
         int level,
         boolean fixedLength)
@@ -74,7 +82,7 @@ public class MqttKafkaConditionMatcher
             pattern = (level > 0) ? "(\\/\\+|\\/" + currentPart + ")" : "(\\+|" + currentPart + ")";
         }
 
-        String nextPart = generateRegexPattern(remainingParts, level + 1, fixedLength);
+        String nextPart = asRegexPattern(remainingParts, level + 1, fixedLength);
         if (level > 0)
         {
             pattern = "(" + pattern;
@@ -87,14 +95,5 @@ public class MqttKafkaConditionMatcher
             pattern += "(\\/\\#)?" + endParentheses.repeat(Math.max(0, level));
         }
         return pattern;
-    }
-
-    private static Matcher asTopicMatcher(
-        String wildcard)
-    {
-        String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
-        String fixedPattern = patternBegin + generateRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
-        String nonFixedPattern = patternBegin + generateRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
-        return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
     }
 }

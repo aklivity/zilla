@@ -32,7 +32,7 @@ bindings:
           messages: mqtt-sensors
       - exit: kafka0
         when:
-          - topic: device/*
+          - topic: device/#
           - topic: sensor/two
         with:
           messages: mqtt-devices
