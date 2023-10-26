@@ -303,13 +303,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             clientId = newString16FW(mqttSubscribeBeginEx.clientId());
 
             Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
-            filters.forEach(filter ->
-            {
-                if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
-                {
-                    retainAvailable = true;
-                }
-            });
+            filters.forEach(f -> retainAvailable |= (f.flags() & SEND_RETAIN_FLAG) != 0);
 
             final List<Subscription> retainedFilters = new ArrayList<>();
             if (retainAvailable)
