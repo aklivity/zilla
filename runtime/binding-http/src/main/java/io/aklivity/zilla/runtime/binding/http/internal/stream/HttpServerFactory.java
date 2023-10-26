@@ -5076,6 +5076,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (exchange == null)
             {
+                System.out.println("exchange is null"); // TODO: Ati
                 progress += payload.capacity();
             }
             else
@@ -5100,26 +5101,32 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (payloadLength > 0)
                     {
                         boolean isValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
-                        if (!isValid)
+                        if (isValid)
                         {
-                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
-                            exchange.doRequestAbort(traceId, EMPTY_OCTETS);
-                        }
-                        payloadRemaining.set(payloadLength);
-                        exchange.doRequestData(traceId, payload, payloadRemaining);
-                        progress += payloadLength - payloadRemaining.value;
-                        deferred += payloadRemaining.value;
-                    }
-
-                    if (deferred == 0 && Http2Flags.endStream(flags))
-                    {
-                        if (exchange.requestContentLength != -1 && exchange.contentObserved != exchange.requestContentLength)
-                        {
-                            doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                            payloadRemaining.set(payloadLength);
+                            exchange.doRequestData(traceId, payload, payloadRemaining);
+                            progress += payloadLength - payloadRemaining.value;
+                            deferred += payloadRemaining.value;
+                            if (deferred == 0 && Http2Flags.endStream(flags))
+                            {
+                                if (exchange.requestContentLength != -1 &&
+                                    exchange.contentObserved != exchange.requestContentLength)
+                                {
+                                    System.out.println("reset stream"); // TODO: Ati
+                                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                                }
+                                else
+                                {
+                                    System.out.println("end request"); // TODO: Ati
+                                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                                }
+                            }
                         }
                         else
                         {
-                            exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                            System.out.println("abort request"); // TODO: Ati
+                            exchange.doRequestAbort(traceId, EMPTY_OCTETS);
                         }
                     }
                 }
@@ -5625,6 +5632,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 MutableInteger remaining)
             {
                 assert HttpState.initialOpening(state);
+                assert !HttpState.initialClosing(state);
 
                 if (localBudget < remaining.value)
                 {
@@ -5663,6 +5671,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 Flyweight extension)
             {
+                assert !HttpState.initialClosing(state);
+
                 if (!HttpState.initialOpened(state))
                 {
                     state = HttpState.closingInitial(state);
