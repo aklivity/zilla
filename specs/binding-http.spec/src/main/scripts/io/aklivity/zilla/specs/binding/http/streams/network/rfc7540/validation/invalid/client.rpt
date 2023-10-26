@@ -218,7 +218,7 @@ write [0x00 0x00 0x6e]                   # length = 110
       "/valid/1234567890123/1234567890123?page=1234567890123"
       [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
       [0x40] [0x04] "code"
-             [0x0d] "1234567890123"     # code: 1234567890123
+             [0x0d] "1234567890123"      # code: 1234567890123
       [0x0f 0x10] [0x0a] "text/plain"    # content-type
       [0x0f 0x0d] [0x01] "3"             # content-length
 write flush
