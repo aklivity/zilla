@@ -40,7 +40,7 @@ public class ValidationIT
     @Specification({
         "${app}/valid/client",
         "${app}/valid/server" })
-    public void validRequests() throws Exception
+    public void shouldProcessValidRequests() throws Exception
     {
         k3po.finish();
     }

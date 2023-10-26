@@ -40,7 +40,7 @@ public class ValidationIT
     @Specification({
         "${net}/valid/client",
         "${net}/valid/server" })
-    public void validRequests() throws Exception
+    public void shouldProcessValidRequests() throws Exception
     {
         k3po.start();
         k3po.finish();
@@ -50,7 +50,7 @@ public class ValidationIT
     @Specification({
         "${net}/invalid/client",
         "${net}/invalid/server" })
-    public void invalidRequests() throws Exception
+    public void shouldRejectInvalidRequests() throws Exception
     {
         k3po.start();
         k3po.finish();
