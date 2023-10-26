@@ -35,28 +35,9 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .build()
                              .build()}
 
-write "message1"
+write "Hello, world"
 write flush
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .format("TEXT")
-                                .build()
-                             .build()}
-
-write "message2"
-write flush
-
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .format("TEXT")
-                                .build()
-                             .build()}
-
-write "message3"
-write flush
 
 connect await PUBLISH_CONNECTED
         "zilla://streams/mqtt0"
@@ -66,8 +47,8 @@ connect await PUBLISH_CONNECTED
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                               .publish()
-                                .clientId("client-2")
-                                .topic("sensor/two")
+                                .clientId("client-1")
+                                .topic("device/one")
                                 .build()
                              .build()}
 
@@ -80,25 +61,6 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .build()
                              .build()}
 
-write "message1"
+write "Hello, again"
 write flush
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .format("TEXT")
-                                .build()
-                             .build()}
-
-write "message2"
-write flush
-
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .format("TEXT")
-                                .build()
-                             .build()}
-
-write "message3"
-write flush

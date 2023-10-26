@@ -48,4 +48,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWhenTopicWithMessages()
+    {
+        JsonObject config = schema.validate("proxy.when.topic.with.messages.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

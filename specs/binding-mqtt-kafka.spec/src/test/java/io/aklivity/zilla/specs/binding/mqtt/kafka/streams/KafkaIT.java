@@ -181,6 +181,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.space/client",
+        "${kafka}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.with.user.properties.distinct/client",
         "${kafka}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
@@ -463,6 +472,15 @@ public class KafkaIT
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.space/client",
+        "${kafka}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
     {
         k3po.finish();
     }

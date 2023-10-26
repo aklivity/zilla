@@ -17,8 +17,11 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -38,7 +41,7 @@ public class MqttKafkaBindingConfig
         this.id = binding.id;
         this.kind = binding.kind;
         this.options = (MqttKafkaOptionsConfig) binding.options;
-        this.routes = binding.routes.stream().map(MqttKafkaRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
     }
 
     public MqttKafkaRouteConfig resolve(
@@ -48,6 +51,26 @@ public class MqttKafkaBindingConfig
             .filter(r -> r.authorized(authorization))
             .findFirst()
             .orElse(null);
+    }
+
+    public MqttKafkaRouteConfig resolve(
+        long authorization,
+        String topic)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public List<MqttKafkaRouteConfig> resolveAll(
+        long authorization,
+        Array32FW<MqttTopicFilterFW> filters)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesTopicFilter(f.pattern().asString())))
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     public String16FW messagesTopic()
