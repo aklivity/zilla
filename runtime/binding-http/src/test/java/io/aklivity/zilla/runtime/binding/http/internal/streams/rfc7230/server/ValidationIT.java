@@ -53,7 +53,7 @@ public class ValidationIT
     @Configuration("server.validation.yaml")
     @Specification({
         "${net}/invalid/client"})
-    public void invalidRequests() throws Exception
+    public void shouldRejectInvalidRequests() throws Exception
     {
         k3po.finish();
     }
@@ -63,7 +63,7 @@ public class ValidationIT
     @Specification({
         "${net}/valid/client",
         "${app}/valid/server" })
-    public void validRequests() throws Exception
+    public void shouldProcessValidRequests() throws Exception
     {
         k3po.finish();
     }
