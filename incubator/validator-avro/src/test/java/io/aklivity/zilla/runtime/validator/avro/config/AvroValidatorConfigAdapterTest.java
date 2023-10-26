@@ -54,7 +54,7 @@ public class AvroValidatorConfigAdapterTest
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
-                            "\"schema\": \"cat\"," +
+                            "\"subject\": \"cat\"," +
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
@@ -72,15 +72,13 @@ public class AvroValidatorConfigAdapterTest
         assertThat(validator.type, equalTo("avro"));
         assertThat(validator.catalogs.size(), equalTo(1));
         assertThat(validator.catalogs.get(0).name, equalTo("test0"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).schema, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(0).strategy, equalTo("topic"));
         assertThat(validator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
         assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(1).schema, equalTo("cat"));
+        assertThat(validator.catalogs.get(0).schemas.get(1).subject, equalTo("cat"));
         assertThat(validator.catalogs.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(1).version, nullValue());
+        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
         assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(2).schema, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).version, nullValue());
         assertThat(validator.catalogs.get(0).schemas.get(2).id, equalTo(42));
@@ -102,7 +100,7 @@ public class AvroValidatorConfigAdapterTest
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
-                            "\"schema\":\"cat\"," +
+                            "\"subject\":\"cat\"," +
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
@@ -119,7 +117,7 @@ public class AvroValidatorConfigAdapterTest
                         .version("latest")
                         .build()
                     .schema()
-                        .schema("cat")
+                        .subject("cat")
                         .version("latest")
                         .build()
                     .schema()

@@ -713,17 +713,6 @@ public class DispatchAgent implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        final long closeAt = System.nanoTime();
-        while (config.drainOnClose() &&
-               streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
-        {
-            ThreadHints.onSpinWait();
-
-            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
-            {
-                break;
-            }
-        }
         configuration.detachAll();
 
         poller.onClose();
@@ -769,6 +758,20 @@ public class DispatchAgent implements EngineContext, Agent
         }
     }
 
+    public void drain()
+    {
+        final long closeAt = System.nanoTime();
+        while (streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
+        {
+            ThreadHints.onSpinWait();
+
+            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
+            {
+                break;
+            }
+        }
+    }
+
     @Override
     public String toString()
     {
@@ -780,7 +783,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
     }
 
@@ -789,7 +792,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
     }
 
@@ -1730,10 +1733,13 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
-            int signalId, int contextId)
+            long traceId,
+            int signalId,
+            int contextId)
         {
             final long timerId = timerWheel.scheduleTimer(timeMillis);
-            final Runnable task = () -> signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            final Runnable task = () -> signal(originId, routedId, streamId, 0L, 0L,
+                traceId, NO_CANCEL_ID, signalId, contextId);
             final Runnable oldTask = tasksByTimerId.put(timerId, task);
             assert oldTask == null;
             assert timerId >= 0L;
@@ -1746,6 +1752,7 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
@@ -1758,7 +1765,7 @@ public class DispatchAgent implements EngineContext, Agent
                 assert newFutureId != NO_CANCEL_ID;
 
                 final Future<?> newFuture = executorService.submit(
-                    () -> invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, newFutureId, signalId, contextId));
+                    () -> invokeAndSignal(task, originId, routedId, streamId, traceId, 0L, 0L, newFutureId, signalId, contextId));
                 final Future<?> oldFuture = futuresById.put(newFutureId, newFuture);
                 assert oldFuture == null;
                 cancelId = newFutureId;
@@ -1766,7 +1773,7 @@ public class DispatchAgent implements EngineContext, Agent
             else
             {
                 cancelId = NO_CANCEL_ID;
-                invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, cancelId, signalId, contextId);
+                invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, traceId, cancelId, signalId, contextId);
             }
 
             assert cancelId < 0L;
@@ -1779,10 +1786,27 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
-            signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId);
+        }
+
+        @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId,
+                buffer, offset, length);
         }
 
         @Override
@@ -1814,6 +1838,7 @@ public class DispatchAgent implements EngineContext, Agent
             long streamId,
             long sequence,
             long acknowledge,
+            long traceId,
             long cancelId,
             int signalId,
             int contextId)
@@ -1824,7 +1849,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
             finally
             {
-                signal(originId, routedId, streamId, sequence, acknowledge, cancelId, signalId, contextId);
+                signal(originId, routedId, streamId, sequence, acknowledge, traceId, cancelId, signalId, contextId);
             }
         }
 
@@ -1834,9 +1859,44 @@ public class DispatchAgent implements EngineContext, Agent
             long streamId,
             long sequence,
             long acknowledge,
+            long traceId,
             long cancelId,
             int signalId,
             int contextId)
+        {
+            final long timestamp = timestamps ? System.nanoTime() : 0L;
+
+            final SignalFW signal = signalRW.get()
+                .rewrap()
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(0)
+                .timestamp(timestamp)
+                .traceId(traceId)
+                .cancelId(cancelId)
+                .signalId(signalId)
+                .contextId(contextId)
+                .build();
+
+            streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());
+        }
+
+        private void signal(
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            long cancelId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
         {
             final long timestamp = timestamps ? System.nanoTime() : 0L;
 
@@ -1849,10 +1909,11 @@ public class DispatchAgent implements EngineContext, Agent
                                             .acknowledge(acknowledge)
                                             .maximum(0)
                                             .timestamp(timestamp)
-                                            .traceId(supplyTraceId())
+                                            .traceId(traceId)
                                             .cancelId(cancelId)
                                             .signalId(signalId)
                                             .contextId(contextId)
+                                            .payload(buffer, offset, length)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());

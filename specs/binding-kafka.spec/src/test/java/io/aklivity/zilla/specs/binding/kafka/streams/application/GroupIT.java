@@ -134,4 +134,22 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.multiple.members.with.same.group.id/client",
+        "${app}/rebalance.multiple.members.with.same.group.id/server"})
+    public void shouldRebalanceMultipleMembersWithSameGroupId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
+        "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
+    public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
 }

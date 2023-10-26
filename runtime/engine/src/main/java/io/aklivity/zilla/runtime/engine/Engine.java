@@ -99,6 +99,7 @@ public final class Engine implements Collector, AutoCloseable
     private final URL rootConfigURL;
     private final Collection<DispatchAgent> dispatchers;
     private final boolean readonly;
+    private final EngineConfiguration config;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -114,6 +115,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<EngineAffinity> affinities,
         boolean readonly)
     {
+        this.config = config;
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
 
@@ -248,6 +250,11 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public void close() throws Exception
     {
+        if (config.drainOnClose())
+        {
+            dispatchers.forEach(DispatchAgent::drain);
+        }
+
         final List<Throwable> errors = new ArrayList<>();
 
         watcherTask.close();

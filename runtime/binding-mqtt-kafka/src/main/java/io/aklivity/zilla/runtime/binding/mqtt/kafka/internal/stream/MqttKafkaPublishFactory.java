@@ -327,7 +327,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
@@ -610,6 +610,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 initialAck = newInitialAck;
                 initialMax = newInitialMax;
+
+                assert initialAck <= initialSeq;
 
                 doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, 0, capabilities);

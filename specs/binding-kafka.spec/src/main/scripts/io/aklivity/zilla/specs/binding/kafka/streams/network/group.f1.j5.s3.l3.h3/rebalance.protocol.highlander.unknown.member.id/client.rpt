@@ -104,6 +104,33 @@ write 119                               # size
         14                                   # metadata size
         ${kafka:randomBytes(14)}             # metadata
 
+read 34                                                # size
+      (int:newRequestId)
+      0                                                 # throttle time
+      79s                                               # member id required
+      -1                                                # generated id
+      0s                                                # protocol name
+      0s                                                # leader id
+      10s "memberId-1"                                  # consumer member group id
+      0                                                 # members
+
+write  129                               # size
+      11s                               # join group
+      5s                                # v5
+      ${newRequestId}
+      5s "zilla"                        # no client id
+      4s "test"                         # consumer group
+      30000                             # session timeout
+      4000                              # rebalance timeout
+      10s "memberId-1"                  # consumer group member
+      42s ${instanceId}                       # group instance id
+      8s "consumer"                     # protocol type
+      1                                 # group protocol
+        10s "highlander"                    # protocol name
+        14                                  # metadata size
+        ${kafka:randomBytes(14)}            # metadata
+
+
 read  24                                                # size
       (int:newRequestId)
       0                                                 # throttle time

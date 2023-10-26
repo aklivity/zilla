@@ -17,8 +17,6 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/aklivity/zilla
-  pullPolicy: IfNotPresent
-  tag: latest
 
 imagePullSecrets: []
 nameOverride: ""
@@ -36,7 +34,7 @@ readinessProbePort: 0
 initContainers: []
 
 args: ["start", "-v", "-e"]
-env: []
+extraEnv: []
 configPath: /etc/zilla
 configMaps: {}
 secrets: {}

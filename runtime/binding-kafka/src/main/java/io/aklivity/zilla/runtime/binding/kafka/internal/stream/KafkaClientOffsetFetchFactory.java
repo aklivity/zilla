@@ -1561,7 +1561,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeOffsetFetchResponse(

@@ -91,6 +91,8 @@ scope core
             int64 cancelId;
             int32 signalId;
             int32 contextId;
+            int32 length;
+            octets[length] payload = null;
         }
 
         struct Challenge extends Frame [0x40000004]

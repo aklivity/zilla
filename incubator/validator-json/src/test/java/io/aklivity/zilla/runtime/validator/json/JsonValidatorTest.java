@@ -63,7 +63,6 @@ public class JsonValidatorTest
             .catalog()
                 .name("test0")
                     .schema()
-                        .schema(null)
                         .strategy("topic")
                         .subject(null)
                         .version("latest")

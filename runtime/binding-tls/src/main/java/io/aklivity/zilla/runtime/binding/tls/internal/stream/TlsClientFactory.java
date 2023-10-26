@@ -1647,6 +1647,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                         originId,
                         routedId,
                         initialId,
+                        traceId,
                         HANDSHAKE_TIMEOUT_SIGNAL, 0);
                 }
             }
@@ -1907,8 +1908,8 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                     if (task != null)
                     {
-                        handshakeTaskFutureId =
-                            signaler.signalTask(task, originId, routedId, initialId, HANDSHAKE_TASK_COMPLETE_SIGNAL, 0);
+                        handshakeTaskFutureId = signaler.signalTask(task, originId, routedId, initialId,
+                            traceId, HANDSHAKE_TASK_COMPLETE_SIGNAL, 0);
                     }
                 }
             }

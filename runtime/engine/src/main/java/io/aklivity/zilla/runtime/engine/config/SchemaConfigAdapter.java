@@ -22,7 +22,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObject>
 {
-    private static final String SCHEMA_NAME = "schema";
     private static final String STRATEGY_NAME = "strategy";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -34,10 +33,6 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         SchemaConfig schema)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
-        if (schema.schema != null)
-        {
-            object.add(SCHEMA_NAME, schema.schema);
-        }
         if (schema.strategy != null)
         {
             object.add(STRATEGY_NAME, schema.strategy);
@@ -62,11 +57,6 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         JsonObject object)
     {
         SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder();
-
-        if (object.containsKey(SCHEMA_NAME))
-        {
-            builder.schema(object.getString(SCHEMA_NAME));
-        }
 
         if (object.containsKey(STRATEGY_NAME))
         {
