@@ -43,6 +43,7 @@ write [0x00 0x00 0x0c]                   # length = 12
       [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
 write flush
 
+
 # Request 1 - invalid path param
 write [0x00 0x00 0x2c]                   # length = 44
       [0x01]                             # HEADERS frame
@@ -68,40 +69,11 @@ read [0x00 0x00 0x05]                    # length = 5
      [0x0f 0x0d] [0x01] "0"              # content-length
 
 
-connect "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "duplex"
-connected
-
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
-# server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                    # length = 18
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x00]                              # flags = 0x00
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-     [0x00 0x03 0x00 0x00 0x00 0x64]     # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-     [0x00 0x04 0x00 0x00 0x00 0x00]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]     # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
-write [0x00 0x00 0x0c]                   # length = 12
-      [0x04]                             # HTTP2 SETTINGS frame
-      [0x00]                             # flags = 0x00
-      [0x00 0x00 0x00 0x00]              # stream_id = 0
-      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
-write flush
-
 # Request 2 - invalid query param
 write [0x00 0x00 0x3f]                   # length = 63
       [0x01]                             # HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
-      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      [0x00 0x00 0x00 0x03]              # stream_id = 3
       [0x83]                             # :method: POST
       [0x86]                             # :scheme: http
       [0x04] [0x2B]                      # :path: /valid/1234567890123/1234567890123?page=123
@@ -109,53 +81,19 @@ write [0x00 0x00 0x3f]                   # length = 63
       [0x01] [0x0E] "localhost:8080"     # :authority: localhost:8080
 write flush
 
-read [0x00 0x00 0x00]                    # length = 0
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x01]                              # ACK
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-
 read [0x00 0x00 0x05]                    # length = 5
      [0x01]                              # HTTP2 HEADERS frame
      [0x05]                              # END_HEADERS | END_STREAM
-     [0x00 0x00 0x00 0x01]               # stream_id = 1
+     [0x00 0x00 0x00 0x03]               # stream_id = 3
      [0x8c]                              # :status: 400
      [0x0f 0x0d] [0x01] "0"              # content-length
 
-
-connect "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "duplex"
-connected
-
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
-# server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                    # length = 18
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x00]                              # flags = 0x00
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-     [0x00 0x03 0x00 0x00 0x00 0x64]     # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-     [0x00 0x04 0x00 0x00 0x00 0x00]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]     # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
-write [0x00 0x00 0x0c]                   # length = 12
-      [0x04]                             # HTTP2 SETTINGS frame
-      [0x00]                             # flags = 0x00
-      [0x00 0x00 0x00 0x00]              # stream_id = 0
-      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
-write flush
 
 # Request 3 - invalid header field
 write [0x00 0x00 0x53]                   # length = 83
       [0x01]                             # HEADERS frame
       [0x05]                             # END_HEADERS | END_STREAM
-      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      [0x00 0x00 0x00 0x05]              # stream_id = 5
       [0x83]                             # :method: POST
       [0x86]                             # :scheme: http
       [0x04] [0x35]                      # :path: /valid/1234567890123/1234567890123?page=1234567890123
@@ -165,53 +103,19 @@ write [0x00 0x00 0x53]                   # length = 83
              [0x03] "123"                # code: 123
 write flush
 
-read [0x00 0x00 0x00]                    # length = 0
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x01]                              # ACK
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-
 read [0x00 0x00 0x05]                    # length = 5
      [0x01]                              # HTTP2 HEADERS frame
      [0x05]                              # END_HEADERS | END_STREAM
-     [0x00 0x00 0x00 0x01]               # stream_id = 1
+     [0x00 0x00 0x00 0x05]               # stream_id = 5
      [0x8c]                              # :status: 400
      [0x0f 0x0d] [0x01] "0"              # content-length
 
-
-connect "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "duplex"
-connected
-
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
-# server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                    # length = 18
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x00]                              # flags = 0x00
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-     [0x00 0x03 0x00 0x00 0x00 0x64]     # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-     [0x00 0x04 0x00 0x00 0x00 0x00]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]     # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
-write [0x00 0x00 0x0c]                   # length = 12
-      [0x04]                             # HTTP2 SETTINGS frame
-      [0x00]                             # flags = 0x00
-      [0x00 0x00 0x00 0x00]              # stream_id = 0
-      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
-write flush
 
 # Request 4 - invalid content
 write [0x00 0x00 0x6e]                   # length = 110
       [0x01]                             # HEADERS frame
       [0x04]                             # END_HEADERS
-      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      [0x00 0x00 0x00 0x07]              # stream_id = 7
       [0x83]                             # :method: POST
       [0x86]                             # :scheme: http
       [0x04] [0x35]                      # :path: /valid/1234567890123/1234567890123?page=1234567890123
@@ -223,21 +127,16 @@ write [0x00 0x00 0x6e]                   # length = 110
       [0x0f 0x0d] [0x01] "3"             # content-length
 write flush
 
-read [0x00 0x00 0x00]                    # length = 0
-     [0x04]                              # HTTP2 SETTINGS frame
-     [0x01]                              # ACK
-     [0x00 0x00 0x00 0x00]               # stream_id = 0
-
 write [0x00 0x00 0x03]                   # length = 3
       [0x00]                             # HTTP2 DATA frame
       [0x01]                             # END_STREAM
-      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      [0x00 0x00 0x00 0x07]              # stream_id = 7
       "123"
 write flush
 
 read [0x00 0x00 0x05]                    # length = 5
      [0x01]                              # HTTP2 HEADERS frame
      [0x05]                              # END_HEADERS | END_STREAM
-     [0x00 0x00 0x00 0x01]               # stream_id = 1
+     [0x00 0x00 0x00 0x07]               # stream_id = 7
      [0x8c]                              # :status: 400
      [0x0f 0x0d] [0x01] "0"              # content-length
