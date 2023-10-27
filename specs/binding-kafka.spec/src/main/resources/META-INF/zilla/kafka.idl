@@ -208,6 +208,7 @@ scope kafka
         {
             case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
+            case 8: kafka::stream::KafkaOffsetCommitFlushEx offsetCommit;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
         }
@@ -251,10 +252,66 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
+        union KafkaMergedDataEx switch (uint8)
+        {
+            case 252: kafka::stream::KafkaMergedConsumerDataEx consumer;
+            case 1: kafka::stream::KafkaMergedFetchDataEx fetch;
+            case 0: kafka::stream::KafkaMergedProduceDataEx produce;
+        }
+
+        struct KafkaMergedProduceDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            int64 filters = -1;         // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaOffset[] progress;     // INIT only
+            KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
+            KafkaDelta delta;           // INIT + FIN
+            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+        }
+
+        struct KafkaMergedFetchDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            int64 filters = -1;         // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaOffset[] progress;     // INIT only
+            KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
+            KafkaDelta delta;           // INIT + FIN
+            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+        }
+
+        struct KafkaMergedFetchDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            int64 filters = -1;         // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaOffset[] progress;     // INIT only
+            KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
+            KafkaDelta delta;           // INIT + FIN
+            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+        }
+
+        struct KafkaMergedConsumerDataExKafkaMergedConsumerDataEx
+        {
+            KafkaOffset partition;
+        }
+
         union KafkaMergedFlushEx switch (uint8)
         {
-            case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
+            case 8: kafka::stream::KafkaMergedOffsetCommitFlushEx offsetCommit;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
+        }
+
+        struct KafkaMergedOffsetCommitFlushEx
+        {
+            KafkaOffset partition;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -264,11 +321,6 @@ scope kafka
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
             KafkaKey key;
-        }
-
-        struct KafkaMergedConsumerFlushEx
-        {
-            KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
@@ -313,6 +365,11 @@ scope kafka
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
             KafkaHeader[] headers;      // FIN only
+        }
+
+        struct KafkaOffsetCommitFlushEx
+        {
+            KafkaOffset partition;
         }
 
         struct KafkaFetchFlushEx
@@ -404,10 +461,21 @@ scope kafka
             KafkaTopicPartition[] partitions;
         }
 
-        struct KafkaConsumerDataEx
+        union KafkaConsumerDataEx switch (uint8)
+        {
+            case 253: kafka::stream::KafkaMergedConsumerDataEx group;
+            case 8: kafka::stream::KafkaConsumerOffsetCommitDataEx offsetCommit;
+        }
+
+        struct KafkaConsumerGroupDataEx
         {
             KafkaTopicPartition[] partitions;
             KafkaConsumerAssignment[] assignments;
+        }
+
+        struct KafkaConsumerOffsetCommitDataEx
+        {
+            KafkaOffset partition;
         }
 
         struct KafkaOffsetFetchTopic
@@ -436,13 +504,17 @@ scope kafka
         struct KafkaOffsetCommitBeginEx
         {
             string16 groupId;
-            string16 topic;
+            int32 generationId;
+            string16 memberId;
         }
 
         struct KafkaOffsetCommitDataEx
         {
+            string16 topic;
             int32 partitionId;
             int64 partitionOffset;
+            varint32 metadataLen;
+            octets[metadataLen] metadata = null;
         }
     }
 
