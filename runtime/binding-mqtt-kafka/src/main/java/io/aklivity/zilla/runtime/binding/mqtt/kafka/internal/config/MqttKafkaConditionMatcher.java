@@ -46,8 +46,7 @@ public class MqttKafkaConditionMatcher
         {
             for (Matcher matcher : subscribeMatchers)
             {
-                match = matcher.reset(topic).matches();
-                if (match)
+                if (matcher.reset(topic).matches())
                 {
                     match = true;
                     break;
@@ -65,8 +64,7 @@ public class MqttKafkaConditionMatcher
         {
             for (Matcher matcher : publishMatchers)
             {
-                match = matcher.reset(topic).matches();
-                if (match)
+                if (matcher.reset(topic).matches())
                 {
                     match = true;
                     break;

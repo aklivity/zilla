@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSubscribeFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -33,16 +32,15 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class MqttKafkaBindingConfig
 {
-    private static final Function<String, String> DEFAULT_CLIENTS = x -> null;
+    private final List<MqttKafkaRouteConfig> bootstrapRoutes;
 
     public final long id;
     public final KindConfig kind;
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
+    public final List<Function<String, String>> clients;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
-    public List<MqttKafkaSubscribeFactory.KafkaMessagesBootstrap> bootstrapStreams;
-    public final List<Function<String, String>> clients;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)
@@ -53,10 +51,7 @@ public class MqttKafkaBindingConfig
         this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
         this.clients = options != null && options.clients != null ?
             asAccessor(options.clients) : null;
-        if (clients != null)
-        {
-            this.bootstrapStreams = new ArrayList<>();
-        }
+        this.bootstrapRoutes = new ArrayList<>();
     }
 
     public MqttKafkaRouteConfig resolve(
@@ -84,7 +79,6 @@ public class MqttKafkaBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesSubscribe(f.pattern().asString())))
-            .distinct()
             .collect(Collectors.toList());
     }
 
@@ -105,7 +99,6 @@ public class MqttKafkaBindingConfig
 
     public List<MqttKafkaRouteConfig> bootstrapRoutes()
     {
-        final List<MqttKafkaRouteConfig> bootstrapRoutes = new ArrayList<>();
         routes.forEach(r ->
         {
             if (options.clients.stream().anyMatch(r::matchesClient))
@@ -129,8 +122,7 @@ public class MqttKafkaBindingConfig
                     Pattern.compile(client.replace("{identity}", "(?<identity>[^\\s/]+)").replace("#", ".*"))
                         .matcher("");
 
-                Function<String, String> accessor = DEFAULT_CLIENTS;
-                accessor = orElseIfNull(accessor, topic ->
+                Function<String, String> accessor = topic ->
                 {
                     String result = null;
                     if (topic != null && topicMatch.reset(topic).matches())
@@ -138,22 +130,11 @@ public class MqttKafkaBindingConfig
                         result = topicMatch.group("identity");
                     }
                     return result;
-                });
+                };
                 accessors.add(accessor);
             }
         }
 
         return accessors;
-    }
-
-    private static Function<String, String> orElseIfNull(
-        Function<String, String> first,
-        Function<String, String> second)
-    {
-        return x ->
-        {
-            String result = first.apply(x);
-            return result != null ? result : second.apply(x);
-        };
     }
 }

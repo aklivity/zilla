@@ -26,16 +26,15 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {
-    public final long id;
-    public final long order;
-
     private final Optional<MqttKafkaWithResolver> with;
     private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
 
+    public final long id;
+    public final long order;
+
     public final String16FW messages;
     public final String16FW retained;
-    private final List<String> clients;
 
     public MqttKafkaRouteConfig(
         MqttKafkaOptionsConfig options,
@@ -53,7 +52,6 @@ public class MqttKafkaRouteConfig
             .map(MqttKafkaConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
-        this.clients = options.clients;
     }
 
     boolean authorized(

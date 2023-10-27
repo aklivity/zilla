@@ -91,7 +91,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     private static final int SIGNAL_CONNECT_BOOTSTRAP_STREAM = 1;
-    public static final int DATA_FIN_FLAG = 0x03;
+    private static final int DATA_FIN_FLAG = 0x03;
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -145,6 +145,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final MqttKafkaHeaderHelper helper;
     private final int reconnectDelay;
     private final boolean bootstrapAvailable;
+    private final List<KafkaMessagesBootstrap> bootstrapStreams;
 
     private int reconnectAttempt;
 
@@ -170,6 +171,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.helper = new MqttKafkaHeaderHelper();
         this.bootstrapAvailable = config.bootstrapAvailable();
         this.reconnectDelay = reconnectDelay.getAsInt(config);
+        this.bootstrapStreams = new ArrayList<>();
     }
 
     @Override
@@ -178,12 +180,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
         List<MqttKafkaRouteConfig> bootstrap = binding.bootstrapRoutes();
-        if (bootstrapAvailable && bootstrap != null)
+        if (bootstrapAvailable)
         {
             bootstrap.forEach(r ->
             {
                 final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
-                binding.bootstrapStreams.add(stream);
+                bootstrapStreams.add(stream);
                 stream.doKafkaBegin(currentTimeMillis());
             });
         }
@@ -193,16 +195,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     public void onDetached(
         long bindingId)
     {
-        MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
-
-        if (binding.bootstrapStreams != null)
+        for (KafkaMessagesBootstrap stream : bootstrapStreams)
         {
-            for (KafkaMessagesBootstrap stream : binding.bootstrapStreams)
-            {
-                stream.doKafkaEnd(supplyTraceId.get(), 0);
-            }
-            binding.bootstrapStreams.clear();
+            stream.doKafkaEnd(supplyTraceId.get(), 0);
         }
+        bootstrapStreams.clear();
     }
 
     @Override
@@ -601,13 +598,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
             else
             {
-                messages.values().forEach(m ->
-                {
-                    if (m.messageSlotOffset != m.messageSlotLimit)
-                    {
-                        m.flushData(traceId, authorization, budgetId);
-                    }
-                });
+                messages.values().forEach(m -> m.flushDataIfNecessary(traceId, authorization, budgetId));
             }
             messages.values().forEach(m -> m.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities));
         }
@@ -707,7 +698,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         }
     }
 
-    public final class KafkaMessagesBootstrap
+    private final class KafkaMessagesBootstrap
     {
         private final String16FW topic;
         private MessageConsumer kafka;
@@ -1002,7 +993,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             if (!MqttKafkaState.initialOpening(state))
             {
-                filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
+                final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
+                    filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
                 filters.forEach(f ->
                 {
@@ -1013,7 +1005,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             messagesSubscriptionIds.add(subscriptionId);
                         }
-                        filtersRW.item(fb -> fb
+                        filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
                 });
@@ -1024,7 +1016,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 state = MqttKafkaState.openingInitial(state);
 
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, mqtt.clientId, topic, filtersRW.build(), KafkaOffsetType.LIVE);
+                    traceId, authorization, affinity, mqtt.clientId, topic, filterBuilder.build(), KafkaOffsetType.LIVE);
             }
         }
 
@@ -1490,6 +1482,17 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
             }
         }
+
+        public void flushDataIfNecessary(
+            long traceId,
+            long authorization,
+            long budgetId)
+        {
+            if (messageSlotOffset != messageSlotLimit)
+            {
+                flushData(traceId, authorization, budgetId);
+            }
+        }
     }
 
     final class KafkaRetainedProxy
@@ -1538,7 +1541,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             replyAck = 0;
             replyMax = 0;
 
-            filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
+            final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
+                filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
             newRetainedFilters.forEach(f ->
             {
@@ -1547,14 +1551,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 {
                     mqtt.retainedSubscriptionIds.add(subscriptionId);
                 }
-                filtersRW.item(fb -> fb
+                filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
                 final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
                 mqtt.retainAsPublished.put(f.id, rap);
             });
             mqtt.retainedSubscriptions.addAll(newRetainedFilters);
 
-            Array32FW<MqttTopicFilterFW> retainedFilters = filtersRW.build();
+            Array32FW<MqttTopicFilterFW> retainedFilters = filterBuilder.build();
 
             initialSeq = mqtt.initialSeq;
             initialAck = mqtt.initialAck;
@@ -1576,7 +1580,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             initialSeq = mqtt.initialSeq;
 
-            filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
+            final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
+                filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
             retainedFiltersList.forEach(f ->
             {
@@ -1585,13 +1590,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 {
                     mqtt.retainedSubscriptionIds.add(subscriptionId);
                 }
-                filtersRW.item(fb -> fb
+                filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
                 final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
                 mqtt.retainAsPublished.put(f.id, rap);
             });
 
-            Array32FW<MqttTopicFilterFW> retainedFilters = filtersRW.build();
+            Array32FW<MqttTopicFilterFW> retainedFilters = filterBuilder.build();
 
             final KafkaFlushExFW retainedKafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())

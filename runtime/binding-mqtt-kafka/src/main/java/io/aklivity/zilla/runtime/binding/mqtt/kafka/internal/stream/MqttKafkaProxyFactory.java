@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.BOOTSTRAP_STREAM_RECONNECT_DELAY;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_STREAM_RECONNECT_DELAY;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -59,7 +58,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
             config, context, bindings::get, BOOTSTRAP_STREAM_RECONNECT_DELAY);
 
         final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-            config, context, instanceId, bindings::get, WILL_STREAM_RECONNECT_DELAY);
+            config, context, instanceId, bindings::get);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
