@@ -52,7 +52,8 @@ public class ValidationIT
     @Test
     @Configuration("server.validation.yaml")
     @Specification({
-        "${net}/invalid/client"})
+        "${net}/invalid/client",
+        "${app}/invalid/server" })
     public void shouldRejectInvalidRequests() throws Exception
     {
         k3po.finish();

@@ -38,6 +38,14 @@ public class ValidationIT
 
     @Test
     @Specification({
+        "${app}/invalid/client",
+        "${app}/invalid/server" })
+    public void shouldRejectInvalidRequests() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/valid/client",
         "${app}/valid/server" })
     public void shouldProcessValidRequests() throws Exception
