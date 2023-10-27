@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConne
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class MqttBindingConfig
 {
@@ -44,7 +44,7 @@ public final class MqttBindingConfig
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
-    public final Map<String, Validator> topics;
+    public final Map<String, ValueValidator> topics;
     public final ToLongFunction<String> resolveId;
 
     public MqttBindingConfig(

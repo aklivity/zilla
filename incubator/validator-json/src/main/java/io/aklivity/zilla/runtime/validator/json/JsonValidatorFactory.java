@@ -20,8 +20,9 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public final class JsonValidatorFactory implements ValidatorFactorySpi
@@ -38,20 +39,38 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator createReadValidator(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonReadValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new JsonReadValueValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
     }
 
     @Override
-    public Validator createWriteValidator(
+    public ValueValidator createValueWriter(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonWriteValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new JsonWriteValueValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
     }
 }

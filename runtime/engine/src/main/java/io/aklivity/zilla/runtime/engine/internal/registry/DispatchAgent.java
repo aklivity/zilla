@@ -132,8 +132,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -863,7 +863,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public Validator createReadValidator(
+    public ValueValidator createReadValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId)
     {
@@ -871,7 +871,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public Validator createWriteValidator(
+    public ValueValidator createWriteValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId)
     {

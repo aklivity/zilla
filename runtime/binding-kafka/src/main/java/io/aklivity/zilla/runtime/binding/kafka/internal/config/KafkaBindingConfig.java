@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class KafkaBindingConfig
 {
@@ -138,12 +138,12 @@ public final class KafkaBindingConfig
         if (readValidator != null && readValidator.containsKey(topic))
         {
             type = new KafkaTopicType(
-                readValidator.get(topic).key != null ? readValidator.get(topic).key : Validator.NONE,
-                readValidator.get(topic).value != null ? readValidator.get(topic).value : Validator.NONE);
+                readValidator.get(topic).key != null ? readValidator.get(topic).key : ValueValidator.NONE,
+                readValidator.get(topic).value != null ? readValidator.get(topic).value : ValueValidator.NONE);
         }
         else
         {
-            type = new KafkaTopicType(Validator.NONE, Validator.NONE);
+            type = new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
         }
         return type;
     }
@@ -156,12 +156,12 @@ public final class KafkaBindingConfig
         if (writeValidator != null && writeValidator.containsKey(topic))
         {
             type = new KafkaTopicType(
-                writeValidator.get(topic).key != null ? writeValidator.get(topic).key : Validator.NONE,
-                writeValidator.get(topic).value != null ? writeValidator.get(topic).value : Validator.NONE);
+                writeValidator.get(topic).key != null ? writeValidator.get(topic).key : ValueValidator.NONE,
+                writeValidator.get(topic).value != null ? writeValidator.get(topic).value : ValueValidator.NONE);
         }
         else
         {
-            type = new KafkaTopicType(Validator.NONE, Validator.NONE);
+            type = new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
         }
         return type;
     }

@@ -38,7 +38,7 @@ public final class ValidatorFactory
         return instantiate(load(ValidatorFactorySpi.class));
     }
 
-    public Validator createReadValidator(
+    public ValueValidator createReadValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
@@ -48,10 +48,10 @@ public final class ValidatorFactory
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
-        return validatorSpi.createReadValidator(config, resolveId, supplyCatalog);
+        return validatorSpi.createValueReader(config, resolveId, supplyCatalog);
     }
 
-    public Validator createWriteValidator(
+    public ValueValidator createWriteValidator(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
@@ -61,7 +61,7 @@ public final class ValidatorFactory
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
-        return validatorSpi.createWriteValidator(config, resolveId, supplyCatalog);
+        return validatorSpi.createValueWriter(config, resolveId, supplyCatalog);
     }
 
     public Collection<ValidatorFactorySpi> validatorSpis()

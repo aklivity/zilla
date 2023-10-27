@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class KafkaCachePartition
@@ -345,7 +345,7 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        Validator validator)
+        ValueValidator valueValidator)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -399,7 +399,7 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            int validated = validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            int validated = valueValidator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
             if (validated == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
@@ -426,7 +426,7 @@ public final class KafkaCachePartition
 
     public void writeEntryContinue(
         OctetsFW payload,
-        Validator validator)
+        ValueValidator valueValidator)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -446,7 +446,7 @@ public final class KafkaCachePartition
             {
                 logFile.appendBytes(buffer, index, length);
             };
-            int validated = validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
+            int validated = valueValidator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
             if (validated == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
@@ -551,7 +551,7 @@ public final class KafkaCachePartition
         int valueLength,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
-        Validator validator)
+        ValueValidator valueValidator)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -592,7 +592,7 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            validated = validator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            validated = valueValidator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
         }
         logFile.appendInt(valueLength);
 
@@ -622,7 +622,7 @@ public final class KafkaCachePartition
         Node head,
         MutableInteger position,
         OctetsFW payload,
-        Validator validator)
+        ValueValidator valueValidator)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -640,7 +640,7 @@ public final class KafkaCachePartition
                 logFile.writeBytes(position.value, buffer, index, length);
                 position.value += length;
             };
-            validated = validator.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
+            validated = valueValidator.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
         }
         return validated;
     }

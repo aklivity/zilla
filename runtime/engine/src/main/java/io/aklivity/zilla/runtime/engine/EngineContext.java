@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -134,11 +134,11 @@ public interface EngineContext
     Metric resolveMetric(
         String name);
 
-    Validator createReadValidator(
+    ValueValidator createReadValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId);
 
-    Validator createWriteValidator(
+    ValueValidator createWriteValidator(
         ValidatorConfig validator,
         ToLongFunction<String> resolveId);
 

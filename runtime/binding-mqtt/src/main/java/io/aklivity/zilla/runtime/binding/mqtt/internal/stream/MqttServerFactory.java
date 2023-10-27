@@ -165,7 +165,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class MqttServerFactory implements MqttStreamFactory
@@ -367,7 +367,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
 
-    private Map<String, Validator> validators;
+    private Map<String, ValueValidator> validators;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -990,10 +990,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         String topic,
         OctetsFW payload)
     {
-        final Validator contentValidator = validators.get(topic);
+        final ValueValidator contentValueValidator = validators.get(topic);
         final ValueConsumer function = (buffer, index, length) -> {};
-        return contentValidator == null ||
-            contentValidator.validate(payload.value(), payload.offset(), payload.sizeof(), function) != -1;
+        return contentValueValidator == null ||
+            contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), function) != -1;
     }
 
     private boolean invalidUtf8(

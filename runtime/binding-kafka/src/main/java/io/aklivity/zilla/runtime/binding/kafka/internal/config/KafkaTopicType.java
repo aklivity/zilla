@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public class KafkaTopicType
 {
-    public final Validator key;
-    public final Validator value;
+    public final ValueValidator key;
+    public final ValueValidator value;
 
     public KafkaTopicType(
-        Validator key,
-        Validator value)
+        ValueValidator key,
+        ValueValidator value)
     {
         this.key = key;
         this.value = value;

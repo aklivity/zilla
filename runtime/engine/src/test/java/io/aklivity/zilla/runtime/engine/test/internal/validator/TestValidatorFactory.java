@@ -21,8 +21,9 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public class TestValidatorFactory implements ValidatorFactorySpi
 {
@@ -39,20 +40,38 @@ public class TestValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator createReadValidator(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestReadValidator();
+        return new TestReadValueValidator();
     }
 
     @Override
-    public Validator createWriteValidator(
+    public ValueValidator createValueWriter(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestWriteValidator();
+        return new TestWriteValueValidator();
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
     }
 }

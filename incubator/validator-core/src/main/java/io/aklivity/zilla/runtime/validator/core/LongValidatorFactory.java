@@ -20,8 +20,9 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
 public class LongValidatorFactory implements ValidatorFactorySpi
@@ -39,20 +40,38 @@ public class LongValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator createReadValidator(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new LongValidator(LongValidatorConfig.class.cast(config));
+        return new LongValueValidator(LongValidatorConfig.class.cast(config));
     }
 
     @Override
-    public Validator createWriteValidator(
+    public ValueValidator createValueWriter(
         ValidatorConfig config,
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new LongValidator(LongValidatorConfig.class.cast(config));
+        return new LongValueValidator(LongValidatorConfig.class.cast(config));
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        ToLongFunction<String> resolveId,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return null;
     }
 }

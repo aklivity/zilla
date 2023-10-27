@@ -6,7 +6,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/allOf/-",
+        "path": "/$defs/validator/type/oneOf/-",
         "value":
         {
             "if":
