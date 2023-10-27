@@ -1076,7 +1076,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            server.request = binding.resolveRequest(headers::get);
+                            server.request = binding.resolveRequest(beginEx);
                             error = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth, policy, origin,
                                 beginEx);
                         }
@@ -4877,7 +4877,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
 
-                            HttpRequestType request = binding.resolveRequest(headers::get);
+                            HttpRequestType request = binding.resolveRequest(beginEx);
 
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
                                 exchangeAuth, traceId, policy, origin, contentLength, request);
