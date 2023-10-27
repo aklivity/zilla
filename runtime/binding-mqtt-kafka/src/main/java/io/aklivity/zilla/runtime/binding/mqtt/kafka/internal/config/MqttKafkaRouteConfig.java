@@ -35,6 +35,7 @@ public class MqttKafkaRouteConfig
 
     public final String16FW messages;
     public final String16FW retained;
+    private final List<String> clients;
 
     public MqttKafkaRouteConfig(
         MqttKafkaOptionsConfig options,
@@ -52,6 +53,7 @@ public class MqttKafkaRouteConfig
             .map(MqttKafkaConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
+        this.clients = options.clients;
     }
 
     boolean authorized(
@@ -60,15 +62,23 @@ public class MqttKafkaRouteConfig
         return authorized.test(authorization);
     }
 
-    boolean matches(
+    public boolean matchesSubscribe(
         String topic)
     {
-        return when.isEmpty() || topic != null && when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic));
     }
 
-    public boolean matchesTopicFilter(
+    public boolean matchesClient(
+        String client)
+    {
+        return !when.isEmpty() && when.stream()
+            .filter(m -> m.subscribeMatchers != null)
+            .allMatch(m -> m.matchesSubscribe(client));
+    }
+
+    public boolean matchesPublish(
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic));
     }
 }

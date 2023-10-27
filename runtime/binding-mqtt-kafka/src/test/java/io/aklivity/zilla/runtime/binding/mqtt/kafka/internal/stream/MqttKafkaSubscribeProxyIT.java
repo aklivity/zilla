@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -169,6 +170,50 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.topic.space/client",
         "${kafka}/subscribe.topic.space/server"})
     public void shouldFilterTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.client.topic.space.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.client.topic.space/client",
+        "${kafka}/subscribe.client.topic.space/server"})
+    public void shouldFilterClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.client.topic.space.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.end.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.client.topic.space.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.abort.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.client.topic.space.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.reset.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaReset() throws Exception
     {
         k3po.finish();
     }

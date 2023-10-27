@@ -17,92 +17,102 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaSubscribeConfig;
 
 public class MqttKafkaConditionMatcherTest
 {
     @Test
     public void shouldMatchSimpleConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic/name");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("/some/hierarchical/topic/name")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertTrue(matcher.matches("/some/hierarchical/topic/name"));
-        assertTrue(matcher.matches("/some/hierarchical/topic/name/#"));
-        assertTrue(matcher.matches("/some/hierarchical/+/name/#"));
-        assertTrue(matcher.matches("/some/+/topic/+"));
-        assertTrue(matcher.matches("/some/hierarchical/topic/+"));
-        assertTrue(matcher.matches("/some/#"));
-        assertTrue(matcher.matches("/some/hierarchical/#"));
-        assertTrue(matcher.matches("#"));
-        assertTrue(matcher.matches("/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/topic/name"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/topic/name/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/+/name/#"));
+        assertTrue(matcher.matchesSubscribe("/some/+/topic/+"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/topic/+"));
+        assertTrue(matcher.matchesSubscribe("/some/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/#"));
+        assertTrue(matcher.matchesSubscribe("#"));
+        assertTrue(matcher.matchesSubscribe("/#"));
     }
 
     @Test
     public void shouldNotMatchSimpleConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic/name");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("/some/hierarchical/topic/name")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertFalse(matcher.matches("/some/+"));
-        assertFalse(matcher.matches("/some/hierarchical/+"));
-        assertFalse(matcher.matches("/some/hierarchical/topic/name/something"));
-        assertFalse(matcher.matches("some/hierarchical/topic/name"));
+        assertFalse(matcher.matchesSubscribe("/some/+"));
+        assertFalse(matcher.matchesSubscribe("/some/hierarchical/+"));
+        assertFalse(matcher.matchesSubscribe("/some/hierarchical/topic/name/something"));
+        assertFalse(matcher.matchesSubscribe("some/hierarchical/topic/name"));
     }
 
     @Test
     public void shouldMatchSimpleConditions2()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("/some/hierarchical/topic")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertTrue(matcher.matches("/some/hierarchical/topic"));
-        assertTrue(matcher.matches("/some/hierarchical/topic/#"));
-        assertTrue(matcher.matches("/some/hierarchical/+/#"));
-        assertTrue(matcher.matches("/some/+/topic"));
-        assertTrue(matcher.matches("/some/+/#"));
-        assertTrue(matcher.matches("/some/hierarchical/+"));
-        assertTrue(matcher.matches("/some/#"));
-        assertTrue(matcher.matches("#"));
-        assertTrue(matcher.matches("/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/topic"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/topic/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/+/#"));
+        assertTrue(matcher.matchesSubscribe("/some/+/topic"));
+        assertTrue(matcher.matchesSubscribe("/some/+/#"));
+        assertTrue(matcher.matchesSubscribe("/some/hierarchical/+"));
+        assertTrue(matcher.matchesSubscribe("/some/#"));
+        assertTrue(matcher.matchesSubscribe("#"));
+        assertTrue(matcher.matchesSubscribe("/#"));
     }
 
     @Test
     public void shouldNotMatchSimpleConditions2()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("/some/hierarchical/topic")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertFalse(matcher.matches("/some/+"));
-        assertFalse(matcher.matches("/some/something/else"));
-        assertFalse(matcher.matches("/some/hierarchical/topic/name"));
-        assertFalse(matcher.matches("some/hierarchical/topic"));
+        assertFalse(matcher.matchesSubscribe("/some/+"));
+        assertFalse(matcher.matchesSubscribe("/some/something/else"));
+        assertFalse(matcher.matchesSubscribe("/some/hierarchical/topic/name"));
+        assertFalse(matcher.matchesSubscribe("some/hierarchical/topic"));
     }
 
     @Test
     public void shouldMatchWildcardConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/#");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("device/#")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertTrue(matcher.matches("device/one"));
-        assertTrue(matcher.matches("device/two"));
-        assertTrue(matcher.matches("device/+"));
-        assertTrue(matcher.matches("device/#"));
-        assertTrue(matcher.matches("device/rain/one"));
-        assertTrue(matcher.matches("#"));
+        assertTrue(matcher.matchesSubscribe("device/one"));
+        assertTrue(matcher.matchesSubscribe("device/two"));
+        assertTrue(matcher.matchesSubscribe("device/+"));
+        assertTrue(matcher.matchesSubscribe("device/#"));
+        assertTrue(matcher.matchesSubscribe("device/rain/one"));
+        assertTrue(matcher.matchesSubscribe("#"));
     }
 
     @Test
     public void shouldNotMatchWildcardConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/*");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("device/#")), Collections.emptyList());
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
-        assertFalse(matcher.matches("/device/one"));
-        assertFalse(matcher.matches("devices/one"));
-        assertFalse(matcher.matches("/#"));
+        assertFalse(matcher.matchesSubscribe("/device/one"));
+        assertFalse(matcher.matchesSubscribe("devices/one"));
+        assertFalse(matcher.matchesSubscribe("/#"));
     }
 }

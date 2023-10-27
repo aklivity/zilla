@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -27,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaSubscribeConfig;
 
 public class MqttKafkaConditionConfigAdapterTest
 {
@@ -44,22 +48,56 @@ public class MqttKafkaConditionConfigAdapterTest
     public void shouldReadCondition()
     {
         String text =
-            "{\"topic\":\"test\"}";
+            "{" +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"test\"" +
+                    "}" +
+                "]," +
+                "\"publish\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"test\"" +
+                    "}" +
+                "]" +
+            "}";
 
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topic, equalTo("test"));
+        assertThat(condition.subscribes, not(nullValue()));
+        assertThat(condition.subscribes.size(), equalTo(1));
+        assertThat(condition.subscribes.get(0).topic, equalTo("test"));
+        assertThat(condition.publishes, not(nullValue()));
+        assertThat(condition.publishes.size(), equalTo(1));
+        assertThat(condition.publishes.get(0).topic, equalTo("test"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("test");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of(new MqttKafkaSubscribeConfig("test")),
+            List.of(new MqttKafkaPublishConfig("test")));
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\"}"));
+        assertThat(text, equalTo(
+            "{" +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\":\"test\"" +
+                    "}" +
+                "]," +
+                "\"publish\":" +
+                "[" +
+                    "{" +
+                        "\"topic\":\"test\"" +
+                    "}" +
+                "]" +
+            "}"));
     }
 }

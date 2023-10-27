@@ -82,6 +82,9 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         final KafkaMergedFactory cacheMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
+        final KafkaCacheBootstrapFactory cacheBootstrapFactory = new KafkaCacheBootstrapFactory(
+            config, context, bindings::get);
+
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaBeginExFW.KIND_META, cacheMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, cacheDescribeFactory);
@@ -91,6 +94,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_FETCH, cacheFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, cacheProduceFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, cacheMergedFactory);
+        factories.put(KafkaBeginExFW.KIND_BOOTSTRAP, cacheBootstrapFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;

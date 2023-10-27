@@ -182,6 +182,9 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .bootstrap()
                                          .topic("topic")
+                                         .groupId("group")
+                                         .consumerId("consumer")
+                                         .timeout(1000)
                                          .build()
                                      .build();
 
@@ -192,6 +195,34 @@ public class KafkaFunctionsTest
 
         final KafkaBootstrapBeginExFW bootstrapBeginEx = beginEx.bootstrap();
         assertEquals("topic", bootstrapBeginEx.topic().asString());
+        assertEquals("group", bootstrapBeginEx.groupId().asString());
+        assertEquals("consumer", bootstrapBeginEx.consumerId().asString());
+        assertEquals(1000, bootstrapBeginEx.timeout());
+    }
+
+    @Test
+    public void shouldMatchBootstrapBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .bootstrap()
+                .topic("test")
+                .groupId("group")
+                .consumerId("consumer")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .bootstrap(f -> f
+                .topic("test")
+                .groupId("group")
+                .consumerId("consumer"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test

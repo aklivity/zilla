@@ -56,4 +56,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWhenClientTopicSpace()
+    {
+        JsonObject config = schema.validate("proxy.when.client.topic.space.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

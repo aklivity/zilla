@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.BOOTSTRAP_AVAILABLE;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.BOOTSTRAP_STREAM_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.INSTANCE_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
@@ -31,6 +33,8 @@ public class MqttKafkaConfigurationTest
     public static final String TIME_NAME = "zilla.binding.mqtt.kafka.time";
     public static final String WILL_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.will.available";
     public static final String WILL_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.will.stream.reconnect";
+    public static final String BOOTSTRAP_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.bootstrap.available";
+    public static final String BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.bootstrap.stream.reconnect";
     public static final String SESSION_ID_NAME = "zilla.binding.mqtt.kafka.session.id";
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
     public static final String LIFETIME_ID_NAME = "zilla.binding.mqtt.kafka.lifetime.id";
@@ -42,6 +46,8 @@ public class MqttKafkaConfigurationTest
         assertEquals(TIME.name(), TIME_NAME);
         assertEquals(WILL_AVAILABLE.name(), WILL_AVAILABLE_NAME);
         assertEquals(WILL_STREAM_RECONNECT_DELAY.name(), WILL_STREAM_RECONNECT_DELAY_NAME);
+        assertEquals(BOOTSTRAP_AVAILABLE.name(), BOOTSTRAP_AVAILABLE_NAME);
+        assertEquals(BOOTSTRAP_STREAM_RECONNECT_DELAY.name(), BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME);
         assertEquals(SESSION_ID.name(), SESSION_ID_NAME);
         assertEquals(WILL_ID.name(), WILL_ID_NAME);
         assertEquals(LIFETIME_ID.name(), LIFETIME_ID_NAME);

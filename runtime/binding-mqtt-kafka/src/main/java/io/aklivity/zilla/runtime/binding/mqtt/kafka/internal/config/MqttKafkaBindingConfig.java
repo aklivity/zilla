@@ -16,10 +16,15 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSubscribeFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -28,12 +33,16 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class MqttKafkaBindingConfig
 {
+    private static final Function<String, String> DEFAULT_CLIENTS = x -> null;
+
     public final long id;
     public final KindConfig kind;
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
+    public List<MqttKafkaSubscribeFactory.KafkaMessagesBootstrap> bootstrapStreams;
+    public final List<Function<String, String>> clients;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)
@@ -42,6 +51,12 @@ public class MqttKafkaBindingConfig
         this.kind = binding.kind;
         this.options = (MqttKafkaOptionsConfig) binding.options;
         this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
+        this.clients = options != null && options.clients != null ?
+            asAccessor(options.clients) : null;
+        if (clients != null)
+        {
+            this.bootstrapStreams = new ArrayList<>();
+        }
     }
 
     public MqttKafkaRouteConfig resolve(
@@ -58,7 +73,7 @@ public class MqttKafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .filter(r -> r.authorized(authorization) && r.matchesPublish(topic))
             .findFirst()
             .orElse(null);
     }
@@ -68,7 +83,7 @@ public class MqttKafkaBindingConfig
         Array32FW<MqttTopicFilterFW> filters)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesTopicFilter(f.pattern().asString())))
+            .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesSubscribe(f.pattern().asString())))
             .distinct()
             .collect(Collectors.toList());
     }
@@ -86,5 +101,59 @@ public class MqttKafkaBindingConfig
     public String16FW retainedTopic()
     {
         return options.topics.retained;
+    }
+
+    public List<MqttKafkaRouteConfig> bootstrapRoutes()
+    {
+        final List<MqttKafkaRouteConfig> bootstrapRoutes = new ArrayList<>();
+        routes.forEach(r ->
+        {
+            if (options.clients.stream().anyMatch(r::matchesClient))
+            {
+                bootstrapRoutes.add(r);
+            }
+        });
+        return bootstrapRoutes;
+    }
+
+    private List<Function<String, String>> asAccessor(
+        List<String> clients)
+    {
+        List<Function<String, String>> accessors = new ArrayList<>();
+
+        if (clients != null)
+        {
+            for (String client : clients)
+            {
+                Matcher topicMatch =
+                    Pattern.compile(client.replace("{identity}", "(?<identity>[^\\s/]+)").replace("#", ".*"))
+                        .matcher("");
+
+                Function<String, String> accessor = DEFAULT_CLIENTS;
+                accessor = orElseIfNull(accessor, topic ->
+                {
+                    String result = null;
+                    if (topic != null && topicMatch.reset(topic).matches())
+                    {
+                        result = topicMatch.group("identity");
+                    }
+                    return result;
+                });
+                accessors.add(accessor);
+            }
+        }
+
+        return accessors;
+    }
+
+    private static Function<String, String> orElseIfNull(
+        Function<String, String> first,
+        Function<String, String> second)
+    {
+        return x ->
+        {
+            String result = first.apply(x);
+            return result != null ? result : second.apply(x);
+        };
     }
 }

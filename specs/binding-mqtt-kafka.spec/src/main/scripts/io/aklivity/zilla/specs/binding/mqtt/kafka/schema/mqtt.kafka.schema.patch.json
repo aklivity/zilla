@@ -71,6 +71,15 @@
                                     "messages"
                                 ],
                                 "additionalProperties": false
+                            },
+                            "clients":
+                            {
+                                "title": "Clients",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
                             }
                         },
                         "required":
@@ -91,10 +100,31 @@
                                     {
                                         "properties":
                                         {
-                                            "topic":
+                                            "subscribe":
                                             {
-                                                "title": "Topic",
-                                                "type": "string"
+                                                "title": "Subscribe",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "topic":
+                                                    {
+                                                        "title": "Topic",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "publish":
+                                            {
+                                                "title": "Subscribe",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "topic":
+                                                    {
+                                                        "title": "Topic",
+                                                        "type": "string"
+                                                    }
+                                                }
                                             }
                                         },
                                         "additionalProperties": false

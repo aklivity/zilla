@@ -996,6 +996,27 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaBootstrapBeginExBuilder groupId(
+                String groupId)
+            {
+                bootstrapBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaBootstrapBeginExBuilder consumerId(
+                String consumerId)
+            {
+                bootstrapBeginExRW.consumerId(consumerId);
+                return this;
+            }
+
+            public KafkaBootstrapBeginExBuilder timeout(
+                int timeout)
+            {
+                bootstrapBeginExRW.timeout(timeout);
+                return this;
+            }
+
             public KafkaBeginExBuilder build()
             {
                 final KafkaBootstrapBeginExFW bootstrapBeginEx = bootstrapBeginExRW.build();
@@ -4103,6 +4124,15 @@ public final class KafkaFunctions
         private Integer kind;
         private Predicate<KafkaBeginExFW> caseMatcher;
 
+        public KafkaBootstrapBeginExMatcherBuilder bootstrap()
+        {
+            final KafkaBootstrapBeginExMatcherBuilder matcherBuilder = new KafkaBootstrapBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.BOOTSTRAP.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaMergedBeginExMatcherBuilder merged()
         {
             final KafkaMergedBeginExMatcherBuilder matcherBuilder = new KafkaMergedBeginExMatcherBuilder();
@@ -4537,6 +4567,70 @@ public final class KafkaFunctions
             {
                 OctetsFW metadata = groupBeginExFW.metadata();
                 return this.metadata == null || metadata.sizeof() == this.metadata.length;
+            }
+        }
+
+        public final class KafkaBootstrapBeginExMatcherBuilder
+        {
+            private String16FW topic;
+            private String16FW groupId;
+            private String16FW consumerId;
+
+            private KafkaBootstrapBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaBootstrapBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaBootstrapBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
+                return this;
+            }
+
+            public KafkaBootstrapBeginExMatcherBuilder consumerId(
+                String consumerId)
+            {
+                this.consumerId = new String16FW(consumerId);
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaBootstrapBeginExFW bootstrapBeginEx = beginEx.bootstrap();
+                return matchTopic(bootstrapBeginEx) &&
+                    matchGroupId(bootstrapBeginEx) &&
+                    matchConsumerId(bootstrapBeginEx);
+            }
+
+            private boolean matchTopic(
+                final KafkaBootstrapBeginExFW bootstrapBeginEx)
+            {
+                return topic == null || topic.equals(bootstrapBeginEx.topic());
+            }
+
+            private boolean matchGroupId(
+                final KafkaBootstrapBeginExFW bootstrapBeginEx)
+            {
+                return groupId == null || groupId.equals(bootstrapBeginEx.groupId());
+            }
+
+            private boolean matchConsumerId(
+                final KafkaBootstrapBeginExFW bootstrapBeginEx)
+            {
+                return consumerId == null || consumerId.equals(bootstrapBeginEx.consumerId());
             }
         }
 

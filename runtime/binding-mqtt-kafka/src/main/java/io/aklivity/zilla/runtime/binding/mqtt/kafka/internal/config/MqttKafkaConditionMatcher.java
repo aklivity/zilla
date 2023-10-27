@@ -14,42 +14,81 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 
 public class MqttKafkaConditionMatcher
 {
-    private final Matcher topicMatcher;
-    public final String topic;
+    public final List<Matcher> subscribeMatchers;
+    private final List<Matcher> publishMatchers;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.topic = condition.topic;
-        this.topicMatcher = condition.topic != null ? asTopicMatcher(condition.topic) : null;
+        this.subscribeMatchers =
+            condition.subscribes != null && !condition.subscribes.isEmpty() ?
+                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+        this.publishMatchers =
+            condition.publishes != null && !condition.publishes.isEmpty() ?
+                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
     }
 
-    public boolean matches(
-        CharSequence topic)
+    public boolean matchesSubscribe(
+        String topic)
     {
-        return matchTopic(topic);
+        boolean match = false;
+        if (subscribeMatchers != null)
+        {
+            for (Matcher matcher : subscribeMatchers)
+            {
+                match = matcher.reset(topic).matches();
+                if (match)
+                {
+                    match = true;
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    private boolean matchTopic(
-        CharSequence topic)
+    public boolean matchesPublish(
+        String topic)
     {
-        return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
+        boolean match = false;
+        if (publishMatchers != null)
+        {
+            for (Matcher matcher : publishMatchers)
+            {
+                match = matcher.reset(topic).matches();
+                if (match)
+                {
+                    match = true;
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    private static Matcher asTopicMatcher(
-        String wildcard)
+
+    private static List<Matcher> asTopicMatcher(
+        List<String> wildcards)
     {
-        String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
-        String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
-        String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
-        return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
+        final List<Matcher> matchers = new ArrayList<>();
+        for (String wildcard : wildcards)
+        {
+            String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
+            String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
+            String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+            matchers.add(Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher(""));
+        }
+        return matchers;
     }
 
     private static String asRegexPattern(
