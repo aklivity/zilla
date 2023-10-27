@@ -1,3 +1,4 @@
+<div id="top"></div>
 <div align="center">
   <img src="./assets/zilla-rings@2x.png" height="250">
 </div>
@@ -188,3 +189,5 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
 [release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>
