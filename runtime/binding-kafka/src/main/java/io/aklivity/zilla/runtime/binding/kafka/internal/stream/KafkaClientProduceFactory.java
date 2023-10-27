@@ -540,7 +540,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         client.valueCompleteSize = valueSize + client.encodeableRecordBytesDeferred;
 
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
-
         if (client.encodeSlot != NO_SLOT &&
             maxEncodeableBytes > encodePool.slotCapacity())
         {
