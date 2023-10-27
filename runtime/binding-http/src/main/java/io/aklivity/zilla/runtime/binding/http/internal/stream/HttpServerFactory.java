@@ -2227,7 +2227,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             String origin,
             HttpBeginExFW beginEx)
         {
-            boolean isValid = binding.validateHeader(request, beginEx);
+            boolean isValid = binding.validateHeaders(request, beginEx);
             DirectBuffer error = null;
             if (isValid)
             {
@@ -4882,7 +4882,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
                                 exchangeAuth, traceId, policy, origin, contentLength, request);
 
-                            boolean isValid = binding.validateHeader(request, beginEx);
+                            boolean isValid = binding.validateHeaders(request, beginEx);
                             if (isValid)
                             {
                                 exchange.doRequestBegin(traceId, beginEx);
