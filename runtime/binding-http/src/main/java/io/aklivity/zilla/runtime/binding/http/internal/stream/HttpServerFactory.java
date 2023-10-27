@@ -5096,34 +5096,34 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final int payloadLength = payload.capacity();
-
-                    if (payloadLength > 0)
+                    boolean isValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
+                    if (isValid)
                     {
-                        boolean isValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
-                        if (isValid)
+                        if (payloadLength > 0)
                         {
                             payloadRemaining.set(payloadLength);
                             exchange.doRequestData(traceId, payload, payloadRemaining);
                             progress += payloadLength - payloadRemaining.value;
                             deferred += payloadRemaining.value;
-                            if (deferred == 0 && Http2Flags.endStream(flags))
+                        }
+
+                        if (deferred == 0 && Http2Flags.endStream(flags))
+                        {
+                            if (exchange.requestContentLength != -1 &&
+                                exchange.contentObserved != exchange.requestContentLength)
                             {
-                                if (exchange.requestContentLength != -1 &&
-                                    exchange.contentObserved != exchange.requestContentLength)
-                                {
-                                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
-                                }
-                                else
-                                {
-                                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
-                                }
+                                doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                            }
+                            else
+                            {
+                                exchange.doRequestEnd(traceId, EMPTY_OCTETS);
                             }
                         }
-                        else
-                        {
-                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
-                            exchange.doRequestAbort(traceId, EMPTY_OCTETS);
-                        }
+                    }
+                    else
+                    {
+                        doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                        exchange.doRequestAbort(traceId, EMPTY_OCTETS);
                     }
                 }
             }
