@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -35,6 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableBoolean;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
@@ -249,19 +249,10 @@ public final class HttpBindingConfig
             String contentType = headerByName.apply("content-type");
             for (HttpRequestType request : requests)
             {
-                boolean isMatch = true;
-                if (method != null && !method.equals(request.method.name()))
-                {
-                    isMatch = false;
-                }
-                if (isMatch && contentType != null && !request.contentType.contains(contentType))
-                {
-                    isMatch = false;
-                }
-                if (isMatch)
-                {
-                    isMatch = parseParams(request, path);
-                }
+                boolean isMatch = false;
+                isMatch |= method == null || method.equals(request.method.name());
+                isMatch |= contentType == null || request.contentType.contains(contentType);
+                isMatch &= parseParams(request, path);
                 if (isMatch)
                 {
                     result = request;
@@ -277,10 +268,8 @@ public final class HttpBindingConfig
         String path)
     {
         boolean result = false;
-        String pattern =
-            "^" +
-            request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)") +
-            "/?(\\?(?<query0>.*))?$";
+        String pattern = String.format("^%s/?(\\?(?<query0>.*))?$",
+            request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)"));
         Matcher matcher = Pattern.compile(pattern).matcher(path);
         if (matcher.matches())
         {
@@ -330,26 +319,21 @@ public final class HttpBindingConfig
         return queryParams;
     }
 
-    public boolean validateHeader(
+    public boolean validateHeaders(
         HttpRequestType request,
         HttpBeginExFW beginEx)
     {
-        boolean isValid = true;
-        if (request != null)
-        {
-            boolean isValidHeader = validateHeaderValues(request, beginEx);
-            boolean isValidPathParams = validatePathParams(request);
-            boolean isValidQueryParams = validateQueryParams(request);
-            isValid = isValidHeader && isValidPathParams && isValidQueryParams;
-        }
-        return isValid;
+        return request == null ||
+            validateHeaderValues(request, beginEx) &&
+            validatePathParams(request) &&
+            validateQueryParams(request);
     }
 
     private boolean validateHeaderValues(
         HttpRequestType request,
         HttpBeginExFW beginEx)
     {
-        AtomicBoolean isValid = new AtomicBoolean(true);
+        MutableBoolean isValid = new MutableBoolean(true);
         if (request != null && request.headers != null)
         {
             beginEx.headers().forEach(header ->
