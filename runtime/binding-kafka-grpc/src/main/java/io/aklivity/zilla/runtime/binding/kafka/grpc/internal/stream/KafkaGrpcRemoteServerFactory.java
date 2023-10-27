@@ -786,9 +786,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             if (KafkaGrpcState.initialOpened(state) &&
                 !KafkaGrpcState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
+                initialSeq = delegate.replySeq;
+                initialAck = delegate.replyAck;
+                initialMax = delegate.replyMax;
                 state = KafkaGrpcState.closeInitial(state);
 
                 doKafkaTombstone(traceId, authorization, HEADER_VALUE_GRPC_OK);
@@ -806,9 +806,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             if (KafkaGrpcState.initialOpening(state) &&
                 !KafkaGrpcState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
+                initialSeq = delegate.replySeq;
+                initialAck = delegate.replyAck;
+                initialMax = delegate.replyMax;
                 state = KafkaGrpcState.closeInitial(state);
 
                 doKafkaTombstone(traceId, authorization, status);
@@ -1453,7 +1453,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             final String16FW status = abortEx != null ? abortEx.status() : HEADER_VALUE_GRPC_ABORTED;
 
             correlater.doKafkaAbort(traceId, authorization, status);
-
         }
 
         private void onGrpcReset(
@@ -1464,6 +1463,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
+            final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
@@ -1472,7 +1472,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = KafkaGrpcState.closingInitial(state);
+            state = KafkaGrpcState.closeInitial(state);
 
             cleanup(traceId, authorization);
 
@@ -1501,7 +1501,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             initialBud = budgetId;
             initialPad = padding;
             initialCap = capabilities;
-            state = KafkaGrpcState.openReply(state);
+            state = KafkaGrpcState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1592,7 +1592,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW service,
             OctetsFW method)
         {
-            state = KafkaGrpcState.openingReply(state);
+            state = KafkaGrpcState.openingInitial(state);
 
             grpc = newGrpcStream(this::onGrpcMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, server.condition.scheme(), server.condition.authority(),
@@ -1621,7 +1621,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (KafkaGrpcState.replyOpened(state) && !KafkaGrpcState.replyClosed(state))
+            if (KafkaGrpcState.initialOpening(state) &&
+                !KafkaGrpcState.initialClosed(state))
             {
                 final GrpcAbortExFW grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1639,9 +1640,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (!KafkaGrpcState.replyClosed(state))
+            if (!KafkaGrpcState.initialClosed(state))
             {
-                state = KafkaGrpcState.closeReply(state);
+                state = KafkaGrpcState.closeInitial(state);
 
                 doEnd(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -1666,8 +1667,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (KafkaGrpcState.replyOpening(state) &&
-                !KafkaGrpcState.replyClosed(state))
+            if (!KafkaGrpcState.replyClosed(state))
             {
                 state = KafkaGrpcState.closeReply(state);
 
@@ -1682,6 +1682,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
     }
+
     private void doBegin(
         MessageConsumer receiver,
         long originId,

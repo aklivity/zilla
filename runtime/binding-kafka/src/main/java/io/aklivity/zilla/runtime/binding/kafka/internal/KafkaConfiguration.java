@@ -47,6 +47,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE;
     public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
@@ -88,6 +89,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
+        KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE = config.property("client.produce.record.framing.size", 512);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
@@ -170,6 +172,11 @@ public class KafkaConfiguration extends Configuration
     public int clientProduceMaxBytes()
     {
         return KAFKA_CLIENT_PRODUCE_MAX_BYTES.getAsInt(this);
+    }
+
+    public int clientProduceRecordFramingSize()
+    {
+        return KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE.getAsInt(this);
     }
 
     public Path cacheDirectory()

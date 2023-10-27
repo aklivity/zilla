@@ -13,30 +13,34 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+accepted
 
-write zilla:begin.ext ${grpc:beginEx()
-                              .typeId(zilla:id("grpc"))
-                              .scheme("http")
-                              .authority("localhost:8080")
-                              .service("example.EchoService")
-                              .method("EchoUnary")
-                              .metadata("custom", "test")
-                              .build()}
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .service("example.EchoService")
+                           .method("EchoUnary")
+                           .metadata("custom", "test")
+                           .build()}
 connected
+
+read ${grpc:protobuf()
+           .string(1, "Hello World")
+           .build()}
+
+read closed
 
 write ${grpc:protobuf()
             .string(1, "Hello World")
             .build()}
 write flush
 
-write close
-
-read zilla:abort.ext ${grpc:abortEx()
+write zilla:abort.ext ${grpc:abortEx()
                             .typeId(zilla:id("grpc"))
-                            .status("9")
+                            .status("13")
                             .build()}
-read aborted
-
+write abort

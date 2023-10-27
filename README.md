@@ -86,7 +86,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Filtering** — Local cache indexes message key and headers upon retrieval from Kafka, supporting efficiently filtered reads from cached topics.
 - [x] **Fan-in, Fan-out** — Local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
 - [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
-- [x] **Helm Chart** — Generic Zilla Helm chart avaliable.
+- [x] **Helm Chart** — Generic Zilla Helm chart available.
 - [x] **Auto-reconfigure** — Detect changes in `zilla.yaml` and reconfigure Zilla automatically.
 - [x] **Prometheus Integration** — Export Zilla metrics to Prometheus for observability and auto-scaling.
 - [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.

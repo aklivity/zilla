@@ -79,7 +79,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .build()
                              .build()}
-read [0..7580]
+read [0..7168]
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
