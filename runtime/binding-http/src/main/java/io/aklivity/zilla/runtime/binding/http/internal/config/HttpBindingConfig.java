@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
@@ -57,6 +58,9 @@ public final class HttpBindingConfig
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
             HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
+    private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
+    private static final String8FW HEADER_METHOD = new String8FW(":method");
+    private static final String8FW HEADER_PATH = new String8FW(":path");
 
     public final long id;
     public final String name;
@@ -239,14 +243,14 @@ public final class HttpBindingConfig
     }
 
     public HttpRequestType resolveRequest(
-        Function<String, String> headerByName)
+        HttpBeginExFW beginEx)
     {
         HttpRequestType result = null;
         if (requests != null && !requests.isEmpty())
         {
-            String path = headerByName.apply(":path");
-            String method = headerByName.apply(":method");
-            String contentType = headerByName.apply("content-type");
+            String path = resolveHeaderValue(beginEx, HEADER_PATH);
+            String method = resolveHeaderValue(beginEx, HEADER_METHOD);
+            String contentType = resolveHeaderValue(beginEx, HEADER_CONTENT_TYPE);
             for (HttpRequestType request : requests)
             {
                 boolean isMatch = false;
@@ -419,5 +423,18 @@ public final class HttpBindingConfig
             String result = first.apply(hs);
             return result != null ? result : second.apply(hs);
         };
+    }
+
+    private static String resolveHeaderValue(
+        HttpBeginExFW beginEx,
+        String8FW headerName)
+    {
+        String result = null;
+        HttpHeaderFW header = beginEx.headers().matchFirst(h -> headerName.equals(h.name()));
+        if (header != null)
+        {
+            result = header.value().asString();
+        }
+        return result;
     }
 }
