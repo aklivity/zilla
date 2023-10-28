@@ -3371,6 +3371,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             case SIGNAL_SYNC_GROUP_REQUEST:
                 assignment = payload;
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
+
+                if (decoder != decodeSyncGroupResponse)
+                {
+                    final DirectBuffer buffer = payload.value();
+                    final int offset = 0;
+                    final int sizeof = payload.sizeof();
+
+                    encoders.add(encodeSyncGroupRequest);
+                    signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+                        buffer, offset, sizeof);
+                }
                 break;
             case SIGNAL_HEARTBEAT_REQUEST:
                 encoders.add(encodeHeartbeatRequest);
