@@ -101,7 +101,7 @@ export JWT_TOKEN=$(jwt encode \
     --iss "https://auth.example.com" \
     --aud "https://api.example.com" \
     --sub "example" \
-    --exp 30s \
+    --exp=+30s \
     --no-iat \
     --payload "scope=proxy:stream" \
     --secret @private.pem)

@@ -61,7 +61,7 @@ jwt encode \
     --kid "example" \
     --iss "https://auth.example.com" \
     --aud "https://api.example.com" \
-    --exp 1968862747 \
+    --exp=+1d \
     --no-iat \
     --secret @private.pem
 ```
@@ -97,7 +97,7 @@ jwt encode \
     --kid "example" \
     --iss "https://auth.example.com" \
     --aud "https://api.example.com" \
-    --exp 1968862747 \
+    --exp=+1d \
     --no-iat \
     --payload "scope=echo:stream" \
     --secret @private.pem
