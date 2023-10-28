@@ -9,5 +9,4 @@ RUN apt-get update \
 
 WORKDIR /usr/app
 
-ADD "https://api.github.com/repos/jfallows/sse-server/commits?per_page=1" latest_commit
-RUN npm install git+https://github.com/jfallows/sse-server.git
+RUN npm install --save "git://github.com/jfallows/sse-server.git#14142e3"
