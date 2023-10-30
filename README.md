@@ -62,7 +62,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
 - [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
-- [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
+- [x] **Continuous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### <a name="grpc-kafka-proxying"> gRPC-Kafka Proxying
 
