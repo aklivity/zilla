@@ -787,7 +787,7 @@ public final class KafkaClientConnectionPool
             long authorization,
             long traceId)
         {
-            if (connection.initialBudId != NO_CREDITOR_INDEX)
+            if (connection.initialBudId != NO_BUDGET_ID)
             {
                 final long initialSeqOffsetPeek = initialSeqOffset.peekLong();
 
@@ -1580,7 +1580,7 @@ public final class KafkaClientConnectionPool
             if (initialBudId != NO_CREDITOR_INDEX)
             {
                 creditor.release(initialBudId);
-                initialBudId = NO_CREDITOR_INDEX;
+                initialBudId = NO_BUDGET_ID;
             }
         }
 
