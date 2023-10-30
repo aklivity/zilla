@@ -176,7 +176,7 @@ Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
 ## <a name="license"> License
-Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a commercialized “as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
 
 <!-- Links -->
