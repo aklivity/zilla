@@ -26,25 +26,25 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
-public class StringValueValidatorFactoryTest
+public class IntegerValidatorFactoryTest
 {
     // GIVEN
-    ValidatorConfig validator = new StringValidatorConfig("utf_8");
+    ValidatorConfig validator = new IntegerValidatorConfig();
     ToLongFunction<String> resolveId = mock(ToLongFunction.class);
     LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-    StringValidatorFactory factory = new StringValidatorFactory();
+    IntegerValidatorFactory factory = new IntegerValidatorFactory();
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateReadValidator()
     {
         // WHEN
-        ValueValidator stringValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator integerValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(stringValueValidator, instanceOf(StringValueValidator.class));
+        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
     }
 
     @Test
@@ -52,9 +52,9 @@ public class StringValueValidatorFactoryTest
     public void shouldCreateWriteValidator()
     {
         // WHEN
-        ValueValidator stringValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator integerValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(stringValueValidator, instanceOf(StringValueValidator.class));
+        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
     }
 }

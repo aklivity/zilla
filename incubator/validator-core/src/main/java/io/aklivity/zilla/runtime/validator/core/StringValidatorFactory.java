@@ -63,7 +63,7 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new StringFragmentValidator(StringValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -72,6 +72,6 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new StringFragmentValidator(StringValidatorConfig.class.cast(config));
     }
 }

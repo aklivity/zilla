@@ -13,26 +13,32 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.validator;
+package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 
-public interface FragmentValidator
+public class TestReadFragmentValidator extends TestFragmentValidator
 {
-    int FLAGS_FIN = 0x01;
-
-    FragmentValidator NONE = (flags, data, index, length, next) ->
-    {
-        next.accept(flags, data, index, length);
-        return length;
-    };
-
-    int validate(
+    @Override
+    public int validate(
         int flags,
         DirectBuffer data,
         int index,
         int length,
-        FragmentConsumer next);
+        FragmentConsumer next)
+    {
+        int valLength = 0;
+        if ((flags & FLAGS_FIN) != 0x00)
+        {
+            valLength = -1;
+            if (length == 18)
+            {
+                next.accept(flags, data, index, length);
+                valLength = length;
+            }
+        }
+        return valLength;
+    }
 }

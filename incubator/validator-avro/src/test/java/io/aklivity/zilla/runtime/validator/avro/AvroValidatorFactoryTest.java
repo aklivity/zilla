@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public class AvroValueValidatorFactoryTest
+public class AvroValidatorFactoryTest
 {
     // GIVEN
     ValidatorConfig validator = AvroValidatorConfig.builder()

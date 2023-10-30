@@ -25,36 +25,59 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
-public class IntegerValueValidatorFactoryTest
+public class StringValidatorFactoryTest
 {
     // GIVEN
-    ValidatorConfig validator = new IntegerValidatorConfig();
+    ValidatorConfig validator = new StringValidatorConfig("utf_8");
     ToLongFunction<String> resolveId = mock(ToLongFunction.class);
     LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-    IntegerValidatorFactory factory = new IntegerValidatorFactory();
+    StringValidatorFactory factory = new StringValidatorFactory();
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreateReadValidator()
+    public void shouldCreateValueReader()
     {
         // WHEN
-        ValueValidator integerValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator valueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
+        assertThat(valueValidator, instanceOf(StringValueValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreateWriteValidator()
+    public void shouldCreateValueWriter()
     {
         // WHEN
-        ValueValidator integerValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator valueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
+        assertThat(valueValidator, instanceOf(StringValueValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentReader()
+    {
+        // WHEN
+        FragmentValidator fragmentValidator = factory.createFragmentReader(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(fragmentValidator, instanceOf(StringFragmentValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentWriter()
+    {
+        // WHEN
+        FragmentValidator fragmentValidator = factory.createFragmentWriter(validator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(fragmentValidator, instanceOf(StringFragmentValidator.class));
     }
 }

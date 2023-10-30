@@ -63,7 +63,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new TestReadFragmentValidator();
     }
 
     @Override
@@ -72,6 +72,6 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new TestWriteFragmentValidator();
     }
 }

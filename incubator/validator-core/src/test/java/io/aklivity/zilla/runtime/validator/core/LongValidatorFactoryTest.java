@@ -12,10 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.validator.json;
+package io.aklivity.zilla.runtime.validator.core;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
@@ -24,40 +25,36 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
-public class JsonValueValidatorFactoryTest
+public class LongValidatorFactoryTest
 {
     // GIVEN
-    ValidatorConfig validator = JsonValidatorConfig.builder()
-            .catalog()
-                .name("test0")
-                .build()
-            .build();
-    ToLongFunction<String> resolveId = i -> 0L;
-    LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
-    JsonValidatorFactory factory = new JsonValidatorFactory();
+    ValidatorConfig validator = new LongValidatorConfig();
+    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+    LongValidatorFactory factory = new LongValidatorFactory();
 
     @Test
+    @SuppressWarnings("unchecked")
     public void shouldCreateReadValidator()
     {
         // WHEN
-        ValueValidator jsonValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator longValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(jsonValueValidator, instanceOf(JsonValueValidator.class));
+        assertThat(longValueValidator, instanceOf(LongValueValidator.class));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void shouldCreateWriteValidator()
     {
         // WHEN
-        ValueValidator jsonValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator longValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(jsonValueValidator, instanceOf(JsonValueValidator.class));
+        assertThat(longValueValidator, instanceOf(LongValueValidator.class));
     }
 }

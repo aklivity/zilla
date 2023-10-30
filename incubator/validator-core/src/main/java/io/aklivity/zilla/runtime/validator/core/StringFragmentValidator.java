@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
+import java.util.function.Predicate;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public class StringFragmentValidator implements FragmentValidator
 {
+    private Predicate<byte[]> predicate;
+
+    public StringFragmentValidator(
+        StringValidatorConfig config)
+    {
+        this.predicate = config.encoding.equals("utf_8") ? this::isValidUTF8 :
+                config.encoding.equals("utf_16") ? this::isValidUTF16 :
+                        bytes -> false;
+    }
+
     @Override
     public int validate(
         int flags,
@@ -29,6 +42,112 @@ public class StringFragmentValidator implements FragmentValidator
         int length,
         FragmentConsumer next)
     {
-        return 0;
+        int valLength = 0;
+        if ((flags & FLAGS_FIN) != 0x00)
+        {
+            valLength = -1;
+            byte[] payloadBytes = new byte[length];
+            data.getBytes(0, payloadBytes);
+
+            if (predicate.test(payloadBytes))
+            {
+                next.accept(flags, data, index, length);
+                valLength = length;
+            }
+        }
+        return valLength;
+    }
+
+    private boolean isValidUTF8(
+        byte[] byteArray)
+    {
+        int i = 0;
+        while (i < byteArray.length)
+        {
+            int numBytes;
+            if ((byteArray[i] & 0b10000000) == 0b00000000)
+            {
+                numBytes = 1;
+            }
+            else if ((byteArray[i] & 0b11100000) == 0b11000000)
+            {
+                numBytes = 2;
+            }
+            else if ((byteArray[i] & 0b11110000) == 0b11100000)
+            {
+                numBytes = 3;
+            }
+            else if ((byteArray[i] & 0b11111000) == 0b11110000)
+            {
+                numBytes = 4;
+            }
+            else
+            {
+                return false;
+            }
+
+            for (int j = 1; j < numBytes; j++)
+            {
+                if (i + j >= byteArray.length)
+                {
+                    return false;
+                }
+                if ((byteArray[i + j] & 0b11000000) != 0b10000000)
+                {
+                    return false;
+                }
+            }
+            i += numBytes;
+        }
+        return true;
+    }
+
+    private boolean isValidUTF16(
+        byte[] byteArray)
+    {
+        int i = 0;
+        boolean status = false;
+
+        while (i < byteArray.length)
+        {
+            if (i + 1 >= byteArray.length)
+            {
+                status = false;
+                break;
+            }
+
+            int highByte = byteArray[i] & 0xFF;
+            int lowByte = byteArray[i + 1] & 0xFF;
+            int codeUnit = (highByte << 8) | lowByte;
+
+            if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
+            {
+                if (i + 3 >= byteArray.length)
+                {
+                    status = false;
+                    break;
+                }
+                int secondHighByte = byteArray[i + 2] & 0xFF;
+                int secondLowByte = byteArray[i + 3] & 0xFF;
+                int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
+                if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
+                {
+                    status = false;
+                    break;
+                }
+                i += 4;
+            }
+            else if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF)
+            {
+                status = false;
+                break;
+            }
+            else
+            {
+                i += 2;
+            }
+            status = true;
+        }
+        return status;
     }
 }

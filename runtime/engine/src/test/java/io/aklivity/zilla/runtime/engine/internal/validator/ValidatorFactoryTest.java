@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValid
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
-public class ValueValidatorFactoryTest
+public class ValidatorFactoryTest
 {
     @Test
     @SuppressWarnings("unchecked")
