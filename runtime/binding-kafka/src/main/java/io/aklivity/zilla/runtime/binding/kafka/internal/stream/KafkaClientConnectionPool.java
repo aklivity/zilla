@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
@@ -666,6 +665,7 @@ public final class KafkaClientConnectionPool
             state = KafkaState.openingInitial(state);
 
             doStreamBegin(authorization, traceId);
+            doStreamWindow(authorization, traceId);
         }
 
         private void onStreamData(
@@ -787,7 +787,7 @@ public final class KafkaClientConnectionPool
             long authorization,
             long traceId)
         {
-            if (connection.initialBudId != NO_BUDGET_ID)
+            if (KafkaState.initialOpened(connection.state))
             {
                 final long initialSeqOffsetPeek = initialSeqOffset.peekLong();
 
@@ -817,8 +817,6 @@ public final class KafkaClientConnectionPool
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, connection.initialBudId, EMPTY_EXTENSION);
-
-            doStreamWindow(authorization, traceId);
         }
 
         private void doStreamData(
@@ -1080,6 +1078,13 @@ public final class KafkaClientConnectionPool
             if (KafkaState.closed(state))
             {
                 state = 0;
+                initialAck = 0;
+                initialSeq = 0;
+                initialMax = 0;
+                replyAck = 0;
+                replySeq = 0;
+                replyMax = 0;
+                initialBudId = NO_BUDGET_ID;
             }
 
             if (!KafkaState.initialOpening(state))
@@ -1577,7 +1582,7 @@ public final class KafkaClientConnectionPool
 
         private void cleanupBudgetCreditorIfNecessary()
         {
-            if (initialBudId != NO_CREDITOR_INDEX)
+            if (initialBudId != NO_BUDGET_ID)
             {
                 creditor.release(initialBudId);
                 initialBudId = NO_BUDGET_ID;
