@@ -111,6 +111,12 @@ public class MqttKafkaConfiguration extends Configuration
         return BOOTSTRAP_AVAILABLE.get(this);
     }
 
+    public int bootstrapStreamReconnectDelay()
+    {
+        return BOOTSTRAP_STREAM_RECONNECT_DELAY.getAsInt(this);
+    }
+
+
     private static StringSupplier decodeStringSupplier(
         String fullyQualifiedMethodName)
     {

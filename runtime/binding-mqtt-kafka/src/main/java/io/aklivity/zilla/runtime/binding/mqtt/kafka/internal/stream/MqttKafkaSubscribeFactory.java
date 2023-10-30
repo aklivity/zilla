@@ -73,7 +73,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSu
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -152,8 +151,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
         EngineContext context,
-        LongFunction<MqttKafkaBindingConfig> supplyBinding,
-        IntPropertyDef reconnectDelay)
+        LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
@@ -170,7 +168,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.supplyBinding = supplyBinding;
         this.helper = new MqttKafkaHeaderHelper();
         this.bootstrapAvailable = config.bootstrapAvailable();
-        this.reconnectDelay = reconnectDelay.getAsInt(config);
+        this.reconnectDelay = config.bootstrapStreamReconnectDelay();
         this.bootstrapStreams = new ArrayList<>();
     }
 
@@ -186,7 +184,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             {
                 final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
                 bootstrapStreams.add(stream);
-                stream.doKafkaBegin(currentTimeMillis());
+                stream.doKafkaBeginAt(currentTimeMillis());
             });
         }
     }
@@ -729,7 +727,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
-        private void doKafkaBegin(
+        private void doKafkaBeginAt(
             long timeMillis)
         {
             this.reconnectAt = signaler.signalAt(

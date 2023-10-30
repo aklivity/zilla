@@ -305,10 +305,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .value(topicNameBuffer, 0, topicNameBuffer.capacity())
                 .build();
 
-            final String16FW clientHashKey = clientHashKey(topicName);
-            final DirectBuffer clientHashKeyBuffer = clientHashKey.value();
-            if (clientHashKeyBuffer != null)
+            final String clientHashKey = clientHashKey(topicName);
+            if (clientHashKey != null)
             {
+                final DirectBuffer clientHashKeyBuffer = new String16FW(clientHashKey).value();
                 final MutableDirectBuffer hashKeyBuffer = new UnsafeBuffer(new byte[clientHashKeyBuffer.capacity() + 4]);
                 hashKey = new KafkaKeyFW.Builder()
                     .wrap(hashKeyBuffer, 0, hashKeyBuffer.capacity())
@@ -325,7 +325,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private String16FW clientHashKey(
+        private String clientHashKey(
             String topicName)
         {
             String clientHashKey = null;
@@ -337,7 +337,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     break;
                 }
             }
-            return new String16FW(clientHashKey);
+            return clientHashKey;
         }
 
         private void onMqttData(
@@ -452,11 +452,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private void setHashKey(KafkaKeyFW.Builder b)
+        private void setHashKey(
+            KafkaKeyFW.Builder builder)
         {
             if (hashKey != null)
             {
-                b.set(hashKey);
+                builder.set(hashKey);
             }
         }
 

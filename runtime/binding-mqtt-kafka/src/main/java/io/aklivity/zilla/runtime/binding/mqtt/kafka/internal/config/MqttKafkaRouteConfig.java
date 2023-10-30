@@ -70,7 +70,7 @@ public class MqttKafkaRouteConfig
         String client)
     {
         return !when.isEmpty() && when.stream()
-            .filter(m -> m.subscribeMatchers != null)
+            .filter(m -> m.kind == MqttKafkaConditionMatcher.MqttKafkaConditionKind.SUBSCRIBE)
             .allMatch(m -> m.matchesSubscribe(client));
     }
 

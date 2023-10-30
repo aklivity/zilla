@@ -24,18 +24,20 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionCon
 
 public class MqttKafkaConditionMatcher
 {
-    public final List<Matcher> subscribeMatchers;
+    private final List<Matcher> subscribeMatchers;
     private final List<Matcher> publishMatchers;
+    public final MqttKafkaConditionKind kind;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
         this.subscribeMatchers =
             condition.subscribes != null && !condition.subscribes.isEmpty() ?
-                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+                asTopicMatchers(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
         this.publishMatchers =
             condition.publishes != null && !condition.publishes.isEmpty() ?
-                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+                asTopicMatchers(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+        this.kind = condition.subscribes.isEmpty() ? MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
     }
 
     public boolean matchesSubscribe(
@@ -75,7 +77,7 @@ public class MqttKafkaConditionMatcher
     }
 
 
-    private static List<Matcher> asTopicMatcher(
+    private static List<Matcher> asTopicMatchers(
         List<String> wildcards)
     {
         final List<Matcher> matchers = new ArrayList<>();
@@ -132,5 +134,11 @@ public class MqttKafkaConditionMatcher
             pattern += "(\\/\\#)?" + endParentheses.repeat(Math.max(0, level));
         }
         return pattern;
+    }
+
+    public enum MqttKafkaConditionKind
+    {
+        PUBLISH,
+        SUBSCRIBE
     }
 }

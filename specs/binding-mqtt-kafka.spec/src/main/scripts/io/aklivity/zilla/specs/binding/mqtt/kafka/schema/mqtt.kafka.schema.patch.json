@@ -98,36 +98,45 @@
                                 {
                                     "items":
                                     {
-                                        "properties":
-                                        {
-                                            "subscribe":
+                                        "anyOf":
+                                        [
                                             {
-                                                "title": "Subscribe",
-                                                "type": "array",
-                                                "items":
+                                                "properties":
                                                 {
-                                                    "topic":
+                                                    "subscribe":
                                                     {
-                                                        "title": "Topic",
-                                                        "type": "string"
+                                                        "title": "Subscribe",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "topic":
+                                                            {
+                                                                "title": "Topic",
+                                                                "type": "string"
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             },
-                                            "publish":
                                             {
-                                                "title": "Subscribe",
-                                                "type": "array",
-                                                "items":
+                                                "properties":
                                                 {
-                                                    "topic":
+                                                    "publish":
                                                     {
-                                                        "title": "Topic",
-                                                        "type": "string"
+                                                        "title": "Subscribe",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "topic":
+                                                            {
+                                                                "title": "Topic",
+                                                                "type": "string"
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
-                                        },
-                                        "additionalProperties": false
+                                        ]
                                     }
                                 },
                                 "with":
