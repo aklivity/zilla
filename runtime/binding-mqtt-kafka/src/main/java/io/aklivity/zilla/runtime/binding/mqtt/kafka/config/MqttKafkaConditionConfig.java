@@ -20,14 +20,14 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class MqttKafkaConditionConfig extends ConditionConfig
 {
-    public final List<MqttKafkaSubscribeConfig> subscribes;
-    public final List<MqttKafkaPublishConfig> publishes;
+    public final List<String> topics;
+    public final MqttKafkaConditionKind kind;
 
     public MqttKafkaConditionConfig(
-        List<MqttKafkaSubscribeConfig> subscribes,
-        List<MqttKafkaPublishConfig> publishes)
+        List<String> topics,
+        MqttKafkaConditionKind kind)
     {
-        this.subscribes = subscribes;
-        this.publishes = publishes;
+        this.topics = topics;
+        this.kind = kind;
     }
 }

@@ -176,10 +176,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     public void onAttached(
         long bindingId)
     {
-        MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
-        List<MqttKafkaRouteConfig> bootstrap = binding.bootstrapRoutes();
         if (bootstrapAvailable)
         {
+            MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
+            List<MqttKafkaRouteConfig> bootstrap = binding.bootstrapRoutes();
             bootstrap.forEach(r ->
             {
                 final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
@@ -980,7 +980,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         public boolean matchesTopicFilter(
             String topicFilter)
         {
-            return routeConfig.matchesSubscribe(topicFilter);
+            return routeConfig.matches(topicFilter);
         }
 
         private void doKafkaBegin(

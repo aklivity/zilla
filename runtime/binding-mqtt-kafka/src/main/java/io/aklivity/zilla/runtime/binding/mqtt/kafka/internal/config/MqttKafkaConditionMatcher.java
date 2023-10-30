@@ -18,53 +18,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcher
 {
-    private final List<Matcher> subscribeMatchers;
-    private final List<Matcher> publishMatchers;
+    private final List<Matcher> matchers;
     public final MqttKafkaConditionKind kind;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.subscribeMatchers =
-            condition.subscribes != null && !condition.subscribes.isEmpty() ?
-                asTopicMatchers(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
-        this.publishMatchers =
-            condition.publishes != null && !condition.publishes.isEmpty() ?
-                asTopicMatchers(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
-        this.kind = condition.subscribes.isEmpty() ? MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
+        this.matchers = asTopicMatchers(condition.topics);
+        this.kind = condition.kind;
     }
 
-    public boolean matchesSubscribe(
+    public boolean matches(
         String topic)
     {
         boolean match = false;
-        if (subscribeMatchers != null)
+        if (matchers != null)
         {
-            for (Matcher matcher : subscribeMatchers)
-            {
-                if (matcher.reset(topic).matches())
-                {
-                    match = true;
-                    break;
-                }
-            }
-        }
-        return match;
-    }
-
-    public boolean matchesPublish(
-        String topic)
-    {
-        boolean match = false;
-        if (publishMatchers != null)
-        {
-            for (Matcher matcher : publishMatchers)
+            for (Matcher matcher : matchers)
             {
                 if (matcher.reset(topic).matches())
                 {
@@ -134,11 +110,5 @@ public class MqttKafkaConditionMatcher
             pattern += "(\\/\\#)?" + endParentheses.repeat(Math.max(0, level));
         }
         return pattern;
-    }
-
-    public enum MqttKafkaConditionKind
-    {
-        PUBLISH,
-        SUBSCRIBE
     }
 }

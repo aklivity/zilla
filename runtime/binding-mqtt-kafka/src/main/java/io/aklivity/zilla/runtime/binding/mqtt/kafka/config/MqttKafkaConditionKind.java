@@ -13,14 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
-
-public class MqttKafkaPublishConfig
+public enum MqttKafkaConditionKind
 {
-    public final String topic;
-
-    public MqttKafkaPublishConfig(
-        String topic)
-    {
-        this.topic = topic;
-    }
+    PUBLISH,
+    SUBSCRIBE
 }

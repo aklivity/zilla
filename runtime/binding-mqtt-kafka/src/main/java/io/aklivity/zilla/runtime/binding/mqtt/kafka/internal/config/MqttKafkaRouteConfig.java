@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -60,23 +61,18 @@ public class MqttKafkaRouteConfig
         return authorized.test(authorization);
     }
 
-    public boolean matchesSubscribe(
-        String topic)
-    {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic));
-    }
-
     public boolean matchesClient(
         String client)
     {
         return !when.isEmpty() && when.stream()
-            .filter(m -> m.kind == MqttKafkaConditionMatcher.MqttKafkaConditionKind.SUBSCRIBE)
-            .allMatch(m -> m.matchesSubscribe(client));
+            .filter(m -> m.kind == MqttKafkaConditionKind.SUBSCRIBE)
+            .allMatch(m -> m.matches(client));
     }
 
-    public boolean matchesPublish(
+    public boolean matches(
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic));
+        return when.isEmpty() || when.stream()
+            .anyMatch(m -> m.matches(topic));
     }
 }

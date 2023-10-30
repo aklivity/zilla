@@ -76,7 +76,7 @@ public class MqttKafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesPublish(topic))
+            .filter(r -> r.authorized(authorization) && r.matches(topic))
             .findFirst()
             .orElse(null);
     }
@@ -86,7 +86,8 @@ public class MqttKafkaBindingConfig
         Array32FW<MqttTopicFilterFW> filters)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && filters.anyMatch(f -> r.matchesSubscribe(f.pattern().asString())))
+            .filter(r -> r.authorized(authorization) &&
+                filters.anyMatch(f -> r.matches(f.pattern().asString())))
             .collect(Collectors.toList());
     }
 

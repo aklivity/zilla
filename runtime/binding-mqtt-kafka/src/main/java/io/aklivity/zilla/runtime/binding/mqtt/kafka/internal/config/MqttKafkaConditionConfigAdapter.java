@@ -25,8 +25,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaSubscribeConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -48,33 +47,24 @@ public class MqttKafkaConditionConfigAdapter implements ConditionConfigAdapterSp
         ConditionConfig condition)
     {
         MqttKafkaConditionConfig mqttKafkaCondition = (MqttKafkaConditionConfig) condition;
+        JsonArrayBuilder topics = Json.createArrayBuilder();
+
+        mqttKafkaCondition.topics.forEach(s ->
+        {
+            JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
+            subscribeJson.add(TOPIC_NAME, s);
+            topics.add(subscribeJson);
+        });
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (!mqttKafkaCondition.subscribes.isEmpty())
+        if (mqttKafkaCondition.kind == MqttKafkaConditionKind.SUBSCRIBE)
         {
-            JsonArrayBuilder subscribes = Json.createArrayBuilder();
-
-            mqttKafkaCondition.subscribes.forEach(s ->
-            {
-                JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
-                subscribeJson.add(TOPIC_NAME, s.topic);
-                subscribes.add(subscribeJson);
-            });
-            object.add(SUBSCRIBE_NAME, subscribes);
+            object.add(SUBSCRIBE_NAME, topics);
         }
-
-        if (!mqttKafkaCondition.publishes.isEmpty())
+        else if (mqttKafkaCondition.kind == MqttKafkaConditionKind.PUBLISH)
         {
-            JsonArrayBuilder publishes = Json.createArrayBuilder();
-
-            mqttKafkaCondition.publishes.forEach(p ->
-            {
-                JsonObjectBuilder publishJson = Json.createObjectBuilder();
-                publishJson.add(TOPIC_NAME, p.topic);
-                publishes.add(publishJson);
-            });
-            object.add(PUBLISH_NAME, publishes);
+            object.add(PUBLISH_NAME, topics);
         }
 
         return object.build();
@@ -84,29 +74,30 @@ public class MqttKafkaConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        List<MqttKafkaSubscribeConfig> subscribes = new ArrayList<>();
-        List<MqttKafkaPublishConfig> publishes = new ArrayList<>();
+        List<String> topics = new ArrayList<>();
+        MqttKafkaConditionKind kind = null;
 
         if (object.containsKey(SUBSCRIBE_NAME))
         {
+            kind = MqttKafkaConditionKind.SUBSCRIBE;
             JsonArray subscribesJson = object.getJsonArray(SUBSCRIBE_NAME);
             subscribesJson.forEach(s ->
             {
                 String topic = s.asJsonObject().getString(TOPIC_NAME);
-                subscribes.add(new MqttKafkaSubscribeConfig(topic));
+                topics.add(topic);
             });
         }
-
-        if (object.containsKey(PUBLISH_NAME))
+        else if (object.containsKey(PUBLISH_NAME))
         {
+            kind = MqttKafkaConditionKind.PUBLISH;
             JsonArray publishesJson = object.getJsonArray(PUBLISH_NAME);
             publishesJson.forEach(p ->
             {
                 String topic = p.asJsonObject().getString(TOPIC_NAME);
-                publishes.add(new MqttKafkaPublishConfig(topic));
+                topics.add(topic);
             });
         }
 
-        return new MqttKafkaConditionConfig(subscribes, publishes);
+        return new MqttKafkaConditionConfig(topics, kind);
     }
 }
