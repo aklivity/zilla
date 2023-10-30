@@ -3948,7 +3948,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
 
-            if (!memberId.equals(UNKNOWN_MEMBER_ID))
+            if (KafkaState.initialOpened(state) &&
+                !memberId.equals(UNKNOWN_MEMBER_ID))
             {
                 if (heartbeatRequestId != NO_CANCEL_ID)
                 {
