@@ -1083,7 +1083,6 @@ public final class KafkaClientConnectionPool
                 initialMax = 0;
                 replyAck = 0;
                 replySeq = 0;
-                replyMax = 0;
                 initialBudId = NO_BUDGET_ID;
             }
 
