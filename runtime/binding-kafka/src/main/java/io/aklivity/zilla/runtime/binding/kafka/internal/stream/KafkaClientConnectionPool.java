@@ -787,23 +787,26 @@ public final class KafkaClientConnectionPool
             long authorization,
             long traceId)
         {
-            final long initialSeqOffsetPeek = initialSeqOffset.peekLong();
-
-            if (initialSeqOffsetPeek != NO_OFFSET)
+            if (connection.initialBudId != NO_CREDITOR_INDEX)
             {
-                assert initialAck <= connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
+                final long initialSeqOffsetPeek = initialSeqOffset.peekLong();
 
-                initialAck = connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
-
-                if (initialAck == initialSeq)
+                if (initialSeqOffsetPeek != NO_OFFSET)
                 {
-                    initialSeqOffset.removeLong();
-                    initialAckSnapshot = initialAck;
-                }
-            }
+                    assert initialAck <= connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
 
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
-                traceId, authorization, connection.initialBudId, connection.initialPad);
+                    initialAck = connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
+
+                    if (initialAck == initialSeq)
+                    {
+                        initialSeqOffset.removeLong();
+                        initialAckSnapshot = initialAck;
+                    }
+                }
+
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
+                    traceId, authorization, connection.initialBudId, connection.initialPad);
+            }
         }
 
         private void doStreamBegin(
