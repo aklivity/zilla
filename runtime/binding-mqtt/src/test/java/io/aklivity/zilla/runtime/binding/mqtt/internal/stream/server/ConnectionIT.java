@@ -71,7 +71,7 @@ public class ConnectionIT
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/client",
-        "${app}/session.connect/server"})
+        "${app}/session.connect.authorization/server"})
     public void shouldAuthenticateUsernameAndConnect() throws Exception
     {
         k3po.finish();
@@ -90,7 +90,7 @@ public class ConnectionIT
     @Configuration("server.credentials.password.yaml")
     @Specification({
         "${net}/connect.password.authentication.successful/client",
-        "${app}/session.connect/server"})
+        "${app}/session.connect.authorization/server"})
     public void shouldAuthenticatePasswordAndConnect() throws Exception
     {
         k3po.finish();
