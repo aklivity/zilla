@@ -15,8 +15,9 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.lang.Integer.parseInt;
-import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -167,7 +168,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         final LongPredicate filter = filtered.isEmpty() ? b -> true : filtered::contains;
 
         try (Stream<Path> files = Files.walk(directory, 3);
-            WritableByteChannel writer = Files.newByteChannel(output, CREATE, APPEND))
+            WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
         {
             final RingBufferSpy[] streamBuffers = files
                 .filter(this::isStreamsFile)

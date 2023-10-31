@@ -37,6 +37,8 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<LongSupplier> TIME;
     public static final BooleanPropertyDef WILL_AVAILABLE;
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
+    public static final BooleanPropertyDef BOOTSTRAP_AVAILABLE;
+    public static final IntPropertyDef BOOTSTRAP_STREAM_RECONNECT_DELAY;
 
     static
     {
@@ -53,6 +55,8 @@ public class MqttKafkaConfiguration extends Configuration
             MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTime);
         WILL_AVAILABLE = config.property("will.available", true);
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
+        BOOTSTRAP_AVAILABLE = config.property("bootstrap.available", true);
+        BOOTSTRAP_STREAM_RECONNECT_DELAY = config.property("bootstrap.stream.reconnect", 2);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -101,6 +105,17 @@ public class MqttKafkaConfiguration extends Configuration
     {
         return WILL_STREAM_RECONNECT_DELAY.getAsInt(this);
     }
+
+    public boolean bootstrapAvailable()
+    {
+        return BOOTSTRAP_AVAILABLE.get(this);
+    }
+
+    public int bootstrapStreamReconnectDelay()
+    {
+        return BOOTSTRAP_STREAM_RECONNECT_DELAY.getAsInt(this);
+    }
+
 
     private static StringSupplier decodeStringSupplier(
         String fullyQualifiedMethodName)

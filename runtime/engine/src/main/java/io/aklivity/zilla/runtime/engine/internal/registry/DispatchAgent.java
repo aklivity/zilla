@@ -310,7 +310,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor);
+        this.signaler = new ElektronSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
         this.poller = new Poller();
 
@@ -713,17 +713,6 @@ public class DispatchAgent implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        final long closeAt = System.nanoTime();
-        while (config.drainOnClose() &&
-               streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
-        {
-            ThreadHints.onSpinWait();
-
-            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
-            {
-                break;
-            }
-        }
         configuration.detachAll();
 
         poller.onClose();
@@ -766,6 +755,20 @@ public class DispatchAgent implements EngineContext, Agent
             throw new IllegalStateException(
                     String.format("Some resources not released: %d buffers, %d creditors, %d debitors",
                                   acquiredBuffers, acquiredCreditors, acquiredDebitors));
+        }
+    }
+
+    public void drain()
+    {
+        final long closeAt = System.nanoTime();
+        while (streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
+        {
+            ThreadHints.onSpinWait();
+
+            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
+            {
+                break;
+            }
         }
     }
 
@@ -1669,9 +1672,10 @@ public class DispatchAgent implements EngineContext, Agent
         return affinity;
     }
 
-    private static SignalFW.Builder newSignalRW()
+    private static SignalFW.Builder newSignalRW(
+        int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
@@ -1688,16 +1692,18 @@ public class DispatchAgent implements EngineContext, Agent
 
     private final class ElektronSignaler implements Signaler
     {
-        private final ThreadLocal<SignalFW.Builder> signalRW = withInitial(DispatchAgent::newSignalRW);
+        private final ThreadLocal<SignalFW.Builder> signalRW;
 
         private final ExecutorService executorService;
 
         private long nextFutureId;
 
         private ElektronSignaler(
-            ExecutorService executorService)
+            ExecutorService executorService,
+            int slotCapacity)
         {
             this.executorService = executorService;
+            signalRW = withInitial(() -> newSignalRW(slotCapacity));
         }
 
         public void executeTaskAt(

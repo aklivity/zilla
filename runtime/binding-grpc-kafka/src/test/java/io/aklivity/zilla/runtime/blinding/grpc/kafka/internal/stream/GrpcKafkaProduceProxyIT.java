@@ -71,6 +71,16 @@ public class GrpcKafkaProduceProxyIT
     @Test
     @Configuration("produce.proxy.rpc.yaml")
     @Specification({
+        "${grpc}/unary.rpc.error/client",
+        "${kafka}/unary.rpc.error/server"})
+    public void shouldRejectUnaryRpcWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("produce.proxy.rpc.yaml")
+    @Specification({
         "${grpc}/unary.rpc.sent.write.abort/client",
         "${kafka}/unary.rpc.sent.write.abort/server"})
     public void shouldNotProduceMessageOnUnaryRpcSentWriteAbort() throws Exception

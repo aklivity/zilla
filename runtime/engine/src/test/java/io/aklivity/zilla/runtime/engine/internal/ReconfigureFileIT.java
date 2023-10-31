@@ -145,7 +145,7 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
-    @Ignore("Github Actions")
+    @Ignore("Fails on JDK 13")
     @Test
     @Configuration("zilla.reconfigure.modify.complex.chain.json")
     @Specification({

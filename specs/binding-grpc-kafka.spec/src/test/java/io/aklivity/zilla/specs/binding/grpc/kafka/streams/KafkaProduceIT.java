@@ -109,6 +109,15 @@ public class KafkaProduceIT
 
     @Test
     @Specification({
+        "${kafka}/unary.rpc.error/client",
+        "${kafka}/unary.rpc.error/server"})
+    public void shouldRejectUnaryRpcWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/unary.rpc.sent.write.abort/client",
         "${kafka}/unary.rpc.sent.write.abort/server"})
     public void shouldNotProduceMessageOnUnaryRrcSentWriteAbort() throws Exception
