@@ -15,9 +15,11 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -424,6 +426,16 @@ public class HttpKafkaProxyIT
         "${http}/get.items/client",
         "${kafka}/get.items/server"})
     public void shouldGetItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.yaml")
+    @Specification({
+        "${http}/get.items.fragmented/client",
+        "${kafka}/get.items.fragmented/server"})
+    public void shouldGetItemsFragmented() throws Exception
     {
         k3po.finish();
     }
