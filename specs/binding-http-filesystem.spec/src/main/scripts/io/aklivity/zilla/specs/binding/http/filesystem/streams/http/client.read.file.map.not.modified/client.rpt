@@ -36,7 +36,7 @@ read zilla:begin.ext ${http:beginEx()
                            .header(":status", "304")
                            .header("content-type", "text/html")
                            .header("content-length", "0")
-                           .header("Etag", "AAAAAAAAAAAAAAAA")
+                           .header("etag", "AAAAAAAAAAAAAAAA")
                            .build()}
 
 read closed
