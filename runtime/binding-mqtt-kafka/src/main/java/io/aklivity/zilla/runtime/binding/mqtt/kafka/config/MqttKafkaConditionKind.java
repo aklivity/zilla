@@ -13,21 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
-
-import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-
-public class MqttKafkaConditionConfig extends ConditionConfig
+public enum MqttKafkaConditionKind
 {
-    public final List<String> topics;
-    public final MqttKafkaConditionKind kind;
-
-    public MqttKafkaConditionConfig(
-        List<String> topics,
-        MqttKafkaConditionKind kind)
-    {
-        this.topics = topics;
-        this.kind = kind;
-    }
+    PUBLISH,
+    SUBSCRIBE
 }

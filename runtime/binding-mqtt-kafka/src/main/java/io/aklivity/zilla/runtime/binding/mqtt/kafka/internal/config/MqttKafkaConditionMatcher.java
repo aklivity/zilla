@@ -14,42 +14,57 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcher
 {
-    private final Matcher topicMatcher;
-    public final String topic;
+    private final List<Matcher> matchers;
+    public final MqttKafkaConditionKind kind;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.topic = condition.topic;
-        this.topicMatcher = condition.topic != null ? asTopicMatcher(condition.topic) : null;
+        this.matchers = asTopicMatchers(condition.topics);
+        this.kind = condition.kind;
     }
 
     public boolean matches(
-        CharSequence topic)
+        String topic)
     {
-        return matchTopic(topic);
+        boolean match = false;
+        if (matchers != null)
+        {
+            for (Matcher matcher : matchers)
+            {
+                if (matcher.reset(topic).matches())
+                {
+                    match = true;
+                    break;
+                }
+            }
+        }
+        return match;
     }
 
-    private boolean matchTopic(
-        CharSequence topic)
-    {
-        return this.topicMatcher == null || this.topicMatcher.reset(topic).matches();
-    }
 
-    private static Matcher asTopicMatcher(
-        String wildcard)
+    private static List<Matcher> asTopicMatchers(
+        List<String> wildcards)
     {
-        String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
-        String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
-        String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
-        return Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher("");
+        final List<Matcher> matchers = new ArrayList<>();
+        for (String wildcard : wildcards)
+        {
+            String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
+            String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
+            String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+            matchers.add(Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher(""));
+        }
+        return matchers;
     }
 
     private static String asRegexPattern(

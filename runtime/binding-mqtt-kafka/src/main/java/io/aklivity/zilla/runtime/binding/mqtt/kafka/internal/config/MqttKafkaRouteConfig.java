@@ -21,17 +21,18 @@ import java.util.Optional;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {
-    public final long id;
-    public final long order;
-
     private final Optional<MqttKafkaWithResolver> with;
     private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
+
+    public final long id;
+    public final long order;
 
     public final String16FW messages;
     public final String16FW retained;
@@ -60,15 +61,18 @@ public class MqttKafkaRouteConfig
         return authorized.test(authorization);
     }
 
-    boolean matches(
-        String topic)
+    public boolean matchesClient(
+        String client)
     {
-        return when.isEmpty() || topic != null && when.stream().anyMatch(m -> m.matches(topic));
+        return !when.isEmpty() && when.stream()
+            .filter(m -> m.kind == MqttKafkaConditionKind.SUBSCRIBE)
+            .allMatch(m -> m.matches(client));
     }
 
-    public boolean matchesTopicFilter(
+    public boolean matches(
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream()
+            .anyMatch(m -> m.matches(topic));
     }
 }

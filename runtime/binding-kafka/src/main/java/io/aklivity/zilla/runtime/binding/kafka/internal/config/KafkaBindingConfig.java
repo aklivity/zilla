@@ -92,15 +92,6 @@ public final class KafkaBindingConfig
                     : null;
     }
 
-    public boolean bootstrap(
-        String topic)
-    {
-        return topic != null &&
-                options != null &&
-                options.bootstrap != null &&
-                options.bootstrap.contains(topic);
-    }
-
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;

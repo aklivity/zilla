@@ -24,22 +24,22 @@ bindings:
         sessions: mqtt-sessions
         messages: mqtt-messages
         retained: mqtt-retained
+      clients:
+        - /clients/{identity}/#
     routes:
-      - exit: kafka0
-        when:
-          - subscribe:
-              - topic: sensor/one
-          - publish:
-              - topic: sensor/one
+      - when:
+        - publish:
+            - topic: /clients/#
+        - subscribe:
+            - topic: /clients/#
         with:
-          messages: mqtt-sensors
-      - exit: kafka0
-        when:
+          messages: mqtt-clients
+        exit: kafka0
+      - when:
           - subscribe:
-              - topic: device/#
-              - topic: sensor/two
-          - publish:
-              - topic: device/#
-              - topic: sensor/two
+              - topic: /sensor-clients/#
+          - subscribe:
+              - topic: /device-clients/#
         with:
           messages: mqtt-devices
+        exit: kafka0

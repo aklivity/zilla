@@ -90,7 +90,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSe
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -215,8 +214,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         MqttKafkaConfiguration config,
         EngineContext context,
         InstanceId instanceId,
-        LongFunction<MqttKafkaBindingConfig> supplyBinding,
-        IntPropertyDef reconnectDelay)
+        LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -247,7 +245,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.willDeliverIds = new Object2ObjectHashMap<>();
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
-        this.reconnectDelay = reconnectDelay.getAsInt(config);
+        this.reconnectDelay = config.willStreamReconnectDelay();
     }
 
     @Override

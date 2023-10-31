@@ -17,16 +17,20 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcherTest
 {
     @Test
     public void shouldMatchSimpleConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic/name");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(List.of("/some/hierarchical/topic/name"),
+            MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertTrue(matcher.matches("/some/hierarchical/topic/name"));
@@ -43,7 +47,9 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldNotMatchSimpleConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic/name");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of("/some/hierarchical/topic/name"),
+            MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertFalse(matcher.matches("/some/+"));
@@ -55,7 +61,8 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldMatchSimpleConditions2()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of("/some/hierarchical/topic"), MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertTrue(matcher.matches("/some/hierarchical/topic"));
@@ -72,7 +79,8 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldNotMatchSimpleConditions2()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("/some/hierarchical/topic");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of("/some/hierarchical/topic"), MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertFalse(matcher.matches("/some/+"));
@@ -84,7 +92,8 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldMatchWildcardConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/#");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of("device/#"), MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertTrue(matcher.matches("device/one"));
@@ -98,7 +107,8 @@ public class MqttKafkaConditionMatcherTest
     @Test
     public void shouldNotMatchWildcardConditions()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig("device/*");
+        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(
+            List.of("device/#"), MqttKafkaConditionKind.SUBSCRIBE);
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertFalse(matcher.matches("/device/one"));

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.BOOTSTRAP_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -189,6 +190,18 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.topic.space/client",
         "${kafka}/publish.topic.space/server"})
     public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.client.topic.space.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = BOOTSTRAP_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.client.topic.space/client",
+        "${kafka}/publish.client.topic.space/server"})
+    public void shouldSendUsingClientTopicSpace() throws Exception
     {
         k3po.finish();
     }
