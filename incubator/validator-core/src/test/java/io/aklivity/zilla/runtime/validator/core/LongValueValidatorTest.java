@@ -27,7 +27,6 @@ public class LongValueValidatorTest
 {
     private final LongValidatorConfig config = new LongValidatorConfig();
     private final LongValueValidator validator = new LongValueValidator(config);
-    private final ValueConsumer valueFunction = (buffer, index, length) -> {};
 
     @Test
     public void shouldVerifyValidLong()
@@ -36,7 +35,7 @@ public class LongValueValidatorTest
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), valueFunction));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -46,6 +45,6 @@ public class LongValueValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), valueFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

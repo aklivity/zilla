@@ -28,7 +28,7 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
 
     private List<CatalogedConfig> catalogs;
     private String subject;
-    private String expect;
+    private String format;
 
     AvroValidatorConfigBuilder(
         Function<AvroValidatorConfig, T> mapper)
@@ -50,10 +50,10 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
         return this;
     }
 
-    public AvroValidatorConfigBuilder<T> expect(
-        String expect)
+    public AvroValidatorConfigBuilder<T> format(
+        String format)
     {
-        this.expect = expect;
+        this.format = format;
         return this;
     }
 
@@ -76,6 +76,6 @@ public class AvroValidatorConfigBuilder<T> extends ConfigBuilder<T, AvroValidato
     @Override
     public T build()
     {
-        return mapper.apply(new AvroValidatorConfig(catalogs, subject, expect));
+        return mapper.apply(new AvroValidatorConfig(catalogs, subject, format));
     }
 }

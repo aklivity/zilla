@@ -65,7 +65,7 @@ public class AvroWriteValueValidator extends AvroValueValidator
 
         if (schema != null)
         {
-            if ("json".equals(expect))
+            if ("json".equals(format))
             {
                 byte[] record = serializeJsonRecord(schema, payloadBytes);
                 value = new UnsafeBuffer(new byte[record.length + 5]);

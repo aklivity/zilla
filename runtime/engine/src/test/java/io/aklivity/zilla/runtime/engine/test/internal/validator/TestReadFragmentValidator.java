@@ -17,9 +17,10 @@ package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 
-public class TestReadFragmentValidator extends TestFragmentValidator
+public class TestReadFragmentValidator implements FragmentValidator
 {
     @Override
     public int validate(
@@ -29,16 +30,21 @@ public class TestReadFragmentValidator extends TestFragmentValidator
         int length,
         FragmentConsumer next)
     {
-        int valLength = 0;
-        if ((flags & FLAGS_FIN) != 0x00)
+        return (flags & FLAGS_FIN) != 0x00 ? validateFin(flags, data, index, length, next) : 0;
+    }
+
+    private int validateFin(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        boolean valid = length == 18;
+        if (valid)
         {
-            valLength = -1;
-            if (length == 18)
-            {
-                next.accept(flags, data, index, length);
-                valLength = length;
-            }
+            next.accept(flags, data, index, length);
         }
-        return valLength;
+        return valid ? length : -1;
     }
 }

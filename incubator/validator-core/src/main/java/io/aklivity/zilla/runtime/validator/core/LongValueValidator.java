@@ -34,12 +34,13 @@ public class LongValueValidator implements ValueValidator
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-        if (length == 8)
+        boolean valid = length == 8;
+
+        if (valid)
         {
             next.accept(data, index, length);
-            valLength = length;
         }
-        return valLength;
+
+        return valid ? length : -1;
     }
 }

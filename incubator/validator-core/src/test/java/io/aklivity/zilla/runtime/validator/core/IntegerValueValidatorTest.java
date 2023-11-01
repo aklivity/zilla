@@ -27,7 +27,6 @@ public class IntegerValueValidatorTest
 {
     private final IntegerValidatorConfig config = new IntegerValidatorConfig();
     private final IntegerValueValidator validator = new IntegerValueValidator(config);
-    private final ValueConsumer writeValue = (buffer, index, length) -> {};
 
     @Test
     public void shouldVerifyValidInteger()
@@ -36,7 +35,7 @@ public class IntegerValueValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), writeValue));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -46,6 +45,6 @@ public class IntegerValueValidatorTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), writeValue));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

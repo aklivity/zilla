@@ -37,7 +37,7 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
-    private static final String EXPECT = "expect";
+    private static final String FORMAT = "format";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -54,9 +54,9 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
         AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
 
-        if (validatorConfig.expect != null)
+        if (validatorConfig.format != null)
         {
-            validator.add(EXPECT, validatorConfig.expect);
+            validator.add(FORMAT, validatorConfig.format);
         }
 
         validator.add(TYPE_NAME, AVRO);
@@ -104,8 +104,8 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
                     ? object.getString(SUBJECT_NAME)
                     : null;
 
-            String expect = object.containsKey(EXPECT)
-                    ? object.getString(EXPECT)
+            String expect = object.containsKey(FORMAT)
+                    ? object.getString(FORMAT)
                     : null;
 
             result = new AvroValidatorConfig(catalogs, subject, expect);

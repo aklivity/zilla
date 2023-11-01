@@ -20,6 +20,8 @@ import org.agrona.DirectBuffer;
 @FunctionalInterface
 public interface ValueConsumer
 {
+    ValueConsumer NOP = (buffer, index, length) -> {};
+
     void accept(
         DirectBuffer buffer,
         int index,

@@ -991,9 +991,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         OctetsFW payload)
     {
         final ValueValidator contentValueValidator = validators.get(topic);
-        final ValueConsumer function = (buffer, index, length) -> {};
         return contentValueValidator == null ||
-            contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), function) != -1;
+            contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
     }
 
     private boolean invalidUtf8(

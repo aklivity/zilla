@@ -31,53 +31,71 @@ import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public class StringValidatorFactoryTest
 {
-    // GIVEN
-    ValidatorConfig validator = new StringValidatorConfig("utf_8");
-    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-    StringValidatorFactory factory = new StringValidatorFactory();
-
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateValueReader()
     {
+        // GIVEN
+        ValidatorConfig validator = new StringValidatorConfig("utf_8");
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        StringValidatorFactory factory = new StringValidatorFactory();
+
         // WHEN
-        ValueValidator valueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(valueValidator, instanceOf(StringValueValidator.class));
+        assertThat(reader, instanceOf(StringValueValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateValueWriter()
     {
+        // GIVEN
+        ValidatorConfig validator = new StringValidatorConfig("utf_8");
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        StringValidatorFactory factory = new StringValidatorFactory();
+
         // WHEN
-        ValueValidator valueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(valueValidator, instanceOf(StringValueValidator.class));
+        assertThat(writer, instanceOf(StringValueValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateFragmentReader()
     {
+        // GIVEN
+        ValidatorConfig validator = new StringValidatorConfig("utf_8");
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        StringValidatorFactory factory = new StringValidatorFactory();
+
         // WHEN
-        FragmentValidator fragmentValidator = factory.createFragmentReader(validator, resolveId, supplyCatalog);
+        FragmentValidator reader = factory.createFragmentReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(fragmentValidator, instanceOf(StringFragmentValidator.class));
+        assertThat(reader, instanceOf(StringFragmentValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateFragmentWriter()
     {
+        // GIVEN
+        ValidatorConfig validator = new StringValidatorConfig("utf_8");
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        StringValidatorFactory factory = new StringValidatorFactory();
+
         // WHEN
-        FragmentValidator fragmentValidator = factory.createFragmentWriter(validator, resolveId, supplyCatalog);
+        FragmentValidator writer = factory.createFragmentWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(fragmentValidator, instanceOf(StringFragmentValidator.class));
+        assertThat(writer, instanceOf(StringFragmentValidator.class));
     }
 }

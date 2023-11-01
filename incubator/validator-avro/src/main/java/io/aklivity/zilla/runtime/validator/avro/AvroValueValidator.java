@@ -35,18 +35,18 @@ import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public abstract class AvroValueValidator implements ValueValidator
 {
-    static final byte MAGIC_BYTE = 0x0;
+    protected static final byte MAGIC_BYTE = 0x0;
 
-    final List<CatalogedConfig> catalogs;
-    final SchemaConfig catalog;
-    final Long2ObjectHashMap<CatalogHandler> handlersById;
-    final CatalogHandler handler;
-    final DecoderFactory decoder;
-    final EncoderFactory encoder;
-    final String subject;
-    final String expect;
-    DatumReader reader;
-    DatumWriter writer;
+    protected final List<CatalogedConfig> catalogs;
+    protected final SchemaConfig catalog;
+    protected final Long2ObjectHashMap<CatalogHandler> handlersById;
+    protected final CatalogHandler handler;
+    protected final DecoderFactory decoder;
+    protected final EncoderFactory encoder;
+    protected final String subject;
+    protected final String format;
+    protected DatumReader reader;
+    protected DatumWriter writer;
 
     public AvroValueValidator(
         AvroValidatorConfig config,
@@ -64,7 +64,7 @@ public abstract class AvroValueValidator implements ValueValidator
         }).collect(Collectors.toList());
         this.handler = handlersById.get(catalogs.get(0).id);
         this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
-        this.expect = config.expect;
+        this.format = config.format;
         this.subject = catalog != null &&
             catalog.subject != null ?
             catalog.subject : config.subject;

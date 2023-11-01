@@ -31,38 +31,53 @@ import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroValidatorFactoryTest
 {
-    // GIVEN
-    ValidatorConfig validator = AvroValidatorConfig.builder()
-            .subject("test-value")
-                .catalog()
-                .name("test0")
-                    .schema()
-                    .subject("subject1")
-                    .version("latest")
-                    .build()
-                .build()
-            .build();
-    ToLongFunction<String> resolveId = i -> 0L;
-    LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
-    AvroValidatorFactory factory = new AvroValidatorFactory();
-
     @Test
     public void shouldCreateReadValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = AvroValidatorConfig.builder()
+                .subject("test-value")
+                    .catalog()
+                    .name("test0")
+                        .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+        ToLongFunction<String> resolveId = i -> 0L;
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        AvroValidatorFactory factory = new AvroValidatorFactory();
+
         // WHEN
-        ValueValidator avroValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(avroValueValidator, instanceOf(AvroValueValidator.class));
+        assertThat(reader, instanceOf(AvroReadValueValidator.class));
     }
 
     @Test
     public void shouldCreateWriteValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = AvroValidatorConfig.builder()
+                .subject("test-value")
+                    .catalog()
+                    .name("test0")
+                        .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+        ToLongFunction<String> resolveId = i -> 0L;
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        AvroValidatorFactory factory = new AvroValidatorFactory();
+
         // WHEN
-        ValueValidator avroValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(avroValueValidator, instanceOf(AvroValueValidator.class));
+        assertThat(writer, instanceOf(AvroWriteValueValidator.class));
     }
 }

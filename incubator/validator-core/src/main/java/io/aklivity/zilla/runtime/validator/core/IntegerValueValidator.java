@@ -33,12 +33,13 @@ public class IntegerValueValidator implements ValueValidator
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-        if (length == 4)
+        boolean valid = length == 4;
+
+        if (valid)
         {
             next.accept(data, index, length);
-            valLength = length;
         }
-        return valLength;
+
+        return valid ? length : -1;
     }
 }

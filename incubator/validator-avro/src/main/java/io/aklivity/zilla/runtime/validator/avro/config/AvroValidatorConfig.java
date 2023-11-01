@@ -24,17 +24,17 @@ public final class AvroValidatorConfig extends ValidatorConfig
 {
     public final List<CatalogedConfig> catalogs;
     public final String subject;
-    public final String expect;
+    public final String format;
 
     public AvroValidatorConfig(
         List<CatalogedConfig> catalogs,
         String subject,
-        String expect)
+        String format)
     {
         super("avro");
         this.catalogs = catalogs;
         this.subject = subject;
-        this.expect = expect;
+        this.format = format;
     }
 
     public static <T> AvroValidatorConfigBuilder<T> builder(

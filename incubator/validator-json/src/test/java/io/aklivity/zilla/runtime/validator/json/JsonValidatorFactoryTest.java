@@ -31,33 +31,43 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorFactoryTest
 {
-    // GIVEN
-    ValidatorConfig validator = JsonValidatorConfig.builder()
-            .catalog()
-                .name("test0")
-                .build()
-            .build();
-    ToLongFunction<String> resolveId = i -> 0L;
-    LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
-    JsonValidatorFactory factory = new JsonValidatorFactory();
-
     @Test
     public void shouldCreateReadValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = JsonValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .build()
+                .build();
+        ToLongFunction<String> resolveId = i -> 0L;
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        JsonValidatorFactory factory = new JsonValidatorFactory();
+
         // WHEN
-        ValueValidator jsonValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(jsonValueValidator, instanceOf(JsonValueValidator.class));
+        assertThat(reader, instanceOf(JsonReadValueValidator.class));
     }
 
     @Test
     public void shouldCreateWriteValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = JsonValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .build()
+                .build();
+        ToLongFunction<String> resolveId = i -> 0L;
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        JsonValidatorFactory factory = new JsonValidatorFactory();
+
         // WHEN
-        ValueValidator jsonValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(jsonValueValidator, instanceOf(JsonValueValidator.class));
+        assertThat(writer, instanceOf(JsonWriteValueValidator.class));
     }
 }

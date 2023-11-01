@@ -41,8 +41,8 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final Map<String, KafkaTopicType> readValidator;
-    public final Map<String, KafkaTopicType> writeValidator;
+    public final Map<String, KafkaTopicType> readers;
+    public final Map<String, KafkaTopicType> writers;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -54,20 +54,30 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.readValidator = options != null &&
-                options.topics != null
-                    ? options.topics.stream()
-                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                    t.key != null ? context.createReadValidator(t.key, resolveId) : null,
-                    t.value != null ? context.createReadValidator(t.value, resolveId) : null
-                    ))) : null;
-        this.writeValidator = options != null &&
-                options.topics != null
+        this.readers = options != null && options.topics != null
                 ? options.topics.stream()
-                .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                t.key != null ? context.createWriteValidator(t.key, resolveId) : null,
-                t.value != null ? context.createWriteValidator(t.value, resolveId) : null
-                ))) : null;
+                    .collect(Collectors.toMap(
+                        t -> t.name,
+                        t -> new KafkaTopicType(
+                            (t.key != null)
+                                ? context.createReadValidator(t.key, resolveId)
+                                : ValueValidator.NONE,
+                            (t.value != null)
+                                ? context.createReadValidator(t.value, resolveId)
+                                : ValueValidator.NONE)))
+                : null;
+        this.writers = options != null && options.topics != null
+                ? options.topics.stream()
+                    .collect(Collectors.toMap(
+                        t -> t.name,
+                        t -> new KafkaTopicType(
+                            (t.key != null)
+                                ? context.createWriteValidator(t.key, resolveId)
+                                : ValueValidator.NONE,
+                            (t.value != null)
+                                ? context.createWriteValidator(t.value, resolveId)
+                                : ValueValidator.NONE)))
+                : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -133,36 +143,12 @@ public final class KafkaBindingConfig
     public KafkaTopicType resolveReadValidator(
         String topic)
     {
-        KafkaTopicType type;
-
-        if (readValidator != null && readValidator.containsKey(topic))
-        {
-            type = new KafkaTopicType(
-                readValidator.get(topic).key != null ? readValidator.get(topic).key : ValueValidator.NONE,
-                readValidator.get(topic).value != null ? readValidator.get(topic).value : ValueValidator.NONE);
-        }
-        else
-        {
-            type = new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
-        }
-        return type;
+        return readers != null ? readers.get(topic) : new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
     }
 
     public KafkaTopicType resolveWriteValidator(
         String topic)
     {
-        KafkaTopicType type;
-
-        if (writeValidator != null && writeValidator.containsKey(topic))
-        {
-            type = new KafkaTopicType(
-                writeValidator.get(topic).key != null ? writeValidator.get(topic).key : ValueValidator.NONE,
-                writeValidator.get(topic).value != null ? writeValidator.get(topic).value : ValueValidator.NONE);
-        }
-        else
-        {
-            type = new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
-        }
-        return type;
+        return writers != null ? writers.get(topic) : new KafkaTopicType(ValueValidator.NONE, ValueValidator.NONE);
     }
 }

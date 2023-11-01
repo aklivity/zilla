@@ -32,7 +32,8 @@
                         "type": "string",
                         "enum":
                         [
-                            "utf_8"
+                            "utf_8",
+                            "utf_16"
                         ]
                     }
                 }

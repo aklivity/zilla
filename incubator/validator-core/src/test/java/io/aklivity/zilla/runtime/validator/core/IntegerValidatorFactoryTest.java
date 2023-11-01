@@ -30,31 +30,37 @@ import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
 public class IntegerValidatorFactoryTest
 {
-    // GIVEN
-    ValidatorConfig validator = new IntegerValidatorConfig();
-    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-    IntegerValidatorFactory factory = new IntegerValidatorFactory();
-
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateReadValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = new IntegerValidatorConfig();
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
         // WHEN
-        ValueValidator integerValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
+        assertThat(reader, instanceOf(IntegerValueValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateWriteValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = new IntegerValidatorConfig();
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
         // WHEN
-        ValueValidator integerValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(integerValueValidator, instanceOf(IntegerValueValidator.class));
+        assertThat(writer, instanceOf(IntegerValueValidator.class));
     }
 }

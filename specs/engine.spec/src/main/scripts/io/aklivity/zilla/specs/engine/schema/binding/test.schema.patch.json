@@ -37,10 +37,6 @@
                         "type": "object",
                         "properties":
                         {
-                            "key":
-                            {
-                                "$ref": "#/$defs/validator/type"
-                            },
                             "value":
                             {
                                 "$ref": "#/$defs/validator/type"

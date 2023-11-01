@@ -17,9 +17,10 @@ package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-public class TestReadValueValidator extends TestValueValidator
+public class TestReadValueValidator implements ValueValidator
 {
     @Override
     public int validate(
@@ -28,12 +29,11 @@ public class TestReadValueValidator extends TestValueValidator
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-        if (length == 18)
+        boolean valid = length == 18;
+        if (valid)
         {
             next.accept(data, index, length);
-            valLength = length;
         }
-        return valLength;
+        return valid ? length : -1;
     }
 }

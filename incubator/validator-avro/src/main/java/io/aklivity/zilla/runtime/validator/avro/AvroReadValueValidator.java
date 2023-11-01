@@ -69,7 +69,7 @@ public class AvroReadValueValidator extends AvroValueValidator
             schema = fetchSchema(schemaId);
             if (schema != null)
             {
-                if ("json".equals(expect))
+                if ("json".equals(format))
                 {
                     byte[] record = serializeAvroRecord(schema, valBytes);
                     value.wrap(record);
@@ -88,7 +88,7 @@ public class AvroReadValueValidator extends AvroValueValidator
             schema = fetchSchema(schemaId);
             if (schema != null)
             {
-                if ("json".equals(expect))
+                if ("json".equals(format))
                 {
                     byte[] record = serializeAvroRecord(schema, payloadBytes);
                     value.wrap(record);

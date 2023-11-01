@@ -43,7 +43,8 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValueValidatorTest
 {
-    private static final String SCHEMA = "{" +
+    private static final String SCHEMA =
+                "{" +
                     "\"type\": \"object\"," +
                     "\"properties\": " +
                     "{" +
@@ -59,8 +60,6 @@ public class JsonValueValidatorTest
                     "\"status\"" +
                     "]" +
                 "}";
-
-    private final ValueConsumer valueFunction = (buffer, index, length) -> {};
 
     private final JsonValidatorConfig config = JsonValidatorConfig.builder()
             .catalog()
@@ -98,13 +97,14 @@ public class JsonValueValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload = "{" +
-                "\"id\": \"123\"," +
-                "\"status\": \"OK\"" +
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), valueFunction));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -116,9 +116,10 @@ public class JsonValueValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload = "{" +
-                "\"id\": 123," +
-                "\"status\": \"OK\"" +
+        String payload =
+                "{" +
+                    "\"id\": 123," +
+                    "\"status\": \"OK\"" +
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -127,7 +128,7 @@ public class JsonValueValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), valueFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -139,9 +140,10 @@ public class JsonValueValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload = "{" +
-                "\"id\": \"123\"," +
-                "\"status\": \"OK\"" +
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -150,6 +152,6 @@ public class JsonValueValidatorTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), valueFunction));
+        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

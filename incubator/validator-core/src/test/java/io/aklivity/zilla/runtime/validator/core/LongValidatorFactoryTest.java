@@ -30,31 +30,37 @@ import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
 public class LongValidatorFactoryTest
 {
-    // GIVEN
-    ValidatorConfig validator = new LongValidatorConfig();
-    ToLongFunction<String> resolveId = mock(ToLongFunction.class);
-    LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-    LongValidatorFactory factory = new LongValidatorFactory();
-
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateReadValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = new LongValidatorConfig();
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        LongValidatorFactory factory = new LongValidatorFactory();
+
         // WHEN
-        ValueValidator longValueValidator = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(longValueValidator, instanceOf(LongValueValidator.class));
+        assertThat(reader, instanceOf(LongValueValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCreateWriteValidator()
     {
+        // GIVEN
+        ValidatorConfig validator = new LongValidatorConfig();
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        LongValidatorFactory factory = new LongValidatorFactory();
+
         // WHEN
-        ValueValidator longValueValidator = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(longValueValidator, instanceOf(LongValueValidator.class));
+        assertThat(writer, instanceOf(LongValueValidator.class));
     }
 }

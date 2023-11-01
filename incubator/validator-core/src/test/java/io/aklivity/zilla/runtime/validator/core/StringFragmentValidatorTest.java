@@ -34,7 +34,9 @@ public class StringFragmentValidatorTest
     @Test
     public void shouldVerifyCompleteAndValidMessage()
     {
-        StringValidatorConfig config = new StringValidatorConfig("utf_8");
+        StringValidatorConfig config = StringValidatorConfig.builder()
+                .encoding("utf_8")
+                .build();
         StringFragmentValidator validator = new StringFragmentValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();

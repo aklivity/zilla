@@ -345,7 +345,7 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        ValueValidator valueValidator)
+        ValueValidator validateKey)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -392,14 +392,14 @@ public final class KafkaCachePartition
         }
         else
         {
-            final ValueConsumer writeValue = (buffer, index, length) ->
+            final ValueConsumer writeKey = (buffer, index, length) ->
             {
                 Varint32FW newLength = varIntRW.set(length).build();
                 logFile.appendBytes(newLength);
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            int validated = valueValidator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            int validated = validateKey.validate(value.buffer(), value.offset(), value.sizeof(), writeKey);
             if (validated == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
@@ -426,7 +426,7 @@ public final class KafkaCachePartition
 
     public void writeEntryContinue(
         OctetsFW payload,
-        ValueValidator valueValidator)
+        ValueValidator validateValue)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -446,11 +446,11 @@ public final class KafkaCachePartition
             {
                 logFile.appendBytes(buffer, index, length);
             };
-            int validated = valueValidator.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
+            int validated = validateValue.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
             if (validated == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
-                logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+                writeValue.accept(payload.buffer(), payload.offset(), payload.sizeof());
                 // TODO: Placeholder to log fetch validation failure
             }
         }
@@ -551,7 +551,7 @@ public final class KafkaCachePartition
         int valueLength,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
-        ValueValidator valueValidator)
+        ValueValidator validateKey)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -578,43 +578,48 @@ public final class KafkaCachePartition
         logFile.appendBytes(entryInfo);
 
         int validated = 0;
-
-        if (key.value() == null)
+        write:
         {
-            logFile.appendBytes(key);
-        }
-        else
-        {
-            final ValueConsumer writeValue = (buffer, index, length) ->
-            {
-                Varint32FW newLength = varIntRW.set(length).build();
-                logFile.appendBytes(newLength);
-                logFile.appendBytes(buffer, index, length);
-            };
             OctetsFW value = key.value();
-            validated = valueValidator.validate(value.buffer(), value.offset(), value.sizeof(), writeValue);
+            if (value == null)
+            {
+                logFile.appendBytes(key);
+            }
+            else
+            {
+                final ValueConsumer writeKey = (buffer, index, length) ->
+                {
+                    Varint32FW newLength = varIntRW.set(length).build();
+                    logFile.appendBytes(newLength);
+                    logFile.appendBytes(buffer, index, length);
+                };
+                validated = validateKey.validate(value.buffer(), value.offset(), value.sizeof(), writeKey);
+            }
+            if (validated == -1)
+            {
+                break write;
+            }
+            logFile.appendInt(valueLength);
+
+            position.value = logFile.capacity();
+
+            final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
+            final int logAvailable = logFile.available() - valueMaxLength;
+            final int logRequired = headers.sizeof();
+            assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
+            logFile.advance(position.value + valueMaxLength);
+            logFile.appendBytes(headers);
+
+            final int trailersAt = logFile.capacity();
+            logFile.advance(logFile.capacity() + trailersSizeMax + SIZEOF_PADDING_LENGTH);
+            logFile.writeBytes(trailersAt, EMPTY_TRAILERS); // needed for incomplete tryWrap
+            logFile.writeInt(trailersAt + SIZEOF_EMPTY_TRAILERS, trailersSizeMax - SIZEOF_EMPTY_TRAILERS);
+
+            final long offsetDelta = (int)(progress - segment.baseOffset());
+            final long indexEntry = (offsetDelta << 32) | entryMark.value;
+            assert indexFile.available() >= Long.BYTES;
+            indexFile.appendLong(indexEntry);
         }
-        logFile.appendInt(valueLength);
-
-        position.value = logFile.capacity();
-
-        final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
-        final int logAvailable = logFile.available() - valueMaxLength;
-        final int logRequired = headers.sizeof();
-        assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
-        logFile.advance(position.value + valueMaxLength);
-        logFile.appendBytes(headers);
-
-        final int trailersAt = logFile.capacity();
-        logFile.advance(logFile.capacity() + trailersSizeMax + SIZEOF_PADDING_LENGTH);
-        logFile.writeBytes(trailersAt, EMPTY_TRAILERS); // needed for incomplete tryWrap
-        logFile.writeInt(trailersAt + SIZEOF_EMPTY_TRAILERS, trailersSizeMax - SIZEOF_EMPTY_TRAILERS);
-
-        final long offsetDelta = (int)(progress - segment.baseOffset());
-        final long indexEntry = (offsetDelta << 32) | entryMark.value;
-        assert indexFile.available() >= Long.BYTES;
-        indexFile.appendLong(indexEntry);
-
         return validated;
     }
 
@@ -622,7 +627,7 @@ public final class KafkaCachePartition
         Node head,
         MutableInteger position,
         OctetsFW payload,
-        ValueValidator valueValidator)
+        ValueValidator validateValue)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -640,7 +645,7 @@ public final class KafkaCachePartition
                 logFile.writeBytes(position.value, buffer, index, length);
                 position.value += length;
             };
-            validated = valueValidator.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
+            validated = validateValue.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
         }
         return validated;
     }

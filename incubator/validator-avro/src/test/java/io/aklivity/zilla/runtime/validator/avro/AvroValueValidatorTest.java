@@ -46,8 +46,6 @@ public class AvroValueValidatorTest
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-    private final ValueConsumer fragmentFunction = (buffer, index, length) -> {};
-
     private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
             .catalog()
                 .name("test0")
@@ -87,7 +85,7 @@ public class AvroValueValidatorTest
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -107,7 +105,7 @@ public class AvroValueValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes);
-        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -121,7 +119,7 @@ public class AvroValueValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -135,7 +133,7 @@ public class AvroValueValidatorTest
 
         byte[] bytes = "Invalid Event".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -149,7 +147,7 @@ public class AvroValueValidatorTest
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), fragmentFunction));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -158,7 +156,7 @@ public class AvroValueValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidatorConfig config = AvroValidatorConfig.builder()
-                .expect("json")
+                .format("json")
                 .catalog()
                     .name("test0")
                         .schema()
@@ -176,15 +174,16 @@ public class AvroValueValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        String json = "{" +
-                "\"id\":\"id0\"," +
-                "\"status\":\"positive\"" +
+        String json =
+                "{" +
+                    "\"id\":\"id0\"," +
+                    "\"status\":\"positive\"" +
                 "}";
 
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
-        int progress = validator.validate(data, 0, data.capacity(), fragmentFunction);
+        int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
     }
 
@@ -194,7 +193,7 @@ public class AvroValueValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidatorConfig config = AvroValidatorConfig.builder()
-                .expect("json")
+                .format("json")
                 .catalog()
                     .name("test0")
                         .schema()
@@ -212,14 +211,15 @@ public class AvroValueValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         expected.wrap(bytes, 0, bytes.length);
 
-        String payload = "{" +
-                "\"id\":\"id0\"," +
-                "\"status\":\"positive\"" +
+        String payload =
+                "{" +
+                    "\"id\":\"id0\"," +
+                    "\"status\":\"positive\"" +
                 "}";
 
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
-        int progress = validator.validate(data, 0, data.capacity(), fragmentFunction);
+        int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
     }
 }

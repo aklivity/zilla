@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class IntegerValueValidatorConfigAdapterTest
+public class StringValidatorConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -34,33 +34,56 @@ public class IntegerValueValidatorConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new IntegerValidatorConfigAdapter());
+            .withAdapters(new StringValidatorConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadIntegerValidator()
+    public void shouldReadStringValidator()
     {
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"integer\"" +
+                "\"type\": \"string\"," +
+                "\"encoding\": \"utf_8\"" +
             "}";
 
         // WHEN
-        IntegerValidatorConfig validator = jsonb.fromJson(json, IntegerValidatorConfig.class);
+        StringValidatorConfig validator = jsonb.fromJson(json, StringValidatorConfig.class);
 
         // THEN
         assertThat(validator, not(nullValue()));
-        assertThat(validator.type, equalTo("integer"));
+        assertThat(validator.type, equalTo("string"));
+        assertThat(validator.encoding, equalTo("utf_8"));
     }
 
     @Test
-    public void shouldWriteIntegerValidator()
+    public void shouldWriteDefaultEncodingStringValidator()
     {
         // GIVEN
-        String expectedJson = "\"integer\"";
-        IntegerValidatorConfig validator = IntegerValidatorConfig.builder().build();
+        String expectedJson = "\"string\"";
+        StringValidatorConfig validator = StringValidatorConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(validator);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteStringValidator()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"type\":\"string\"," +
+                "\"encoding\":\"utf_16\"" +
+            "}";
+        StringValidatorConfig validator = StringValidatorConfig.builder()
+            .encoding("utf_16")
+            .build();
 
         // WHEN
         String json = jsonb.toJson(validator);

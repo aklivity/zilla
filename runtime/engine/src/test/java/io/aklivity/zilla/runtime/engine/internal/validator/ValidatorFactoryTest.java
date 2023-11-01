@@ -26,7 +26,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValueValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestReadValueValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestWriteValueValidator;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
@@ -35,7 +36,7 @@ public class ValidatorFactoryTest
 {
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
         // GIVEN
         ValidatorConfig testValidator = new TestValidatorConfig();
@@ -44,9 +45,26 @@ public class ValidatorFactoryTest
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        ValueValidator valueValidator = factory.createReadValidator(testValidator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createReadValidator(testValidator, resolveId, supplyCatalog);
 
         // THEN
-        assertThat(valueValidator, instanceOf(TestValueValidator.class));
+        assertThat(reader, instanceOf(TestReadValueValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateWriteValidator()
+    {
+        // GIVEN
+        ValidatorConfig testValidator = new TestValidatorConfig();
+        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        ValidatorFactory factory = ValidatorFactory.instantiate();
+
+        // WHEN
+        ValueValidator writer = factory.createWriteValidator(testValidator, resolveId, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(TestWriteValueValidator.class));
     }
 }
