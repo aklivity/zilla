@@ -744,11 +744,11 @@ public final class KafkaClientConnectionPool
 
             state = KafkaState.closedReply(state);
 
-            replyAck = replySeq;
-
             // TODO: responseAckBytes == 0, remove if
-            if (responseBytes == 0)
+            if (nextRequestId == nexResponseId &&
+                responseBytes == 0)
             {
+                replyAck = replySeq;
                 flushStreamWindow(traceId);
             }
 
@@ -839,7 +839,7 @@ public final class KafkaClientConnectionPool
             responseBytes -= length;
             assert responseBytes >= 0;
 
-            if (!KafkaState.replyClosed(state))
+            if (!KafkaState.replyClosed(state) && !KafkaState.replyAborting(state))
             {
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
@@ -854,12 +854,19 @@ public final class KafkaClientConnectionPool
             else
             {
                 replySeq += reserved;
-                replyAck = replySeq;
 
                 // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    flushStreamWindow(traceId);
+                    if (KafkaState.replyAborting(state))
+                    {
+                        doStreamAbort(traceId);
+                    }
+                    else
+                    {
+                        replyAck = replySeq;
+                        flushStreamWindow(traceId);
+                    }
                 }
             }
         }
@@ -892,12 +899,19 @@ public final class KafkaClientConnectionPool
             if (!KafkaState.replyClosed(state))
             {
                 state = KafkaState.closingReply(state);
+
                 if (nextRequestId == nexResponseId)
                 {
                     state = KafkaState.closedReply(state);
 
-                    doEnd(sender, originId, routedId, replyId, 0, 0, 0,
+                    doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
+
+                    if (responseBytes == 0)
+                    {
+                        replyAck = replySeq;
+                        flushStreamWindow(traceId);
+                    }
 
                     if (KafkaState.closed(state))
                     {
@@ -912,14 +926,20 @@ public final class KafkaClientConnectionPool
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closingReply(state);
+                state = KafkaState.abortingReply(state);
 
                 if (nextRequestId == nexResponseId)
                 {
                     state = KafkaState.closedReply(state);
 
-                    doAbort(sender, originId, routedId, replyId, 0, 0, 0,
+                    doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
+
+                    if (responseBytes == 0)
+                    {
+                        replyAck = replySeq;
+                        flushStreamWindow(traceId);
+                    }
 
                     if (KafkaState.closed(state))
                     {
@@ -936,7 +956,7 @@ public final class KafkaClientConnectionPool
             {
                 state = KafkaState.closedInitial(state);
 
-                doReset(sender, originId, routedId, initialId, 0, 0, 0,
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
                     traceId, authorization);
 
                 if (KafkaState.closed(state))
@@ -989,28 +1009,46 @@ public final class KafkaClientConnectionPool
             switch (signalId)
             {
             case SIGNAL_STREAM_BEGIN:
-                final BeginFW begin = beginRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamBegin(begin);
+                if (!KafkaState.initialClosed(state))
+                {
+                    final BeginFW begin = beginRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamBegin(begin);
+                }
                 break;
             case SIGNAL_STREAM_DATA:
-                final DataFW data = dataRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamData(data);
+                if (!KafkaState.initialClosed(state))
+                {
+                    final DataFW data = dataRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamData(data);
+                }
                 break;
             case SIGNAL_STREAM_END:
-                final EndFW end = endRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamEnd(end);
+                if (!KafkaState.initialClosed(state))
+                {
+                    final EndFW end = endRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamEnd(end);
+                }
                 break;
             case SIGNAL_STREAM_ABORT:
-                final AbortFW abort = abortRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamAbort(abort);
+                if (!KafkaState.initialClosed(state))
+                {
+                    final AbortFW abort = abortRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamAbort(abort);
+                }
                 break;
             case SIGNAL_STREAM_WINDOW:
-                final WindowFW window = windowRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamWindow(window);
+                if (!KafkaState.replyClosed(state))
+                {
+                    final WindowFW window = windowRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamWindow(window);
+                }
                 break;
             case SIGNAL_STREAM_RESET:
-                final ResetFW reset = resetRO.wrap(payload.value(), 0, payload.sizeof());
-                onStreamReset(reset);
+                if (!KafkaState.replyClosed(state))
+                {
+                    final ResetFW reset = resetRO.wrap(payload.value(), 0, payload.sizeof());
+                    onStreamReset(reset);
+                }
                 break;
             default:
                 doSignal(sender, originId, routedId, initialId, initialSeq,
