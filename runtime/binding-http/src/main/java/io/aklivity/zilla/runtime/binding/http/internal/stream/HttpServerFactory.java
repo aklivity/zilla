@@ -2300,7 +2300,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            exchange.doRequestEnd(traceId, extension);
+            if (exchange.requestState != HttpExchangeState.CLOSED)
+            {
+                exchange.doRequestEnd(traceId, extension);
+            }
 
             if (exchange.requestState == HttpExchangeState.CLOSED &&
                 exchange.responseState == HttpExchangeState.CLOSED)
@@ -2959,24 +2962,27 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseBegin(
                 BeginFW begin)
             {
-                final long sequence = begin.sequence();
-                final long acknowledge = begin.acknowledge();
-                final long traceId = begin.traceId();
+                if (!HttpState.replyClosed(state))
+                {
+                    final long sequence = begin.sequence();
+                    final long acknowledge = begin.acknowledge();
+                    final long traceId = begin.traceId();
 
-                assert acknowledge <= sequence;
-                assert sequence >= responseSeq;
-                assert acknowledge <= responseAck;
+                    assert acknowledge <= sequence;
+                    assert sequence >= responseSeq;
+                    assert acknowledge <= responseAck;
 
-                responseSeq = sequence;
-                responseAck = acknowledge;
+                    responseSeq = sequence;
+                    responseAck = acknowledge;
 
-                assert responseAck <= responseSeq;
+                    assert responseAck <= responseSeq;
 
-                final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
+                    final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+                    final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-                responseState = HttpExchangeState.OPEN;
-                doEncodeHeaders(this, traceId, sessionId, 0L, headers);
+                    responseState = HttpExchangeState.OPEN;
+                    doEncodeHeaders(this, traceId, sessionId, 0L, headers);
+                }
             }
 
             private void onResponseData(
@@ -3017,25 +3023,28 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseEnd(
                 EndFW end)
             {
-                final long sequence = end.sequence();
-                final long acknowledge = end.acknowledge();
-                final long traceId = end.traceId();
-                final long authorization = end.authorization();
-                final long budgetId = 0L; // TODO
+                if (!HttpState.replyClosed(state))
+                {
+                    final long sequence = end.sequence();
+                    final long acknowledge = end.acknowledge();
+                    final long traceId = end.traceId();
+                    final long authorization = end.authorization();
+                    final long budgetId = 0L; // TODO
 
-                assert acknowledge <= sequence;
-                assert sequence >= responseSeq;
-                assert acknowledge <= responseAck;
+                    assert acknowledge <= sequence;
+                    assert sequence >= responseSeq;
+                    assert acknowledge <= responseAck;
 
-                responseSeq = sequence;
+                    responseSeq = sequence;
 
-                final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
+                    final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
+                    final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
 
-                responseState = HttpExchangeState.CLOSED;
-                doEncodeTrailers(this, traceId, authorization, budgetId, trailers);
+                    responseState = HttpExchangeState.CLOSED;
+                    doEncodeTrailers(this, traceId, authorization, budgetId, trailers);
 
-                cleanupExpiringIfNecessary();
+                    cleanupExpiringIfNecessary();
+                }
             }
 
             private void onResponseAbort(
@@ -5880,28 +5889,31 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseBegin(
                 BeginFW begin)
             {
-                final long sequence = begin.sequence();
-                final long acknowledge = begin.acknowledge();
-                final long traceId = begin.traceId();
-                final long authorization = begin.authorization();
+                if (!HttpState.replyClosed(state))
+                {
+                    final long sequence = begin.sequence();
+                    final long acknowledge = begin.acknowledge();
+                    final long traceId = begin.traceId();
+                    final long authorization = begin.authorization();
 
-                state = HttpState.openReply(state);
+                    state = HttpState.openReply(state);
 
-                assert acknowledge <= sequence;
-                assert sequence >= responseSeq;
-                assert acknowledge >= responseAck;
+                    assert acknowledge <= sequence;
+                    assert sequence >= responseSeq;
+                    assert acknowledge >= responseAck;
 
-                responseSeq = sequence;
-                responseAck = acknowledge;
+                    responseSeq = sequence;
+                    responseAck = acknowledge;
 
-                final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : headers200;
+                    final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+                    final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : headers200;
 
-                final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
-                        header.name().equals(HEADER_CONTENT_LENGTH));
-                responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
+                    final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
+                            header.name().equals(HEADER_CONTENT_LENGTH));
+                    responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
 
-                doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
+                    doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
+                }
             }
 
             private void onResponseData(
@@ -6026,12 +6038,15 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseAbort(
                 AbortFW abort)
             {
-                setResponseClosed();
+                if (!HttpState.replyClosed(state))
+                {
+                    setResponseClosed();
 
-                final long traceId = abort.traceId();
+                    final long traceId = abort.traceId();
 
-                doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
-                cleanup(traceId);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
+                    cleanup(traceId);
+                }
             }
 
             private void onResponseExpiring(
