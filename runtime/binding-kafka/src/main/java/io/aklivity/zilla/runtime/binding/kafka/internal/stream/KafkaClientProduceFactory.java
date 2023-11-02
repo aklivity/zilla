@@ -603,9 +603,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         int progress,
         int limit)
     {
-        progress = limit;
-
         client.cleanupNetwork(traceId);
+
+        progress = limit;
 
         return progress;
     }
