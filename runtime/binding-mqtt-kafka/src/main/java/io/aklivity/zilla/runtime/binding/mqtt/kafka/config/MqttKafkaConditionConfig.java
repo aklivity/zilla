@@ -14,15 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class MqttKafkaConditionConfig extends ConditionConfig
 {
-    public final String topic;
+    public final List<String> topics;
+    public final MqttKafkaConditionKind kind;
 
     public MqttKafkaConditionConfig(
-        String topic)
+        List<String> topics,
+        MqttKafkaConditionKind kind)
     {
-        this.topic = topic;
+        this.topics = topics;
+        this.kind = kind;
     }
 }

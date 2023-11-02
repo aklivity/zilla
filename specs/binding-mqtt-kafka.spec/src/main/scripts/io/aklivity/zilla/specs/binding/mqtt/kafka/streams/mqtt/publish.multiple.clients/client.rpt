@@ -27,7 +27,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write notify RECEIVED_REPLY_BEGIN
+write notify PUBLISH_CONNECTED
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
@@ -58,7 +58,7 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message3"
 write flush
 
-connect await RECEIVED_REPLY_BEGIN
+connect await PUBLISH_CONNECTED
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"

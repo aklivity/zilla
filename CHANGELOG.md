@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.9.56](https://github.com/aklivity/zilla/tree/0.9.56) (2023-10-31)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.55...0.9.56)
+
+**Implemented enhancements:**
+
+- Support `extraEnv` in helm chart [\#520](https://github.com/aklivity/zilla/issues/520)
+- `kubernetes autoscaling` feature \(enhanced\) [\#518](https://github.com/aklivity/zilla/issues/518)
+- Shard MQTT topic space for client-id specific subset [\#427](https://github.com/aklivity/zilla/issues/427)
+- Distribute MQTT topic space across different Kafka topics [\#426](https://github.com/aklivity/zilla/issues/426)
+- `AsyncAPI` integration \(baseline\) [\#257](https://github.com/aklivity/zilla/issues/257)
+- `OpenAPI` integration \(baseline\) [\#255](https://github.com/aklivity/zilla/issues/255)
+- `mqtt-kafka` feature \(baseline\) [\#190](https://github.com/aklivity/zilla/issues/190)
+- `telemetry metrics` feature \(baseline\) [\#188](https://github.com/aklivity/zilla/issues/188)
+- `grpc-kafka` feature \(baseline\) [\#183](https://github.com/aklivity/zilla/issues/183)
+
+**Fixed bugs:**
+
+- Etag header field name MUST be converted to lowercase prior to their encoding in HTTP/2 [\#551](https://github.com/aklivity/zilla/issues/551)
+- BudgetDebitor fails to claim budget after sometime [\#548](https://github.com/aklivity/zilla/issues/548)
+- Unexpected flush causes NPE in connection pool [\#546](https://github.com/aklivity/zilla/issues/546)
+- \[Consumer Group\] Race  condition while joining simultaneously to the same group id [\#542](https://github.com/aklivity/zilla/issues/542)
+- MQTT client connections cause errors/crashes [\#527](https://github.com/aklivity/zilla/issues/527)
+- Sporadic github action build failures [\#526](https://github.com/aklivity/zilla/issues/526)
+- Unable to write to streams buffer under bidi-stream [\#368](https://github.com/aklivity/zilla/issues/368)
+- Fix flow control bug in mqtt-kakfa publish [\#524](https://github.com/aklivity/zilla/pull/524) ([bmaidics](https://github.com/bmaidics))
+
+**Closed issues:**
+
+- Feature: Adding contributors section to the README.md file. [\#545](https://github.com/aklivity/zilla/issues/545)
+- gRPC method call doesn't respond when status code is not OK [\#504](https://github.com/aklivity/zilla/issues/504)
+
+**Merged pull requests:**
+
+- Fix mqtt connect decoding bug when remainingLenght.size \> 1 [\#554](https://github.com/aklivity/zilla/pull/554) ([bmaidics](https://github.com/bmaidics))
+- Etag header field name MUST be converted to lowercase prior to their encoding in HTTP/2 [\#552](https://github.com/aklivity/zilla/pull/552) ([akrambek](https://github.com/akrambek))
+- Don't send window before connection budgetId is assigned [\#549](https://github.com/aklivity/zilla/pull/549) ([akrambek](https://github.com/akrambek))
+- Use coordinator member list to check if the heartbeat is allowed [\#547](https://github.com/aklivity/zilla/pull/547) ([akrambek](https://github.com/akrambek))
+- Retry sync group request if there is inflight request [\#543](https://github.com/aklivity/zilla/pull/543) ([akrambek](https://github.com/akrambek))
+- Add "Back to Top" in Readme.md [\#539](https://github.com/aklivity/zilla/pull/539) ([PrajwalGraj](https://github.com/PrajwalGraj))
+- Create an appropriate buffer with the size that accommodates signal frame payload [\#537](https://github.com/aklivity/zilla/pull/537) ([akrambek](https://github.com/akrambek))
+- Adjust padding for larger message header and don't include partial data while computing crc32c  [\#536](https://github.com/aklivity/zilla/pull/536) ([akrambek](https://github.com/akrambek))
+- Fix dump command to truncate output file if exists [\#534](https://github.com/aklivity/zilla/pull/534) ([attilakreiner](https://github.com/attilakreiner))
+- fix typos in README.md [\#532](https://github.com/aklivity/zilla/pull/532) ([shresthasurav](https://github.com/shresthasurav))
+- Fixed a typo in README.md [\#529](https://github.com/aklivity/zilla/pull/529) ([saakshii12](https://github.com/saakshii12))
+- Sporadic github action build failure fix [\#522](https://github.com/aklivity/zilla/pull/522) ([akrambek](https://github.com/akrambek))
+- Propagate gRPC status code when not ok [\#519](https://github.com/aklivity/zilla/pull/519) ([jfallows](https://github.com/jfallows))
+- Add extraEnv to Deployment in the helm chart [\#511](https://github.com/aklivity/zilla/pull/511) ([attilakreiner](https://github.com/attilakreiner))
+- Client topic space [\#507](https://github.com/aklivity/zilla/pull/507) ([bmaidics](https://github.com/bmaidics))
+- Mqtt topic space [\#493](https://github.com/aklivity/zilla/pull/493) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.55](https://github.com/aklivity/zilla/tree/0.9.55) (2023-10-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.54...0.9.55)
@@ -226,7 +277,7 @@
 
 **Implemented enhancements:**
 
-- `kubernetes autoscaling` feature [\#189](https://github.com/aklivity/zilla/issues/189)
+- `kubernetes autoscaling` feature \(baseline\) [\#189](https://github.com/aklivity/zilla/issues/189)
 
 **Closed issues:**
 
@@ -525,7 +576,7 @@
 **Fixed bugs:**
 
 - Error running http.kafka.oneway from zilla-examples [\#117](https://github.com/aklivity/zilla/issues/117)
-- Zillla build fails on timeout [\#102](https://github.com/aklivity/zilla/issues/102)
+- Zilla build fails on timeout [\#102](https://github.com/aklivity/zilla/issues/102)
 
 **Merged pull requests:**
 

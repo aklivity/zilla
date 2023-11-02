@@ -325,6 +325,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.items.fragmented/client",
+        "${http}/get.items.fragmented/server"})
+    public void shouldGetItemsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items.empty/client",
         "${http}/get.items.empty/server"})
     public void shouldGetItemsEmpty() throws Exception

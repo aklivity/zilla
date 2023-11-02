@@ -14,26 +14,44 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+import java.util.Optional;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {
-    public final long id;
-
-    //TODO: add when: capabilities, with: kafka_topic_name
-    //private final List<MqttKafkaConditionMatcher> when;
+    private final Optional<MqttKafkaWithResolver> with;
+    private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
 
+    public final long id;
+    public final long order;
+
+    public final String16FW messages;
+    public final String16FW retained;
+
     public MqttKafkaRouteConfig(
+        MqttKafkaOptionsConfig options,
         RouteConfig route)
     {
         this.id = route.id;
-        //        this.when = route.when.stream()
-        //            .map(MqttKafkaConditionConfig.class::cast)
-        //            .map(MqttKafkaConditionMatcher::new)
-        //            .collect(toList());
+        this.order = route.order;
+        this.with = Optional.ofNullable(route.with)
+            .map(MqttKafkaWithConfig.class::cast)
+            .map(c -> new MqttKafkaWithResolver(options, c));
+        this.messages = with.isPresent() ? with.get().messages() : options.topics.messages;
+        this.retained = options.topics.retained;
+        this.when = route.when.stream()
+            .map(MqttKafkaConditionConfig.class::cast)
+            .map(MqttKafkaConditionMatcher::new)
+            .collect(toList());
         this.authorized = route.authorized;
     }
 
@@ -43,9 +61,18 @@ public class MqttKafkaRouteConfig
         return authorized.test(authorization);
     }
 
-    //    boolean matches(
-    //        String topic)
-    //    {
-    //        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
-    //    }
+    public boolean matchesClient(
+        String client)
+    {
+        return !when.isEmpty() && when.stream()
+            .filter(m -> m.kind == MqttKafkaConditionKind.SUBSCRIBE)
+            .allMatch(m -> m.matches(client));
+    }
+
+    public boolean matches(
+        String topic)
+    {
+        return when.isEmpty() || when.stream()
+            .anyMatch(m -> m.matches(topic));
+    }
 }
