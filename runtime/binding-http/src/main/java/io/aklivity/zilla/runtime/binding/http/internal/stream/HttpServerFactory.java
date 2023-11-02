@@ -2129,6 +2129,20 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
+        private void onInvalidContent(
+            HttpExchange exchange,
+            long traceId,
+            long authorization,
+            DirectBuffer error)
+        {
+            replyCloseOnFlush = true;
+
+            doNetworkData(traceId, authorization, 0L, error.capacity() + replyPad, error, 0, error.capacity());
+            doNetworkEnd(traceId, authorization);
+
+            exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+        }
+
         private void onDecodeHeadersError(
             long traceId,
             long authorization,
@@ -2268,15 +2282,15 @@ public final class HttpServerFactory implements HttpStreamFactory
             Flyweight extension)
         {
             boolean isValid = binding.validateContent(request, buffer, 0, limit - offset);
-            int result = 0;
+            int result;
             if (isValid)
             {
                 result = exchange.doRequestData(traceId, budgetId, buffer, offset, limit, extension);
             }
             else
             {
-                doEncodeHeaders(exchange, traceId, authorization, budgetId, headers400);
-                exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+                onInvalidContent(exchange, traceId, authorization, ERROR_400_BAD_REQUEST);
+                result = limit;
             }
             return result;
         }
