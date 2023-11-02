@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest
-    .KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME;
+    .KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -55,7 +55,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.before.coordinator.response/client",
         "${net}/client.sent.write.abort.before.coordinator.response/server"})
-    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
@@ -66,7 +66,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.after.sync.group.response/client",
         "${net}/client.sent.write.abort.after.sync.group.response/server"})
-    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();
@@ -77,7 +77,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.read.abort.after.sync.group.response/client",
         "${net}/client.sent.read.abort.after.sync.group.response/server"})
-    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();

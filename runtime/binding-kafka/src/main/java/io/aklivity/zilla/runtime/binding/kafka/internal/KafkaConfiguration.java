@@ -39,7 +39,7 @@ public class KafkaConfiguration extends Configuration
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
-    public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS;
+    public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS;
@@ -82,7 +82,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
-        KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS = config.property("client.connection.pool.cleanup.millis", 4 * 1000L);
+        KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS = config.property("client.connection.pool.cleanup.millis", 4 * 1000L);
         KAFKA_CLIENT_META_MAX_AGE_MILLIS = config.property("client.meta.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS = config.property("client.describe.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS = config.property("client.fetch.max.wait.millis", 1 * 60 * 1000);
@@ -138,7 +138,7 @@ public class KafkaConfiguration extends Configuration
 
     public long clientConnectionPoolCleanupMillis()
     {
-        return KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS.getAsLong(this);
+        return KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS.getAsLong(this);
     }
 
     public long clientMetaMaxAgeMillis()
