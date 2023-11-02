@@ -31,8 +31,6 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.LongHashSet;
-import org.agrona.collections.MutableInteger;
-import org.agrona.collections.MutableLong;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -98,9 +96,6 @@ public final class KafkaClientConnectionPool
 
     private final RequestHeaderFW requestHeaderRO = new RequestHeaderFW();
 
-    private final MutableLong replyAckRW = new MutableLong();
-    private final MutableInteger replyPadRW = new MutableInteger();
-    private final MutableInteger replyMaxRW = new MutableInteger();
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
@@ -113,6 +108,7 @@ public final class KafkaClientConnectionPool
     private final LongSupplier supplyTraceId;
     private final Object2ObjectHashMap<String, KafkaClientConnection> connectionPool;
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialId;
+    private final long connectionPoolCleanupMillis;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -130,6 +126,7 @@ public final class KafkaClientConnectionPool
         this.creditor = creditor;
         this.connectionPool = new Object2ObjectHashMap();
         this.streamsByInitialId = new Long2ObjectHashMap<>();
+        this.connectionPoolCleanupMillis = config.clientConnectionPoolCleanupMillis();
     }
 
     private MessageConsumer newStream(
@@ -1298,6 +1295,8 @@ public final class KafkaClientConnectionPool
 
             if (!responseAcks.isEmpty())
             {
+                final int streamsSize = streamsByInitialId.size();
+
                 ack:
                 for (LongArrayQueue.LongIterator i = responseAcks.iterator(); i.hasNext();)
                 {
@@ -1324,6 +1323,11 @@ public final class KafkaClientConnectionPool
                     }
 
                     responseAcks.removeLong();
+                }
+
+                if (streamsByInitialId.size() != streamsSize)
+                {
+                    doSignalStreamCleanup();
                 }
             }
 
@@ -1495,21 +1499,16 @@ public final class KafkaClientConnectionPool
             SignalFW signal)
         {
             final int signalId = signal.signalId();
+            assert signalId != SIGNAL_CONNECTION_CLEANUP;
+
             final int contextId = signal.contextId();
 
-            if (signalId == SIGNAL_CONNECTION_CLEANUP)
-            {
-                doSignalStreamCleanup();
-            }
-            else
-            {
-                long initialId = signalerCorrelations.remove(contextId);
-                KafkaClientStream stream = streamsByInitialId.get(initialId);
+            long initialId = signalerCorrelations.remove(contextId);
+            KafkaClientStream stream = streamsByInitialId.get(initialId);
 
-                if (stream != null)
-                {
-                    stream.onStreamSignal(signal);
-                }
+            if (stream != null)
+            {
+                stream.onStreamSignal(signal);
             }
         }
 
@@ -1590,10 +1589,15 @@ public final class KafkaClientConnectionPool
 
         private void doSignalStreamCleanup()
         {
+            if (reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.delegate.cancel(reconnectAt);
+                reconnectAt = NO_CANCEL_ID;
+            }
+
             this.reconnectAt = signaler.delegate.signalAt(
-                currentTimeMillis() + 4000,
-                SIGNAL_CONNECTION_CLEANUP,
-                this::onStreamCleanupSignal);
+                currentTimeMillis() + connectionPoolCleanupMillis,
+                SIGNAL_CONNECTION_CLEANUP, this::onStreamCleanupSignal);
         }
 
 
@@ -1602,11 +1606,10 @@ public final class KafkaClientConnectionPool
         {
             assert signalId == SIGNAL_CONNECTION_CLEANUP;
 
-            if (streamsByInitialId.isEmpty())
+            if (streams.isEmpty())
             {
                 final long traceId = supplyTraceId.getAsLong();
                 cleanupConnection(traceId);
-                responses.clear();
             }
         }
 
@@ -1615,6 +1618,12 @@ public final class KafkaClientConnectionPool
         {
             doConnectionAbort(traceId);
             doConnectionReset(traceId);
+
+            streams.clear();
+            requests.clear();
+            responses.clear();
+            responseAcks.clear();
+            signalerCorrelations.clear();
         }
 
         private void cleanupBudgetCreditorIfNecessary()
@@ -1630,6 +1639,14 @@ public final class KafkaClientConnectionPool
             long streamId)
         {
             streams.remove(streamId);
+
+            if (!responseAcks.contains(streamId))
+            {
+                if (streamsByInitialId.remove(streamId) != null)
+                {
+                    doSignalStreamCleanup();
+                }
+            }
         }
 
         @Override

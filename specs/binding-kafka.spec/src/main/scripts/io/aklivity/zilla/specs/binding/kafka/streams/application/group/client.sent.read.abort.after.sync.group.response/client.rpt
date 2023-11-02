@@ -52,5 +52,5 @@ write flush
 
 read zilla:data.empty
 
-write abort
-read aborted
+read abort
+write aborted

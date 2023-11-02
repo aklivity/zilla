@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest
+    .KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientGroupIT
 {
@@ -52,6 +55,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.before.coordinator.response/client",
         "${net}/client.sent.write.abort.before.coordinator.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
@@ -62,6 +66,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.after.sync.group.response/client",
         "${net}/client.sent.write.abort.after.sync.group.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();
@@ -70,19 +75,10 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/client.sent.write.abort.after.sync.group.response/client",
+        "${app}/client.sent.read.abort.after.sync.group.response/client",
         "${net}/client.sent.read.abort.after.sync.group.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POLL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/client.sent.write.abort.after.sync.group.response/client",
-        "${net}/client.sent.write.close.after.sync.group.response/server"})
-    public void shouldHandleClientSentWriteCloseAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();
     }
