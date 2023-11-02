@@ -44,6 +44,7 @@ public class ValidationIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${app}/valid/client",
