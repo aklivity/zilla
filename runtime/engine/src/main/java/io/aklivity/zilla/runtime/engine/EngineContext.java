@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
 import java.util.function.LongSupplier;
-import java.util.function.ToLongFunction;
 
 import org.agrona.MutableDirectBuffer;
 
@@ -135,12 +134,10 @@ public interface EngineContext
         String name);
 
     ValueValidator createReadValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId);
+        ValidatorConfig validator);
 
     ValueValidator createWriteValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId);
+        ValidatorConfig validator);
 
     void onExporterAttached(
         long exporterId);

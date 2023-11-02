@@ -18,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteOrder;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -38,10 +37,9 @@ public class AvroWriteValueValidator extends AvroValueValidator
 {
     public AvroWriteValueValidator(
         AvroValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, resolveId, supplyCatalog);
+        super(config, supplyCatalog);
     }
 
     @Override
@@ -57,10 +55,9 @@ public class AvroWriteValueValidator extends AvroValueValidator
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
 
-        int schemaId = catalog != null &&
-                catalog.id > 0 ?
-                catalog.id :
-                handler.resolve(catalog.subject, catalog.version);
+        int schemaId = catalog != null && catalog.id > 0
+                ? catalog.id
+                : handler.resolve(subject, catalog.version);
         Schema schema = fetchSchema(schemaId);
 
         if (schema != null)
@@ -74,7 +71,7 @@ public class AvroWriteValueValidator extends AvroValueValidator
                 value.putBytes(5, record);
                 valLength = record.length + 5;
             }
-            else if (validate(schema, payloadBytes))
+            else if (validate(schema, payloadBytes, 0, length))
             {
                 value = new UnsafeBuffer(new byte[payloadBytes.length + 5]);
                 value.putByte(0, MAGIC_BYTE);
@@ -89,7 +86,7 @@ public class AvroWriteValueValidator extends AvroValueValidator
 
     private byte[] serializeJsonRecord(
         Schema schema,
-        byte[] payloadBytes)
+        byte[] bytes)
     {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try
@@ -97,7 +94,7 @@ public class AvroWriteValueValidator extends AvroValueValidator
             reader = new GenericDatumReader(schema);
             GenericRecord genericRecord = new GenericData.Record(schema);
             GenericRecord record = (GenericRecord) reader.read(genericRecord,
-                    decoder.jsonDecoder(schema, new ByteArrayInputStream(payloadBytes)));
+                    decoder.jsonDecoder(schema, new ByteArrayInputStream(bytes)));
             writer = new GenericDatumWriter<>(schema);
             BinaryEncoder binaryEncoder = encoder.binaryEncoder(outputStream, null);
             writer.write(record, binaryEncoder);

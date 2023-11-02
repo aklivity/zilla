@@ -91,7 +91,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
@@ -103,7 +102,6 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
@@ -350,7 +348,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final LongFunction<GuardHandler> supplyGuard;
     private final Long2ObjectHashMap<MqttBindingConfig> bindings;
     private final int mqttTypeId;
 
@@ -366,8 +363,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
-
-    private Map<String, ValueValidator> validators;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -394,7 +389,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
-        this.supplyGuard = context::supplyGuard;
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
@@ -449,22 +443,17 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final long initialId = begin.streamId();
             final long affinity = begin.affinity();
-            final long replyId = supplyReplyId.applyAsLong(initialId);
-            final long budgetId = supplyBudgetId.getAsLong();
-            this.validators = binding.topics;
 
             newStream = new MqttServer(
-                binding.credentials(),
-                binding.authField(),
-                binding.options,
-                binding.resolveId,
                 sender,
                 originId,
                 routedId,
                 initialId,
-                replyId,
                 affinity,
-                budgetId)::onNetwork;
+                binding.guard,
+                binding.credentials(),
+                binding.authField(),
+                binding::supplyValidator)::onNetwork;
         }
         return newStream;
     }
@@ -941,7 +930,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW payload = publish.payload();
                 final int payloadSize = payload.sizeof();
 
-                if (validators != null && !validContent(mqttPublishHeader.topic, payload))
+                if (!server.validContent(mqttPublishHeader.topic, payload))
                 {
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
@@ -984,15 +973,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return progress;
-    }
-
-    private boolean validContent(
-        String topic,
-        OctetsFW payload)
-    {
-        final ValueValidator contentValueValidator = validators.get(topic);
-        return contentValueValidator == null ||
-            contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
     }
 
     private boolean invalidUtf8(
@@ -1249,6 +1229,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
+        private final Function<String, ValueValidator> supplyValidator;
 
         private MqttSessionStream sessionStream;
 
@@ -1305,33 +1286,32 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
 
         private MqttServer(
-            Function<String, String> credentials,
-            MqttConnectProperty authField,
-            MqttOptionsConfig options,
-            ToLongFunction<String> resolveId,
             MessageConsumer network,
             long originId,
             long routedId,
             long initialId,
-            long replyId,
             long affinity,
-            long budgetId)
+            GuardHandler guard,
+            Function<String, String> credentials,
+            MqttConnectProperty authField,
+            Function<String, ValueValidator> supplyValidator)
         {
             this.network = network;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
-            this.replyId = replyId;
-            this.encodeBudgetId = budgetId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.guard = guard;
+            this.encodeBudgetId = supplyBudgetId.getAsLong();
             this.decoder = decodeInitialType;
             this.publishStreams = new Int2ObjectHashMap<>();
             this.subscribeStreams = new Long2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
-            this.guard = resolveGuard(options, resolveId);
             this.credentials = credentials;
             this.authField = authField;
+            this.supplyValidator = supplyValidator;
         }
 
         private void onNetwork(
@@ -3095,6 +3075,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return flags;
+        }
+
+        private boolean validContent(
+            String topic,
+            OctetsFW payload)
+        {
+            final ValueValidator contentValueValidator = supplyValidator.apply(topic);
+            return contentValueValidator == null ||
+                    contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
         }
 
         private final class Subscription
@@ -4934,22 +4923,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             return flags;
         }
-    }
-
-    private GuardHandler resolveGuard(
-        MqttOptionsConfig options,
-        ToLongFunction<String> resolveId)
-    {
-        GuardHandler guard = null;
-
-        if (options != null &&
-            options.authorization != null)
-        {
-            long guardId = resolveId.applyAsLong(options.authorization.name);
-            guard = supplyGuard.apply(guardId);
-        }
-
-        return guard;
     }
 }
 

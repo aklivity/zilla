@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -40,7 +39,6 @@ public final class ValidatorFactory
 
     public ValueValidator createReadValidator(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         String type = config.type;
@@ -48,12 +46,11 @@ public final class ValidatorFactory
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
-        return validatorSpi.createValueReader(config, resolveId, supplyCatalog);
+        return validatorSpi.createValueReader(config, supplyCatalog);
     }
 
     public ValueValidator createWriteValidator(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         String type = config.type;
@@ -61,7 +58,7 @@ public final class ValidatorFactory
 
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
-        return validatorSpi.createValueWriter(config, resolveId, supplyCatalog);
+        return validatorSpi.createValueWriter(config, supplyCatalog);
     }
 
     public Collection<ValidatorFactorySpi> validatorSpis()

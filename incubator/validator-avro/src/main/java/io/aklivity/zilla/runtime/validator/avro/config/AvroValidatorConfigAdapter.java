@@ -60,10 +60,10 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
         }
 
         validator.add(TYPE_NAME, AVRO);
-        if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
+        if (validatorConfig.cataloged != null && !validatorConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : validatorConfig.catalogs)
+            for (CatalogedConfig catalog : validatorConfig.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)

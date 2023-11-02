@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigReader;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -160,6 +162,20 @@ public class ConfigurationManager
                 if (binding.vault != null)
                 {
                     binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
+                }
+
+                if (binding.options != null)
+                {
+                    for (ValidatorConfig validator : binding.options.validators)
+                    {
+                        if (validator.cataloged != null)
+                        {
+                            for (CatalogedConfig cataloged : validator.cataloged)
+                            {
+                                cataloged.id = namespace.resolveId.applyAsLong(cataloged.name);
+                            }
+                        }
+                    }
                 }
 
                 for (RouteConfig route : binding.routes)

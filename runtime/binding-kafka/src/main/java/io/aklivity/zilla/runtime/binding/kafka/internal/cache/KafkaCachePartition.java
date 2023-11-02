@@ -442,10 +442,7 @@ public final class KafkaCachePartition
 
         if (payload != null)
         {
-            final ValueConsumer writeValue = (buffer, index, length) ->
-            {
-                logFile.appendBytes(buffer, index, length);
-            };
+            final ValueConsumer writeValue = logFile::appendBytes;
             int validated = validateValue.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
             if (validated == -1)
             {

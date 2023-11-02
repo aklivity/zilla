@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.validator.json;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -41,25 +40,22 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     @Override
     public ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonReadValueValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new JsonReadValueValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
     }
 
     @Override
     public ValueValidator createValueWriter(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonWriteValueValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new JsonWriteValueValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
     }
 
     @Override
     public FragmentValidator createFragmentReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         return null;
@@ -68,7 +64,6 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     @Override
     public FragmentValidator createFragmentWriter(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         return null;

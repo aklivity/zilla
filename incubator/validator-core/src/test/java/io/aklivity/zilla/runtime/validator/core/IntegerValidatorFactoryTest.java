@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
@@ -36,12 +35,11 @@ public class IntegerValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new IntegerValidatorConfig();
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         IntegerValidatorFactory factory = new IntegerValidatorFactory();
 
         // WHEN
-        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
         assertThat(reader, instanceOf(IntegerValueValidator.class));
@@ -53,12 +51,11 @@ public class IntegerValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new IntegerValidatorConfig();
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         IntegerValidatorFactory factory = new IntegerValidatorFactory();
 
         // WHEN
-        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
         assertThat(writer, instanceOf(IntegerValueValidator.class));

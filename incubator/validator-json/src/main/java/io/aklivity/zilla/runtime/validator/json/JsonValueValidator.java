@@ -17,16 +17,14 @@ package io.aklivity.zilla.runtime.validator.json;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -40,37 +38,30 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public abstract class JsonValueValidator implements ValueValidator
 {
-    static final byte MAGIC_BYTE = 0x0;
+    protected static final byte MAGIC_BYTE = 0x0;
 
-    final JsonProvider schemaProvider;
-    final Long2ObjectHashMap<CatalogHandler> handlersById;
-    final JsonValidationService service;
-    final JsonParserFactory factory;
-    final List<CatalogedConfig> catalogs;
-    final SchemaConfig catalog;
-    final CatalogHandler handler;
-    final String subject;
+    protected final DirectBuffer valueRO = new UnsafeBuffer();
+
+    protected final JsonProvider schemaProvider;
+    protected final JsonValidationService service;
+    protected final JsonParserFactory factory;
+    protected final SchemaConfig catalog;
+    protected final CatalogHandler handler;
+    protected final String subject;
 
     public JsonValueValidator(
         JsonValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        this.handlersById = new Long2ObjectHashMap<>();
         this.schemaProvider = JsonProvider.provider();
         this.service = JsonValidationService.newInstance();
         this.factory = schemaProvider.createParserFactory(null);
-        this.catalogs = config.catalogs.stream().map(c ->
-        {
-            c.id = resolveId.applyAsLong(c.name);
-            handlersById.put(c.id, supplyCatalog.apply(c.id));
-            return c;
-        }).collect(Collectors.toList());
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
-        this.handler = handlersById.get(catalogs.get(0).id);
-        this.subject = catalog != null &&
-            catalog.subject != null ?
-            catalog.subject : config.subject;
+        CatalogedConfig cataloged = config.cataloged.get(0);
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
+        this.handler = supplyCatalog.apply(cataloged.id);
+        this.subject = catalog != null && catalog.subject != null
+            ? catalog.subject
+            : config.subject;
     }
 
     String fetchSchema(
@@ -83,17 +74,21 @@ public abstract class JsonValueValidator implements ValueValidator
         }
         else if (catalog != null)
         {
+            schemaId = handler.resolve(subject, catalog.version);
             if (schemaId > 0)
             {
                 schema = handler.resolve(schemaId);
             }
         }
+
         return schema;
     }
 
     boolean validate(
         String schema,
-        byte[] payloadBytes)
+        byte[] bytes,
+        int offset,
+        int length)
     {
         boolean status = false;
         try
@@ -102,7 +97,7 @@ public abstract class JsonValueValidator implements ValueValidator
             JsonSchemaReader reader = service.createSchemaReader(schemaParser);
             JsonSchema jsonSchema = reader.read();
             JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
-            InputStream input = new ByteArrayInputStream(payloadBytes);
+            InputStream input = new ByteArrayInputStream(bytes, offset, length);
             provider.createReader(input).readObject();
             status = true;
         }

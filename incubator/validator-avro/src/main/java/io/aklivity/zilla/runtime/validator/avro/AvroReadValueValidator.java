@@ -15,13 +15,10 @@
 package io.aklivity.zilla.runtime.validator.avro;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -38,10 +35,9 @@ public class AvroReadValueValidator extends AvroValueValidator
 {
     public AvroReadValueValidator(
         AvroValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, resolveId, supplyCatalog);
+        super(config, supplyCatalog);
     }
 
     @Override
@@ -51,71 +47,58 @@ public class AvroReadValueValidator extends AvroValueValidator
         int length,
         ValueConsumer next)
     {
-        MutableDirectBuffer value = new UnsafeBuffer();
         int valLength = -1;
 
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
-        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
 
         int schemaId;
-        Schema schema;
-        if (byteBuf.get() == MAGIC_BYTE)
+        int progress = 0;
+        if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = byteBuf.getInt();
-            int size = length - 1 - 4;
-            byte[] valBytes = new byte[size];
-            data.getBytes(length - size, valBytes);
-            schema = fetchSchema(schemaId);
-            if (schema != null)
-            {
-                if ("json".equals(format))
-                {
-                    byte[] record = serializeAvroRecord(schema, valBytes);
-                    value.wrap(record);
-                    valLength = record.length;
-                }
-                else if (validate(schema, valBytes))
-                {
-                    value.wrap(data);
-                    valLength = length;
-                }
-            }
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress);
+            progress += BitUtil.SIZE_OF_INT;
         }
         else
         {
             schemaId = catalog != null ? catalog.id : 0;
-            schema = fetchSchema(schemaId);
-            if (schema != null)
-            {
-                if ("json".equals(format))
-                {
-                    byte[] record = serializeAvroRecord(schema, payloadBytes);
-                    value.wrap(record);
-                    valLength = record.length;
-                }
-                else if (validate(schema, payloadBytes))
-                {
-                    value.wrap(data);
-                    valLength = length;
-                }
-            }
         }
 
-        next.accept(value, index, valLength);
+        Schema schema = fetchSchema(schemaId);
+        if (schema != null)
+        {
+            if ("json".equals(format))
+            {
+                byte[] record = deserializeAvroRecord(schema, payloadBytes, progress, length - progress);
+                valueRO.wrap(record);
+                valLength = record.length;
+            }
+            else if (validate(schema, payloadBytes, progress, length - progress))
+            {
+                valueRO.wrap(data);
+                valLength = length;
+            }
+            if (valLength != -1)
+            {
+                next.accept(valueRO, index, valLength);
+            }
+        }
         return valLength;
     }
 
-    private byte[] serializeAvroRecord(
+    private byte[] deserializeAvroRecord(
         Schema schema,
-        byte[] payloadBytes)
+        byte[] bytes,
+        int offset,
+        int length)
     {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try
         {
             reader = new GenericDatumReader(schema);
             GenericRecord record = (GenericRecord) reader.read(null,
-                    decoder.binaryDecoder(payloadBytes, null));
+                    decoder.binaryDecoder(bytes, offset, length, null));
             JsonEncoder jsonEncoder = encoder.jsonEncoder(record.getSchema(), outputStream);
             writer = record instanceof SpecificRecord ?
                 new SpecificDatumWriter<>(record.getSchema()) :

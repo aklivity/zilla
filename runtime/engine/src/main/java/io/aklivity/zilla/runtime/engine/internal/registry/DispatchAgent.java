@@ -60,7 +60,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -864,18 +863,16 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public ValueValidator createReadValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId)
+        ValidatorConfig validator)
     {
-        return validatorFactory.createReadValidator(validator, resolveId, this::supplyCatalog);
+        return validatorFactory.createReadValidator(validator, this::supplyCatalog);
     }
 
     @Override
     public ValueValidator createWriteValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId)
+        ValidatorConfig validator)
     {
-        return validatorFactory.createWriteValidator(validator, resolveId, this::supplyCatalog);
+        return validatorFactory.createWriteValidator(validator, this::supplyCatalog);
     }
 
     private void onSystemMessage(

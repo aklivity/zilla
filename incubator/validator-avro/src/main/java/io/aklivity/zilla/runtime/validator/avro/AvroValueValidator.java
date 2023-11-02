@@ -14,12 +14,10 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
-import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
@@ -37,9 +35,9 @@ public abstract class AvroValueValidator implements ValueValidator
 {
     protected static final byte MAGIC_BYTE = 0x0;
 
-    protected final List<CatalogedConfig> catalogs;
+    protected final DirectBuffer valueRO = new UnsafeBuffer();
+
     protected final SchemaConfig catalog;
-    protected final Long2ObjectHashMap<CatalogHandler> handlersById;
     protected final CatalogHandler handler;
     protected final DecoderFactory decoder;
     protected final EncoderFactory encoder;
@@ -50,20 +48,13 @@ public abstract class AvroValueValidator implements ValueValidator
 
     public AvroValueValidator(
         AvroValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        this.handlersById = new Long2ObjectHashMap<>();
         this.decoder = DecoderFactory.get();
         this.encoder = EncoderFactory.get();
-        this.catalogs = config.catalogs.stream().map(c ->
-        {
-            c.id = resolveId.applyAsLong(c.name);
-            handlersById.put(c.id, supplyCatalog.apply(c.id));
-            return c;
-        }).collect(Collectors.toList());
-        this.handler = handlersById.get(catalogs.get(0).id);
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
+        CatalogedConfig cataloged = config.cataloged.get(0);
+        this.handler = supplyCatalog.apply(cataloged.id);
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.format = config.format;
         this.subject = catalog != null &&
             catalog.subject != null ?
@@ -91,13 +82,15 @@ public abstract class AvroValueValidator implements ValueValidator
 
     boolean validate(
         Schema schema,
-        byte[] payloadBytes)
+        byte[] bytes,
+        int offset,
+        int length)
     {
         boolean status = false;
         try
         {
             reader = new GenericDatumReader(schema);
-            reader.read(null, decoder.binaryDecoder(payloadBytes, null));
+            reader.read(null, decoder.binaryDecoder(bytes, offset, length, null));
             status = true;
         }
         catch (Exception e)

@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
@@ -37,12 +36,11 @@ public class StringValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new StringValidatorConfig("utf_8");
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         StringValidatorFactory factory = new StringValidatorFactory();
 
         // WHEN
-        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
         assertThat(reader, instanceOf(StringValueValidator.class));
@@ -54,12 +52,11 @@ public class StringValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new StringValidatorConfig("utf_8");
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         StringValidatorFactory factory = new StringValidatorFactory();
 
         // WHEN
-        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
         assertThat(writer, instanceOf(StringValueValidator.class));
@@ -71,12 +68,11 @@ public class StringValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new StringValidatorConfig("utf_8");
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         StringValidatorFactory factory = new StringValidatorFactory();
 
         // WHEN
-        FragmentValidator reader = factory.createFragmentReader(validator, resolveId, supplyCatalog);
+        FragmentValidator reader = factory.createFragmentReader(validator, supplyCatalog);
 
         // THEN
         assertThat(reader, instanceOf(StringFragmentValidator.class));
@@ -88,12 +84,11 @@ public class StringValidatorFactoryTest
     {
         // GIVEN
         ValidatorConfig validator = new StringValidatorConfig("utf_8");
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         StringValidatorFactory factory = new StringValidatorFactory();
 
         // WHEN
-        FragmentValidator writer = factory.createFragmentWriter(validator, resolveId, supplyCatalog);
+        FragmentValidator writer = factory.createFragmentWriter(validator, supplyCatalog);
 
         // THEN
         assertThat(writer, instanceOf(StringFragmentValidator.class));

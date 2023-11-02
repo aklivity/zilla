@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.validator.avro;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -41,25 +40,22 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
     @Override
     public ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroReadValueValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new AvroReadValueValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
     }
 
     @Override
     public ValueValidator createValueWriter(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroWriteValueValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return new AvroWriteValueValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
     }
 
     @Override
     public FragmentValidator createFragmentReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         return null;
@@ -68,7 +64,6 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
     @Override
     public FragmentValidator createFragmentWriter(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         return null;

@@ -60,10 +60,10 @@ public final class KafkaBindingConfig
                         t -> t.name,
                         t -> new KafkaTopicType(
                             (t.key != null)
-                                ? context.createReadValidator(t.key, resolveId)
+                                ? context.createReadValidator(t.key)
                                 : ValueValidator.NONE,
                             (t.value != null)
-                                ? context.createReadValidator(t.value, resolveId)
+                                ? context.createReadValidator(t.value)
                                 : ValueValidator.NONE)))
                 : null;
         this.writers = options != null && options.topics != null
@@ -72,10 +72,10 @@ public final class KafkaBindingConfig
                         t -> t.name,
                         t -> new KafkaTopicType(
                             (t.key != null)
-                                ? context.createWriteValidator(t.key, resolveId)
+                                ? context.createWriteValidator(t.key)
                                 : ValueValidator.NONE,
                             (t.value != null)
-                                ? context.createWriteValidator(t.value, resolveId)
+                                ? context.createWriteValidator(t.value)
                                 : ValueValidator.NONE)))
                 : null;
     }

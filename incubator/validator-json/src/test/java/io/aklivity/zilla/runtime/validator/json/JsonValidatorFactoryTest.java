@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
@@ -40,12 +39,11 @@ public class JsonValidatorFactoryTest
                     .name("test0")
                     .build()
                 .build();
-        ToLongFunction<String> resolveId = i -> 0L;
         LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
         JsonValidatorFactory factory = new JsonValidatorFactory();
 
         // WHEN
-        ValueValidator reader = factory.createValueReader(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
         assertThat(reader, instanceOf(JsonReadValueValidator.class));
@@ -60,12 +58,11 @@ public class JsonValidatorFactoryTest
                     .name("test0")
                     .build()
                 .build();
-        ToLongFunction<String> resolveId = i -> 0L;
         LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
         JsonValidatorFactory factory = new JsonValidatorFactory();
 
         // WHEN
-        ValueValidator writer = factory.createValueWriter(validator, resolveId, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
         assertThat(writer, instanceOf(JsonWriteValueValidator.class));

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.validator.json;
 
 import java.nio.ByteOrder;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -30,10 +29,9 @@ public class JsonWriteValueValidator extends JsonValueValidator
 {
     public JsonWriteValueValidator(
         JsonValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, resolveId, supplyCatalog);
+        super(config, supplyCatalog);
     }
 
     @Override
@@ -43,19 +41,18 @@ public class JsonWriteValueValidator extends JsonValueValidator
         int length,
         ValueConsumer next)
     {
-        MutableDirectBuffer value = null;
+        MutableDirectBuffer value;
         int valLength = -1;
 
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
 
-        int schemaId = catalog != null &&
-                catalog.id > 0 ?
-                catalog.id :
-                handler.resolve(catalog.subject, catalog.version);
+        int schemaId = catalog != null && catalog.id > 0
+                ? catalog.id
+                : handler.resolve(subject, catalog.version);
         String schema = fetchSchema(schemaId);
 
-        if (schema != null && validate(schema, payloadBytes))
+        if (schema != null && validate(schema, payloadBytes, 0, length))
         {
             valLength = length + 5;
             value = new UnsafeBuffer(new byte[valLength]);

@@ -14,12 +14,10 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import java.nio.ByteBuffer;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
@@ -29,10 +27,9 @@ public class JsonReadValueValidator extends JsonValueValidator
 {
     public JsonReadValueValidator(
         JsonValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, resolveId, supplyCatalog);
+        super(config, supplyCatalog);
     }
 
     @Override
@@ -42,43 +39,30 @@ public class JsonReadValueValidator extends JsonValueValidator
         int length,
         ValueConsumer next)
     {
-        DirectBuffer value = new UnsafeBuffer();
         int valLength = -1;
 
         byte[] payloadBytes = new byte[length];
         data.getBytes(0, payloadBytes);
-        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
 
         int schemaId;
-        String schema;
-        if (byteBuf.get() == MAGIC_BYTE)
+        int progress = 0;
+        if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = byteBuf.getInt();
-            int size = length - 1 - 4;
-            byte[] valBytes = new byte[size];
-            data.getBytes(length - size, valBytes);
-            schema = fetchSchema(schemaId);
-            if (schema != null && validate(schema, valBytes))
-            {
-                value.wrap(data);
-                next.accept(value, index, size);
-                valLength = size;
-            }
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress);
+            progress += BitUtil.SIZE_OF_INT;
         }
         else
         {
-            schemaId = catalog != null &&
-                catalog.id > 0 ?
-                catalog.id :
-                handler.resolve(catalog.subject, catalog.version);
-            schema = fetchSchema(schemaId);
-            if (schema != null && validate(schema, payloadBytes))
-            {
-                int size = payloadBytes.length;
-                value.wrap(data);
-                next.accept(value, index, size);
-                valLength = size;
-            }
+            schemaId = catalog != null ? catalog.id : 0;
+        }
+
+        String schema = fetchSchema(schemaId);
+        if (schema != null && validate(schema, payloadBytes, progress, length - progress))
+        {
+            valueRO.wrap(data);
+            valLength = length;
+            next.accept(valueRO, index, length);
         }
         return valLength;
     }
