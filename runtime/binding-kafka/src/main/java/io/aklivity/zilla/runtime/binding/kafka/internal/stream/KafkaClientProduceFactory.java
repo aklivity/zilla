@@ -158,7 +158,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final KafkaProduceClientFlusher flushRecord = this::flushRecord;
     private final KafkaProduceClientFlusher flushRecordInit = this::flushRecordInit;
     private final KafkaProduceClientFlusher frameProduceRecordContFin = this::flushRecordContFin;
-    private final KafkaProduceClientFlusher rejectAll = this::rejectAll;
+    private final KafkaProduceClientFlusher flushRecordIgnoreAll = this::flushRecordIgnoreAll;
 
     private final KafkaProduceClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaProduceClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -556,7 +556,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         }
         else
         {
-            client.flusher = rejectAll;
+            client.cleanupNetwork(traceId);
+            client.flusher = flushRecordIgnoreAll;
         }
 
         return progress;
@@ -591,7 +592,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         return progress;
     }
 
-    private int rejectAll(
+    private int flushRecordIgnoreAll(
         KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
@@ -603,11 +604,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         int progress,
         int limit)
     {
-        client.cleanupNetwork(traceId);
-
-        progress = limit;
-
-        return progress;
+        return limit;
     }
 
 
