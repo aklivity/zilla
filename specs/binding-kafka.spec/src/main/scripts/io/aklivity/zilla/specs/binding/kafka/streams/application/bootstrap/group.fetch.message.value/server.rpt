@@ -25,7 +25,6 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .merged()
                               .bootstrap()
                                   .topic("test")
                                   .groupId("client-1")

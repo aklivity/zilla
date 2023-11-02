@@ -30,3 +30,15 @@ read  22                                # size
       5s "zilla"                        # no client id
       4s "test"                         # "session" coordinator key
       [0x00]                            # coordinator group type
+
+write 35                                 # size
+      ${newRequestId}
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      9s "localhost"                     # host
+      9092                               # port
+
+read aborted
+write aborted
