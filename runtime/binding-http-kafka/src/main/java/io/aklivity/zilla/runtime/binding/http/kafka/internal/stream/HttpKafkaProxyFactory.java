@@ -1174,7 +1174,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                     replyPadAdjust = reservedPre;
                 }
-                else if (replyMsgs > 0)
+                else if ((flags & DATA_FLAG_INIT) != 0x00 && replyMsgs > 0)
                 {
                     OctetsFW preamble = fetcher.resolved.separator();
                     int reservedSep = preamble.sizeof();
