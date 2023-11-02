@@ -191,3 +191,9 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
 
 <p align="right">(<a href="#top">🔼 Back to top</a>)</p>
+
+## Wall of Contributors
+
+<a href="https://github.com/aklivity/zilla/graphs/contributors">
+<img src="https://contrib.rocks/image?repo=aklivity/zilla" />
+</a>
