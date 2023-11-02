@@ -175,7 +175,7 @@ Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedb
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
-##  Many Thanks To Our Contributors
+###  Many Thanks To Our Contributors!
 <a href="https://github.com/aklivity/zilla/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=aklivity/zilla" />
 </a>
