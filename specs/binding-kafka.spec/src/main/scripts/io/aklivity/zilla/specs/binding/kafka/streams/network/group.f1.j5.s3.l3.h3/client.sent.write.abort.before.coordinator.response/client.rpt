@@ -36,3 +36,14 @@ write 22                                # size
       4s "test"                         # "session" coordinator key
       [0x00]                            # coordinator group type
 
+read  35                                 # size
+      (int:newRequestId)
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      9s "localhost"                     # host
+      9092                               # port
+
+write abort
+read abort
