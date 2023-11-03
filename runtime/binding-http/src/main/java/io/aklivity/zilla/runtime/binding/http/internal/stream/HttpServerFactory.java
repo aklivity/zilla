@@ -2129,18 +2129,28 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
-        private void onInvalidContent(
+        private void onDecodeBodyInvalid(
             long traceId,
             long authorization,
             DirectBuffer error)
         {
-            replyCloseOnFlush = true;
-
-            doNetworkData(traceId, authorization, 0L, error.capacity() + replyPad, error, 0, error.capacity());
-            doNetworkEnd(traceId, authorization);
-
+            HttpExchangeState responseState = exchange.responseState;
             exchange.doRequestAbort(traceId, EMPTY_OCTETS);
             exchange.doResponseReset(traceId);
+
+            if (responseState != HttpExchangeState.OPEN)
+            {
+                replyCloseOnFlush = true;
+                doNetworkData(traceId, authorization, 0L, error.capacity() + replyPad, error, 0, error.capacity());
+                if (encodeSlot == NO_SLOT)
+                {
+                    doNetworkEnd(traceId, authorization);
+                }
+            }
+            else
+            {
+                doNetworkAbort(traceId, authorization);
+            }
         }
 
         private void onDecodeHeadersError(
@@ -2289,7 +2299,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                onInvalidContent(traceId, authorization, ERROR_400_BAD_REQUEST);
+                onDecodeBodyInvalid(traceId, authorization, ERROR_400_BAD_REQUEST);
                 result = limit;
             }
             return result;
@@ -5136,7 +5146,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                        if (!HttpState.replyOpened(exchange.state))
+                        {
+                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                        }
+                        else
+                        {
+                            doEncodeRstStream(traceId, streamId, Http2ErrorCode.CANCEL);
+                        }
                         exchange.doRequestAbort(traceId, EMPTY_OCTETS);
                         exchange.doResponseReset(traceId);
                     }
