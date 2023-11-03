@@ -254,8 +254,8 @@ public final class HttpBindingConfig
             for (HttpRequestType request : requests)
             {
                 boolean isMatch = false;
-                isMatch |= method == null || method.equals(request.method.name());
-                isMatch |= contentType == null || request.contentType.contains(contentType);
+                isMatch |= method == null || request.method == null || method.equals(request.method.name());
+                isMatch |= contentType == null || request.contentType == null || request.contentType.contains(contentType);
                 isMatch &= parseParams(request, path);
                 if (isMatch)
                 {

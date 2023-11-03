@@ -22,6 +22,9 @@ bindings:
     kind: server
     options:
       requests:
+        - path: /hello
+          method: GET
+          content: test
         - path: /valid/{category}/{id}
           method: POST
           content-type:
