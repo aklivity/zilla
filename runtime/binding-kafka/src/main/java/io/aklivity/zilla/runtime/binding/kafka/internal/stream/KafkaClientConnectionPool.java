@@ -1306,8 +1306,7 @@ public final class KafkaClientConnectionPool
                     maxReplyPad = stream.replyPad;
                     minReplyMax = stream.replyMax;
 
-                    if (!KafkaState.replyClosed(stream.state) &&
-                        (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty()))
+                    if (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty())
                     {
                         if (!stream.replySeqOffset.isEmpty())
                         {
