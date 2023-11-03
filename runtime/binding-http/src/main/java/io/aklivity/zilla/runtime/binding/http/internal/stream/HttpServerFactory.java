@@ -2130,7 +2130,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void onInvalidContent(
-            HttpExchange exchange,
             long traceId,
             long authorization,
             DirectBuffer error)
@@ -2141,6 +2140,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             doNetworkEnd(traceId, authorization);
 
             exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+            exchange.doResponseReset(traceId);
         }
 
         private void onDecodeHeadersError(
@@ -2289,7 +2289,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                onInvalidContent(exchange, traceId, authorization, ERROR_400_BAD_REQUEST);
+                onInvalidContent(traceId, authorization, ERROR_400_BAD_REQUEST);
                 result = limit;
             }
             return result;
@@ -5138,6 +5138,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                         exchange.doRequestAbort(traceId, EMPTY_OCTETS);
+                        exchange.doResponseReset(traceId);
                     }
                 }
             }

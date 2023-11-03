@@ -35,3 +35,4 @@ connected
 
 # We receive an abort frame as the content is invalid
 write abort
+read abort
