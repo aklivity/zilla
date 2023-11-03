@@ -50,7 +50,7 @@ public final class LogStreamsCommand implements Runnable
     private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
-    private final boolean isPayloadIncluded;
+    private final boolean withPayload;
     private final long affinity;
     private final SpyPosition position;
     private final Logger out;
@@ -64,7 +64,7 @@ public final class LogStreamsCommand implements Runnable
         Predicate<String> hasExtensionType,
         boolean verbose,
         boolean continuous,
-        boolean isPayloadIncluded,
+        boolean withPayload,
         long affinity,
         SpyPosition position)
     {
@@ -72,7 +72,7 @@ public final class LogStreamsCommand implements Runnable
         this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
-        this.isPayloadIncluded = isPayloadIncluded;
+        this.withPayload = withPayload;
         this.affinity = affinity;
         this.position = position;
         this.out = out;
@@ -107,7 +107,7 @@ public final class LogStreamsCommand implements Runnable
                 .spyAt(position)
                 .build();
 
-        return new LoggableStream(index, labels, layout, out, hasFrameType, hasExtensionType, isPayloadIncluded,
+        return new LoggableStream(index, labels, layout, out, hasFrameType, hasExtensionType, withPayload,
             this::nextTimestamp);
     }
 

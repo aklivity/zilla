@@ -157,7 +157,7 @@ public final class LoggableStream implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
-    private final boolean isPayloadIncluded;
+    private final boolean withPayload;
     private final LongPredicate nextTimestamp;
 
     private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
@@ -174,7 +174,7 @@ public final class LoggableStream implements AutoCloseable
         Logger logger,
         Predicate<String> hasFrameType,
         Predicate<String> hasExtensionType,
-        boolean isPayloadIncluded,
+        boolean withPayload,
         LongPredicate nextTimestamp)
     {
         this.index = index;
@@ -186,7 +186,7 @@ public final class LoggableStream implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.out = logger;
-        this.isPayloadIncluded = isPayloadIncluded;
+        this.withPayload = withPayload;
         this.nextTimestamp = nextTimestamp;
 
         final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
@@ -390,9 +390,19 @@ public final class LoggableStream implements AutoCloseable
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
                     budgetId, length, reserved, flags, authorization));
 
-        if (isPayloadIncluded)
+        if (withPayload)
         {
-            onDataPayload(data);
+            final OctetsFW payload = data.payload();
+            if (payload != null)
+            {
+                StringBuilder hexData = new StringBuilder();
+                for (int i = 0; i < data.length(); i++)
+                {
+                    hexData.append(String.format("%02x", payload.buffer().getByte(payload.offset() + i)));
+                    hexData.append(i < data.length() - 1 ? ':' : "");
+                }
+                out.printf(verboseFormat, index, offset, timestamp, hexData);
+            }
         }
 
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
@@ -403,25 +413,6 @@ public final class LoggableStream implements AutoCloseable
             {
                 dataHandler.accept(data);
             }
-        }
-    }
-
-    private void onDataPayload(
-        final DataFW data)
-    {
-        final int offset = data.offset() - HEADER_LENGTH;
-        final long timestamp = data.timestamp();
-        final OctetsFW payload = data.payload();
-
-        if (payload != null)
-        {
-            StringBuilder hexData = new StringBuilder();
-            for (int i = 0; i < data.length(); i++)
-            {
-                hexData.append(String.format("%02x", payload.buffer().getByte(payload.offset() + i)));
-                hexData.append(i < data.length() - 1 ? ':' : "");
-            }
-            out.printf(verboseFormat, index, offset, timestamp, hexData);
         }
     }
 

@@ -72,7 +72,7 @@ public final class LogCommand
 
         final boolean hasVersion = cmdline.hasOption("version");
         final boolean hasDirectory = cmdline.hasOption("directory");
-        final boolean isPayloadIncluded = cmdline.hasOption("payload");
+        final boolean hasPayload = cmdline.hasOption("payload");
         final boolean hasHelp = cmdline.hasOption("help");
 
         if (hasVersion)
@@ -122,7 +122,7 @@ public final class LogCommand
                     frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
 
                 command = new LogStreamsCommand(config, out, hasFrameTypes, hasExtensionType, verbose,
-                    continuous, isPayloadIncluded, affinity, position);
+                    continuous, hasPayload, affinity, position);
             }
             else if ("buffers".equals(type))
             {
