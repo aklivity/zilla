@@ -982,8 +982,8 @@ public final class KafkaClientConnectionPool
 
 
         private long doStreamSignalAt(
-            long timeMillis,
             long traceId,
+            long timeMillis,
             int signalId)
         {
             return connection.doConnectionSignalAt(initialId, traceId, timeMillis, signalId);
