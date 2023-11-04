@@ -2,7 +2,7 @@
 
 [![Slack Community][community-image]][community-join]
 
-This repo contains a collection of [example folders](#examples) that can be used individually to demonstrate a some of Zilla's features. If this is your first step on your journey with Zilla we would encourage you to try our [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html).
+This repo contains a collection of [example folders](#examples) that can be used individually to demonstrate some of Zilla's features. If this is your first step on your journey with Zilla, we would encourage you to try our [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html).
 
 ## Prerequisites
 
