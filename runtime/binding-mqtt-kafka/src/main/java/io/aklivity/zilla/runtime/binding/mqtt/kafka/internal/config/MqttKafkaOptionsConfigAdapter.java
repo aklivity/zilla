@@ -15,7 +15,12 @@
 
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -29,6 +34,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 {
     private static final String TOPICS_NAME = "topics";
     private static final String SERVER_NAME = "server";
+    private static final String CLIENTS_NAME = "clients";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
@@ -55,6 +61,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         String serverRef = mqttKafkaOptions.serverRef;
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
+        List<String> clients = mqttKafkaOptions.clients;
 
         if (serverRef != null)
         {
@@ -83,6 +90,12 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             object.add(TOPICS_NAME, newTopics);
         }
+        if (clients != null && !clients.isEmpty())
+        {
+            JsonArrayBuilder clientsBuilder = Json.createArrayBuilder();
+            clients.forEach(clientsBuilder::add);
+            object.add(CLIENTS_NAME, clientsBuilder.build());
+        }
 
         return object.build();
     }
@@ -93,6 +106,16 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     {
         JsonObject topics = object.getJsonObject(TOPICS_NAME);
         String server = object.getString(SERVER_NAME, null);
+        JsonArray clientsJson = object.getJsonArray(CLIENTS_NAME);
+
+        List<String> clients = new ArrayList<>();
+        if (clientsJson != null)
+        {
+            for (int i = 0; i < clientsJson.size(); i++)
+            {
+                clients.add(clientsJson.getString(i));
+            }
+        }
 
         String16FW newSessions = new String16FW(topics.getString(SESSIONS_NAME));
         String16FW newMessages = new String16FW(topics.getString(MESSAGES_NAME));
@@ -100,6 +123,6 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         MqttKafkaTopicsConfig newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
 
-        return new MqttKafkaOptionsConfig(newTopics, server);
+        return new MqttKafkaOptionsConfig(newTopics, server, clients);
     }
 }

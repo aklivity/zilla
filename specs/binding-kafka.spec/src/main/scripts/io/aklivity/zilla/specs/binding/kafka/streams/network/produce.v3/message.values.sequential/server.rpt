@@ -74,7 +74,7 @@ read zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-read 7690
+read 7278
      0s
      3s
      (int:requestId)
@@ -86,9 +86,9 @@ read 7690
      4s "test"
      1
      0
-     7650                               # record set size
+     7238                               # record set size
      0L                                 # first offset
-     7638                               # length
+     7226                               # length
      -1
      [0x02]
      [0..4]
@@ -100,13 +100,13 @@ read 7690
      -1s
      -1
      1                                  # records
-     ${kafka:varint(7587)}
+     ${kafka:varint(7175)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
      ${kafka:varint(-1)}                # key
-     ${kafka:varint(7580)}              # value
-     [0..7580]
+     ${kafka:varint(7168)}              # value
+     [0..7168]
      ${kafka:varint(0)}                 # headers
 
 write 44

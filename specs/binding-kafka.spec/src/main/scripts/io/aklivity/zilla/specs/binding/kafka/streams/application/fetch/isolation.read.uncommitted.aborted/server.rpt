@@ -98,6 +98,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world"
 write flush
 
+write await RECEIVED_SKIPPED_MESSAGE
+
 write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()

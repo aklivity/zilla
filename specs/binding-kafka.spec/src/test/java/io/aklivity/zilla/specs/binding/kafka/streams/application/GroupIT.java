@@ -65,6 +65,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/client.sent.read.abort.after.sync.group.response/client",
+        "${app}/client.sent.read.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/leader/client",
         "${app}/leader/server"})
     public void shouldBecameLeader() throws Exception

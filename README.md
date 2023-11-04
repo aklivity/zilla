@@ -1,3 +1,4 @@
+<div id="top"></div>
 <div align="center">
   <img src="./assets/zilla-rings@2x.png" height="250">
 </div>
@@ -61,7 +62,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
 - [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
-- [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
+- [x] **Continuous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### <a name="grpc-kafka-proxying"> gRPC-Kafka Proxying
 
@@ -86,7 +87,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Filtering** — Local cache indexes message key and headers upon retrieval from Kafka, supporting efficiently filtered reads from cached topics.
 - [x] **Fan-in, Fan-out** — Local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
 - [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
-- [x] **Helm Chart** — Generic Zilla Helm chart avaliable.
+- [x] **Helm Chart** — Generic Zilla Helm chart available.
 - [x] **Auto-reconfigure** — Detect changes in `zilla.yaml` and reconfigure Zilla automatically.
 - [x] **Prometheus Integration** — Export Zilla metrics to Prometheus for observability and auto-scaling.
 - [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.
@@ -174,8 +175,13 @@ Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedb
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
+###  Many Thanks To Our Contributors!
+<a href="https://github.com/aklivity/zilla/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=aklivity/zilla" />
+</a>
+
 ## <a name="license"> License
-Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a commercialized “as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
 
 <!-- Links -->
@@ -188,3 +194,5 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
 [release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>

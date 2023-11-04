@@ -1423,6 +1423,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedInitial(state);
 
             clusterClient.doNetworkAbort(traceId);
+            describeClient.doNetworkAbort(traceId);
             coordinatorClient.doNetworkAbort(traceId);
 
             cleanupStream(traceId, ERROR_NONE);
@@ -1455,9 +1456,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             clusterClient.doNetworkReset(traceId);
+            describeClient.doNetworkReset(traceId);
+            coordinatorClient.doNetworkReset(traceId);
         }
 
         private boolean isStreamReplyOpen()
@@ -2338,9 +2341,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization)
         {
-            replySeq = 0;
-            replyAck = 0;
-
             doNetworkEnd(traceId, authorization);
             doNetworkReset(traceId);
         }
@@ -2718,7 +2718,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doNetworkAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpened(state) && !KafkaState.initialClosed(state))
             {
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -3371,6 +3371,16 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             case SIGNAL_SYNC_GROUP_REQUEST:
                 assignment = payload;
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
+
+                if (decoder != decodeSyncGroupResponse)
+                {
+                    final DirectBuffer buffer = payload.value();
+                    final int offset = 0;
+                    final int sizeof = payload.sizeof();
+
+                    signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+                        buffer, offset, sizeof);
+                }
                 break;
             case SIGNAL_HEARTBEAT_REQUEST:
                 encoders.add(encodeHeartbeatRequest);
@@ -3938,7 +3948,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
 
-            if (!memberId.equals(UNKNOWN_MEMBER_ID))
+            if (KafkaState.initialOpened(state) &&
+                !memberId.equals(UNKNOWN_MEMBER_ID))
             {
                 if (heartbeatRequestId != NO_CANCEL_ID)
                 {
@@ -3959,10 +3970,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 heartbeatRequestId = NO_CANCEL_ID;
             }
 
-            encoders.add(encodeLeaveGroupRequest);
+            final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
 
-            if (KafkaState.initialOpened(state))
+            if (KafkaState.initialOpened(state) &&
+                !memberId.equals(UNKNOWN_MEMBER_ID))
             {
+                encoders.add(encodeLeaveGroupRequest);
                 signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
         }

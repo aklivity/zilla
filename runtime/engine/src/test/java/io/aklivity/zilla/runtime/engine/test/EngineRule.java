@@ -303,6 +303,7 @@ public final class EngineRule implements TestRule
                 final List<Throwable> errors = new ArrayList<>();
                 final ErrorHandler errorHandler = ex ->
                 {
+                    ex.printStackTrace();
                     errors.add(ex);
                     baseThread.interrupt();
                 };

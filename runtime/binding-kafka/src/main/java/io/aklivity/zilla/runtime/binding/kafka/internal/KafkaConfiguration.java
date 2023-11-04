@@ -39,6 +39,7 @@ public class KafkaConfiguration extends Configuration
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
+    public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS;
@@ -47,6 +48,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE;
     public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
@@ -80,6 +82,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
+        KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS = config.property("client.connection.pool.cleanup.millis", 4 * 1000L);
         KAFKA_CLIENT_META_MAX_AGE_MILLIS = config.property("client.meta.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS = config.property("client.describe.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS = config.property("client.fetch.max.wait.millis", 1 * 60 * 1000);
@@ -88,6 +91,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
+        KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE = config.property("client.produce.record.framing.size", 512);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
@@ -132,6 +136,11 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_MAX_IDLE_MILLIS.getAsInt(this);
     }
 
+    public long clientConnectionPoolCleanupMillis()
+    {
+        return KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS.getAsLong(this);
+    }
+
     public long clientMetaMaxAgeMillis()
     {
         return KAFKA_CLIENT_META_MAX_AGE_MILLIS.getAsInt(this);
@@ -170,6 +179,11 @@ public class KafkaConfiguration extends Configuration
     public int clientProduceMaxBytes()
     {
         return KAFKA_CLIENT_PRODUCE_MAX_BYTES.getAsInt(this);
+    }
+
+    public int clientProduceRecordFramingSize()
+    {
+        return KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE.getAsInt(this);
     }
 
     public Path cacheDirectory()

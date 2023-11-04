@@ -181,6 +181,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.space/client",
+        "${kafka}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.client.topic.space/client",
+        "${kafka}/publish.client.topic.space/server"})
+    public void shouldSendUsingClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.with.user.properties.distinct/client",
         "${kafka}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
@@ -463,6 +481,51 @@ public class KafkaIT
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.space/client",
+        "${kafka}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.client.topic.space/client",
+        "${kafka}/subscribe.client.topic.space/server"})
+    public void shouldFilterClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.end.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.end.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.abort.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.abort.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.reset.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.reset.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaReset() throws Exception
     {
         k3po.finish();
     }
