@@ -158,6 +158,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final KafkaProduceClientFlusher flushRecord = this::flushRecord;
     private final KafkaProduceClientFlusher flushRecordInit = this::flushRecordInit;
     private final KafkaProduceClientFlusher frameProduceRecordContFin = this::flushRecordContFin;
+    private final KafkaProduceClientFlusher flushRecordIgnoreAll = this::flushRecordIgnoreAll;
 
     private final KafkaProduceClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaProduceClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -539,8 +540,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         final int valueSize = payload != null ? payload.sizeof() : 0;
         client.valueCompleteSize = valueSize + client.encodeableRecordBytesDeferred;
 
-
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
+
         if (client.encodeSlot != NO_SLOT &&
             maxEncodeableBytes > encodePool.slotCapacity())
         {
@@ -548,8 +549,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         }
 
         client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers);
-        client.flusher = frameProduceRecordContFin;
-        client.flushFlags = FLAGS_INIT;
+        if (client.encodeSlot != NO_SLOT)
+        {
+            client.flusher = frameProduceRecordContFin;
+            client.flushFlags = FLAGS_INIT;
+        }
+        else
+        {
+            client.cleanupNetwork(traceId);
+            client.flusher = flushRecordIgnoreAll;
+        }
 
         return progress;
     }
@@ -582,6 +591,22 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
         return progress;
     }
+
+    private int flushRecordIgnoreAll(
+        KafkaProduceStream.KafkaProduceClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        OctetsFW extension,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
 
     @FunctionalInterface
     private interface KafkaProduceClientDecoder
@@ -1651,26 +1676,28 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotLimit = encodeSlotOffset;
                 }
 
-                assert encodeSlot != NO_SLOT;
-                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
-
-                encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
-                encodeSlotLimit += encodeProgress;
-                encodeableRecordValueBytes = 0;
-
-                if (headersCount > 0)
+                if (encodeSlot != NO_SLOT)
                 {
-                    flushableRecordHeadersBytes = headers.sizeof();
+                    final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
-                    final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
-                    encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
+                    encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
+                    encodeSlotLimit += encodeProgress;
+                    encodeableRecordValueBytes = 0;
+
+                    if (headersCount > 0)
+                    {
+                        flushableRecordHeadersBytes = headers.sizeof();
+
+                        final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
+                        encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
                             flushableRecordHeadersBytes);
+                    }
+
+                    encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
+
+                    encodeableRecordCount++;
+                    encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
                 }
-
-                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
-
-                encodeableRecordCount++;
-                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
             }
 
             private void doEncodeRecordCont(

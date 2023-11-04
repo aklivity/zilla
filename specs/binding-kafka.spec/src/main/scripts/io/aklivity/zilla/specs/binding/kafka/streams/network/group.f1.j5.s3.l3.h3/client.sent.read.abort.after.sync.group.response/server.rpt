@@ -74,8 +74,8 @@ write 103                                                # size
           [0x00]                                          # not default
           [0x00]                                          # not sensitive
 
-write abort
 read aborted
+write aborted
 
 accepted
 
@@ -160,5 +160,5 @@ write 14                                                # size
       0s                                                # no error
       0                                                 # assignment
 
-read abort
+read aborted
 write aborted
