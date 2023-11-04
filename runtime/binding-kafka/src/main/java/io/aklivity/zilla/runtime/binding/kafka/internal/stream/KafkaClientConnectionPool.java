@@ -982,8 +982,8 @@ public final class KafkaClientConnectionPool
 
 
         private long doStreamSignalAt(
-            long timeMillis,
             long traceId,
+            long timeMillis,
             int signalId)
         {
             return connection.doConnectionSignalAt(initialId, traceId, timeMillis, signalId);
@@ -1306,8 +1306,7 @@ public final class KafkaClientConnectionPool
                     maxReplyPad = stream.replyPad;
                     minReplyMax = stream.replyMax;
 
-                    if (!KafkaState.replyClosed(stream.state) &&
-                        (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty()))
+                    if (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty())
                     {
                         if (!stream.replySeqOffset.isEmpty())
                         {
