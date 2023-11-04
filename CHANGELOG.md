@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.56...HEAD)
+
+**Fixed bugs:**
+
+- \[Connection Pool\] binding.kafka.internal.stream.KafkaClientConnectionPool$KafkaClientConnection.doConnectionWindow\(KafkaClientConnectionPool.java:1318\) [\#565](https://github.com/aklivity/zilla/issues/565)
+- \[MQTT-Kafka\] Randomly closing the connection in the middle of produce triggers the exception [\#559](https://github.com/aklivity/zilla/issues/559)
+- Gracefully handle out of slot exception in kafka cache client produce [\#558](https://github.com/aklivity/zilla/issues/558)
+- \[Connection Pool\] Signaling can trigger exception [\#557](https://github.com/aklivity/zilla/issues/557)
+- `http-kafka` fetch binding returns malformed JSON when the payload is large  [\#528](https://github.com/aklivity/zilla/issues/528)
+
+**Merged pull requests:**
+
+- Ignore removing ack before receiving complete response even if the stream reply is closed [\#566](https://github.com/aklivity/zilla/pull/566) ([akrambek](https://github.com/akrambek))
+- Fix bootstrap test [\#562](https://github.com/aklivity/zilla/pull/562) ([bmaidics](https://github.com/bmaidics))
+- Gracefully handle out of slot exception in kafka client produce [\#561](https://github.com/aklivity/zilla/pull/561) ([akrambek](https://github.com/akrambek))
+- Better handling negative  edge cases in the connection pool [\#560](https://github.com/aklivity/zilla/pull/560) ([akrambek](https://github.com/akrambek))
+- Handle fragmentation in HttpFetchManyProxy [\#556](https://github.com/aklivity/zilla/pull/556) ([akrambek](https://github.com/akrambek))
+- Added Contributors section in readme [\#553](https://github.com/aklivity/zilla/pull/553) ([DhanushNehru](https://github.com/DhanushNehru))
+- Fix: Added Contribution Section to Readme [\#550](https://github.com/aklivity/zilla/pull/550) ([Kalyanimhala](https://github.com/Kalyanimhala))
+
 ## [0.9.56](https://github.com/aklivity/zilla/tree/0.9.56) (2023-10-31)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.55...0.9.56)
