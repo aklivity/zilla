@@ -119,7 +119,7 @@ elif [[ $START_KAFKA == true ]]; then
     KAFKA_PORT=29092
     chmod u+x teardown.sh
     KAKFA_TEARDOWN_SCRIPT="$(pwd)/teardown.sh"
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Starting Kafka Use this script to teardown: $KAKFA_TEARDOWN_SCRIPT ===="
     sh setup.sh
     echo "Kafka started at $KAFKA_HOST:$KAFKA_PORT"
@@ -143,7 +143,7 @@ if [[ $USE_HELM == false && -d "$WORKDIR/$EXAMPLE_FOLDER/$COMPOSE_FOLDER" ]]; th
     cd "$WORKDIR"/"$EXAMPLE_FOLDER"/"$COMPOSE_FOLDER"
     chmod u+x teardown.sh
     TEARDOWN_SCRIPT="$(pwd)/teardown.sh"
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Starting Zilla $EXAMPLE_FOLDER with Compose. Use this script to teardown: $(pwd)/teardown.sh ===="
     sh setup.sh
 fi
@@ -166,35 +166,36 @@ if [[ $USE_HELM == true ]]; then
 
     chmod u+x teardown.sh
     TEARDOWN_SCRIPT="$(pwd)/teardown.sh"
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Starting Zilla $EXAMPLE_FOLDER with Helm. Use this script to teardown: $(pwd)/teardown.sh ===="
     sh setup.sh
 fi
 
 if [[ -n "$KAFKA_HOST" && -n "$KAFKA_PORT" ]]; then
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Verify the Kafka topics created ===="
     echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b $KAFKA_HOST:$KAFKA_PORT -L"
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Start a topic consumer to listen for messages ===="
     KCAT_FORMAT="'%t [%p:%o] | %h | %k:%s\n'"
     echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b $KAFKA_HOST:$KAFKA_PORT -C -f $KCAT_FORMAT -t <topic_name>"
 fi
 
-echo -e "\n"
+printf "\n\n"
 echo "==== Check out the README to see how to use this example ==== "
 echo "cd $WORKDIR/$EXAMPLE_FOLDER"
 echo "cat README.md"
-echo -e "$(head -n 4 "$WORKDIR"/"$EXAMPLE_FOLDER"/README.md | tail -n 3)"
+echo "$(head -n 4 "$WORKDIR"/"$EXAMPLE_FOLDER"/README.md | tail -n 3)"
 
-echo -e "\n"
+printf "\n\n"
 echo "==== Finished, use the teardown script(s) to clean up ===="
-echo -e "$TEARDOWN_SCRIPT\n$KAKFA_TEARDOWN_SCRIPT\n"
+printf '%s\n' "$TEARDOWN_SCRIPT" "$KAKFA_TEARDOWN_SCRIPT"
 
 if [[ $AUTO_TEARDOWN == true ]]; then
-    echo -e "\n"
+    printf "\n\n"
     echo "==== Auto teardown ===="
-    echo -e "$TEARDOWN_SCRIPT\n$KAKFA_TEARDOWN_SCRIPT\n"
+    printf '%s\n' "$TEARDOWN_SCRIPT" "$KAKFA_TEARDOWN_SCRIPT"
     [[ -n "$TEARDOWN_SCRIPT" ]] && $TEARDOWN_SCRIPT
     [[ -n "$KAKFA_TEARDOWN_SCRIPT" ]] && $KAKFA_TEARDOWN_SCRIPT
 fi
+printf "\n"
