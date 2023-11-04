@@ -1,7 +1,7 @@
 # ws.echo
 
-Listens on ws port `8080` and will echo back whatever is sent to the server.
-Listens on wss port `9090` and will echo back whatever is sent to the server.
+Listens on ws port `7114` and will echo back whatever is sent to the server.
+Listens on wss port `7143` and will echo back whatever is sent to the server.
 
 ### Requirements
 
@@ -26,7 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-ws-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-echo --create-namespace --wait [...]
++ helm upgrade --install zilla-ws-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-echo --create-namespace --wait [...]
 NAME: zilla-ws-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-ws-echo
@@ -35,11 +35,11 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-ws-echo service/zilla-ws-echo 8080 9090
++ nc -z localhost 7114
++ kubectl port-forward --namespace zilla-ws-echo service/zilla 7114 7143
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 ```
 
 ### Install wscat
@@ -51,8 +51,10 @@ npm install wscat -g
 ### Verify behavior
 
 ```bash
-wscat -c ws://localhost:8080/ -s echo
+wscat -c ws://localhost:7114/ -s echo
 ```
+
+Type a `Hello, world` message and press `enter`.
 
 output:
 
@@ -63,8 +65,10 @@ Connected (press CTRL+C to quit)
 ```
 
 ```bash
-wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
+wscat -c wss://localhost:7143/ --ca test-ca.crt -s echo
 ```
+
+Type a `Hello, world` message and press `enter`.
 
 output:
 

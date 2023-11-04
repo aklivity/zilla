@@ -5,5 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla engine
-helm uninstall zilla-tcp-reflect --namespace zilla-tcp-reflect
-kubectl delete namespace zilla-tcp-reflect
+NAMESPACE=zilla-tcp-reflect
+helm uninstall zilla --namespace $NAMESPACE
+kubectl delete namespace $NAMESPACE

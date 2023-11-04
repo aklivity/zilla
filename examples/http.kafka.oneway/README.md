@@ -1,6 +1,6 @@
 # http.kafka.oneway
 
-Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in Kafka, synchronously.
+Listens on http port `7114` or https port `7143` and will produce messages to the `events` topic in Kafka, synchronously.
 
 ### Requirements
 
@@ -34,7 +34,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-kafka-oneway oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-oneway --create-namespace --wait [...]
++ helm upgrade --install zilla-http-kafka-oneway oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-oneway --create-namespace --wait [...]
 NAME: zilla-http-kafka-oneway
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-oneway
@@ -43,7 +43,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-http-kafka-oneway-kafka chart --namespace zilla-http-kafka-oneway --create-namespace --wait
++ helm upgrade --install zilla-http-kafka-oneway-kafka chart --namespace zilla-http-kafka-oneway --create-namespace --wait
 NAME: zilla-http-kafka-oneway-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-oneway
@@ -54,12 +54,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-1234567890-abcde
 + kubectl exec --namespace zilla-http-kafka-oneway pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic events --if-not-exists
 Created topic events.
-+ kubectl port-forward --namespace zilla-http-kafka-oneway service/zilla-http-kafka-oneway-kafka 8080 9090
-+ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-oneway service/zilla 7114 7143
++ nc -z localhost 7114
 + kubectl port-forward --namespace zilla-http-kafka-oneway service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -70,7 +70,7 @@ Send a `POST` request with an event body.
 
 ```bash
 curl -v \
-       -X "POST" http://localhost:8080/events \
+       -X "POST" http://localhost:7114/events \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
 ```
@@ -89,6 +89,11 @@ Verify that the event has been produced to the `events` Kafka topic.
 
 ```bash
 kcat -C -b localhost:9092 -t events -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "events",
   "partition": 0,
@@ -102,11 +107,6 @@ kcat -C -b localhost:9092 -t events -J -u | jq .
   ],
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
-```
-
-output:
-
-```text
 % Reached end of topic events [0] at offset 1
 ```
 

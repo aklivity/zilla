@@ -1,6 +1,6 @@
 {
     "BROKER_URL": "zilla",
-    "BROKER_PORT": 1883,
+    "BROKER_PORT": 7183,
     "PROTOCOL_VERSION": 5,
     "CLEAN_SESSION": false,
     "QOS": 0,
@@ -10,7 +10,7 @@
             "TYPE": "multiple",
             "PREFIX": "lamp",
             "RANGE_START": 1,
-            "RANGE_END": 200,
+            "RANGE_END": 2,
             "TIME_INTERVAL": 4,
             "DATA": [
                 {

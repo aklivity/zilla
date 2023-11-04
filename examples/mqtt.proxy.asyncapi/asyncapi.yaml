@@ -6,7 +6,7 @@ info:
     name: Aklivity Community License
 servers:
   plain:
-    host: mqtt://localhost:1883
+    host: mqtt://localhost:7183
     protocol: mqtt
 defaultContentType: application/json
 

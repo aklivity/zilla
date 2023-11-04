@@ -1,6 +1,6 @@
 # http.kafka.sasl.scram
 
-Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in `SASL/SCRAM` enabled Kafka, synchronously.
+Listens on http port `7114` or https port `7143` and will produce messages to the `events` topic in `SASL/SCRAM` enabled Kafka, synchronously.
 
 ### Requirements
 
@@ -35,7 +35,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-kafka-sasl-scram oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-sasl-scram --create-namespace --wait [...]
++ helm upgrade --install zilla-http-kafka-sasl-scram oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-sasl-scram --create-namespace --wait [...]
 NAME: zilla-http-kafka-sasl-scram
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-sasl-scram
@@ -44,7 +44,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-http-kafka-sasl-scram-kafka chart --namespace zilla-http-kafka-sasl-scram --create-namespace --wait
++ helm upgrade --install zilla-http-kafka-sasl-scram-kafka chart --namespace zilla-http-kafka-sasl-scram --create-namespace --wait
 NAME: zilla-http-kafka-sasl-scram-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-sasl-scram
@@ -57,12 +57,12 @@ TEST SUITE: None
 Created topic events.
 + kubectl exec --namespace zilla-http-kafka-sasl-scram pod/kafka-1234567890-abcde --container kafka -- /opt/bitnami/kafka/bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --add-config 'SCRAM-SHA-256=[iterations=8192,password=bitnami],SCRAM-SHA-512=[password=bitnami]' --entity-type users --entity-name user
 Completed updating config for user user.
-+ nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-http-kafka-sasl-scram service/zilla-http-kafka-sasl-scram 8080 9090
++ nc -z localhost 7114
++ kubectl port-forward --namespace zilla-http-kafka-sasl-scram service/zilla 7114 7143
 + kubectl port-forward --namespace zilla-http-kafka-sasl-scram service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -73,7 +73,7 @@ Send a `POST` request with an event body.
 
 ```bash
 curl -v \
-       -X "POST" http://localhost:8080/events \
+       -X "POST" http://localhost:7114/events \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
 ```
@@ -92,6 +92,11 @@ Verify that the event has been produced to the `events` Kafka topic.
 
 ```bash
 kcat -C -b localhost:9092 -t events -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "events",
   "partition": 0,
@@ -105,11 +110,6 @@ kcat -C -b localhost:9092 -t events -J -u | jq .
   ],
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
-```
-
-output:
-
-```text
 % Reached end of topic events [0] at offset 1
 ```
 

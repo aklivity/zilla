@@ -4,7 +4,7 @@ This is the resource folder for the running the [MQTT Kafka broker guide](https:
 
 ## Running locally
 
-This example can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./compose) and [k8s](./k8s/) folders respectively and work the same way.
+This example can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./docker/compose) and [helm](./k8s/helm) folders respectively and work the same way.
 
 You will need a running kafka broker. To start one locally you will find instructions in the [kafka.broker](../kafka.broker) folder. You will need to export the below environment variables before running the setup script.
 
@@ -15,7 +15,7 @@ export KAFKA_PORT=29092
 
 ### Setup
 
-Wether you chose [compose](./compose) or [k8s](./k8s/), the `setup.sh` script will:
+Wether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
 
 - create the necessary kafka topics
 - create an MQTT broker at `http://localhost:7183`

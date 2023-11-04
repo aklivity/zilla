@@ -1,6 +1,6 @@
 # grpc.echo
 
-Listens on tcp port `9090` and will echo grpc message sent by client.
+Listens on tcp port `7153` and will echo grpc message sent by client.
 
 ### Requirements
 
@@ -8,7 +8,7 @@ Listens on tcp port `9090` and will echo grpc message sent by client.
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
-- ghz
+- [ghz](https://ghz.sh/docs/install)
 
 ### Setup
 
@@ -25,7 +25,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-echo --wait [...]
++ helm upgrade --install zilla-grpc-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-echo --wait [...]
 NAME: zilla-grpc-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-echo
@@ -34,11 +34,11 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ nc -z localhost 9090
-+ kubectl port-forward --namespace zilla-grpc-echo service/zilla-grpc-echo 9090
++ nc -z localhost 7153
++ kubectl port-forward --namespace zilla-grpc-echo service/zilla 7153
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/italk] succeeded!
++ nc -z localhost 7153
+Connection to localhost port 7153 [tcp/italk] succeeded!
 ```
 
 ### Verify behavior
@@ -48,7 +48,7 @@ Connection to localhost port 9090 [tcp/italk] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` command.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
 ```
 
 output:
@@ -64,7 +64,7 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
@@ -81,7 +81,7 @@ Paste below message.
 ghz --config bench.json \
     --proto proto/echo.proto \
     --call example.EchoService/EchoBidiStream \
-    localhost:9090
+    localhost:7153
 ```
 
 ### Teardown

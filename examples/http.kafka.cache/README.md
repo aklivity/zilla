@@ -1,6 +1,6 @@
 # http.kafka.cache
 
-Listens on http port `8080` or https port `9090` and will serve cached responses from the `items-snapshots` topic in Kafka.
+Listens on http port `7114` or https port `7143` and will serve cached responses from the `items-snapshots` topic in Kafka.
 
 ### Requirements
 
@@ -34,7 +34,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-kafka-cache oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-cache --create-namespace --wait [...]
++ helm upgrade --install zilla-http-kafka-cache oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-cache --create-namespace --wait [...]
 NAME: zilla-http-kafka-cache
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-cache
@@ -42,7 +42,7 @@ STATUS: deployed
 REVISION: 1
 Zilla has been installed.
 [...]
-+ helm install zilla-http-kafka-cache-kafka chart --namespace zilla-http-kafka-cache --create-namespace --wait
++ helm upgrade --install zilla-http-kafka-cache-kafka chart --namespace zilla-http-kafka-cache --create-namespace --wait
 NAME: zilla-http-kafka-async-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-async
@@ -53,12 +53,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/1234567890-abcde
 + kubectl exec --namespace zilla-http-kafka-cache pod/1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-snapshots --config cleanup.policy=compact --if-not-exists
 Created topic items-snapshots.
-+ kubectl port-forward --namespace zilla-http-kafka-cache service/zilla-http-kafka-cache 8080 9090
-+ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-cache service/zilla 7114 7143
++ nc -z localhost 7114
 + kubectl port-forward --namespace zilla-http-kafka-cache service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -68,7 +68,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Retrieve all the items, initially returns empty array.
 
 ```bash
-curl -v http://localhost:8080/items
+curl -v http://localhost:7114/items
 ```
 
 output:
@@ -87,7 +87,7 @@ output:
 Retrieve all the items again, if not matching the previous `etag`, returns not modified.
 
 ```bash
-curl -v http://localhost:8080/items \
+curl -v http://localhost:7114/items \
        -H "If-None-Match: AQIAAQ=="
 ```
 
@@ -107,7 +107,7 @@ output:
 Retrieve a specific item, initially not found after `5 seconds`.
 
 ```bash
-curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Prefer: wait=5"
 ```
 
@@ -136,7 +136,7 @@ echo "{\"greeting\":\"Hello, world `date`\"}" | \
 Retrieve a specific item again, now returned.
 
 ```bash
-curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Prefer: wait=5"
 ```
 
@@ -157,7 +157,7 @@ output:
 Retrieve a specific item again, if not matching the previous `etag`, returns not modified.
 
 ```bash
-curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg=="
 ```
 
@@ -174,10 +174,10 @@ output:
 ...
 ```
 
-Retrieve a specific item again, if not matching the previous `etag`, prefering to wait. After 5 seconds, returns not modified.
+Retrieve a specific item again, if not matching the previous `etag`, preferring to wait. After 5 seconds, returns not modified.
 
 ```bash
-curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg==" \
        -H "Prefer: wait=5"
 ```
@@ -196,10 +196,10 @@ output:
 ...
 ```
 
-Retrieve a specific item again, if not matching the previous `etag`, prefering to wait for 60 seconds.
+Retrieve a specific item again, if not matching the previous `etag`, preferring to wait for 60 seconds.
 
 ```bash
-curl -v http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "If-None-Match: AQIAAg==" \
        -H "Prefer: wait=60"
 ```
@@ -234,7 +234,7 @@ echo "{\"greeting\":\"Hello, world `date`\"}" | \
 Retrieve all the items, returns array with one item.
 
 ```bash
-curl -v http://localhost:8080/items
+curl -v http://localhost:7114/items
 ```
 
 output:

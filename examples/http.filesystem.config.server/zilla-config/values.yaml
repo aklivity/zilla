@@ -2,14 +2,14 @@ env:
   - name: KEYSTORE_PASSWORD
     value: generated
 
-livenessProbePort: 8081
-readinessProbePort: 8081
+livenessProbePort: 7115
+readinessProbePort: 7115
 
 service:
   ports:
-    - port: 8081
+    - port: 7115
       name: http
-    - port: 9091
+    - port: 7144
       name: https
 
 persistentVolumeClaims:

@@ -26,7 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-kafka-crud oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-crud --create-namespace --wait [...]
++ helm upgrade --install zilla-http-kafka-crud oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-crud --create-namespace --wait [...]
 NAME: zilla-http-kafka-crud
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-crud
@@ -35,7 +35,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-http-kafka-crud-kafka chart --namespace zilla-http-kafka-crud --create-namespace --wait
++ helm upgrade --install zilla-http-kafka-crud-kafka chart --namespace zilla-http-kafka-crud --create-namespace --wait
 NAME: zilla-http-kafka-crud-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-kafka-crud
@@ -46,12 +46,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-1234567890-abcde
 + kubectl exec --namespace zilla-http-kafka-crud pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-snapshots --config cleanup.policy=compact --if-not-exists
 Created topic items-snapshots.
-+ kubectl port-forward --namespace zilla-http-kafka-crud service/zilla-http-kafka-crud 8080 9090
-+ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-crud service/zilla 7114 7143
++ nc -z localhost 7114
 + kubectl port-forward --namespace zilla-http-kafka-crud service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -73,7 +73,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Note: You can remove `-H 'Idempotency-Key: 1'` to generate random key.
 
 ```bash
-curl -k -v -X POST https://localhost:9090/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
+curl -k -v -X POST https://localhost:7143/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
 ```
 
 output:
@@ -81,7 +81,7 @@ output:
 ```text
 ...
 POST /items HTTP/2
-Host: localhost:9090
+Host: localhost:7143
 user-agent: curl/7.85.0
 accept: */*
 idempotency-key: 2
@@ -95,7 +95,7 @@ HTTP/2 204
 `GET` request to fetch specific item.
 
 ```bash
-curl -k -v https://localhost:9090/items/1
+curl -k -v https://localhost:7143/items/1
 ```
 
 output:
@@ -115,7 +115,7 @@ output:
 `PUT` request to update specific item.
 
 ```bash
-curl -k -v -X PUT https://localhost:9090/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
+curl -k -v -X PUT https://localhost:7143/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
 ```
 
 output:
@@ -123,7 +123,7 @@ output:
 ```text
 ...
 PUT /items/1 HTTP/2
-Host: localhost:9090
+Host: localhost:7143
 user-agent: curl/7.85.0
 accept: */*
 idempotency-key: 2
@@ -137,7 +137,7 @@ HTTP/2 204
 `DELETE` request to delete specific item.
 
 ```bash
-curl -k -v -X DELETE https://localhost:9090/items/1
+curl -k -v -X DELETE https://localhost:7143/items/1
 ```
 
 output:
@@ -145,7 +145,7 @@ output:
 ```text
 ...
 > DELETE /items/1 HTTP/2
-> Host: localhost:9090
+> Host: localhost:7143
 > user-agent: curl/7.85.0
 > accept: */*
 >

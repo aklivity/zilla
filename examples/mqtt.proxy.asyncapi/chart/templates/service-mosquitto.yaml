@@ -16,8 +16,7 @@ spec:
         - name: mosquitto
           image: eclipse-mosquitto
           ports:
-            - containerPort: 1884
-            - containerPort: 9001
+            - containerPort: 1883
           volumeMounts:
             - mountPath: /mosquitto/config/mosquitto.conf
               subPath: mosquitto.conf
@@ -36,7 +35,7 @@ data:
     # DO NOT USE IN PRODUCTION
     allow_anonymous true
 
-    listener 1884
+    listener 1883
     protocol mqtt
 ---
 apiVersion: v1
@@ -48,4 +47,4 @@ spec:
   selector:
     app: mosquitto
   ports:
-    - port: 1884
+    - port: 1883

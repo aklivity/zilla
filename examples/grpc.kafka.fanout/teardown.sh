@@ -5,5 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla and Kafka
-helm uninstall zilla-grpc-kafka-fanout zilla-grpc-kafka-fanout-kafka --namespace zilla-grpc-kafka-fanout
-kubectl delete namespace zilla-grpc-kafka-fanout
+NAMESPACE=zilla-grpc-kafka-fanout
+helm uninstall zilla kafka --namespace $NAMESPACE
+kubectl delete namespace $NAMESPACE

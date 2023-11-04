@@ -1,6 +1,6 @@
 # grpc.kafka.echo
 
-Listens on https port `9090` and will exchange grpc message in probuf format through the `echo-messages` topic in Kafka.
+Listens on https port `7153` and will exchange grpc message in probuf format through the `echo-messages` topic in Kafka.
 
 ### Requirements
 
@@ -8,7 +8,7 @@ Listens on https port `9090` and will exchange grpc message in probuf format thr
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
-- ghz
+- [ghz](https://ghz.sh/docs/install)
 
 ### Setup
 
@@ -26,7 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-grpc-kafka-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-echo --wait [...]
++ helm upgrade --install zilla-grpc-kafka-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-echo --wait [...]
 NAME: zilla-grpc-kafka-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-echo
@@ -34,7 +34,7 @@ STATUS: deployed
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-grpc-kafka-echo-kafka chart --namespace zilla-grpc-kafka-echo --create-namespace --wait
++ helm upgrade --install zilla-grpc-kafka-echo-kafka chart --namespace zilla-grpc-kafka-echo --create-namespace --wait
 NAME: zilla-grpc-kafka-echo-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-echo
@@ -45,12 +45,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-74675fbb8-kpkm8
 + kubectl exec --namespace zilla-grpc-kafka-echo pod/kafka-74675fbb8-kpkm8 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-messages --if-not-exists
 Created topic echo-messages.
-+ kubectl port-forward --namespace zilla-grpc-kafka-echo service/zilla-grpc-kafka-echo 9090
-+ nc -z localhost 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-echo service/zilla 7153
++ nc -z localhost 7153
 + kubectl port-forward --namespace zilla-grpc-kafka-echo service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 7153
+Connection to localhost port 7153 [tcp/websm] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -62,7 +62,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` client.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
 ```
 
 output:
@@ -77,6 +77,11 @@ Verify the message payload, followed by a tombstone to mark the end of the reque
 
 ```bash
 kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "echo-messages",
   "partition": 0,
@@ -117,11 +122,6 @@ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
   "key": "13360c3e-6c68-4c1f-bb7b-3cbd832a6007-74b89a7e944bd502db9d81165bda4983",
   "payload": null
 }
-```
-
-output:
-
-```text
 % Reached end of topic echo-messages [0] at offset 2
 ```
 
@@ -130,7 +130,7 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.
@@ -145,6 +145,11 @@ Verify the message payloads, followed by a tombstone to mark the end of each req
 
 ```bash
 kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
+```
+
+output:
+
+```json
 ...
 {
   "topic": "echo-messages",
@@ -186,11 +191,6 @@ kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
   "key": "3eb292f7-c503-42d2-a579-82da7bc853f8-45b1b1a7b121d744d1d1a68b30ebc5ef",
   "payload": null
 }
-```
-
-output:
-
-```text
 % Reached end of topic echo-messages [0] at offset 4
 ```
 
@@ -200,7 +200,7 @@ output:
 ghz --config bench.json \
     --proto proto/echo.proto \
     --call example.EchoService/EchoBidiStream \
-    localhost:9090
+    localhost:7153
 ```
 
 ### Teardown

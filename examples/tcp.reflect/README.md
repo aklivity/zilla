@@ -24,7 +24,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-tcp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tcp-reflect [...]
++ helm upgrade --install zilla-tcp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tcp-reflect [...]
 NAME: zilla-tcp-reflect
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-tcp-reflect
@@ -34,7 +34,7 @@ NOTES:
 Zilla has been installed.
 [...]
 + nc -z localhost 12345
-+ kubectl port-forward --namespace zilla-tcp-reflect service/zilla-tcp-reflect 12345
++ kubectl port-forward --namespace zilla-tcp-reflect service/zilla 12345
 + sleep 1
 + nc -z localhost 12345
 Connection to localhost port 12345 [tcp/italk] succeeded!
@@ -48,6 +48,8 @@ Connect each client first, then send `Hello, one` from first client, then send `
 nc localhost 12345
 ```
 
+Type a `Hello, one` message and press `enter`.
+
 output:
 
 ```text
@@ -59,6 +61,8 @@ Hello, two
 ```bash
 nc localhost 12345
 ```
+
+Type a `Hello, two` message and press `enter`.
 
 output:
 

@@ -1,6 +1,6 @@
 # grpc.kafka.fanout
 
-Listens on https port `9090` and fanout messages from `messages` topic in Kafka.
+Listens on https port `7153` and fanout messages from `messages` topic in Kafka.
 
 ### Requirements
 
@@ -25,7 +25,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-grpc-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-fanout --create-namespace --wait [...]
++ helm upgrade --install zilla-grpc-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-fanout --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-fanout
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-fanout
@@ -34,7 +34,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-grpc-kafka-fanout-kafka chart --namespace zilla-grpc-kafka-fanout --create-namespace --wait
++ helm upgrade --install zilla-grpc-kafka-fanout-kafka chart --namespace zilla-grpc-kafka-fanout --create-namespace --wait
 NAME: zilla-grpc-kafka-fanout-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-fanout
@@ -45,12 +45,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-969789cc9-mxd98
 + kubectl exec --namespace zilla-grpc-kafka-fanout pod/kafka-969789cc9-mxd98 -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic messages --if-not-exists
 Created topic messages.
-+ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla-grpc-kafka-fanout 9090
-+ nc -z localhost 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla 7153
++ nc -z localhost 7153
 + kubectl port-forward --namespace zilla-grpc-kafka-fanout service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 7153
+Connection to localhost port 7153 [tcp/websm] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -74,7 +74,7 @@ kcat -P -b localhost:9092 -t messages -k -e ./binary.data
 Stream messages via server streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/fanout.proto -d '' localhost:9090 example.FanoutService.FanoutServerStream
+grpcurl -insecure -proto proto/fanout.proto -d '' localhost:7153 example.FanoutService.FanoutServerStream
 ```
 
 output:
@@ -114,19 +114,19 @@ INFO: Found message: message: "test"
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
 ```bash
-kubectl scale --replicas=0 --namespace=zilla-grpc-kafka-fanout deployment/zilla-grpc-kafka-fanout
+kubectl scale --replicas=0 --namespace zilla-grpc-kafka-fanout deployment/zilla
 ```
 
 Simulate connection recovery by starting the `zilla` service again.
 
 ```bash
-kubectl scale --replicas=1 --namespace=zilla-grpc-kafka-fanout deployment/zilla-grpc-kafka-fanout
+kubectl scale --replicas=1 --namespace zilla-grpc-kafka-fanout deployment/zilla
 ```
 
 Now you need to restart the port-forward.
 
 ```bash
-kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla-grpc-kafka-fanout 9090 > /tmp/kubectl-zilla.log 2>&1 &
+kubectl port-forward --namespace zilla-grpc-kafka-fanout service/zilla 7153 > /tmp/kubectl-zilla.log 2>&1 &
 ```
 
 Then produce another protobuf message to Kafka, repeat to produce multiple messages.

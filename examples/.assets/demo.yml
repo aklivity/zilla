@@ -1,0 +1,192 @@
+# The configurations that used for the recording, feel free to edit them
+config:
+
+  # Specify a command to be executed
+  # like `/bin/bash -l`, `ls`, or any other commands
+  # the default is bash for Linux
+  # or powershell.exe for Windows
+  command: bash -l
+  
+  # Specify the current working directory path
+  # the default is the current working directory path
+  cwd: ../zilla-examples
+  
+  # Export additional ENV variables
+  env:
+    recording: true
+  
+  # Explicitly set the number of columns
+  # or use `auto` to take the current
+  # number of columns of your shell
+  cols: 236
+  
+  # Explicitly set the number of rows
+  # or use `auto` to take the current
+  # number of rows of your shell
+  rows: 68
+  
+  # Amount of times to repeat GIF
+  # If value is -1, play once
+  # If value is 0, loop indefinitely
+  # If value is a positive number, loop n times
+  repeat: 0
+  
+  # Quality
+  # 1 - 100
+  quality: 100
+  
+  # Delay between frames in ms
+  # If the value is `auto` use the actual recording delays
+  frameDelay: auto
+  
+  # Maximum delay between frames in ms
+  # Ignored if the `frameDelay` isn't set to `auto`
+  # Set to `auto` to prevent limiting the max idle time
+  maxIdleTime: 2000
+  
+  # The surrounding frame box
+  # The `type` can be null, window, floating, or solid`
+  # To hide the title use the value null
+  # Don't forget to add a backgroundColor style with a null as type
+  frameBox:
+    type: floating
+    title: Zilla
+    style:
+      border: 0px black solid
+      # boxShadow: none
+      # margin: 0px
+  
+  # Add a watermark image to the rendered gif
+  # You need to specify an absolute path for
+  # the image on your machine or a URL, and you can also
+  # add your own CSS styles
+  watermark:
+    imagePath: https://raw.githubusercontent.com/aklivity/zilla-docs/907b513504ff8674c7a00182668c0813f8e17f3e/src/.vuepress/public/logo-dark.png
+    style:
+      position: absolute
+      right: 15px
+      bottom: 175px
+      width: 400px
+      opacity: 0.5
+  
+  # Cursor style can be one of
+  # `block`, `underline`, or `bar`
+  cursorStyle: block
+  
+  # Font family
+  # You can use any font that is installed on your machine
+  # in CSS-like syntax
+  fontFamily: "Monaco, Lucida Console, Ubuntu Mono, Monospace"
+  
+  # The size of the font
+  fontSize: 12
+  
+  # The height of lines
+  lineHeight: 1
+  
+  # The spacing between letters
+  letterSpacing: 0
+  
+  # Theme
+  theme:
+    background: "transparent"
+    foreground: "#afafaf"
+    cursor: "#c7c7c7"
+    black: "#232628"
+    red: "#fc4384"
+    green: "#b3e33b"
+    yellow: "#ffa727"
+    blue: "#75dff2"
+    magenta: "#ae89fe"
+    cyan: "#708387"
+    white: "#d5d5d0"
+    brightBlack: "#626566"
+    brightRed: "#ff7fac"
+    brightGreen: "#c8ed71"
+    brightYellow: "#ebdf86"
+    brightBlue: "#75dff2"
+    brightMagenta: "#ae89fe"
+    brightCyan: "#b1c6ca"
+    brightWhite: "#f9f9f4"
+  
+# Records, feel free to edit them
+records:
+  - delay: 100
+    content: "\rzilla-examples$ "
+  - delay: 5000
+    content: >-
+      wget -qO-
+      https://raw.githubusercontent.com/aklivity/zilla-examples/main/startup.sh
+      | sh -s -- -m
+  - delay: 1000
+    content: ' '
+  - delay: 850
+    content: m
+  - delay: 164
+    content: q
+  - delay: 144
+    content: t
+  - delay: 185
+    content: "\at."
+  - delay: 811
+    content: k
+  - delay: 166
+    content: "\aafka.broker"
+  - delay: 500
+    content: "\r\n"
+  - delay: 500
+    content: "\r\n==== Starting Kafka Use this script to teardown: /zilla-examples/kafka.broker/compose/teardown.sh ====\r\n"
+  - delay: 500
+    content: "Warning: No resource found to remove for project \"zilla-kafka-broker\".\r\n"
+  - delay: 104
+    content: "\e[1A\e[1B\e[0G\e[?25l[+] Building 0.0s (0/0)                                                                                                                                                                                                      docker:default\r\n\e[?25h"
+  - delay: 69
+    content: "\e[1A\e[1B\e[0G\e[?25l[+] Running 2/0\r\n \e[32m✔\e[0m Network zilla-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka                     \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n ⠋ Container kafka-ui                  Creating                                                                                                                                                                                        \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 99
+    content: "\e[1A\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 3/3\e[0m\r\n \e[32m✔\e[0m Network zilla-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka                     \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka-ui                  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 101
+    content: "\e[1A\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 3/3\e[0m\r\n \e[32m✔\e[0m Network zilla-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka                     \e[32mStarted\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka-ui                  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 78
+    content: "\e[1A\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 3/3\e[0m\r\n \e[32m✔\e[0m Network zilla-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka                     \e[32mStarted\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka-ui                  \e[32mStarted\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 500
+    content: "\r\n==== Kafka started at host.docker.internal:29092 ====\r\n"
+  - delay: 500
+    content: "\r\n==== Starting Zilla mqtt.kafka.broker with Compose. Use this script to teardown: /zilla-examples/mqtt.kafka.broker/compose/teardown.sh ====\r\n"
+  - delay: 500
+    content: "Warning: No resource found to remove for project \"zilla-mqtt-kafka-broker\".\r\n"
+  - delay: 500
+    content: "\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\e[1mWelcome to the Bitnami kafka container\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubscribe to project updates by watching \e[1mhttps://github.com/bitnami/containers\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubmit issues and feature requests at \e[1mhttps://github.com/bitnami/containers/issues\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.60 \e[0m\r\n\r\nCreating topics for host.docker.internal:29092\r\n"
+  - delay: 500
+    content: "Created topic mqtt-sessions.\r\n"
+  - delay: 500
+    content: "Created topic mqtt-messages.\r\n"
+  - delay: 500
+    content: "Created topic mqtt-retained.\r\n"
+  - delay: 500
+    content: "\e[1A\e[1B\e[0G\e[?25l[+] Running 0/0\r\n ⠋ zilla Pulling                                                                                                                                                                                                                       \e[34m0.1s \e[0m\r\n\e[?25h"
+  - delay: 100
+    content: "\e[1A\e[1A\e[0G\e[?25l[+] Running 0/1\r\n ⠙ zilla Pulling                                                                                                                                                                                                                       \e[34m0.2s \e[0m\r\n\e[?25h"
+  - delay: 100
+    content: "\e[1A\e[1A\e[0G\e[?25l[+] Running 0/1\r\n ⠹ zilla Pulling                                                                                                                                                                                                                       \e[34m0.3s \e[0m\r\n\e[?25h"
+  - delay: 101
+    content: "\e[1A\e[1A\e[0G\e[?25l[+] Running 0/1\r\n ⠸ zilla Pulling                                                                                                                                                                                                                       \e[34m0.4s \e[0m\r\n\e[?25h"
+  - delay: 100
+    content: "\e[1A\e[1A\e[0G\e[?25l[+] Running 0/1\r\n ⠼ zilla Pulling                                                                                                                                                                                                                       \e[34m0.5s \e[0m\r\n\e[?25h"
+  - delay: 101
+    content: "\e[1A\e[1A\e[0G\e[?25l[+] Running 0/1\r\n ⠴ zilla Pulling                                                                                                                                                                                                                       \e[34m0.6s \e[0m\r\n\e[?25h"
+  - delay: 75
+    content: "\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 1/1\e[0m\r\n \e[32m✔\e[0m zilla Pulled \e[32m\e[0m                                                                                                                                                                                                                       \e[34m0.7s \e[0m\r\n\e[?25h"
+  - delay: 35
+    content: "\e[1A\e[1B\e[0G\e[?25l[+] Building 0.0s (0/0)                                                                                                                                                                                                      docker:default\r\n\e[?25h"
+  - delay: 83
+    content: "\e[1A\e[1B\e[0G\e[?25l[+] Running 2/0\r\n \e[32m✔\e[0m Network zilla-mqtt-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container zilla                          \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 101
+    content: "\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 2/2\e[0m\r\n \e[32m✔\e[0m Network zilla-mqtt-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container zilla                          \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 16
+    content: "\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 2/2\e[0m\r\n \e[32m✔\e[0m Network zilla-mqtt-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container zilla                          \e[32mStarted\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n\e[?25h"
+  - delay: 500
+    content: "\r\n\r\n==== Verify the Kafka topics created ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:29092 -L\r\n\r\n==== Start a topic consumer to listen for messages ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:29092 -C -f '%t [%p:%o] | %h | %k:%s\r\n' -t <topic_name>\r\n\r\n"
+  - delay: 500
+    content: "\r\n==== Check out the README to see how to use this example ==== \r\n/zilla-examples/mqtt.kafka.broker/README.md\r\n\r\nThis is the resource folder for the running the [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/latest/how-tos/mqtt/mqtt.kafka.broker.html) found on our docs.\r\n\r\n==== Finished, use the teardown script(s) to clean up ==== \r\n/zilla-examples/mqtt.kafka.broker/compose/teardown.sh\r\n/zilla-examples/kafka.broker/compose/teardown.sh\r\n\e]7;file://zilla-examples\azilla-examples$ "
+  - delay: 5000
+    content: "\r\nbye!"

@@ -21,7 +21,7 @@ bindings:
   north_tls_server:
     type: tls
     kind: server
-    vault: server
+    vault: my_servers
     options:
       keys:
         - localhost
@@ -75,11 +75,10 @@ bindings:
           - cidr: 0.0.0.0/0
 
 vaults:
-  server:
+  my_servers:
     type: filesystem
     options:
       keys:
         store: tls/localhost.p12
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
-

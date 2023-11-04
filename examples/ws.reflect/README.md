@@ -1,7 +1,7 @@
 # ws.reflect
 
-Listens on ws port `8080` and will echo back whatever is sent to the server, broadcasting to all clients.
-Listens on wss port `9090` and will echo back whatever is sent to the server, broadcasting to all clients.
+Listens on ws port `7114` and will echo back whatever is sent to the server, broadcasting to all clients.
+Listens on wss port `7143` and will echo back whatever is sent to the server, broadcasting to all clients.
 
 ### Requirements
 
@@ -26,7 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-ws-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-reflect --create-namespace --wait [...]
++ helm upgrade --install zilla-ws-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-reflect --create-namespace --wait [...]
 NAME: zilla-ws-reflect
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-ws-reflect
@@ -35,11 +35,11 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-ws-reflect service/zilla-ws-reflect 8080 9090
++ nc -z localhost 7114
++ kubectl port-forward --namespace zilla-ws-reflect service/zilla 7114 7143
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 ```
 
 ### Verify behavior
@@ -47,8 +47,10 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Connect each client first, then send `Hello, one` from first client, then send `Hello, two` from second client.
 
 ```bash
-wscat -c ws://localhost:8080/ -s echo
+wscat -c ws://localhost:7114/ -s echo
 ```
+
+Type a `Hello, one` message and press `enter`.
 
 output:
 
@@ -60,8 +62,10 @@ Connected (press CTRL+C to quit)
 ```
 
 ```bash
-wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
+wscat -c wss://localhost:7143/ --ca test-ca.crt -s echo
 ```
+
+Type a `Hello, two` message and press `enter`.
 
 output:
 

@@ -1,6 +1,6 @@
 # sse.proxy.jwt
 
-Listens on https port `9090` and will stream back whatever is published to `sse_server` on tcp port `7001`.
+Listens on https port `7143` and will stream back whatever is published to `sse_server` on tcp port `7001`.
 
 ### Requirements
 
@@ -52,7 +52,7 @@ output:
 + docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/sse-server:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-sse-proxy-jwt oci://ghcr.io/aklivity/charts/zilla --namespace zilla-sse-proxy-jwt --create-namespace --wait [...]
++ helm upgrade --install zilla-sse-proxy-jwt oci://ghcr.io/aklivity/charts/zilla --namespace zilla-sse-proxy-jwt --create-namespace --wait [...]
 NAME: zilla-sse-proxy-jwt
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-proxy-jwt
@@ -61,7 +61,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-sse-proxy-jwt-sse chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
++ helm upgrade --install zilla-sse-proxy-jwt-sse chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
 NAME: zilla-sse-proxy-jwt-sse
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-proxy-jwt
@@ -72,10 +72,10 @@ TEST SUITE: None
 ++ jq -r '.items[0].metadata.name'
 + ZILLA_POD=zilla-1234567890-abcde
 + kubectl cp --namespace zilla-sse-proxy-jwt www zilla-1234567890-abcde:/var/
-+ kubectl port-forward --namespace zilla-sse-proxy-jwt service/zilla-sse-proxy-jwt 9090
-+ nc -z localhost 9090
++ kubectl port-forward --namespace zilla-sse-proxy-jwt service/zilla 7143
++ nc -z localhost 7143
 + kubectl port-forward --namespace zilla-sse-proxy-jwt service/sse-server 8001 7001
-Connection to localhost port 9090 [tcp/websm] succeeded!
+Connection to localhost port 7143 [tcp/websm] succeeded!
 + nc -z localhost 8001
 + sleep 1
 + nc -z localhost 8001
@@ -113,14 +113,14 @@ Connect `curl` client first, then send `Hello, world ...` from `nc` client.
 Note that the `Hello, world ...` event will not arrive until after using `nc` to send the `Hello, world ...` message in the next step.
 
 ```bash
-curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
+curl -v --cacert test-ca.crt "https://localhost:7143/events?access_token=${JWT_TOKEN}"
 ```
 
 output:
 
 ```text
-*   Trying 127.0.0.1:9090...
-* Connected to localhost (127.0.0.1) port 9090 (#0)
+*   Trying 127.0.0.1:7143...
+* Connected to localhost (127.0.0.1) port 7143 (#0)
 * ALPN, offering h2
 * ALPN, offering http/1.1
 * successfully set certificate verify locations:
@@ -147,7 +147,7 @@ output:
 * Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
 * Using Stream ID: 1 (easy handle 0x7fe6bc011e00)
 > GET /events HTTP/2
-> Host: localhost:9090
+> Host: localhost:7143
 > user-agent: curl/7.79.1
 > accept: */*
 > authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6MTY2MTc5MDM1MCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJwcm94eTpzdHJlYW0iLCJzdWIiOiJleGFtcGxlIn0.XAugWfUFa-oU4Hx7Nn00zq9K9oTEkSknQvmiiAtJCRouIRXyl4qCAlQmOeI35JhN_RLj4p9EgoyCVtlZNWXKVcTeAxaAQrNeKywQ58wsn0VFdKHB2LXR0oxHXOtJIkl9oJWaM4IvUenKAfs2g-yHQtKNryhu9q8TgOPEW7JeqfCaV3J_xjn7WjMILggLde6lu8haGNa1ePDMxJwZ2Z9AQd-5Gcfyx9lQj_G7VQBHR5j8c5LrXx4U8E5f4KOYFUI7xs2wSuTApZyQdmetIRpFkIfsqVcH_rtdqs6ZuCTwmaKwXt-9KNvvg3n0joN1jqdtE7XhnW19-LQK62RgrEV6ZA
@@ -182,7 +182,7 @@ Note that if the client does not respond to the challenge event with an updated 
 
 #### Browser
 
-Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
+Browse to `https://localhost:7143/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
 Click the `Go` button to attach the browser SSE event source via Zilla.
 

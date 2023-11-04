@@ -1,31 +1,39 @@
 # quickstart
 
-Creates a full featured instance of Zilla on port `7114`. Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html) to discover some of what Zilla can do!
+Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html) to discover some of what Zilla can do!
 
-## Requirements
+## Running locally
 
-- docker
+This quickstart runs using Docker compose. You will find the setup scripts in the [compose](./docker/compose) folder.
 
-## Setup
-
-The `setup.sh` script:
-
-- creates a Zilla instance running in docker.
-- creates an instance of `docker.io/bitnami/kafka`
-- adds the necessary topics
-- hosts a `provectuslabs/kafka-ui` [instance](http://localhost:80)
-- starts the route_guide_server and route_guide_client from the [gRPC basics tutorial](https://grpc.io/docs/languages/go/basics/)
-- runs an [mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator) to produce mock iot messages
-- hosts [prometheus metrics](http://localhost:7190/metrics)
+You will need a running kafka broker. To start one locally you will find instructions in the [kafka.broker](../kafka.broker) folder. You will need to export the below environment variables before running the setup script.
 
 ```bash
-./setup.sh
+export KAFKA_HOST=host.docker.internal
+export KAFKA_PORT=29092
 ```
 
-## Teardown
+### Setup
 
-The `teardown.sh` script stops running containers and removes orphans.
+The `setup.sh` script will:
+
+- Configured Zilla instance with REST, SSE, gRPC, MQTT protocols configured
+- Create Kafka topics
+- Start a gRPC Route Guide server
+- Start a MQTT message simulator
 
 ```bash
-./teardown.sh
+./compose/setup.sh
+```
+
+### Using this quickstart
+
+You can interact with this quickstart using our [Postman collection](https://vordimous.github.io/zilla-docs/next/tutorials/quickstart/kafka-proxies.html#postman-collections)
+
+### Teardown
+
+The `teardown.sh` script will remove any resources created.
+
+```bash
+./compose/teardown.sh
 ```

@@ -5,5 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla and Kafka
-helm uninstall zilla-http-kafka-crud zilla-http-kafka-crud-kafka --namespace zilla-http-kafka-crud
-kubectl delete namespace zilla-http-kafka-crud
+NAMESPACE=zilla-http-kafka-crud
+helm uninstall zilla kafka --namespace $NAMESPACE
+kubectl delete namespace $NAMESPACE

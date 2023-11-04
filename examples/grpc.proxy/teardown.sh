@@ -5,5 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla and Grpc Echo
-helm uninstall zilla-grpc-proxy zilla-grpc-proxy-grpc-echo --namespace zilla-grpc-proxy
-kubectl delete namespace zilla-grpc-proxy
+NAMESPACE=zilla-grpc-proxy
+helm uninstall zilla grpc-echo --namespace $NAMESPACE
+kubectl delete namespace $NAMESPACE

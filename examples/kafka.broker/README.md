@@ -14,7 +14,7 @@ This is the resource folder for the running a Kafka broker locally.
 
 ## Running locally
 
-This resource can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./compose) and [k8s](./k8s/) folders respectively and work the same way.
+This resource can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./docker/compose) and [helm](./k8s/helm) folders respectively and work the same way.
 
 If you are running this alongside another example you will want to expose these environment variables
 
@@ -25,7 +25,7 @@ export KAFKA_PORT=29092
 
 ### Setup
 
-Wether you chose [compose](./compose) or [k8s](./k8s/), the `setup.sh` script will:
+Wether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
 
 - create an instance of `docker.io/bitnami/kafka`
 - create an instance of `docker.io/provectuslabs/kafka-ui`

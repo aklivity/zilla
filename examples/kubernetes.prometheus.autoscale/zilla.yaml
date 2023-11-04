@@ -15,36 +15,40 @@ telemetry:
     - stream.closes.received
     - stream.closes.sent
   exporters:
-    prometheus0:
+    prometheus_endpoint:
       type: prometheus
       options:
         endpoints:
           - scheme: http
             path: /metrics
-            port: 9090
+            port: 7190
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
-      port: 8080
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
     telemetry:
       metrics:
         - stream.*
-    exit: http_server0
-  http_server0:
+  north_http_server:
     type: http
     kind: server
     routes:
       - when:
           - headers:
               :scheme: http
-              :authority: localhost:8080
-        exit: echo_server0
+              :authority: localhost:7114
+        exit: north_echo_server
     telemetry:
       metrics:
         - http.*
-  echo_server0:
+  north_echo_server:
     type: echo
     kind: server

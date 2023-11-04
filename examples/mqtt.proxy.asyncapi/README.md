@@ -1,11 +1,12 @@
 # mqtt.proxy.asyncapi
 
-Listens on mqtt port `1883` and will forward mqtt publish messages and proxies subscribes to mosquitto MQTT broker listening on `1884` for topic `smartylighting/streetlights/1/0/event/+/lighting/measured`.
+Listens on mqtt port `7183` and will forward mqtt publish messages and proxies subscribes to mosquitto MQTT broker listening on `1883` for topic `smartylighting/streetlights/1/0/event/+/lighting/measured`.
 
 Note that the `zilla.yaml` config used by the proxy was generated based on `asyncapi.yaml`.
 
 For example:
-```
+
+```bash
 cat asyncapi.yaml | \
   docker run -i ghcr.io/aklivity/zilla:develop-SNAPSHOT \
     generate --template asyncapi.mqtt.proxy --input /dev/stdin --output /dev/stdout | \
@@ -36,7 +37,7 @@ The `setup.sh` script:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install mqtt-proxy-asyncapi oci://ghcr.io/aklivity/charts/zilla --namespace mqtt-proxy-asyncapi --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
++ helm upgrade --install mqtt-proxy-asyncapi oci://ghcr.io/aklivity/charts/zilla --namespace mqtt-proxy-asyncapi --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
 NAME: mqtt-proxy-asyncapi
 LAST DEPLOYED: [...]
 NAMESPACE: mqtt-proxy-asyncapi
@@ -44,28 +45,28 @@ STATUS: deployed
 REVISION: 1
 NOTES:
 Zilla has been installed.
-+ helm install zilla-mqtt-kafka-reflect-kafka chart --namespace zilla-mqtt-kafka-reflect --create-namespace --wait
++ helm upgrade --install zilla-mqtt-kafka-reflect-kafka chart --namespace zilla-mqtt-kafka-reflect --create-namespace --wait
 NAME: zilla-mqtt-kafka-reflect-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-mqtt-kafka-reflect
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ helm install mqtt-proxy-asyncapi-mosquitto chart --namespace mqtt-proxy-asyncapi --create-namespace --wait
++ helm upgrade --install mqtt-proxy-asyncapi-mosquitto chart --namespace mqtt-proxy-asyncapi --create-namespace --wait
 NAME: mqtt-proxy-asyncapi-mosquitto
 LAST DEPLOYED: Tue Sep 19 18:15:07 2023
 NAMESPACE: mqtt-proxy-asyncapi
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mqtt-proxy-asyncapi-zilla 1883
-+ nc -z localhost 1883
-+ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mosquitto 1884
++ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mqtt-proxy-asyncapi-zilla 7183
++ nc -z localhost 7183
++ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mosquitto 1883
 + sleep 1
++ nc -z localhost 7183
+Connection to localhost port 7183 [tcp/ibm-mqisdp] succeeded!
 + nc -z localhost 1883
-Connection to localhost port 1883 [tcp/ibm-mqisdp] succeeded!
-+ nc -z localhost 1884
-Connection to localhost port 1884 [tcp/idmaps] succeeded!
+Connection to localhost port 1883 [tcp/idmaps] succeeded!
 
 ```
 
@@ -79,11 +80,13 @@ brew install mosquitto
 
 ### Verify behavior
 
-Connect a subscribing client to mosquitto broker to port `1884`. Using mosquitto_pub client publish `{"id":"1","status":"on"}` to Zilla on port `1883`. Verify that the message arrived to on the first client.
+Connect a subscribing client to mosquitto broker to port `1883`. Using mosquitto_pub client publish `{"id":"1","status":"on"}` to Zilla on port `7183`. Verify that the message arrived to on the first client.
 ```bash
-mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d -p 1884
+mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d
 ```
+
 output:
+
 ```
 Client null sending CONNECT
 Client auto-5A1C0A41-0D16-497D-6C3B-527A93E421E6 received CONNACK (0)
@@ -94,9 +97,11 @@ Subscribed (mid: 1): 0
 ```
 
 ```bash
-mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","status":"on"}' -d
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","status":"on"}' -d -p 7183
 ```
+
 output:
+
 ```
 Client null sending CONNECT
 Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec received CONNACK (0)
@@ -107,9 +112,11 @@ Client 244684c7-fbaf-4e08-b382-a1a2329cf9ec sending DISCONNECT
 Now attempt to publish an invalid message, with property `stat` instead of `status`.
 
 ```bash
-mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","stat":"off"}' -d --repeat 2 --repeat-delay 3
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"id":"1","stat":"off"}' -d -p 7183 --repeat 2 --repeat-delay 3
 ```
+
 output:
+
 ```
 Client null sending CONNECT
 Client e7e9ddb0-f8c9-43a0-840f-dab9981a9de3 received CONNACK (0)

@@ -25,7 +25,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-tls-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tls-reflect --create-namespace --wait [...]
++ helm upgrade --install zilla-tls-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tls-reflect --create-namespace --wait [...]
 NAME: zilla-tls-reflect
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-tls-reflect
@@ -35,7 +35,7 @@ NOTES:
 Zilla has been installed.
 [...]
 + nc -z localhost 23456
-+ kubectl port-forward --namespace zilla-tls-reflect service/zilla-tls-reflect 23456
++ kubectl port-forward --namespace zilla-tls-reflect service/zilla 23456
 + sleep 1
 + nc -z localhost 23456
 Connection to localhost port 23456 [tcp/*] succeeded!
@@ -56,6 +56,13 @@ depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, 
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost
 verify return:1
+```
+
+Type a `Hello, one` message and press `enter`.
+
+output:
+
+```text
 Hello, one
 Hello, one
 Hello, two
@@ -72,6 +79,13 @@ depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, 
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost
 verify return:1
+```
+
+Type a `Hello, two` message and press `enter`.
+
+output:
+
+```text
 Hello, one
 Hello, two
 Hello, two

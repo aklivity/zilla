@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
 
-NAMESPACE=zilla-kafka-broker
+NAMESPACE=zilla-quickstart
 docker-compose -p $NAMESPACE down --remove-orphans
-docker-compose -p $NAMESPACE up -d

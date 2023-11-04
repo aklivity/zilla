@@ -1,6 +1,6 @@
 # http.proxy
 
-Listens on https port `9090` and will response back whatever is hosted in `nginx` on that path.
+Listens on https port `7143` and will response back whatever is hosted in `nginx` on that path.
 
 ### Requirements
 
@@ -34,7 +34,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-proxy --create-namespace --wait [...]
++ helm upgrade --install zilla-http-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-proxy --create-namespace --wait [...]
 NAME: zilla-http-proxy
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-proxy
@@ -43,7 +43,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-http-proxy-nginx chart --namespace zilla-http-proxy --create-namespace --wait
++ helm upgrade --install zilla-http-proxy-nginx chart --namespace zilla-http-proxy --create-namespace --wait
 NAME: zilla-http-proxy-nginx
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-proxy
@@ -55,17 +55,17 @@ TEST SUITE: None
 + NGINX_POD=nginx-1234567890-abcde
 + kubectl cp --namespace zilla-http-proxy www/demo.html nginx-1234567890-abcde:/usr/share/nginx/html
 + kubectl cp --namespace zilla-http-proxy www/style.css nginx-1234567890-abcde:/usr/share/nginx/html
-+ nc -z localhost 9090
-+ kubectl port-forward --namespace zilla-http-proxy service/zilla-http-proxy 9090
++ nc -z localhost 7143
++ kubectl port-forward --namespace zilla-http-proxy service/zilla 7143
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 7143
+Connection to localhost port 7143 [tcp/websm] succeeded!
 ```
 
 ### Verify behavior
 
 ```bash
-nghttp -ansy https://localhost:9090/demo.html
+nghttp -ansy https://localhost:7143/demo.html
 ```
 
 output:

@@ -5,5 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla engine
-helm uninstall zilla-amqp-reflect --namespace zilla-amqp-reflect
-kubectl delete namespace zilla-amqp-reflect
+NAMESPACE=zilla-amqp-reflect
+helm uninstall zilla --namespace $NAMESPACE
+kubectl delete namespace $NAMESPACE

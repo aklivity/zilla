@@ -1,6 +1,6 @@
 # sse.kafka.fanout
 
-Listens on http port `8080` or https port `9090` and will stream back whatever is published to the `events` topic in Kafka.
+Listens on http port `7114` or https port `7143` and will stream back whatever is published to the `events` topic in Kafka.
 
 ### Requirements
 
@@ -44,7 +44,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-sse-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --namespace zilla-sse-kafka-fanout --create-namespace --wait [...]
++ helm upgrade --install zilla-sse-kafka-fanout oci://ghcr.io/aklivity/charts/zilla --namespace zilla-sse-kafka-fanout --create-namespace --wait [...]
 NAME: zilla-sse-kafka-fanout
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-kafka-fanout
@@ -53,7 +53,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-sse-kafka-fanout-kafka chart --namespace zilla-sse-kafka-fanout --create-namespace --wait
++ helm upgrade --install zilla-sse-kafka-fanout-kafka chart --namespace zilla-sse-kafka-fanout --create-namespace --wait
 NAME: zilla-sse-kafka-fanout-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-sse-kafka-fanout
@@ -68,12 +68,12 @@ TEST SUITE: None
 + KAFKA_POD=pod/kafka-1234567890-abcde
 + kubectl exec --namespace zilla-sse-kafka-fanout pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic events --config cleanup.policy=compact --if-not-exists
 Created topic events.
-+ nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090
++ nc -z localhost 7114
++ kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla 7114 7143
 + kubectl port-forward --namespace zilla-sse-kafka-fanout service/kafka 9092 29092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -84,7 +84,7 @@ Connect `sse-cat` client first, then send `Hello, world ...` from `kcat` produce
 Note that the `Hello, world ...` message will not arrive until after using `kcat` to produce the `Hello, world ...` message in the next step.
 
 ```bash
-sse-cat http://localhost:8080/events
+sse-cat http://localhost:7114/events
 ```
 
 output:
@@ -101,7 +101,7 @@ Note that only the latest messages with distinct keys are guaranteed to be retai
 
 ### Browser
 
-Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
+Browse to `https://localhost:7143/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
 Click the `Go` button to attach the browser SSE event source to Kafka via Zilla.
 
@@ -115,22 +115,22 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
-```
-kubectl scale --replicas=0 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
+```bash
+kubectl scale --replicas=0 --namespace zilla-sse-kafka-fanout deployment/zilla
 ```
 
 This causes errors to be logged in the browser console during repeated attempts to automatically reconnect.
 
 Simulate connection recovery by starting the `zilla` service again.
 
-```
-kubectl scale --replicas=1 --namespace=zilla-sse-kafka-fanout deployment/zilla-sse-kafka-fanout
+```bash
+kubectl scale --replicas=1 --namespace zilla-sse-kafka-fanout deployment/zilla
 ```
 
 Now you need to restart the port-forward.
 
 ```bash
-kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla-sse-kafka-fanout 8080 9090 > /tmp/kubectl-zilla.log 2>&1 &
+kubectl port-forward --namespace zilla-sse-kafka-fanout service/zilla 7114 7143 > /tmp/kubectl-zilla.log 2>&1 &
 ```
 
 Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.

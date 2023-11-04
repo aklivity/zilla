@@ -1,6 +1,6 @@
 # http.redpanda.sasl.scram
 
-Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in `SASL/SCRAM`
+Listens on http port `7114` or https port `7143` and will produce messages to the `events` topic in `SASL/SCRAM`
 enabled Redpanda cluster, synchronously.
 
 ### Requirements
@@ -36,7 +36,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-redpanda-sasl-scram ./zilla-0.1.0.tgz --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait [...]
++ helm upgrade --install zilla-http-redpanda-sasl-scram ./zilla-0.1.0.tgz --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait [...]
 NAME: zilla-http-redpanda-sasl-scram
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-redpanda-sasl-scram
@@ -45,7 +45,7 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-http-redpanda-sasl-scram-redpanda chart --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait
++ helm upgrade --install zilla-http-redpanda-sasl-scram-redpanda chart --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait
 NAME: zilla-http-redpanda-sasl-scram-redpanda
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-redpanda-sasl-scram
@@ -59,12 +59,12 @@ Created user "user".
 + kubectl exec --namespace zilla-http-redpanda-sasl-scram pod/redpanda-1234567890-abcde -- rpk topic create events --user user --password redpanda --sasl-mechanism SCRAM-SHA-256
 TOPIC   STATUS
 events  OK
-+ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/zilla-http-redpanda-sasl-scram 8080 9090
-+ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/zilla 7114 7143
++ nc -z localhost 7114
 + kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/redpanda 9092
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
@@ -75,7 +75,7 @@ Send a `POST` request with an event body.
 
 ```bash
 curl -v \
-       -X "POST" http://localhost:8080/events \
+       -X "POST" http://localhost:7114/events \
        -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world\"}"
 ```
@@ -98,6 +98,11 @@ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
   -X sasl.username=user \
   -X sasl.password=redpanda \
   -t events -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "events",
   "partition": 0,
@@ -111,11 +116,6 @@ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
   ],
   "payload": "{\"greeting\":\"Hello, world\"}"
 }
-```
-
-output:
-
-```text
 % Reached end of topic events [0] at offset 1
 ```
 

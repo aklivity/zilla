@@ -4,12 +4,12 @@ env:
   - name: KEYSTORE_PASSWORD
     value: generated
 
-livenessProbePort: 1883
-readinessProbePort: 1883
+livenessProbePort: 7183
+readinessProbePort: 7183
 
 service:
   ports:
-    - port: 1883
+    - port: 7183
       name: mqtt
-    - port: 8883
+    - port: 7883
       name: mqtts

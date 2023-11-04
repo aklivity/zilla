@@ -10,8 +10,8 @@ echo "Installing $ZILLA_CHART to $NAMESPACE"
 helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
     --set env[1].value="\"$KAFKA_HOST\"",env[2].value="\"$KAFKA_PORT\"" \
-    --set-file zilla\\.yaml=../zilla.yaml \
-    --set-file secrets.tls.data.localhost\\.p12=../tls/localhost.p12
+    --set-file zilla\\.yaml=../../zilla.yaml \
+    --set-file secrets.tls.data.localhost\\.p12=../../tls/localhost.p12
 
 # Create the mqtt topics in Kafka
 kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "

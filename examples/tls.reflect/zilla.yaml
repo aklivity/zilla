@@ -1,7 +1,7 @@
 ---
 name: example
 vaults:
-  server:
+  my_servers:
     type: filesystem
     options:
       keys:
@@ -9,17 +9,17 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 23456
-    exit: tls_server0
-  tls_server0:
+    exit: north_tls_server
+  north_tls_server:
     type: tls
     kind: server
-    vault: server
+    vault: my_servers
     options:
       keys:
         - localhost
@@ -30,11 +30,11 @@ bindings:
     routes:
       - when:
           - alpn: echo
-        exit: fan_server0
-  fan_server0:
+        exit: north_fan_server
+  north_fan_server:
     type: fan
     kind: server
-    exit: echo_server0
-  echo_server0:
+    exit: north_echo_server
+  north_echo_server:
     type: echo
     kind: server

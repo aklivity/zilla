@@ -5,12 +5,12 @@ env:
   - name: KEYSTORE_PASSWORD
     value: generated
 
-livenessProbePort: 5671
-readinessProbePort: 5671
+livenessProbePort: 7171
+readinessProbePort: 7171
 
 service:
   ports:
-    - port: 5671
+    - port: 7171
       name: amqps
-    - port: 5672
+    - port: 7172
       name: amqp

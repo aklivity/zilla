@@ -1,7 +1,7 @@
 # http.echo
 
-Listens on http port `8080` and will echo back whatever is sent to the server.
-Listens on https port `9090` and will echo back whatever is sent to the server.
+Listens on http port `7114` and will echo back whatever is sent to the server.
+Listens on https port `7143` and will echo back whatever is sent to the server.
 
 ### Requirements
 
@@ -26,7 +26,7 @@ output:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-http-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-echo --wait [...]
++ helm upgrade --install zilla-http-echo oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-echo --wait [...]
 NAME: zilla-http-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-http-echo
@@ -35,17 +35,17 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ nc -z localhost 8080
-+ kubectl port-forward --namespace zilla-http-echo service/zilla-http-echo 8080 9090
++ nc -z localhost 7114
++ kubectl port-forward --namespace zilla-http-echo service/zilla 7114 7143
 + sleep 1
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 7114
+Connection to localhost port 7114 [tcp/http-alt] succeeded!
 ```
 
 ### Verify behavior
 
 ```bash
-curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:7114/
 ```
 
 output:
@@ -55,7 +55,7 @@ Hello, world
 ```
 
 ```bash
-curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/ --http2-prior-knowledge
+curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:7114/ --http2-prior-knowledge
 ```
 
 output:
@@ -65,7 +65,7 @@ Hello, world
 ```
 
 ```bash
-curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
+curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:7143/ --http1.1
 ```
 
 output:
@@ -75,7 +75,7 @@ Hello, world
 ```
 
 ```bash
-curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
+curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:7143/ --http2
 ```
 
 output:

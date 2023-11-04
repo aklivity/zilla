@@ -1,6 +1,6 @@
 # grpc.proxy
 
-Listens on https port `9090` and will echo back whatever is published to `grpc-proxy` on tcp port `8080`.
+Listens on https port `7153` and will echo back whatever is published to `grpc-proxy` on tcp port `8080`.
 
 ### Requirements
 
@@ -41,7 +41,7 @@ output:
 + docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-grpc-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-proxy --create-namespace --wait [...]
++ helm upgrade --install zilla-grpc-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-proxy
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-proxy
@@ -50,19 +50,19 @@ REVISION: 1
 NOTES:
 Zilla has been installed.
 [...]
-+ helm install zilla-grpc-proxy-grpc-echo chart --namespace zilla-grpc-proxy --create-namespace --wait --timeout 2m
++ helm upgrade --install zilla-grpc-proxy-grpc-echo chart --namespace zilla-grpc-proxy --create-namespace --wait --timeout 2m
 NAME: zilla-grpc-proxy-grpc-echo
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-proxy
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ kubectl port-forward --namespace zilla-grpc-proxy service/zilla-grpc-proxy 9090
++ kubectl port-forward --namespace zilla-grpc-proxy service/zilla 7153
 + kubectl port-forward --namespace zilla-grpc-proxy service/grpc-echo 8080
-+ nc -z localhost 9090
++ nc -z localhost 7153
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 7153
+Connection to localhost port 7153 [tcp/websm] succeeded!
 + nc -z localhost 8080
 Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ```
@@ -74,7 +74,7 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
 ```
 
 output:
@@ -90,7 +90,7 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
 ```
 
 Paste below message.

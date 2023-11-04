@@ -21,3 +21,8 @@ scrape_configs:
         target_label: namespace
       - target_label: endpoint
         replacement: prometheus
+      - source_labels: [__address__]
+        action: replace
+        regex: ([^:]+):.*
+        replacement: $1:7190 # port you want to use
+        target_label: __address__

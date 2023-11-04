@@ -7,12 +7,12 @@ env:
   - name: TCP_CLIENT_HOST
     value: mosquitto
   - name: TCP_CLIENT_PORT
-    value: '"1884"'
+    value: '"1883"'
 
-livenessProbePort: 1883
-readinessProbePort: 1883
+livenessProbePort: 7183
+readinessProbePort: 7183
 
 service:
   ports:
-    - port: 1883
+    - port: 7183
       name: mqtt

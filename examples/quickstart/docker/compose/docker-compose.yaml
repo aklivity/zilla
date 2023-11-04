@@ -1,0 +1,42 @@
+version: '3'
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:latest
+    container_name: zilla
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 7114:7114
+      - 7151:7151
+      - 7183:7183
+      - 7190:7190
+    environment:
+      KAFKA_HOST: ${KAFKA_HOST}
+      KAFKA_PORT: ${KAFKA_PORT}
+      ROUTE_GUIDE_SERVER_HOST: route-guide-server
+      ROUTE_GUIDE_SERVER_PORT: 50051
+    volumes:
+      - ../../zilla.yaml:/etc/zilla/zilla.yaml
+      - ./grpc/echo.proto:/etc/zilla/proto/echo.proto
+      - ./grpc/route_guide.proto:/etc/zilla/proto/route_guide.proto
+    command: start -v -e
+
+  mqtt-simulator:
+    build: https://github.com/vordimous/mqtt-simulator.git#zilla-quickstart
+    container_name: mqtt-simulator
+    image: aklivity/mqtt-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./mqtt/config/settings.json:/usr/src/app/config/settings.json
+
+  route-guide-server:
+    build: ./grpc/route_guide/server
+    container_name: route-guide-server
+    image: aklivity/route-guide-server:local
+    restart: unless-stopped
+    ports:
+      - 50051:50051
+
+networks:
+  default:
+    driver: bridge

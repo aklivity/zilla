@@ -2,10 +2,10 @@ env:
   - name: KEYSTORE_PASSWORD
     value: generated
 
-livenessProbePort: 9090
-readinessProbePort: 9090
+livenessProbePort: 7143
+readinessProbePort: 7143
 
 service:
   ports:
-    - port: 9090
+    - port: 7143
       name: https

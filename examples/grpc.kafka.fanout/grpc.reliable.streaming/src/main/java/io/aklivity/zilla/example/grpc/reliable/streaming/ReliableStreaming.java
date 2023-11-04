@@ -125,7 +125,7 @@ public class ReliableStreaming
     public static void main(String[] args) throws Exception
     {
         boolean enableRetries = !Boolean.parseBoolean(System.getenv(ENV_DISABLE_RETRYING));
-        final ReliableStreaming reliableStreaming = new ReliableStreaming("localhost", 9090, enableRetries);
+        final ReliableStreaming reliableStreaming = new ReliableStreaming("localhost", 7153, enableRetries);
 
         while (true)
         {

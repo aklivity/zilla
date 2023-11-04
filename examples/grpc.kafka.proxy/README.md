@@ -1,6 +1,6 @@
 # grpc..kafka.proxy
 
-Listens on https port `9090` and uses kafka as proxy to talk to `grpc_echo` on tcp port `8080`.
+Listens on https port `7153` and uses kafka as proxy to talk to `grpc_echo` on tcp port `8080`.
 
 ### Requirements
 
@@ -41,7 +41,7 @@ output:
 + docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
++ helm upgrade --install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-proxy
 LAST [...]
 NAMESPACE: zilla-grpc-kafka-proxy
@@ -49,7 +49,7 @@ STATUS: deployed
 REVISION: 1
 Zilla has been installed.
 [...]
-+ helm install zilla-grpc-kafka-proxy-kafka chart --namespace zilla-grpc-kafka-proxy --create-namespace --wait --timeout 2m
++ helm upgrade --install zilla-grpc-kafka-proxy-kafka chart --namespace zilla-grpc-kafka-proxy --create-namespace --wait --timeout 2m
 NAME: zilla-grpc-kafka-proxy-kafka
 LAST DEPLOYED: [...]
 NAMESPACE: zilla-grpc-kafka-proxy
@@ -61,13 +61,13 @@ TEST SUITE: None
 Created topic echo-requests.
 + kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-7knvx -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-responses --if-not-exists
 Created topic echo-responses.
-+ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/zilla-grpc-kafka-proxy 9090
++ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/zilla 7153
 + kubectl port-forward --namespace zilla-grpc-kafka-proxy service/kafka 9092 29092
-+ nc -z localhost 9090
++ nc -z localhost 7153
 + kubectl port-forward --namespace zilla-grpc-kafka-proxy service/grpc-echo 8080
 + sleep 1
-+ nc -z localhost 9090
-Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 7153
+Connection to localhost port 7153 [tcp/websm] succeeded!
 + nc -z localhost 9092
 Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 + nc -z localhost 8080
@@ -81,7 +81,7 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
 ```
 
 output:
@@ -96,6 +96,11 @@ Verify the message payload, followed by a tombstone to mark the end of the reque
 
 ```bash
 kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "echo-requests",
   "partition": 0,
@@ -136,11 +141,6 @@ kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
   "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
   "payload": null
 }
-```
-
-output:
-
-```text
 % Reached end of topic echo-requests [0] at offset 2
 ```
 
@@ -149,7 +149,7 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
 ```
 
 Past below message.
@@ -164,6 +164,11 @@ Verify the message payload, followed by a tombstone to mark the end of the respo
 
 ```bash
 kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
+```
+
+output:
+
+```json
 {
   "topic": "echo-responses",
   "partition": 0,
@@ -194,12 +199,7 @@ kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
   "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
   "payload": null
 }
-```
-
-output:
-
-```text
-% Reached end of topic echo-responses [0] at offset 2
+% Reached end of topic echo-responses [0] at offset 4
 ```
 
 ### Teardown

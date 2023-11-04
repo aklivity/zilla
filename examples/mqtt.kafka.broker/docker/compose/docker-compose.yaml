@@ -3,6 +3,7 @@ services:
   zilla:
     image: ghcr.io/aklivity/zilla
     container_name: zilla
+    pull_policy: always
     restart: unless-stopped
     ports:
       - 7183:7183
@@ -12,8 +13,8 @@ services:
       KAFKA_HOST: ${KAFKA_HOST}
       KAFKA_PORT: ${KAFKA_PORT}
     volumes:
-      - ../zilla.yaml:/etc/zilla/zilla.yaml
-      - ../tls:/etc/zilla/tls
+      - ../../zilla.yaml:/etc/zilla/zilla.yaml
+      - ../../tls:/etc/zilla/tls
     command: start -v -e
 
 networks:

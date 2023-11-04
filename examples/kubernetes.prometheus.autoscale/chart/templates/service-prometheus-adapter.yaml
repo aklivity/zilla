@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: prometheus-adapter
-          image: "registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.0"
+          image: "registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.1"
           args:
             - /adapter
             - --secure-port=443

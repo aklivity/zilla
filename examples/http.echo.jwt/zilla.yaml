@@ -1,7 +1,7 @@
 ---
 name: example
 vaults:
-  server:
+  my_servers:
     type: filesystem
     options:
       keys:
@@ -9,7 +9,7 @@ vaults:
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
 guards:
-  jwt0:
+  authn_jwt:
     type: jwt
     options:
       issuer: https://auth.example.com
@@ -21,25 +21,25 @@ guards:
           alg: RS256
           kid: example
 bindings:
-  tcp_server0:
+  north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 
-        - 8080
-        - 9090
+        - 7114
+        - 7143
     routes:
         - when: 
-            - port: 8080
-          exit: http_server0
+            - port: 7114
+          exit: north_http_server
         - when:
-            - port: 9090
-          exit: tls_server0
-  tls_server0:
+            - port: 7143
+          exit: north_tls_server
+  north_tls_server:
     type: tls
     kind: server
-    vault: server
+    vault: my_servers
     options:
       keys:
         - localhost
@@ -48,28 +48,28 @@ bindings:
       alpn:
         - http/1.1
         - h2
-    exit: http_server0
-  http_server0:
+    exit: north_http_server
+  north_http_server:
     type: http
     kind: server
     options:
       authorization:
-        jwt0:
+        authn_jwt:
           credentials:
             headers:
               authorization: Bearer {credentials}
     routes:
       - guarded:
-          jwt0:
+          authn_jwt:
             - echo:stream
         when:
           - headers:
               :scheme: http
-              :authority: localhost:8080
+              :authority: localhost:7114
           - headers:
               :scheme: https
-              :authority: localhost:9090
-        exit: echo_server0
-  echo_server0:
+              :authority: localhost:7143
+        exit: north_echo_server
+  north_echo_server:
     type: echo
     kind: server
