@@ -1,6 +1,6 @@
 # grpc.kafka.echo
 
-Listens on https port `7153` and will exchange grpc message in probuf format through the `echo-messages` topic in Kafka.
+Listens on https port `7153` and will exchange grpc message in protobuf format through the `echo-messages` topic in Kafka.
 
 ### Requirements
 
