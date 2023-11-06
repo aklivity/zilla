@@ -98,10 +98,12 @@ catalogs:
             required:
             - id
             - status
+            type: object
           version: latest
         thing:
           schema: |
             properties:
               sunshine:
                 type: integer
+            type: object
           version: latest

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Channel;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Parameter;
 
 public final class ChannelView extends Resolvable<Channel>
 {
@@ -33,6 +34,11 @@ public final class ChannelView extends Resolvable<Channel>
     public String address()
     {
         return channel.address;
+    }
+
+    public Map<String, Parameter> parameters()
+    {
+        return channel.parameters;
     }
 
     public static ChannelView of(

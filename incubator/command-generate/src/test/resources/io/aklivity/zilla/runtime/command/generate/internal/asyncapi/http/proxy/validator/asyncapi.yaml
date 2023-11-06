@@ -9,9 +9,6 @@ servers:
     host: http://localhost:8080
     protocol: http
     protocolVersion: '1.1'
-    security:
-      - httpBearerToken:
-          - public
 defaultContentType: application/json
 
 channels:
@@ -25,6 +22,8 @@ channels:
     parameters:
       id:
         description: Event ID.
+        schema:
+          type: string
     messages:
       items:
         $ref: '#/components/messages/item'
@@ -68,9 +67,6 @@ components:
           idempotency-key:
             description: Unique identifier for a given event
             type: string
-          authorization:
-            description: Bearer {credentials}
-            type: string
       contentType: application/json
       payload:
         type: object
@@ -85,8 +81,3 @@ components:
           type: string
       required:
         - greeting
-  securitySchemes:
-    httpBearerToken:
-      type: http
-      scheme: bearer
-      bearerFormat: jwt

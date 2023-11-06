@@ -22,8 +22,6 @@ channels:
     parameters:
       id:
         description: Event ID.
-        schema:
-          type: string
     messages:
       items:
         $ref: '#/components/messages/item'

@@ -15,10 +15,20 @@
 package io.aklivity.zilla.runtime.command.generate.internal.airline;
 
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
+
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public abstract class ConfigGenerator
 {
+    protected final Map<String, ValidatorConfig> validators = Map.of(
+        "string", StringValidatorConfig.builder().build(),
+        "integer", IntegerValidatorConfig.builder().build()
+    );
+
     public abstract String generate();
 
     protected final String unquoteEnvVars(

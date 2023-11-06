@@ -35,6 +35,7 @@ import jakarta.json.bind.JsonbBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -43,6 +44,7 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncA
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Item;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Operation;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Parameter;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ChannelView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerView;
@@ -52,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
@@ -215,6 +218,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
                         .policy(CROSS_ORIGIN)
                         .build()
                     .inject(this::injectHttpServerOptions)
+                    .inject(this::injectHttpServerRequests)
                     .build()
                 .inject(this::injectHttpServerRoutes)
                 .build()
@@ -311,6 +315,44 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         }
         return options;
     }
+
+    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRequests(
+        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    {
+        for (String name : asyncApi.operations.keySet())
+        {
+            Operation operation = asyncApi.operations.get(name);
+            ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
+            String path = channel.address();
+            Method method = Method.valueOf(operation.bindings.get("http").method);
+            Map<String, Parameter> parameters = channel.parameters();
+            if (parameters != null)
+            {
+                for (String paramName: parameters.keySet())
+                {
+                    Parameter parameter = parameters.get(paramName);
+                    if (parameter.schema != null && parameter.schema.type != null)
+                    {
+                        ValidatorConfig validator = validators.get(parameter.schema.type);
+                        if (validator != null)
+                        {
+                            options
+                                .request()
+                                    .path(path)
+                                    .method(method)
+                                    .pathParam()
+                                        .name(paramName)
+                                        .validator(validator)
+                                        .build()
+                                    .build();
+                        }
+                    }
+                }
+            }
+        }
+        return options;
+    }
+
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)

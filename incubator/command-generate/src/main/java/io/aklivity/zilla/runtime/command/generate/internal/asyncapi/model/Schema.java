@@ -21,4 +21,5 @@ public class Schema
 {
     public Map<String, Item> properties;
     public List<String> required;
+    public String type;
 }

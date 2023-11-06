@@ -38,6 +38,12 @@ bindings:
           credentials:
             headers:
               authorization: "Bearer {credentials}"
+      requests:
+      - path: "/items/{id}"
+        method: GET
+        params:
+          path:
+            id: string
     routes:
     - exit: http_client0
       when:
