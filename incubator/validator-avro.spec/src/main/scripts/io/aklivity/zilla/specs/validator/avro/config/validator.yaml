@@ -42,7 +42,7 @@ bindings:
     options:
       value:
         type: avro
-        expect: json
+        format: json
         catalog:
           catalog0:
             - subject: test0
