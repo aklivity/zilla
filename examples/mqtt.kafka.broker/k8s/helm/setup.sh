@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-[[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]] && printf "==== This example requires a running kafka instance, found ($KAFKA_HOST:$KAFKA_PORT) ====\n$USAGE" && exit 0;
+if [[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]]; then
+  export KAFKA_HOST=host.docker.internal
+  export KAFKA_PORT=29092
+  echo "==== This example requires env vars KAFKA_HOST and KAFKA_PORT for a running kafka instance. Setting to the default ($KAFKA_HOST:$KAFKA_PORT) ===="
+fi
 
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 NAMESPACE=zilla-mqtt-kafka-broker

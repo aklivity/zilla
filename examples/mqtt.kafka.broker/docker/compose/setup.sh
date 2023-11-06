@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
-[[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]] && printf "==== This example requires a running kafka instance ====\n$USAGE" && exit 0;
+if [[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]]; then
+  export KAFKA_HOST=host.docker.internal
+  export KAFKA_PORT=29092
+  echo "==== This example requires env vars KAFKA_HOST and KAFKA_PORT for a running kafka instance. Setting to the default ($KAFKA_HOST:$KAFKA_PORT) ===="
+fi
 
 NAMESPACE=zilla-mqtt-kafka-broker
 
 # Start or restart Zilla
-if [[ -z `docker-compose -p $NAMESPACE ps -q zilla` ]]; then
+if [[ -z $(docker-compose -p $NAMESPACE ps -q zilla) ]]; then
   docker-compose -p $NAMESPACE up -d
 
   # Create the mqtt topics in Kafka

@@ -74,6 +74,8 @@ EXAMPLE_FOLDER="$*"
 [[ -z "$VERSION" ]] && VERSION=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep -i "tag_name" | awk -F '"' '{print $4}')
 [[ -z "$VERSION" ]] && USE_MAIN=true
 
+echo "==== Starting Zilla Example $EXAMPLE_FOLDER at $WORKDIR ===="
+
 ! [[ -d "$WORKDIR" ]] && echo "Error: WORKDIR must be a valid directory." && exit2
 if [[ -d "$WORKDIR" && ! -d "$WORKDIR/$EXAMPLE_FOLDER" ]]; then
     if [[ $USE_MAIN == true ]]; then
