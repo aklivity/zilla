@@ -307,17 +307,25 @@ public final class HttpBindingConfig
         Map<String, String8FW> queryParams = new HashMap<>();
         if (query != null && !query.isBlank())
         {
-            String[] paramPairs = query.split("&");
-            for (String paramPair : paramPairs)
+            int ampersandIndex = -1;
+            do
             {
-                String[] keyValue = paramPair.split("=");
-                if (keyValue.length == 2)
+                int equalsIndex = query.indexOf('=', ampersandIndex + 1);
+                int nextAmpersandIndex = query.indexOf('&', ampersandIndex + 1);
+                if (equalsIndex != -1 && (equalsIndex < nextAmpersandIndex || nextAmpersandIndex == -1))
                 {
-                    String key = URLDecoder.decode(keyValue[0], UTF_8);
-                    String8FW value = new String8FW(URLDecoder.decode(keyValue[1], UTF_8));
-                    queryParams.put(key, value);
+                    String key = query.substring(ampersandIndex + 1, equalsIndex);
+                    String value = nextAmpersandIndex == -1 ?
+                        query.substring(equalsIndex + 1) :
+                        query.substring(equalsIndex + 1, nextAmpersandIndex);
+                    if (!key.isEmpty())
+                    {
+                        queryParams.put(URLDecoder.decode(key, UTF_8), new String8FW(URLDecoder.decode(value, UTF_8)));
+                    }
                 }
+                ampersandIndex = nextAmpersandIndex;
             }
+            while (ampersandIndex != -1);
         }
         return queryParams;
     }
