@@ -242,19 +242,6 @@ scope kafka
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
         }
 
-        struct KafkaMergedDataEx
-        {
-            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
-            int64 timestamp = 0;        // INIT only
-            int64 filters = -1;         // INIT only
-            KafkaOffset partition;      // INIT only
-            KafkaOffset[] progress;     // INIT only
-            KafkaKey key;               // INIT only
-            KafkaKey hashKey;           // INIT only
-            KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
-        }
-
         union KafkaMergedDataEx switch (uint8)
         {
             case 252: kafka::stream::KafkaMergedConsumerDataEx consumer;
@@ -301,18 +288,18 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
-        struct KafkaMergedConsumerDataExKafkaMergedConsumerDataEx
+        struct KafkaMergedConsumerDataEx
         {
             KafkaOffset partition;
         }
 
         union KafkaMergedFlushEx switch (uint8)
         {
-            case 8: kafka::stream::KafkaMergedOffsetCommitFlushEx offsetCommit;
+            case 8: kafka::stream::KafkaMergedConsumerFlushEx consumer;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
         }
 
-        struct KafkaMergedOffsetCommitFlushEx
+        struct KafkaMergedConsumerFlushEx
         {
             KafkaOffset partition;
         }
@@ -466,7 +453,7 @@ scope kafka
 
         union KafkaConsumerDataEx switch (uint8)
         {
-            case 253: kafka::stream::KafkaMergedConsumerDataEx group;
+            case 253: kafka::stream::KafkaConsumerGroupDataEx group;
             case 8: kafka::stream::KafkaConsumerOffsetCommitDataEx offsetCommit;
         }
 
@@ -506,6 +493,7 @@ scope kafka
 
         struct KafkaOffsetCommitBeginEx
         {
+            string16 topic;
             string16 groupId;
             int32 generationId;
             string16 memberId;
@@ -513,11 +501,8 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
-            string16 topic;
             int32 partitionId;
             int64 partitionOffset;
-            varint32 metadataLen;
-            octets[metadataLen] metadata = null;
         }
     }
 
