@@ -70,8 +70,6 @@ public final class HttpBindingConfig
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
     public final List<HttpRequestType> requests;
-    public Map<String, String8FW> pathParams;
-    public Map<String, String8FW> queryParams;
 
     public HttpBindingConfig(
         BindingConfig binding)
@@ -278,8 +276,8 @@ public final class HttpBindingConfig
         Matcher matcher = request.pathPattern.matcher(path);
         if (matcher.matches())
         {
-            this.pathParams = parsePathParams(request.path, matcher);
-            this.queryParams = parseQueryParams(matcher.group("query0"));
+            request.pathParamValues = parsePathParams(request.path, matcher);
+            request.queryParamValues = parseQueryParams(matcher.group("query0"));
             result = true;
         }
         return result;
@@ -364,12 +362,12 @@ public final class HttpBindingConfig
         HttpRequestType request)
     {
         boolean isValid = true;
-        for (String name : this.pathParams.keySet())
+        for (String name : request.pathParamValues.keySet())
         {
             Validator validator = request.pathParams.get(name);
             if (validator != null)
             {
-                String8FW value = this.pathParams.get(name);
+                String8FW value = request.pathParamValues.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
                     isValid = false;
@@ -384,12 +382,12 @@ public final class HttpBindingConfig
         HttpRequestType request)
     {
         boolean isValid = true;
-        for (String name : this.queryParams.keySet())
+        for (String name : request.queryParamValues.keySet())
         {
             Validator validator = request.queryParams.get(name);
             if (validator != null)
             {
-                String8FW value = this.queryParams.get(name);
+                String8FW value = request.queryParamValues.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
                     isValid = false;
