@@ -78,8 +78,8 @@ read 103                                                # size
           [0x00]                                          # not default
           [0x00]                                          # not sensitive
 
-read aborted
 write abort
+read abort
 
 read notify ROUTED_CLUSTER_SERVER
 
@@ -169,5 +169,5 @@ read  14                                                # size
       0s                                                # no error
       0                                                 # assignment
 
-write aborted
+write abort
 read abort

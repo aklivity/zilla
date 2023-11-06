@@ -48,6 +48,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.authorization/client",
+        "${app}/session.connect.authorization/server"})
+    public void shouldConnectAndAuthorize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.with.session.expiry/client",
         "${app}/session.connect.with.session.expiry/server"})
     public void shouldConnectWithSessionExpiry() throws Exception

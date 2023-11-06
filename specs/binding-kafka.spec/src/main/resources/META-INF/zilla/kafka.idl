@@ -222,6 +222,9 @@ scope kafka
         struct KafkaBootstrapBeginEx
         {
             string16 topic;
+            string16 groupId = null;
+            string16 consumerId = null;
+            int32 timeout = 0;
         }
 
         struct KafkaMergedBeginEx

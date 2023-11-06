@@ -58,7 +58,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
 
-        final KafkaCacheServerBootstrapFactory cacheBootstrapFactory = new KafkaCacheServerBootstrapFactory(
+        final KafkaCacheBootstrapFactory cacheBootstrapFactory = new KafkaCacheBootstrapFactory(
                 config, context, bindings::get);
 
         final KafkaCacheMetaFactory cacheMetaFactory = new KafkaCacheMetaFactory(

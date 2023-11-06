@@ -17,14 +17,15 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 public final class KafkaState
 {
-    private static final int INITIAL_OPENING = 0x10;
-    private static final int INITIAL_OPENED = 0x20;
-    private static final int INITIAL_CLOSING = 0x40;
-    private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
-    private static final int REPLY_CLOSING = 0x04;
-    private static final int REPLY_CLOSED = 0x08;
+    private static final int INITIAL_OPENING = 0x1000;
+    private static final int INITIAL_OPENED = 0x2000;
+    private static final int INITIAL_CLOSING = 0x4000;
+    private static final int INITIAL_CLOSED = 0x8000;
+    private static final int REPLY_OPENED = 0x0001;
+    private static final int REPLY_OPENING = 0x0002;
+    private static final int REPLY_CLOSING = 0x0004;
+    private static final int REPLY_CLOSED = 0x0008;
+    private static final int REPLY_ABORTING = 0x0010;
 
     static int openingInitial(
         int state)
@@ -104,6 +105,12 @@ public final class KafkaState
         return state | REPLY_CLOSING;
     }
 
+    static int abortingReply(
+        int state)
+    {
+        return state | REPLY_ABORTING;
+    }
+
     static int closedReply(
         int state)
     {
@@ -120,6 +127,12 @@ public final class KafkaState
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    static boolean replyAborting(
+        int state)
+    {
+        return (state & REPLY_ABORTING) != 0;
     }
 
     static boolean closed(
