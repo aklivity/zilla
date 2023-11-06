@@ -960,6 +960,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long affinity)
         {
             reconnectAttempt = 0;
+            replySeq = 0;
+            replyAck = 0;
+            if (decodeSlot != NO_SLOT)
+            {
+                bufferPool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
             willFetchers.values().forEach(f -> f.cleanup(traceId, authorization));
             willFetchers.clear();
 
@@ -1186,7 +1194,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                         final MqttSessionSignalFW sessionSignal =
                             mqttSessionSignalRO.wrap(buffer, offset, limit);
-                        byte[] bytes = new byte[sessionSignal.sizeof()];
 
                         switch (sessionSignal.kind())
                         {
