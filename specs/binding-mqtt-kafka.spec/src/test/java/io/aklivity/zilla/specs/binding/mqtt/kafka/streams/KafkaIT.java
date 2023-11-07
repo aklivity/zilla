@@ -781,4 +781,22 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.session.expiry.fragmented/client",
+        "${kafka}/session.session.expiry.fragmented/server"})
+    public void shouldDecodeSessionExpirySignalFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.expiry.after.signal.stream.restart/client",
+        "${kafka}/session.expiry.after.signal.stream.restart/server"})
+    public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
 }
