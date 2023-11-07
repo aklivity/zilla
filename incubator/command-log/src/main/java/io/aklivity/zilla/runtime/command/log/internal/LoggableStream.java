@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -395,12 +396,9 @@ public final class LoggableStream implements AutoCloseable
             final OctetsFW payload = data.payload();
             if (payload != null)
             {
-                StringBuilder hexData = new StringBuilder();
-                for (int i = 0; i < data.length(); i++)
-                {
-                    hexData.append(String.format("%02x", payload.buffer().getByte(payload.offset() + i)));
-                    hexData.append(i < data.length() - 1 ? ':' : "");
-                }
+                byte[] bytes = new byte[data.length()];
+                payload.buffer().getBytes(0, bytes);
+                String hexData = BitUtil.toHex(bytes).replaceAll("(..)(?!$)", "$1:");
                 out.printf(verboseFormat, index, offset, timestamp, hexData);
             }
         }
