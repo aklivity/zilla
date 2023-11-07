@@ -806,6 +806,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
                                      .typeId(0x01)
                                      .merged()
+                                        .fetch()
                                          .deferred(100)
                                          .timestamp(12345678L)
                                          .partition(0, 0L)
