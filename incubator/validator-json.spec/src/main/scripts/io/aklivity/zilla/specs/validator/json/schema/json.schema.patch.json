@@ -6,7 +6,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/type/oneOf/-",
+        "path": "/$defs/validator/allOf/-",
         "value":
         {
             "if":
@@ -120,7 +120,8 @@
                         },
                         "maxProperties": 1
                     }
-                }
+                },
+                "additionalProperties": false
             }
         }
     }

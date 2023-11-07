@@ -28,6 +28,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
     exports io.aklivity.zilla.runtime.engine.validator;
+    exports io.aklivity.zilla.runtime.engine.validator.function;
 
     exports io.aklivity.zilla.runtime.engine.ext;
 

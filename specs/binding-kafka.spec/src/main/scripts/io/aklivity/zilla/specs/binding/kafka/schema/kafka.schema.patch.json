@@ -81,11 +81,11 @@
                                         },
                                         "key":
                                         {
-                                            "$ref": "#/$defs/validator/type"
+                                            "$ref": "#/$defs/validator"
                                         },
                                         "value":
                                         {
-                                            "$ref": "#/$defs/validator/type"
+                                            "$ref": "#/$defs/validator"
                                         }
                                     }
                                 }

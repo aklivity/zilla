@@ -79,7 +79,10 @@ public class AvroWriteValueValidator extends AvroValueValidator
                 value.putBytes(5, payloadBytes);
                 valLength = length + 5;
             }
-            next.accept(value, index, valLength);
+            if (valLength != -1)
+            {
+                next.accept(value, index, valLength);
+            }
         }
         return valLength;
     }

@@ -361,26 +361,21 @@
         },
         "validator":
         {
-            "type":
+            "type": "object",
+            "properties":
             {
-                "oneOf":
-                [
-                    {
-                        "$ref": "#/$defs/validator/types"
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "type":
-                            {
-                                "$ref": "#/$defs/validator/types"
-                            }
-                        },
-                        "additionalProperties": false
-                    }
-                ]
+                "type":
+                {
+                    "$ref": "#/$defs/validator/types"
+                }
             },
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ],
             "types":
             {
                 "type": "string",

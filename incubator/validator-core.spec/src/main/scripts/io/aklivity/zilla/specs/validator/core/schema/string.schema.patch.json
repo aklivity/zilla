@@ -6,7 +6,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/type/oneOf/-",
+        "path": "/$defs/validator/allOf/-",
         "value":
         {
             "if":
@@ -36,7 +36,8 @@
                             "utf_16"
                         ]
                     }
-                }
+                },
+                "additionalProperties": false
             }
         }
     }

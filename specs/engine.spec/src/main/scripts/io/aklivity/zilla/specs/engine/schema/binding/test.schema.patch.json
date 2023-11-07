@@ -39,7 +39,7 @@
                         {
                             "value":
                             {
-                                "$ref": "#/$defs/validator/type"
+                                "$ref": "#/$defs/validator"
                             }
                         }
                     }
