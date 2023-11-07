@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
@@ -31,7 +31,7 @@ public class HttpRequestType
     public List<String> contentType;
 
     // path parsing helpers
-    public Pattern pathPattern;
+    public Matcher pathMatcher;
     public Map<String, String8FW> pathParamValues;
     public Map<String, String8FW> queryParamValues;
 

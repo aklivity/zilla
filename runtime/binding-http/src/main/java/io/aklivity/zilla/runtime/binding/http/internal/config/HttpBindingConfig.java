@@ -205,7 +205,7 @@ public final class HttpBindingConfig
                 requestType.path = request.path;
                 String pattern = String.format("^%s/?(\\?(?<query0>.*))?$",
                     requestType.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)"));
-                requestType.pathPattern = Pattern.compile(pattern);
+                requestType.pathMatcher = Pattern.compile(pattern).matcher("");
                 requestType.method = request.method;
                 requestType.contentType = request.contentType;
                 if (request.headers != null)
@@ -273,7 +273,7 @@ public final class HttpBindingConfig
         String path)
     {
         boolean result = false;
-        Matcher matcher = request.pathPattern.matcher(path);
+        Matcher matcher = request.pathMatcher.reset(path);
         if (matcher.matches())
         {
             request.pathParamValues = parsePathParams(request.path, matcher);
