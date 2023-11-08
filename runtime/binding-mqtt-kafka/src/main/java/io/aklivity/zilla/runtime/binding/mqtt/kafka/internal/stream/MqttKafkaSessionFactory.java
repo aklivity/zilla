@@ -1220,7 +1220,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         case MqttSessionSignalFW.KIND_EXPIRY:
                             final MqttExpirySignalFW expirySignal = sessionSignal.expiry();
                             long expireAt = expirySignal.expireAt();
-                            final String16FW expiryClientId = expirySignal.clientId();
+                            final String16FW clientId = expirySignal.clientId();
+                            final String16FW expiryClientId =
+                                new String16FW().wrap(clientId.buffer(), clientId.offset(), clientId.limit());
 
                             if (expireAt == MqttTime.UNKNOWN.value())
                             {

@@ -1318,8 +1318,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            final int noAck = (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
+            doClientInitialWindow(traceId, 0, initialBudgetMax);
         }
 
         private void onClientInitialEnd(
