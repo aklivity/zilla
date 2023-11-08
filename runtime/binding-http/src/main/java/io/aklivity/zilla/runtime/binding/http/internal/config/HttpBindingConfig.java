@@ -16,14 +16,17 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -215,7 +218,7 @@ public final class HttpBindingConfig
                         pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
                     }
                 }
-                Map<String, Validator> queryParams = new HashMap<>();
+                Map<String, Validator> queryParams = new TreeMap<>(this::urlDecodedComparator);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
@@ -237,6 +240,15 @@ public final class HttpBindingConfig
             }
         }
         return result;
+    }
+
+    private int urlDecodedComparator(
+        String input1,
+        String input2)
+    {
+        String decoded1 = URLDecoder.decode(input1, UTF_8);
+        String decoded2 = URLDecoder.decode(input2, UTF_8);
+        return decoded1.compareTo(decoded2);
     }
 
     public HttpRequestType resolveRequestType(

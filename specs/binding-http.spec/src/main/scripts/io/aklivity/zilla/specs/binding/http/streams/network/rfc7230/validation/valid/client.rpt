@@ -29,6 +29,7 @@ read "Content-Length: 9" "\r\n"
 read "\r\n"
 read "response1"
 
+
 # Request 2 - valid path params, query param
 write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
@@ -39,7 +40,19 @@ read "Content-Length: 9" "\r\n"
 read "\r\n"
 read "response2"
 
-# Request 3 - valid path params, query param, header field
+
+# Request 3 - valid path params, url encoded query param
+write "POST /valid/1234567890123/1234567890123?%70%61%67%65=1234567890123 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "\r\n"
+
+read "HTTP/1.1 200 OK\r\n"
+read "Content-Length: 9" "\r\n"
+read "\r\n"
+read "response3"
+
+
+# Request 4 - valid path params, query param, header field
 write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "Code: 1234567890123" "\r\n"
@@ -48,9 +61,10 @@ write "\r\n"
 read "HTTP/1.1 200 OK\r\n"
 read "Content-Length: 9" "\r\n"
 read "\r\n"
-read "response3"
+read "response4"
 
-# Request 4 - valid path params, query param, header field, valid content
+
+# Request 5 - valid path params, query param, header field, valid content
 write "POST /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "Code: 1234567890123" "\r\n"
@@ -62,4 +76,4 @@ write "1234567890123"
 read "HTTP/1.1 200 OK\r\n"
 read "Content-Length: 9" "\r\n"
 read "\r\n"
-read "response4"
+read "response5"

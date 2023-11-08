@@ -14,6 +14,7 @@
 # under the License.
 #
 
+# Request 1 - valid path params
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -27,8 +28,6 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-
-
 write close
 
 read zilla:begin.ext ${http:beginEx()
@@ -39,9 +38,11 @@ read zilla:begin.ext ${http:beginEx()
 
 read "response1"
 read closed
-read notify RESPONSE_ONE_RECEIVED
+read notify RESPONSE_1_RECEIVED
 
-connect await RESPONSE_ONE_RECEIVED
+
+# Request 2 - valid path params, query param
+connect await RESPONSE_1_RECEIVED
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -55,7 +56,6 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-
 write close
 
 read zilla:begin.ext ${http:beginEx()
@@ -66,9 +66,39 @@ read zilla:begin.ext ${http:beginEx()
 
 read "response2"
 read closed
-read notify RESPONSE_TWO_RECEIVED
+read notify RESPONSE_2_RECEIVED
 
-connect await RESPONSE_TWO_RECEIVED
+
+# Request 3 - valid path params, url encoded query param
+connect await RESPONSE_2_RECEIVED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "POST")
+                              .header(":path", "/valid/1234567890123/1234567890123?%70%61%67%65=1234567890123")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .header("content-length", "9")
+                             .build()}
+
+read "response3"
+read closed
+read notify RESPONSE_3_RECEIVED
+
+
+# Request 4 - valid path params, query param, header field
+connect await RESPONSE_3_RECEIVED
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -83,7 +113,6 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-
 write close
 
 read zilla:begin.ext ${http:beginEx()
@@ -92,11 +121,13 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "9")
                              .build()}
 
-read "response3"
+read "response4"
 read closed
-read notify RESPONSE_THREE_RECEIVED
+read notify RESPONSE_4_RECEIVED
 
-connect await RESPONSE_THREE_RECEIVED
+
+# Request 5 - valid path params, query param, header field, valid content
+connect await RESPONSE_4_RECEIVED
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -120,5 +151,5 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "9")
                              .build()}
 
-read "response4"
+read "response5"
 read closed
