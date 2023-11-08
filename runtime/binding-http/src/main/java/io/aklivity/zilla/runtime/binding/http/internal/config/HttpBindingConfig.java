@@ -257,7 +257,7 @@ public final class HttpBindingConfig
                 boolean isMatch = false;
                 isMatch |= method == null || request.method == null || method.equals(request.method.name());
                 isMatch |= contentType == null || request.contentType == null || request.contentType.contains(contentType);
-                isMatch &= parseParams(request, path);
+                isMatch &= matchPath(request, path);
                 if (isMatch)
                 {
                     result = request;
@@ -268,19 +268,11 @@ public final class HttpBindingConfig
         return result;
     }
 
-    private boolean parseParams(
+    private boolean matchPath(
         HttpRequestType request,
         String path)
     {
-        boolean result = false;
-        Matcher matcher = request.pathMatcher.reset(path);
-        if (matcher.matches())
-        {
-            request.pathParamValues = parsePathParams(request.path, matcher);
-            request.queryParamValues = parseQueryParams(matcher.group("query0"));
-            result = true;
-        }
-        return result;
+        return request.pathMatcher.reset(path).matches();
     }
 
     private Map<String, String8FW> parsePathParams(
@@ -370,12 +362,13 @@ public final class HttpBindingConfig
         HttpRequestType request)
     {
         boolean isValid = true;
-        for (String name : request.pathParamValues.keySet())
+        Map<String, String8FW> pathParams = parsePathParams(request.path, request.pathMatcher);
+        for (String name : pathParams.keySet())
         {
             Validator validator = request.pathParams.get(name);
             if (validator != null)
             {
-                String8FW value = request.pathParamValues.get(name);
+                String8FW value = pathParams.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
                     isValid = false;
@@ -390,12 +383,13 @@ public final class HttpBindingConfig
         HttpRequestType request)
     {
         boolean isValid = true;
-        for (String name : request.queryParamValues.keySet())
+        Map<String, String8FW> queryParams = parseQueryParams(request.pathMatcher.group("query0"));
+        for (String name : queryParams.keySet())
         {
             Validator validator = request.queryParams.get(name);
             if (validator != null)
             {
-                String8FW value = request.queryParamValues.get(name);
+                String8FW value = queryParams.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
                     isValid = false;

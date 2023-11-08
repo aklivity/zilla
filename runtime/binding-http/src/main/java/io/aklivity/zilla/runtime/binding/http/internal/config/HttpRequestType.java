@@ -27,13 +27,9 @@ public class HttpRequestType
 {
     // selectors
     public String path;
+    public Matcher pathMatcher;
     public HttpRequestConfig.Method method;
     public List<String> contentType;
-
-    // path parsing helpers
-    public Matcher pathMatcher;
-    public Map<String, String8FW> pathParamValues;
-    public Map<String, String8FW> queryParamValues;
 
     // validators
     public Map<String8FW, Validator> headers;
