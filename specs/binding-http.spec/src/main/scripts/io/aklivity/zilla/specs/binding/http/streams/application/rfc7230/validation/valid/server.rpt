@@ -17,8 +17,9 @@
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-accepted
 
+# Request 1 - valid path params
+accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
@@ -27,9 +28,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -42,8 +40,9 @@ write flush
 write "response1"
 write close
 
-accepted
 
+# Request 2 - valid path params, query param
+accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
@@ -52,9 +51,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -67,20 +63,17 @@ write flush
 write "response2"
 write close
 
-accepted
 
+# Request 3 - valid path params, url encoded query param
+accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
                              .header(":method", "POST")
-                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
+                             .header(":path", "/valid/1234567890123/1234567890123?%70%61%67%65=1234567890123")
                              .header(":authority", "localhost:8080")
-                             .header("code", "1234567890123")
                              .build()}
 connected
-
-
-
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -93,8 +86,33 @@ write flush
 write "response3"
 write close
 
-accepted
 
+# Request 4 - valid path params, query param, header field
+accepted
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":scheme", "http")
+                             .header(":method", "POST")
+                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
+                             .header(":authority", "localhost:8080")
+                             .header("code", "1234567890123")
+                             .build()}
+connected
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("content-length", "9")
+                              .build()}
+write flush
+
+write "response4"
+write close
+
+
+# Request 5 - valid path params, query param, header field, valid content
+accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
@@ -115,5 +133,5 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "response4"
+write "response5"
 write close
