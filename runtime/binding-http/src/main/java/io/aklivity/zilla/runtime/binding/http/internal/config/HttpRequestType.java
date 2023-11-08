@@ -27,9 +27,12 @@ public final class HttpRequestType
 {
     // selectors
     public final String path;
-    public final Matcher pathMatcher;
     public final HttpRequestConfig.Method method;
     public final List<String> contentType;
+
+    // matchers
+    public final Matcher pathMatcher;
+    public final Matcher queryMatcher;
 
     // validators
     public final Map<String8FW, Validator> headers;
@@ -39,18 +42,20 @@ public final class HttpRequestType
 
     private HttpRequestType(
         String path,
-        Matcher pathMatcher,
         HttpRequestConfig.Method method,
         List<String> contentType,
+        Matcher pathMatcher,
+        Matcher queryMatcher,
         Map<String8FW, Validator> headers,
         Map<String, Validator> pathParams,
         Map<String, Validator> queryParams,
         Validator content)
     {
         this.path = path;
-        this.pathMatcher = pathMatcher;
         this.method = method;
         this.contentType = contentType;
+        this.pathMatcher = pathMatcher;
+        this.queryMatcher = queryMatcher;
         this.headers = headers;
         this.pathParams = pathParams;
         this.queryParams = queryParams;
@@ -65,9 +70,10 @@ public final class HttpRequestType
     public static final class Builder
     {
         private String path;
-        private Matcher pathMatcher;
         private HttpRequestConfig.Method method;
         private List<String> contentType;
+        private Matcher pathMatcher;
+        private Matcher queryMatcher;
         private Map<String8FW, Validator> headers;
         private Map<String, Validator> pathParams;
         private Map<String, Validator> queryParams;
@@ -77,13 +83,6 @@ public final class HttpRequestType
             String path)
         {
             this.path = path;
-            return this;
-        }
-
-        public Builder pathMatcher(
-            Matcher pathMatcher)
-        {
-            this.pathMatcher = pathMatcher;
             return this;
         }
 
@@ -98,6 +97,20 @@ public final class HttpRequestType
             List<String> contentType)
         {
             this.contentType = contentType;
+            return this;
+        }
+
+        public Builder pathMatcher(
+            Matcher pathMatcher)
+        {
+            this.pathMatcher = pathMatcher;
+            return this;
+        }
+
+        public Builder queryMatcher(
+            Matcher queryMatcher)
+        {
+            this.queryMatcher = queryMatcher;
             return this;
         }
 
@@ -131,7 +144,8 @@ public final class HttpRequestType
 
         public HttpRequestType build()
         {
-            return new HttpRequestType(path, pathMatcher, method, contentType, headers, pathParams, queryParams, content);
+            return new HttpRequestType(path, method, contentType, pathMatcher, queryMatcher, headers, pathParams, queryParams,
+                content);
         }
     }
 }
