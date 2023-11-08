@@ -254,11 +254,13 @@ public final class HttpBindingConfig
             String path = resolveHeaderValue(beginEx, HEADER_PATH);
             String method = resolveHeaderValue(beginEx, HEADER_METHOD);
             String contentType = resolveHeaderValue(beginEx, HEADER_CONTENT_TYPE);
-            for (HttpRequestType request : requests)
+            for (HttpRequestType requestType : requests)
             {
-                if (matchMethod(request, method) && matchContentType(request, contentType) && matchPath(request, path))
+                if (matchMethod(requestType, method) &&
+                    matchContentType(requestType, contentType) &&
+                    matchPath(requestType, path))
                 {
-                    result = request;
+                    result = requestType;
                     break;
                 }
             }
@@ -267,48 +269,48 @@ public final class HttpBindingConfig
     }
 
     private boolean matchMethod(
-        HttpRequestType request,
+        HttpRequestType requestType,
         String method)
     {
-        return method == null || request.method == null || method.equals(request.method.name());
+        return method == null || requestType.method == null || method.equals(requestType.method.name());
     }
 
     private boolean matchContentType(
-        HttpRequestType request,
+        HttpRequestType requestType,
         String contentType)
     {
-        return contentType == null || request.contentType == null || request.contentType.contains(contentType);
+        return contentType == null || requestType.contentType == null || requestType.contentType.contains(contentType);
     }
 
     private boolean matchPath(
-        HttpRequestType request,
+        HttpRequestType requestType,
         String path)
     {
-        return request.pathMatcher.reset(path).matches();
+        return requestType.pathMatcher.reset(path).matches();
     }
 
     public boolean validateHeaders(
-        HttpRequestType request,
+        HttpRequestType requestType,
         HttpBeginExFW beginEx)
     {
-        return request == null ||
-            validateHeaderValues(request, beginEx) &&
-            validatePathParams(request) &&
-            validateQueryParams(request);
+        return requestType == null ||
+            validateHeaderValues(requestType, beginEx) &&
+            validatePathParams(requestType) &&
+            validateQueryParams(requestType);
     }
 
     private boolean validateHeaderValues(
-        HttpRequestType request,
+        HttpRequestType requestType,
         HttpBeginExFW beginEx)
     {
         MutableBoolean valid = new MutableBoolean(true);
-        if (request != null && request.headers != null)
+        if (requestType != null && requestType.headers != null)
         {
             beginEx.headers().forEach(header ->
             {
                 if (valid.value)
                 {
-                    Validator validator = request.headers.get(header.name());
+                    Validator validator = requestType.headers.get(header.name());
                     if (validator != null)
                     {
                         String16FW value = header.value();
@@ -342,13 +344,13 @@ public final class HttpBindingConfig
     }
 
     private boolean validatePathParams(
-        HttpRequestType request)
+        HttpRequestType requestType)
     {
         boolean valid = true;
-        Map<String, String8FW> pathParams = parsePathParams(request.path, request.pathMatcher);
+        Map<String, String8FW> pathParams = parsePathParams(requestType.path, requestType.pathMatcher);
         for (String name : pathParams.keySet())
         {
-            Validator validator = request.pathParams.get(name);
+            Validator validator = requestType.pathParams.get(name);
             if (validator != null)
             {
                 String8FW value = pathParams.get(name);
@@ -392,13 +394,13 @@ public final class HttpBindingConfig
     }
 
     private boolean validateQueryParams(
-        HttpRequestType request)
+        HttpRequestType requestType)
     {
         boolean valid = true;
-        Map<String, String8FW> queryParams = parseQueryParams(request.pathMatcher.group("query0"));
+        Map<String, String8FW> queryParams = parseQueryParams(requestType.pathMatcher.group("query0"));
         for (String name : queryParams.keySet())
         {
-            Validator validator = request.queryParams.get(name);
+            Validator validator = requestType.queryParams.get(name);
             if (validator != null)
             {
                 String8FW value = queryParams.get(name);
@@ -413,15 +415,15 @@ public final class HttpBindingConfig
     }
 
     public boolean validateContent(
-        HttpRequestType request,
+        HttpRequestType requestType,
         DirectBuffer buffer,
         int index,
         int length)
     {
         boolean valid = true;
-        if (request != null && request.content != null)
+        if (requestType != null && requestType.content != null)
         {
-            Validator validator = request.content;
+            Validator validator = requestType.content;
             valid = validator.read(buffer, index, length);
         }
         return valid;
