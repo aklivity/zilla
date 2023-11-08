@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
@@ -25,6 +26,12 @@ import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 public final class HttpRequestType
 {
+    private static final String PATH_FORMAT = "^%s/?(?:\\?.*)?$";
+    private static final String PATH_REGEX = "\\{([a-zA-Z0-9_-]+)\\}";
+    private static final String PATH_REPLACEMENT = "(?<$1>.+?)";
+    private static final String QUERY_REGEX = "(?<=[?&])([^&=]+)=([^&]+)(?=&|$)";
+    private static final String EMPTY = "";
+
     // selectors
     public final String path;
     public final HttpRequestConfig.Method method;
@@ -72,8 +79,6 @@ public final class HttpRequestType
         private String path;
         private HttpRequestConfig.Method method;
         private List<String> contentType;
-        private Matcher pathMatcher;
-        private Matcher queryMatcher;
         private Map<String8FW, Validator> headers;
         private Map<String, Validator> pathParams;
         private Map<String, Validator> queryParams;
@@ -97,20 +102,6 @@ public final class HttpRequestType
             List<String> contentType)
         {
             this.contentType = contentType;
-            return this;
-        }
-
-        public Builder pathMatcher(
-            Matcher pathMatcher)
-        {
-            this.pathMatcher = pathMatcher;
-            return this;
-        }
-
-        public Builder queryMatcher(
-            Matcher queryMatcher)
-        {
-            this.queryMatcher = queryMatcher;
             return this;
         }
 
@@ -144,6 +135,9 @@ public final class HttpRequestType
 
         public HttpRequestType build()
         {
+            String pathPattern = String.format(PATH_FORMAT, path.replaceAll(PATH_REGEX, PATH_REPLACEMENT));
+            Matcher pathMatcher = Pattern.compile(pathPattern).matcher(EMPTY);
+            Matcher queryMatcher = Pattern.compile(QUERY_REGEX).matcher(EMPTY);
             return new HttpRequestType(path, method, contentType, pathMatcher, queryMatcher, headers, pathParams, queryParams,
                 content);
         }

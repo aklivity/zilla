@@ -16,11 +16,9 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -201,10 +199,6 @@ public final class HttpBindingConfig
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                String pathPattern = String.format("^%s/?(?:\\?.*)?$",
-                    request.path.replaceAll("\\{([a-zA-Z0-9_-]+)\\}", "(?<$1>.+?)"));
-                Matcher pathMatcher = Pattern.compile(pathPattern).matcher("");
-                Matcher queryMatcher = Pattern.compile("(?<=[?&])([^&=]+)=([^&]+)(?=&|$)").matcher("");
                 Map<String8FW, Validator> headers = new HashMap<>();
                 if (request.headers != null)
                 {
@@ -234,8 +228,6 @@ public final class HttpBindingConfig
                     .path(request.path)
                     .method(request.method)
                     .contentType(request.contentType)
-                    .pathMatcher(pathMatcher)
-                    .queryMatcher(queryMatcher)
                     .headers(headers)
                     .pathParams(pathParams)
                     .queryParams(queryParams)
