@@ -287,53 +287,6 @@ public final class HttpBindingConfig
         return request.pathMatcher.reset(path).matches();
     }
 
-    private Map<String, String8FW> parsePathParams(
-        String pathTemplate,
-        Matcher matcher)
-    {
-        Map<String, String8FW> result = new HashMap<>();
-        String[] segments = pathTemplate.split("/");
-        for (String segment : segments)
-        {
-            if (segment.startsWith("{") && segment.endsWith("}"))
-            {
-                String name = segment.substring(1, segment.length() - 1);
-                String8FW value = new String8FW(URLDecoder.decode(matcher.group(name), UTF_8));
-                result.put(name, value);
-            }
-        }
-        return result;
-    }
-
-    private Map<String, String8FW> parseQueryParams(
-        String query)
-    {
-        Map<String, String8FW> queryParams = new HashMap<>();
-        if (query != null && !query.isBlank())
-        {
-            int ampersandIndex = -1;
-            do
-            {
-                int equalsIndex = query.indexOf('=', ampersandIndex + 1);
-                int nextAmpersandIndex = query.indexOf('&', ampersandIndex + 1);
-                if (equalsIndex != -1 && (equalsIndex < nextAmpersandIndex || nextAmpersandIndex == -1))
-                {
-                    String key = query.substring(ampersandIndex + 1, equalsIndex);
-                    String value = nextAmpersandIndex == -1 ?
-                        query.substring(equalsIndex + 1) :
-                        query.substring(equalsIndex + 1, nextAmpersandIndex);
-                    if (!key.isEmpty())
-                    {
-                        queryParams.put(URLDecoder.decode(key, UTF_8), new String8FW(URLDecoder.decode(value, UTF_8)));
-                    }
-                }
-                ampersandIndex = nextAmpersandIndex;
-            }
-            while (ampersandIndex != -1);
-        }
-        return queryParams;
-    }
-
     public boolean validateHeaders(
         HttpRequestType request,
         HttpBeginExFW beginEx)
@@ -370,6 +323,24 @@ public final class HttpBindingConfig
         return valid.value;
     }
 
+    private Map<String, String8FW> parsePathParams(
+        String pathTemplate,
+        Matcher matcher)
+    {
+        Map<String, String8FW> result = new HashMap<>();
+        String[] segments = pathTemplate.split("/");
+        for (String segment : segments)
+        {
+            if (segment.startsWith("{") && segment.endsWith("}"))
+            {
+                String name = segment.substring(1, segment.length() - 1);
+                String8FW value = new String8FW(URLDecoder.decode(matcher.group(name), UTF_8));
+                result.put(name, value);
+            }
+        }
+        return result;
+    }
+
     private boolean validatePathParams(
         HttpRequestType request)
     {
@@ -389,6 +360,35 @@ public final class HttpBindingConfig
             }
         }
         return valid;
+    }
+
+    private Map<String, String8FW> parseQueryParams(
+        String query)
+    {
+        Map<String, String8FW> queryParams = new HashMap<>();
+        if (query != null && !query.isBlank())
+        {
+            int ampersandIndex = -1;
+            do
+            {
+                int equalsIndex = query.indexOf('=', ampersandIndex + 1);
+                int nextAmpersandIndex = query.indexOf('&', ampersandIndex + 1);
+                if (equalsIndex != -1 && (equalsIndex < nextAmpersandIndex || nextAmpersandIndex == -1))
+                {
+                    String key = query.substring(ampersandIndex + 1, equalsIndex);
+                    String value = nextAmpersandIndex == -1 ?
+                        query.substring(equalsIndex + 1) :
+                        query.substring(equalsIndex + 1, nextAmpersandIndex);
+                    if (!key.isEmpty())
+                    {
+                        queryParams.put(URLDecoder.decode(key, UTF_8), new String8FW(URLDecoder.decode(value, UTF_8)));
+                    }
+                }
+                ampersandIndex = nextAmpersandIndex;
+            }
+            while (ampersandIndex != -1);
+        }
+        return queryParams;
     }
 
     private boolean validateQueryParams(
