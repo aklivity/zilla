@@ -242,7 +242,8 @@ public final class HttpBindingConfig
         return result;
     }
 
-    private int urlDecodedComparator(
+    // visible for testing
+    int urlDecodedComparator(
         String input1,
         String input2)
     {
