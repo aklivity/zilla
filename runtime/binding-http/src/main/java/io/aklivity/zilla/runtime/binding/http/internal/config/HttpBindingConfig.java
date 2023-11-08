@@ -89,7 +89,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = createValidator == null ? null : createRequests(createValidator);
+        this.requests = createValidator == null ? null : createRequestTypes(createValidator);
     }
 
     public HttpRouteConfig resolve(
@@ -193,7 +193,7 @@ public final class HttpBindingConfig
         return accessor;
     }
 
-    private List<HttpRequestType> createRequests(
+    private List<HttpRequestType> createRequestTypes(
         BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
     {
         List<HttpRequestType> result = new LinkedList<>();
@@ -201,49 +201,51 @@ public final class HttpBindingConfig
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                HttpRequestType requestType = new HttpRequestType();
-                requestType.path = request.path;
                 String pattern = String.format("^%s/?(\\?(?<query0>.*))?$",
-                    requestType.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)"));
-                requestType.pathMatcher = Pattern.compile(pattern).matcher("");
-                requestType.method = request.method;
-                requestType.contentType = request.contentType;
+                    request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)"));
+                Matcher pathMatcher = Pattern.compile(pattern).matcher("");
+                Map<String8FW, Validator> headers = new HashMap<>();
                 if (request.headers != null)
                 {
-                    requestType.headers = new HashMap<>();
                     for (HttpParamConfig header : request.headers)
                     {
-                        String8FW name = new String8FW(header.name);
-                        requestType.headers.put(name, createValidator.apply(header.validator, this.resolveId));
+                        headers.put(new String8FW(header.name), createValidator.apply(header.validator, this.resolveId));
                     }
                 }
+                Map<String, Validator> pathParams = new HashMap<>();
                 if (request.pathParams != null)
                 {
-                    requestType.pathParams = new HashMap<>();
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        requestType.pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
+                        pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
                     }
                 }
+                Map<String, Validator> queryParams = new HashMap<>();
                 if (request.queryParams != null)
                 {
-                    requestType.queryParams = new HashMap<>();
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        requestType.queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
+                        queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
                     }
                 }
-                if (request.content != null)
-                {
-                    requestType.content = createValidator.apply(request.content, this.resolveId);
-                }
+                Validator content = createValidator.apply(request.content, this.resolveId);
+                HttpRequestType requestType = HttpRequestType.builder()
+                    .path(request.path)
+                    .pathMatcher(pathMatcher)
+                    .method(request.method)
+                    .contentType(request.contentType)
+                    .headers(headers)
+                    .pathParams(pathParams)
+                    .queryParams(queryParams)
+                    .content(content)
+                    .build();
                 result.add(requestType);
             }
         }
         return result;
     }
 
-    public HttpRequestType resolveRequest(
+    public HttpRequestType resolveRequestType(
         HttpBeginExFW beginEx)
     {
         HttpRequestType result = null;

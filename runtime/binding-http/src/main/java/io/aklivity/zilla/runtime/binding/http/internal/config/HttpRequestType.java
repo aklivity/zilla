@@ -23,17 +23,115 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 
-public class HttpRequestType
+public final class HttpRequestType
 {
     // selectors
-    public String path;
-    public Matcher pathMatcher;
-    public HttpRequestConfig.Method method;
-    public List<String> contentType;
+    public final String path;
+    public final Matcher pathMatcher;
+    public final HttpRequestConfig.Method method;
+    public final List<String> contentType;
 
     // validators
-    public Map<String8FW, Validator> headers;
-    public Map<String, Validator> pathParams;
-    public Map<String, Validator> queryParams;
-    public Validator content;
+    public final Map<String8FW, Validator> headers;
+    public final Map<String, Validator> pathParams;
+    public final Map<String, Validator> queryParams;
+    public final Validator content;
+
+    private HttpRequestType(
+        String path,
+        Matcher pathMatcher,
+        HttpRequestConfig.Method method,
+        List<String> contentType,
+        Map<String8FW, Validator> headers,
+        Map<String, Validator> pathParams,
+        Map<String, Validator> queryParams,
+        Validator content)
+    {
+        this.path = path;
+        this.pathMatcher = pathMatcher;
+        this.method = method;
+        this.contentType = contentType;
+        this.headers = headers;
+        this.pathParams = pathParams;
+        this.queryParams = queryParams;
+        this.content = content;
+    }
+
+    public static Builder builder()
+    {
+        return new Builder();
+    }
+
+    public static final class Builder
+    {
+        private String path;
+        private Matcher pathMatcher;
+        private HttpRequestConfig.Method method;
+        private List<String> contentType;
+        private Map<String8FW, Validator> headers;
+        private Map<String, Validator> pathParams;
+        private Map<String, Validator> queryParams;
+        private Validator content;
+
+        public Builder path(
+            String path)
+        {
+            this.path = path;
+            return this;
+        }
+
+        public Builder pathMatcher(
+            Matcher pathMatcher)
+        {
+            this.pathMatcher = pathMatcher;
+            return this;
+        }
+
+        public Builder method(
+            HttpRequestConfig.Method method)
+        {
+            this.method = method;
+            return this;
+        }
+
+        public Builder contentType(
+            List<String> contentType)
+        {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public Builder headers(
+            Map<String8FW, Validator> headers)
+        {
+            this.headers = headers;
+            return this;
+        }
+
+        public Builder pathParams(
+            Map<String, Validator> pathParams)
+        {
+            this.pathParams = pathParams;
+            return this;
+        }
+
+        public Builder queryParams(
+            Map<String, Validator> queryParams)
+        {
+            this.queryParams = queryParams;
+            return this;
+        }
+
+        public Builder content(
+            Validator content)
+        {
+            this.content = content;
+            return this;
+        }
+
+        public HttpRequestType build()
+        {
+            return new HttpRequestType(path, pathMatcher, method, contentType, headers, pathParams, queryParams, content);
+        }
+    }
 }

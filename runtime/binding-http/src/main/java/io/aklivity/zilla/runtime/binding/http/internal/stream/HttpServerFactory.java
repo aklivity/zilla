@@ -1076,7 +1076,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            server.request = binding.resolveRequest(beginEx);
+                            server.requestType = binding.resolveRequestType(beginEx);
                             error = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth, policy, origin,
                                 beginEx);
                         }
@@ -1579,7 +1579,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyAck;
         private long replyBudgetId;
         private int replyMax;
-        private HttpRequestType request;
+        private HttpRequestType requestType;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -2251,7 +2251,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             String origin,
             HttpBeginExFW beginEx)
         {
-            boolean isValid = binding.validateHeaders(request, beginEx);
+            boolean isValid = binding.validateHeaders(requestType, beginEx);
             DirectBuffer error = null;
             if (isValid)
             {
@@ -2291,7 +2291,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean isValid = binding.validateContent(request, buffer, 0, limit - offset);
+            boolean isValid = binding.validateContent(requestType, buffer, 0, limit - offset);
             int result;
             if (isValid)
             {
@@ -4901,12 +4901,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
 
-                            HttpRequestType request = binding.resolveRequest(beginEx);
+                            HttpRequestType requestType = binding.resolveRequestType(beginEx);
 
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
-                                exchangeAuth, traceId, policy, origin, contentLength, request);
+                                exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
-                            boolean isValid = binding.validateHeaders(request, beginEx);
+                            boolean isValid = binding.validateHeaders(requestType, beginEx);
                             if (isValid)
                             {
                                 exchange.doRequestBegin(traceId, beginEx);
