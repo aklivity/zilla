@@ -254,11 +254,7 @@ public final class HttpBindingConfig
             String contentType = resolveHeaderValue(beginEx, HEADER_CONTENT_TYPE);
             for (HttpRequestType request : requests)
             {
-                boolean isMatch = false;
-                isMatch |= method == null || request.method == null || method.equals(request.method.name());
-                isMatch |= contentType == null || request.contentType == null || request.contentType.contains(contentType);
-                isMatch &= matchPath(request, path);
-                if (isMatch)
+                if (matchMethod(request, method) && matchContentType(request, contentType) && matchPath(request, path))
                 {
                     result = request;
                     break;
@@ -266,6 +262,20 @@ public final class HttpBindingConfig
             }
         }
         return result;
+    }
+
+    private boolean matchMethod(
+        HttpRequestType request,
+        String method)
+    {
+        return method == null || request.method == null || method.equals(request.method.name());
+    }
+
+    private boolean matchContentType(
+        HttpRequestType request,
+        String contentType)
+    {
+        return contentType == null || request.contentType == null || request.contentType.contains(contentType);
     }
 
     private boolean matchPath(
