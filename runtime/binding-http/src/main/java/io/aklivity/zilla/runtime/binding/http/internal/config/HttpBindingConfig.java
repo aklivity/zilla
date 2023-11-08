@@ -293,9 +293,10 @@ public final class HttpBindingConfig
         HttpRequestType requestType,
         HttpBeginExFW beginEx)
     {
+        String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
         return requestType == null ||
             validateHeaderValues(requestType, beginEx) &&
-            validatePathParams(requestType) &&
+            validatePathParams(requestType, path) &&
             validateQueryParams(requestType);
     }
 
@@ -325,36 +326,23 @@ public final class HttpBindingConfig
         return valid.value;
     }
 
-    private Map<String, String8FW> parsePathParams(
-        String pathTemplate,
-        Matcher matcher)
-    {
-        Map<String, String8FW> result = new HashMap<>();
-        String[] segments = pathTemplate.split("/");
-        for (String segment : segments)
-        {
-            if (segment.startsWith("{") && segment.endsWith("}"))
-            {
-                String name = segment.substring(1, segment.length() - 1);
-                String8FW value = new String8FW(URLDecoder.decode(matcher.group(name), UTF_8));
-                result.put(name, value);
-            }
-        }
-        return result;
-    }
-
     private boolean validatePathParams(
-        HttpRequestType requestType)
+        HttpRequestType requestType,
+        String path)
     {
+        Matcher matcher = requestType.pathMatcher.reset(path);
+        boolean matches = matcher.matches();
+        assert matches;
+
         boolean valid = true;
-        Map<String, String8FW> pathParams = parsePathParams(requestType.path, requestType.pathMatcher);
-        for (String name : pathParams.keySet())
+        for (String name : requestType.pathParams.keySet())
         {
-            Validator validator = requestType.pathParams.get(name);
-            if (validator != null)
+            String value = matcher.group(name);
+            if (value != null)
             {
-                String8FW value = pathParams.get(name);
-                if (!validator.read(value.value(), value.offset(), value.length()))
+                String8FW value0 = new String8FW(value);
+                Validator validator = requestType.pathParams.get(name);
+                if (!validator.read(value0.value(), value0.offset(), value0.length()))
                 {
                     valid = false;
                     break;
