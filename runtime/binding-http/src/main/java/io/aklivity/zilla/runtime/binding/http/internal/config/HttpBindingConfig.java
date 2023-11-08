@@ -201,9 +201,10 @@ public final class HttpBindingConfig
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                String pattern = String.format("^%s/?(\\?(?<query0>.*))?$",
-                    request.path.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+?)"));
-                Matcher pathMatcher = Pattern.compile(pattern).matcher("");
+                String pathPattern = String.format("^%s/?(?:\\?.*)?$",
+                    request.path.replaceAll("\\{([a-zA-Z0-9_-]+)\\}", "(?<$1>.+?)"));
+                Matcher pathMatcher = Pattern.compile(pathPattern).matcher("");
+                Matcher queryMatcher = Pattern.compile("(?<=[?&])([^&=]+)=([^&]+)(?=&|$)").matcher("");
                 Map<String8FW, Validator> headers = new HashMap<>();
                 if (request.headers != null)
                 {
@@ -231,9 +232,10 @@ public final class HttpBindingConfig
                 Validator content = createValidator.apply(request.content, this.resolveId);
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
-                    .pathMatcher(pathMatcher)
                     .method(request.method)
                     .contentType(request.contentType)
+                    .pathMatcher(pathMatcher)
+                    .queryMatcher(queryMatcher)
                     .headers(headers)
                     .pathParams(pathParams)
                     .queryParams(queryParams)
@@ -297,7 +299,7 @@ public final class HttpBindingConfig
         return requestType == null ||
             validateHeaderValues(requestType, beginEx) &&
             validatePathParams(requestType, path) &&
-            validateQueryParams(requestType);
+            validateQueryParams(requestType, path);
     }
 
     private boolean validateHeaderValues(
@@ -352,52 +354,27 @@ public final class HttpBindingConfig
         return valid;
     }
 
-    private Map<String, String8FW> parseQueryParams(
-        String query)
-    {
-        Map<String, String8FW> queryParams = new HashMap<>();
-        if (query != null && !query.isBlank())
-        {
-            int ampersandIndex = -1;
-            do
-            {
-                int equalsIndex = query.indexOf('=', ampersandIndex + 1);
-                int nextAmpersandIndex = query.indexOf('&', ampersandIndex + 1);
-                if (equalsIndex != -1 && (equalsIndex < nextAmpersandIndex || nextAmpersandIndex == -1))
-                {
-                    String key = query.substring(ampersandIndex + 1, equalsIndex);
-                    String value = nextAmpersandIndex == -1 ?
-                        query.substring(equalsIndex + 1) :
-                        query.substring(equalsIndex + 1, nextAmpersandIndex);
-                    if (!key.isEmpty())
-                    {
-                        queryParams.put(URLDecoder.decode(key, UTF_8), new String8FW(URLDecoder.decode(value, UTF_8)));
-                    }
-                }
-                ampersandIndex = nextAmpersandIndex;
-            }
-            while (ampersandIndex != -1);
-        }
-        return queryParams;
-    }
-
     private boolean validateQueryParams(
-        HttpRequestType requestType)
+        HttpRequestType requestType,
+        String path)
     {
+        Matcher matcher = requestType.queryMatcher.reset(path);
         boolean valid = true;
-        Map<String, String8FW> queryParams = parseQueryParams(requestType.pathMatcher.group("query0"));
-        for (String name : queryParams.keySet())
+        boolean found = matcher.find();
+        while (found)
         {
+            String name = matcher.group(1);
             Validator validator = requestType.queryParams.get(name);
             if (validator != null)
             {
-                String8FW value = queryParams.get(name);
+                String8FW value = new String8FW(matcher.group(2));
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
                     valid = false;
                     break;
                 }
             }
+            found = matcher.find();
         }
         return valid;
     }
