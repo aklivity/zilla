@@ -30,6 +30,7 @@ public final class HttpRequestType
     private static final String PATH_REGEX = "\\{([a-zA-Z0-9_-]+)\\}";
     private static final String PATH_REPLACEMENT = "(?<$1>.+?)";
     private static final String QUERY_REGEX = "(?<=[?&])([^&=]+)=([^&]+)(?=&|$)";
+    private static final Pattern QUERY_PATTERN = Pattern.compile(QUERY_REGEX);
     private static final String EMPTY = "";
 
     // selectors
@@ -137,7 +138,7 @@ public final class HttpRequestType
         {
             String pathPattern = String.format(PATH_FORMAT, path.replaceAll(PATH_REGEX, PATH_REPLACEMENT));
             Matcher pathMatcher = Pattern.compile(pathPattern).matcher(EMPTY);
-            Matcher queryMatcher = Pattern.compile(QUERY_REGEX).matcher(EMPTY);
+            Matcher queryMatcher = QUERY_PATTERN.matcher(EMPTY);
             return new HttpRequestType(path, method, contentType, pathMatcher, queryMatcher, headers, pathParams, queryParams,
                 content);
         }
