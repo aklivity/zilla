@@ -348,12 +348,12 @@ public final class HttpBindingConfig
         HttpRequestType request,
         HttpBeginExFW beginEx)
     {
-        MutableBoolean isValid = new MutableBoolean(true);
+        MutableBoolean valid = new MutableBoolean(true);
         if (request != null && request.headers != null)
         {
             beginEx.headers().forEach(header ->
             {
-                if (isValid.get())
+                if (valid.value)
                 {
                     Validator validator = request.headers.get(header.name());
                     if (validator != null)
@@ -361,19 +361,19 @@ public final class HttpBindingConfig
                         String16FW value = header.value();
                         if (!validator.read(value.value(), value.offset(), value.length()))
                         {
-                            isValid.set(false);
+                            valid.value = false;
                         }
                     }
                 }
             });
         }
-        return isValid.get();
+        return valid.value;
     }
 
     private boolean validatePathParams(
         HttpRequestType request)
     {
-        boolean isValid = true;
+        boolean valid = true;
         Map<String, String8FW> pathParams = parsePathParams(request.path, request.pathMatcher);
         for (String name : pathParams.keySet())
         {
@@ -383,18 +383,18 @@ public final class HttpBindingConfig
                 String8FW value = pathParams.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
-                    isValid = false;
+                    valid = false;
                     break;
                 }
             }
         }
-        return isValid;
+        return valid;
     }
 
     private boolean validateQueryParams(
         HttpRequestType request)
     {
-        boolean isValid = true;
+        boolean valid = true;
         Map<String, String8FW> queryParams = parseQueryParams(request.pathMatcher.group("query0"));
         for (String name : queryParams.keySet())
         {
@@ -404,12 +404,12 @@ public final class HttpBindingConfig
                 String8FW value = queryParams.get(name);
                 if (!validator.read(value.value(), value.offset(), value.length()))
                 {
-                    isValid = false;
+                    valid = false;
                     break;
                 }
             }
         }
-        return isValid;
+        return valid;
     }
 
     public boolean validateContent(
@@ -418,13 +418,13 @@ public final class HttpBindingConfig
         int index,
         int length)
     {
-        boolean isValid = true;
+        boolean valid = true;
         if (request != null && request.content != null)
         {
             Validator validator = request.content;
-            isValid = validator.read(buffer, index, length);
+            valid = validator.read(buffer, index, length);
         }
-        return isValid;
+        return valid;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(
