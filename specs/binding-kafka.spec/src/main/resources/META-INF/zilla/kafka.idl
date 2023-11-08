@@ -257,7 +257,6 @@ scope kafka
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaKey hashKey;           // INIT only
-            KafkaDelta delta;           // INIT + FIN
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
@@ -280,7 +279,7 @@ scope kafka
 
         union KafkaMergedFlushEx switch (uint8)
         {
-            case 8: kafka::stream::KafkaMergedConsumerFlushEx consumer;
+            case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
         }
 

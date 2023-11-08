@@ -36,8 +36,6 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -65,7 +63,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -77,8 +75,9 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeg
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
@@ -567,7 +566,6 @@ public class KafkaFunctionsTest
                                      .merged()
                                         .produce()
                                          .timestamp(12345678L)
-                                         .filters(-1L)
                                          .partition(0, 0L)
                                          .progress(0, 1L)
                                          .key("match")
@@ -1152,30 +1150,31 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.deferred(100)
-                             .timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .hashKey(k -> k.length(7)
-                                 .value(v -> v.set("hashKey".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(5)
-                                                .value(v -> v.set("value".getBytes(UTF_8)))))
+                .merged(m -> m.produce(mp -> mp
+                    .deferred(100)
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .hashKey(k -> k.length(7)
+                        .value(v -> v.set("hashKey".getBytes(UTF_8))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithLatestOffset() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithLatestOffset() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L, 1L)
                                                  .progress(0, 1L, 1L)
                                                  .timestamp(12345678L)
@@ -1189,28 +1188,30 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L).latestOffset(1L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(m -> m.fetch(mf -> mf
+                    .timestamp(12345678L)
+                        .partition(p -> p.partitionId(0).partitionOffset(0L).latestOffset(1L))
+                        .progressItem(p -> p.partitionId(0).partitionOffset(1L).latestOffset(1L))
+                        .key(k -> k.length(5)
+                            .value(v -> v.set("match".getBytes(UTF_8))))
+                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(5)
-                                                .value(v -> v.set("value".getBytes(UTF_8)))))
+                        .headersItem(h -> h.nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithByteArrayValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithByteArrayValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .progress(0, 1L)
                                                  .timestamp(12345678L)
@@ -1223,62 +1224,67 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(5)
-                                                .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithNullValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithNullValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
-                                                 .partition(0, 0L)
-                                                 .progress(0, 1L)
-                                                 .timestamp(12345678L)
-                                                 .key("match")
-                                                 .headerNull("name")
-                                                 .build()
+                                                .fetch()
+                                                    .partition(0, 0L)
+                                                    .progress(0, 1L)
+                                                    .timestamp(12345678L)
+                                                    .key("match")
+                                                    .headerNull("name")
+                                                    .build()
                                              .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(-1)
-                                                .value((OctetsFW) null)))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(-1)
+                        .value((OctetsFW) null))
+                ))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithByteValue() throws Exception
+    public void shouldMatchMergeFetchdDataExtensionWithByteValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .progress(0, 1L)
                                                  .timestamp(12345678L)
@@ -1292,34 +1298,36 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(1)
-                                                .value(v -> v.set(value))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(1)
+                        .value(v -> v.set(value)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithShortValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithShortValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
-                                                 .partition(0, 0L)
-                                                 .progress(0, 1L)
-                                                 .timestamp(12345678L)
-                                                 .key("match")
-                                                 .headerShort("name", (short) 1)
-                                                 .build()
+                                                .fetch()
+                                                    .partition(0, 0L)
+                                                    .progress(0, 1L)
+                                                    .timestamp(12345678L)
+                                                    .key("match")
+                                                    .headerShort("name", (short) 1)
+                                                    .build()
                                              .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -1327,28 +1335,30 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(2)
-                                                .value(v -> v.set(value))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(2)
+                        .value(v -> v.set(value)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithIntValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithIntValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .progress(0, 1L)
                                                  .timestamp(12345678L)
@@ -1362,28 +1372,30 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(4)
-                                                .value(v -> v.set(value))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(4)
+                        .value(v -> v.set(value)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionWithLongValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionWithLongValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .progress(0, 1L)
                                                  .timestamp(12345678L)
@@ -1397,24 +1409,25 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L))
-                             .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                             .key(k -> k.length(5)
-                                        .value(v -> v.set("match".getBytes(UTF_8))))
-                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                             .headersItem(h -> h.nameLen(4)
-                                                .name(n -> n.set("name".getBytes(UTF_8)))
-                                                .valueLen(8)
-                                                .value(v -> v.set(value))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(8)
+                        .value(v -> v.set(value)))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionTypeId() throws Exception
+    public void shouldMatchMergedFetchDataExtensionTypeId() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
@@ -1424,27 +1437,28 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf.timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionTimestamp() throws Exception
+    public void shouldMatchMergedFetchDataExtensionTimestamp() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .timestamp(12345678L)
                                                  .build()
                                              .build();
@@ -1453,27 +1467,29 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionPartition() throws Exception
+    public void shouldMatchMergedFetchDataExtensionPartition() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .build()
                                              .build();
@@ -1482,27 +1498,29 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionProgress() throws Exception
+    public void shouldMatchMergedFetchDataExtensionProgress() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .progress(0, 1L)
                                                  .build()
                                              .build();
@@ -1511,17 +1529,18 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1532,6 +1551,7 @@ public class KafkaFunctionsTest
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .key("match")
                                                  .build()
                                              .build();
@@ -1540,27 +1560,29 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionNullKey() throws Exception
+    public void shouldMatchMergedProduceDataExtensionNullKey() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .produce()
                                                  .key(null)
                                                  .hashKey(null)
                                                  .build()
@@ -1570,27 +1592,27 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(-1)
-                                   .value((OctetsFW) null))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                .merged(m -> m.produce(mp -> mp
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(-1)
+                        .value((OctetsFW) null))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionDelta() throws Exception
+    public void shouldMatchMergedFethDataExtensionDelta() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .delta("NONE", -1L)
                                                  .build()
                                              .build();
@@ -1599,26 +1621,28 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionHeader() throws Exception
+    public void shouldMatchMergedFetchDataExtensionHeader() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .header("name", "value")
                                                  .build()
                                              .build();
@@ -1627,26 +1651,28 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionHeaderWithNullValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionHeaderWithNullValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .header("name", null)
                                                  .build()
                                              .build();
@@ -1655,27 +1681,29 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(-1)
-                                           .value((OctetsFW) null)))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(-1)
+                        .value((OctetsFW) null))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchMergedDataExtensionHeaderWithNullByteArrayValue() throws Exception
+    public void shouldMatchMergedFetchDataExtensionHeaderWithNullByteArrayValue() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .merged()
+                                                .fetch()
                                                  .headerBytes("name", null)
                                                  .build()
                                              .build();
@@ -1684,24 +1712,25 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.length(5)
-                                   .value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.length(5)
+                        .value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(-1)
-                                           .value((OctetsFW) null)))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(-1)
+                        .value((OctetsFW) null))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionTypeId() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionTypeId() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x02)
@@ -1711,27 +1740,29 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.nameLen(4)
-                                           .name(n -> n.set("name".getBytes(UTF_8)))
-                                           .valueLen(5)
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.nameLen(4)
+                        .name(n -> n.set("name".getBytes(UTF_8)))
+                        .valueLen(5)
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionTimestamp() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionTimestamp() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .timestamp(123456789L)
                                                  .build()
                                              .build();
@@ -1740,25 +1771,27 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionPartition() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionPartition() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 1L)
                                                  .timestamp(12345678L)
                                                  .build()
@@ -1768,25 +1801,27 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
-                                                       .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionProgress() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionProgress() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .progress(0, 2L)
                                                  .timestamp(12345678L)
                                                  .build()
@@ -1796,25 +1831,27 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
-                                                       .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionKey() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionKey() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 0L)
                                                  .timestamp(12345678L)
                                                  .key("no match")
@@ -1825,25 +1862,27 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(0L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
-                                                       .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchMergedDataExtensionDelta() throws Exception
+    public void shouldNotMatchMergedFetchDataExtensionDelta() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
                                              .typeId(0x01)
                                              .merged()
+                                                .fetch()
                                                  .partition(0, 10L)
                                                  .timestamp(12345678L)
                                                  .delta("JSON_PATCH", 9L)
@@ -1854,14 +1893,15 @@ public class KafkaFunctionsTest
 
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
-                .merged(f -> f.timestamp(12345678L)
-                        .partition(p -> p.partitionId(0).partitionOffset(10L))
-                        .progressItem(p -> p.partitionId(0).partitionOffset(1L))
-                        .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
-                        .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+                .merged(f -> f.fetch(mf -> mf
+                    .timestamp(12345678L)
+                    .partition(p -> p.partitionId(0).partitionOffset(10L))
+                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
+                    .key(k -> k.value(v -> v.set("match".getBytes(UTF_8))))
+                    .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
 
-                        .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
-                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                    .headersItem(h -> h.name(n -> n.set("name".getBytes(UTF_8)))
+                        .value(v -> v.set("value".getBytes(UTF_8))))))
                 .build();
 
         matcher.match(byteBuf);
@@ -4175,8 +4215,10 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
             .offsetCommit()
-                .groupId("test")
                 .topic("topic")
+                .groupId("test")
+                .generationId(0)
+                .memberId("member-1")
                 .build()
             .build();
 
@@ -4188,6 +4230,8 @@ public class KafkaFunctionsTest
         final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.offsetCommit();
         assertEquals("test", offsetCommitBeginEx.groupId().asString());
         assertEquals("topic", offsetCommitBeginEx.topic().asString());
+        assertEquals("member-1", offsetCommitBeginEx.memberId().asString());
+        assertEquals(0, offsetCommitBeginEx.generationId());
     }
 
     @Test
@@ -4223,11 +4267,12 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x03)
             .consumer()
-                .partition(0)
-                .consumer()
-                    .id("localhost:9092")
+                .group()
                     .partition(0)
-                    .build()
+                    .assignments()
+                        .id("localhost:9092")
+                        .partition(0)
+                        .build()
                 .build()
             .build();
 
@@ -4236,9 +4281,9 @@ public class KafkaFunctionsTest
         assertEquals(0x03, dataEx.typeId());
         assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
 
-        final KafkaConsumerDataExFW consumerDataEx = dataEx.consumer();
-        assertTrue(consumerDataEx.partitions().fieldCount() == 1);
-        assertTrue(consumerDataEx.assignments().fieldCount() == 1);
+        final KafkaConsumerGroupDataExFW consumerGroupDataEx = dataEx.consumer().group();
+        assertTrue(consumerGroupDataEx.partitions().fieldCount() == 1);
+        assertTrue(consumerGroupDataEx.assignments().fieldCount() == 1);
     }
 
     @Test

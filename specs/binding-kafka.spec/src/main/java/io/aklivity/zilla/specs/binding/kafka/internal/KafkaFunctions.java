@@ -1523,6 +1523,13 @@ public final class KafkaFunctions
                 offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
+            public KafkaOffsetCommitBeginExBuilder topic(
+                String topic)
+            {
+                offsetCommitBeginExRW.topic(topic);
+                return this;
+            }
+
             public KafkaOffsetCommitBeginExBuilder groupId(
                 String groupId)
             {
@@ -1530,10 +1537,17 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaOffsetCommitBeginExBuilder topic(
-                String topic)
+            public KafkaOffsetCommitBeginExBuilder generationId(
+                int generationId)
             {
-                offsetCommitBeginExRW.topic(topic);
+                offsetCommitBeginExRW.generationId(generationId);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder memberId(
+                String memberId)
+            {
+                offsetCommitBeginExRW.memberId(memberId);
                 return this;
             }
 
@@ -1766,7 +1780,7 @@ public final class KafkaFunctions
 
             private KafkaMergedDataExBuilder()
             {
-                mergedDataExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
+                mergedDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
             public KafkaMergedFetchDataExBuilder fetch()
@@ -1786,7 +1800,6 @@ public final class KafkaFunctions
             public final class KafkaMergedFetchDataExBuilder
             {
                 private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
                 private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
                 private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
@@ -1874,23 +1887,6 @@ public final class KafkaFunctions
                         keyRO.wrap(key.getBytes(UTF_8));
                         mergedFetchDataExRW.key(k -> k.length(keyRO.capacity())
                             .value(keyRO, 0, keyRO.capacity()));
-                    }
-                    return this;
-                }
-
-                public KafkaMergedFetchDataExBuilder hashKey(
-                    String hashKey)
-                {
-                    if (hashKey == null)
-                    {
-                        mergedFetchDataExRW.hashKey(m -> m.length(-1)
-                            .value((OctetsFW) null));
-                    }
-                    else
-                    {
-                        hashKeyRO.wrap(hashKey.getBytes(UTF_8));
-                        mergedFetchDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
-                            .value(hashKeyRO, 0, hashKeyRO.capacity()));
                     }
                     return this;
                 }
@@ -2037,7 +2033,7 @@ public final class KafkaFunctions
                 {
                     mergedProduceDataExRW.wrap(
                         writeBuffer,
-                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_FETCH,
+                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_PRODUCE,
                         writeBuffer.capacity());
                 }
 
@@ -2055,12 +2051,6 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedProduceDataExBuilder filters(
-                    long filters)
-                {
-                    mergedProduceDataExRW.filters(filters);
-                    return this;
-                }
 
                 public KafkaMergedProduceDataExBuilder partition(
                     int partitionId,
@@ -2133,15 +2123,6 @@ public final class KafkaFunctions
                         mergedProduceDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
                             .value(hashKeyRO, 0, hashKeyRO.capacity()));
                     }
-                    return this;
-                }
-
-                public KafkaMergedProduceDataExBuilder delta(
-                    String deltaType,
-                    long ancestorOffset)
-                {
-                    mergedProduceDataExRW.delta(d -> d.type(t -> t.set(KafkaDeltaType.valueOf(deltaType)))
-                        .ancestorOffset(ancestorOffset));
                     return this;
                 }
 
@@ -2421,20 +2402,13 @@ public final class KafkaFunctions
                 return new KafkaConsumerGroupDataExBuilder();
             }
 
-            public KafkaDataExBuilder build()
-            {
-                final KafkaConsumerDataExFW consumerDataEx = consumerDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
-                return KafkaDataExBuilder.this;
-            }
-
             public final class KafkaConsumerGroupDataExBuilder
             {
-                private final KafkaConsumerGroupDataExFW.Builder groupRW = new KafkaConsumerGroupDataExFW.Builder();
+                private final KafkaConsumerGroupDataExFW.Builder consumerGroupDataExRW = new KafkaConsumerGroupDataExFW.Builder();
 
                 private KafkaConsumerGroupDataExBuilder()
                 {
-                    groupRW.wrap(
+                    consumerGroupDataExRW.wrap(
                         writeBuffer,
                         KafkaDataExFW.FIELD_OFFSET_CONSUMER + KafkaConsumerDataExFW.FIELD_OFFSET_GROUP,
                         writeBuffer.capacity());
@@ -2443,55 +2417,55 @@ public final class KafkaFunctions
                 public KafkaConsumerGroupDataExBuilder partition(
                     int partitionId)
                 {
-                    groupRW.partitionsItem(p -> p.partitionId(partitionId));
+                    consumerGroupDataExRW.partitionsItem(p -> p.partitionId(partitionId));
                     return this;
                 }
 
-                public KafkaConsumerBuilder consumer()
+                public KafkaConsumerAssignmentBuilder assignments()
                 {
-                    KafkaConsumerBuilder kafkaConsumerBuilder = new KafkaConsumerBuilder();
-                    return kafkaConsumerBuilder;
+                    KafkaConsumerAssignmentBuilder kafkaConsumerAssignmentBuilder = new KafkaConsumerAssignmentBuilder();
+                    return kafkaConsumerAssignmentBuilder;
                 }
 
                 public KafkaDataExBuilder build()
                 {
-                    final KafkaConsumerGroupDataExFW groupDataEx = groupRW.build();
+                    final KafkaConsumerGroupDataExFW groupDataEx = consumerGroupDataExRW.build();
                     dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
                     return KafkaDataExBuilder.this;
                 }
 
-                class KafkaConsumerBuilder
+                class KafkaConsumerAssignmentBuilder
                 {
-                    private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-                    private final KafkaConsumerAssignmentFW.Builder consumerRW = new KafkaConsumerAssignmentFW.Builder();
+                    private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
 
-                    KafkaConsumerBuilder()
+                    KafkaConsumerAssignmentBuilder()
                     {
-                        consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                        assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
                     }
 
-                    public KafkaConsumerBuilder id(
+                    public KafkaConsumerAssignmentBuilder id(
                         String id)
                     {
-                        consumerRW.consumerId(id);
+                        assignmentRW.consumerId(id);
                         return this;
                     }
 
-                    public KafkaConsumerBuilder partition(
+                    public KafkaConsumerAssignmentBuilder partition(
                         int partitionId)
                     {
-                        consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                        assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
                         return this;
                     }
 
-                    public KafkaDataExBuilder.KafkaConsumerDataExBuilder build()
+                    public KafkaConsumerGroupDataExBuilder build()
                     {
-                        KafkaConsumerAssignmentFW consumer = consumerRW.build();
-                        groupRW.assignmentsItem(a -> a
+                        KafkaConsumerAssignmentFW consumer = assignmentRW.build();
+                        consumerGroupDataExRW.assignmentsItem(a -> a
                             .consumerId(consumer.consumerId())
                             .partitions(consumer.partitions()));
 
-                        return KafkaDataExBuilder.KafkaConsumerDataExBuilder.this;
+                        return KafkaConsumerGroupDataExBuilder.this;
                     }
                 }
             }
@@ -2753,7 +2727,7 @@ public final class KafkaFunctions
                 public KafkaFlushExBuilder build()
                 {
                     final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
-                    flushExRO.wrap(writeBuffer, 0, mergedFetchFlushExRW.limit());
+                    flushExRO.wrap(writeBuffer, 0, mergedFetchFlushEx.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -3485,18 +3459,18 @@ public final class KafkaFunctions
                 return KafkaDataExMatcherBuilder.this;
             }
 
-            public KafkaMergedDataExMatcherBuilder fetch()
+            public KafkaMergedFetchDataExMatcherBuilder fetch()
             {
                 KafkaMergedFetchDataExMatcherBuilder fetchMatcher = new KafkaMergedFetchDataExMatcherBuilder();
                 KafkaDataExMatcherBuilder.this.caseMatcher = fetchMatcher::match;
-                return KafkaMergedDataExMatcherBuilder.this;
+                return fetchMatcher;
             }
 
-            public KafkaMergedDataExMatcherBuilder produce()
+            public KafkaMergedProduceDataExMatcherBuilder produce()
             {
-                KafkaMergedFetchDataExMatcherBuilder fetchMatcher = new KafkaMergedFetchDataExMatcherBuilder();
-                KafkaDataExMatcherBuilder.this.caseMatcher = fetchMatcher::match;
-                return KafkaMergedDataExMatcherBuilder.this;
+                KafkaMergedProduceDataExMatcherBuilder produceMatcher = new KafkaMergedProduceDataExMatcherBuilder();
+                KafkaDataExMatcherBuilder.this.caseMatcher = produceMatcher::match;
+                return produceMatcher;
             }
 
             public final class KafkaMergedFetchDataExMatcherBuilder
@@ -3762,9 +3736,9 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedFetchDataExMatcherBuilder build()
+                public KafkaDataExMatcherBuilder build()
                 {
-                    return KafkaMergedFetchDataExMatcherBuilder.this;
+                    return KafkaDataExMatcherBuilder.this;
                 }
 
                 private boolean match(
@@ -3776,7 +3750,6 @@ public final class KafkaFunctions
                         matchDeferred(fetch) &&
                         matchTimestamp(fetch) &&
                         matchKey(fetch) &&
-                        matchHashKey(fetch) &&
                         matchDelta(fetch) &&
                         matchHeaders(fetch) &&
                         matchFilters(fetch);
@@ -3812,11 +3785,6 @@ public final class KafkaFunctions
                     return keyRW == null || keyRW.build().equals(mergedFetchDataEx.key());
                 }
 
-                private boolean matchHashKey(
-                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
-                {
-                    return hashKeyRW == null || hashKeyRW.build().equals(mergedFetchDataEx.hashKey());
-                }
 
                 private boolean matchDelta(
                     final KafkaMergedFetchDataExFW mergedFetchDataEx)
@@ -3933,6 +3901,28 @@ public final class KafkaFunctions
                         keyRO.wrap(key.getBytes(UTF_8));
                         keyRW.length(keyRO.capacity())
                             .value(keyRO, 0, keyRO.capacity());
+                    }
+
+                    return this;
+                }
+
+
+                public KafkaMergedProduceDataExMatcherBuilder hashKey(
+                    String hashKey)
+                {
+                    assert hashKeyRW == null;
+                    hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    if (hashKey == null)
+                    {
+                        hashKeyRW.length(-1)
+                            .value((OctetsFW) null);
+                    }
+                    else
+                    {
+                        hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                        hashKeyRW.length(hashKeyRO.capacity())
+                            .value(hashKeyRO, 0, hashKeyRO.capacity());
                     }
 
                     return this;
@@ -4100,9 +4090,9 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedProduceDataExMatcherBuilder build()
+                public KafkaDataExMatcherBuilder build()
                 {
-                    return KafkaMergedProduceDataExMatcherBuilder.this;
+                    return KafkaDataExMatcherBuilder.this;
                 }
 
                 private boolean match(
@@ -4115,9 +4105,7 @@ public final class KafkaFunctions
                         matchTimestamp(produce) &&
                         matchKey(produce) &&
                         matchHashKey(produce) &&
-                        matchDelta(produce) &&
-                        matchHeaders(produce) &&
-                        matchFilters(produce);
+                        matchHeaders(produce);
                 }
 
                 private boolean matchPartition(
@@ -4156,22 +4144,10 @@ public final class KafkaFunctions
                     return hashKeyRW == null || hashKeyRW.build().equals(mergedProduceDataEx.hashKey());
                 }
 
-                private boolean matchDelta(
-                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
-                {
-                    return deltaRW == null || deltaRW.build().equals(mergedProduceDataEx.delta());
-                }
-
                 private boolean matchHeaders(
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return headersRW == null || headersRW.build().equals(mergedProduceDataEx.headers());
-                }
-
-                private boolean matchFilters(
-                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
-                {
-                    return filters == null || filters == mergedProduceDataEx.filters();
                 }
             }
         }
