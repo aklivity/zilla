@@ -16,11 +16,9 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,6 +60,7 @@ public final class HttpBindingConfig
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
+    private static final PercentEncodableStringComparator PERCENT_ENCODABLE = new PercentEncodableStringComparator();
 
     public final long id;
     public final String name;
@@ -218,7 +217,7 @@ public final class HttpBindingConfig
                         pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
                     }
                 }
-                Map<String, Validator> queryParams = new TreeMap<>(this::urlDecodedComparator);
+                Map<String, Validator> queryParams = new TreeMap<>(PERCENT_ENCODABLE);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
@@ -240,16 +239,6 @@ public final class HttpBindingConfig
             }
         }
         return requestTypes;
-    }
-
-    // visible for testing
-    int urlDecodedComparator(
-        String input1,
-        String input2)
-    {
-        String decoded1 = URLDecoder.decode(input1, UTF_8);
-        String decoded2 = URLDecoder.decode(input2, UTF_8);
-        return decoded1.compareTo(decoded2);
     }
 
     public HttpRequestType resolveRequestType(
