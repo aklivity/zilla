@@ -197,7 +197,7 @@ public final class HttpBindingConfig
     private List<HttpRequestType> createRequestTypes(
         BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
     {
-        List<HttpRequestType> result = new LinkedList<>();
+        List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
         {
             for (HttpRequestConfig request : this.options.requests)
@@ -236,10 +236,10 @@ public final class HttpBindingConfig
                     .queryParams(queryParams)
                     .content(content)
                     .build();
-                result.add(requestType);
+                requestTypes.add(requestType);
             }
         }
-        return result;
+        return requestTypes;
     }
 
     // visible for testing
