@@ -70,7 +70,7 @@ public class PercentEncodableStringComparatorTest
         PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
 
         // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "%68%65%6C%6C%6F");
+        int result = comparator.compare("%68%65%6c%6c%6f", "%68%65%6C%6C%6F");
 
         // THEN
         assertThat(result, equalTo(0));
@@ -122,7 +122,59 @@ public class PercentEncodableStringComparatorTest
         PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
 
         // WHEN
-        int result = comparator.compare("%63%69%61%6F", "%68%65%6C%6C%6F");
+        int result = comparator.compare("%63%69%61%6f", "%68%65%6c%6c%6f");
+
+        // THEN
+        assertThat(result, lessThan(0));
+    }
+
+    @Test
+    public void shouldBeLessThanZeroWhenComparesShorterAndLonger()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("hello", "hello1");
+
+        // THEN
+        assertThat(result, lessThan(0));
+    }
+
+    @Test
+    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereSecondIsEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("hello", "%68%65%6C%6C%6F%49");
+
+        // THEN
+        assertThat(result, lessThan(0));
+    }
+
+    @Test
+    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereFirstIsEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("%68%65%6C%6C%6F", "hello1");
+
+        // THEN
+        assertThat(result, lessThan(0));
+    }
+
+    @Test
+    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereBothAreEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("%68%65%6C%6C%6F", "%68%65%6C%6C%6F%49");
 
         // THEN
         assertThat(result, lessThan(0));
@@ -175,6 +227,58 @@ public class PercentEncodableStringComparatorTest
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "%63%69%61%6F");
+
+        // THEN
+        assertThat(result, greaterThan(0));
+    }
+
+    @Test
+    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorter()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("hello1", "hello");
+
+        // THEN
+        assertThat(result, greaterThan(0));
+    }
+
+    @Test
+    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereSecondIsEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("hello1", "%68%65%6C%6C%6F");
+
+        // THEN
+        assertThat(result, greaterThan(0));
+    }
+
+    @Test
+    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereFirstIsEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("%68%65%6C%6C%6F%49", "hello");
+
+        // THEN
+        assertThat(result, greaterThan(0));
+    }
+
+    @Test
+    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereBothAreEncoded()
+    {
+        // GIVEN
+        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+
+        // WHEN
+        int result = comparator.compare("%68%65%6C%6C%6F%49", "%68%65%6C%6C%6F");
 
         // THEN
         assertThat(result, greaterThan(0));
