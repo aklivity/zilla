@@ -1,4 +1,4 @@
-env:
+extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
   - name: SASL_USERNAME

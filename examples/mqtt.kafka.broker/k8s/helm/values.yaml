@@ -1,12 +1,12 @@
 args: ["start", "-v", "-e"]
 
-env:
+extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
   - name: KAFKA_HOST
-    value: "\"\""
+    value: ""
   - name: KAFKA_PORT
-    value: "\"\""
+    value: ""
 
 livenessProbePort: 7183
 readinessProbePort: 7183

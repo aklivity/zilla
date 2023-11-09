@@ -36,8 +36,8 @@ bindings:
     type: tcp
     kind: client
     options:
-      host: "${{env.TCP_CLIENT_HOST}}"
-      port: ${{env.TCP_CLIENT_PORT}}
+      host: ${{env.MOSQUITTO_BROKER_HOST}}
+      port: ${{env.MOSQUITTO_BROKER_PORT}}
 catalogs:
   inline_schema:
     type: inline

@@ -1,7 +1,7 @@
 image:
   tag: develop-SNAPSHOT
 
-env:
+extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
 

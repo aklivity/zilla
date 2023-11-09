@@ -1,6 +1,6 @@
 args: ["start", "-v", "-e"]
 
-env:
+extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
 

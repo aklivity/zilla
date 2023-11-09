@@ -3,11 +3,11 @@ image:
 
 args: ["start", "-v", "-e"]
 
-env:
-  - name: TCP_CLIENT_HOST
+extraEnv:
+  - name: MOSQUITTO_BROKER_HOST
     value: mosquitto
-  - name: TCP_CLIENT_PORT
-    value: '"1883"'
+  - name: MOSQUITTO_BROKER_PORT
+    value: "1883"
 
 livenessProbePort: 7183
 readinessProbePort: 7183

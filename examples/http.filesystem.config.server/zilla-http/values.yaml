@@ -3,7 +3,7 @@ initContainers:
     image: "busybox:1.36"
     command: ['/bin/sh', '-c', 'wget -S --spider http://zilla-config:7115/zilla.yaml']
 
-env:
+extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
 
