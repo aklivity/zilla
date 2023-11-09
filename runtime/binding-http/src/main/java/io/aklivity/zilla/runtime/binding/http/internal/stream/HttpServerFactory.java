@@ -2251,9 +2251,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             String origin,
             HttpBeginExFW beginEx)
         {
-            boolean valid = binding.validateHeaders(requestType, beginEx);
+            boolean headersValid = binding.validateHeaders(requestType, beginEx);
             DirectBuffer error = null;
-            if (valid)
+            if (headersValid)
             {
                 final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
                 exchange.doRequestBegin(traceId, beginEx);
@@ -2291,9 +2291,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean valid = binding.validateContent(requestType, buffer, 0, limit - offset);
+            boolean contentValid = binding.validateContent(requestType, buffer, 0, limit - offset);
             int result;
-            if (valid)
+            if (contentValid)
             {
                 result = exchange.doRequestData(traceId, budgetId, buffer, offset, limit, extension);
             }
@@ -4906,8 +4906,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
                                 exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
-                            boolean valid = binding.validateHeaders(requestType, beginEx);
-                            if (valid)
+                            boolean headersValid = binding.validateHeaders(requestType, beginEx);
+                            if (headersValid)
                             {
                                 exchange.doRequestBegin(traceId, beginEx);
                                 if (endRequest)
@@ -5120,8 +5120,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final int payloadLength = payload.capacity();
-                    boolean valid = binding.validateContent(exchange.request, payload, 0, payloadLength);
-                    if (valid)
+                    boolean contentValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
+                    if (contentValid)
                     {
                         if (payloadLength > 0)
                         {
