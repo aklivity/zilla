@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableBoolean;
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
@@ -209,7 +210,7 @@ public final class HttpBindingConfig
                         headers.put(new String8FW(header.name), createValidator.apply(header.validator, this.resolveId));
                     }
                 }
-                Map<String, Validator> pathParams = new HashMap<>();
+                Map<String, Validator> pathParams = new Object2ObjectHashMap<>();
                 if (request.pathParams != null)
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
