@@ -25,7 +25,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -126,7 +125,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIZE_OF_UUID = 38;
-    private static final AtomicInteger CONTEXT_COUNTER = new AtomicInteger(0);
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
@@ -209,6 +207,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     private String serverRef;
     private int reconnectAttempt;
+    private int contextCounter;
 
     public MqttKafkaSessionFactory(
         MqttKafkaConfiguration config,
@@ -1220,9 +1219,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         case MqttSessionSignalFW.KIND_EXPIRY:
                             final MqttExpirySignalFW expirySignal = sessionSignal.expiry();
                             long expireAt = expirySignal.expireAt();
-                            final String16FW clientId = expirySignal.clientId();
-                            final String16FW expiryClientId =
-                                new String16FW().wrap(clientId.buffer(), clientId.offset(), clientId.limit());
+                            final String16FW expiryClientId = new String16FW(expirySignal.clientId().asString());
 
                             if (expireAt == MqttTime.UNKNOWN.value())
                             {
@@ -1233,7 +1230,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                                 expireAt = supplyTime.getAsLong() + expirySignal.delay();
                             }
 
-                            final int contextId = CONTEXT_COUNTER.incrementAndGet();
+                            final int contextId = contextCounter++;
                             expiryClientIds.put(contextId, expiryClientId);
 
                             final long signalId =
