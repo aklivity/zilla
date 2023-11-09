@@ -322,10 +322,7 @@ public final class HttpBindingConfig
                     if (validator != null)
                     {
                         String16FW value = header.value();
-                        if (!validator.read(value.value(), value.offset(), value.length()))
-                        {
-                            valid.value = false;
-                        }
+                        valid.value &= validator.read(value.value(), value.offset(), value.length());
                     }
                 }
             });
@@ -365,21 +362,15 @@ public final class HttpBindingConfig
     {
         Matcher matcher = requestType.queryMatcher.reset(path);
         boolean valid = true;
-        boolean found = matcher.find();
-        while (found)
+        while (valid && matcher.find())
         {
             String name = matcher.group(1);
             Validator validator = requestType.queryParams.get(name);
             if (validator != null)
             {
                 String8FW value = new String8FW(matcher.group(2));
-                if (!validator.read(value.value(), value.offset(), value.length()))
-                {
-                    valid = false;
-                    break;
-                }
+                valid = validator.read(value.value(), value.offset(), value.length());
             }
-            found = matcher.find();
         }
         return valid;
     }
@@ -390,13 +381,9 @@ public final class HttpBindingConfig
         int index,
         int length)
     {
-        boolean valid = true;
-        if (requestType != null && requestType.content != null)
-        {
-            Validator validator = requestType.content;
-            valid = validator.read(buffer, index, length);
-        }
-        return valid;
+        return requestType == null ||
+            requestType.content == null ||
+            requestType.content.read(buffer, index, length);
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(
