@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class SubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));

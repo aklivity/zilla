@@ -100,6 +100,15 @@
             uint8 protocolVersion;
             uint8 flags;
             uint16 keepAlive;
+            string16 clientId;
+        }
+
+        struct MqttConnect extends MqttPacketHeader
+        {
+            string16 protocolName;
+            uint8 protocolVersion;
+            uint8 flags;
+            uint16 keepAlive;
             MqttProperties properties;
             string16 clientId;
         }

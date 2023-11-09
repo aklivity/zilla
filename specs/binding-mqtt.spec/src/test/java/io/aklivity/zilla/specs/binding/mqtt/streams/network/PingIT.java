@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class PingIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
