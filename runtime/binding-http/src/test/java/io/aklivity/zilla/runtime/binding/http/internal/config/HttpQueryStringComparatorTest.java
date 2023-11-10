@@ -22,13 +22,13 @@ import static org.hamcrest.Matchers.lessThan;
 
 import org.junit.Test;
 
-public class PercentEncodableStringComparatorTest
+public class HttpQueryStringComparatorTest
 {
     @Test
-    public void shouldEqualToZeroWhenComparesIdentical()
+    public void shouldCompareSameUnencodedEqualsToUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "hello");
@@ -38,10 +38,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldEqualToZeroWhenComparesIdenticalWhereSecondIsEncoded()
+    public void shouldCompareSameUnencodedEqualsToEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "%68%65%6C%6C%6F");
@@ -51,10 +51,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldEqualToZeroWhenComparesIdenticalWhereFirstIsEncoded()
+    public void shouldCompareSameEncodedEqualsToUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "hello");
@@ -64,10 +64,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldEqualToZeroWhenComparesIdenticalWhereBothAreEncoded()
+    public void shouldCompareSameEncodedEqualsToEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6c%6c%6f", "%68%65%6C%6C%6F");
@@ -77,10 +77,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesSmallerAndLarger()
+    public void shouldCompareSmallerUnencodedLessThanGreaterUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("ciao", "hello");
@@ -90,10 +90,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesSmallerAndLargerWhereSecondIsEncoded()
+    public void shouldCompareSmallerUnencodedLessThanGreaterEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("ciao", "%68%65%6C%6C%6F");
@@ -103,10 +103,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesSmallerAndLargerWhereFirstIsEncoded()
+    public void shouldCompareSmallerEncodedLessThanGreaterUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%63%69%61%6F", "hello");
@@ -116,10 +116,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesSmallerAndLargerWhereBothAreEncoded()
+    public void shouldCompareSmallerEncodedLessThanGreaterEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%63%69%61%6f", "%68%65%6c%6c%6f");
@@ -129,10 +129,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesShorterAndLonger()
+    public void shouldCompareShorterUnencodedLessThanLongerUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "hello1");
@@ -142,10 +142,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereSecondIsEncoded()
+    public void shouldCompareShorterUnencodedLessThanLongerEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "%68%65%6C%6C%6F%49");
@@ -155,10 +155,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereFirstIsEncoded()
+    public void shouldCompareShorterEncodedLessThanLongerUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "hello1");
@@ -168,10 +168,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeLessThanZeroWhenComparesShorterAndLongerWhereBothAreEncoded()
+    public void shouldCompareShorterEncodedLessThanLongerEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "%68%65%6C%6C%6F%49");
@@ -181,10 +181,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLargerAndSmaller()
+    public void shouldCompareLargerUnencodedGreaterThanSmallerUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "ciao");
@@ -194,10 +194,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLargerAndSmallerWhereSecondIsEncoded()
+    public void shouldCompareLargerUnencodedGreaterThanSmallerEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello", "%63%69%61%6F");
@@ -207,10 +207,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLargerAndSmallerWhereFirstIsEncoded()
+    public void shouldCompareLargerEncodedGreaterThanSmallerUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "ciao");
@@ -220,10 +220,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLargerAndSmallerWhereBothAreEncoded()
+    public void shouldCompareLargerEncodedGreaterThanSmallerEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F", "%63%69%61%6F");
@@ -233,10 +233,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorter()
+    public void shouldCompareLongerUnencodedGreaterThanShorterUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello1", "hello");
@@ -246,10 +246,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereSecondIsEncoded()
+    public void shouldCompareLongerUnencodedGreaterThanShorterEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("hello1", "%68%65%6C%6C%6F");
@@ -259,10 +259,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereFirstIsEncoded()
+    public void shouldCompareLongerEncodedGreaterThanShorterUnencoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F%49", "hello");
@@ -272,10 +272,10 @@ public class PercentEncodableStringComparatorTest
     }
 
     @Test
-    public void shouldBeGreaterThanZeroWhenComparesLongerAndShorterWhereBothAreEncoded()
+    public void shouldCompareLongerEncodedGreaterThanShorterEncoded()
     {
         // GIVEN
-        PercentEncodableStringComparator comparator = new PercentEncodableStringComparator();
+        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
 
         // WHEN
         int result = comparator.compare("%68%65%6C%6C%6F%49", "%68%65%6C%6C%6F");

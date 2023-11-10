@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import java.util.Comparator;
 
-public class PercentEncodableStringComparator implements Comparator<String>
+public class HttpQueryStringComparator implements Comparator<String>
 {
     @Override
     public int compare(
