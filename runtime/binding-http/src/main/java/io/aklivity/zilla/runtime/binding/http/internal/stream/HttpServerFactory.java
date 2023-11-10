@@ -5149,6 +5149,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (!HttpState.replyOpened(exchange.state))
                         {
                             doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                            doNetworkEnd(traceId, authorization);
                         }
                         else
                         {
@@ -5156,6 +5157,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         exchange.doRequestAbort(traceId, EMPTY_OCTETS);
                         exchange.doResponseReset(traceId);
+                        progress += payloadLength;
                     }
                 }
             }
