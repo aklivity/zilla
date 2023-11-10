@@ -61,7 +61,7 @@ public final class HttpBindingConfig
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
-    private static final PercentEncodableStringComparator PERCENT_ENCODABLE = new PercentEncodableStringComparator();
+    private static final HttpQueryStringComparator QUERY_STRING_COMPARATOR = new HttpQueryStringComparator();
 
     public final long id;
     public final String name;
@@ -218,7 +218,7 @@ public final class HttpBindingConfig
                         pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
                     }
                 }
-                Map<String, Validator> queryParams = new TreeMap<>(PERCENT_ENCODABLE);
+                Map<String, Validator> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
