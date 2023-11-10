@@ -359,7 +359,7 @@ public final class HttpBindingConfig
             if (validator != null)
             {
                 String8FW value = new String8FW(matcher.group(2));
-                valid = validator.read(value.value(), value.offset(), value.length());
+                valid &= validator.read(value.value(), value.offset(), value.length());
             }
         }
         return valid;
