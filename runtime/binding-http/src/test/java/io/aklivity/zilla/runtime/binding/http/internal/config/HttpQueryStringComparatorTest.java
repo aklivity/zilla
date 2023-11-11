@@ -16,271 +16,131 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.comparator.ComparatorMatcherBuilder.comparedBy;
 
 import org.junit.Test;
 
 public class HttpQueryStringComparatorTest
 {
+    private final HttpQueryStringComparator comparator = new HttpQueryStringComparator();
+
     @Test
     public void shouldCompareSameUnencodedEqualsToUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "hello");
-
-        // THEN
-        assertThat(result, equalTo(0));
+        assertThat("hello", comparedBy(comparator).comparesEqualTo("hello"));
     }
 
     @Test
     public void shouldCompareSameUnencodedEqualsToEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "%68%65%6C%6C%6F");
-
-        // THEN
-        assertThat(result, equalTo(0));
+        assertThat("hello", comparedBy(comparator).comparesEqualTo("%68%65%6C%6C%6F"));
     }
 
     @Test
     public void shouldCompareSameEncodedEqualsToUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "hello");
-
-        // THEN
-        assertThat(result, equalTo(0));
+        assertThat("%68%65%6C%6C%6F", comparedBy(comparator).comparesEqualTo("hello"));
     }
 
     @Test
     public void shouldCompareSameEncodedEqualsToEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6c%6c%6f", "%68%65%6C%6C%6F");
-
-        // THEN
-        assertThat(result, equalTo(0));
+        assertThat("%68%65%6c%6c%6f", comparedBy(comparator).comparesEqualTo("%68%65%6C%6C%6F"));
     }
 
     @Test
-    public void shouldCompareSmallerUnencodedLessThanGreaterUnencoded()
+    public void shouldCompareSmallerUnencodedLessThanLargerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("ciao", "hello");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("ciao", comparedBy(comparator).lessThan("hello"));
     }
 
     @Test
-    public void shouldCompareSmallerUnencodedLessThanGreaterEncoded()
+    public void shouldCompareSmallerUnencodedLessThanLargerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("ciao", "%68%65%6C%6C%6F");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("ciao", comparedBy(comparator).lessThan("%68%65%6C%6C%6F"));
     }
 
     @Test
-    public void shouldCompareSmallerEncodedLessThanGreaterUnencoded()
+    public void shouldCompareSmallerEncodedLessThanLargerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%63%69%61%6F", "hello");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("%63%69%61%6F", comparedBy(comparator).lessThan("hello"));
     }
 
     @Test
-    public void shouldCompareSmallerEncodedLessThanGreaterEncoded()
+    public void shouldCompareSmallerEncodedLessThanLargerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%63%69%61%6f", "%68%65%6c%6c%6f");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("%63%69%61%6F", comparedBy(comparator).lessThan("%68%65%6c%6c%6f"));
     }
 
     @Test
     public void shouldCompareShorterUnencodedLessThanLongerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "hello1");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("hello", comparedBy(comparator).lessThan("hello1"));
     }
 
     @Test
     public void shouldCompareShorterUnencodedLessThanLongerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "%68%65%6C%6C%6F%49");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("hello", comparedBy(comparator).lessThan("%68%65%6C%6C%6F%49"));
     }
 
     @Test
     public void shouldCompareShorterEncodedLessThanLongerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "hello1");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("%68%65%6C%6C%6F", comparedBy(comparator).lessThan("hello1"));
     }
 
     @Test
     public void shouldCompareShorterEncodedLessThanLongerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "%68%65%6C%6C%6F%49");
-
-        // THEN
-        assertThat(result, lessThan(0));
+        assertThat("%68%65%6C%6C%6F", comparedBy(comparator).lessThan("%68%65%6C%6C%6F%49"));
     }
 
     @Test
     public void shouldCompareLargerUnencodedGreaterThanSmallerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "ciao");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("hello", comparedBy(comparator).greaterThan("ciao"));
     }
 
     @Test
     public void shouldCompareLargerUnencodedGreaterThanSmallerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello", "%63%69%61%6F");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("hello", comparedBy(comparator).greaterThan("%63%69%61%6F"));
     }
 
     @Test
     public void shouldCompareLargerEncodedGreaterThanSmallerUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "ciao");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("%68%65%6C%6C%6F", comparedBy(comparator).greaterThan("ciao"));
     }
 
     @Test
     public void shouldCompareLargerEncodedGreaterThanSmallerEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F", "%63%69%61%6F");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("%68%65%6C%6C%6F", comparedBy(comparator).greaterThan("%63%69%61%6F"));
     }
 
     @Test
     public void shouldCompareLongerUnencodedGreaterThanShorterUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello1", "hello");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("hello1", comparedBy(comparator).greaterThan("hello"));
     }
 
     @Test
     public void shouldCompareLongerUnencodedGreaterThanShorterEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("hello1", "%68%65%6C%6C%6F");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("hello1", comparedBy(comparator).greaterThan("%68%65%6C%6C%6F"));
     }
 
     @Test
     public void shouldCompareLongerEncodedGreaterThanShorterUnencoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F%49", "hello");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("%68%65%6C%6C%6F%49", comparedBy(comparator).greaterThan("hello"));
     }
 
     @Test
     public void shouldCompareLongerEncodedGreaterThanShorterEncoded()
     {
-        // GIVEN
-        HttpQueryStringComparator comparator = new HttpQueryStringComparator();
-
-        // WHEN
-        int result = comparator.compare("%68%65%6C%6C%6F%49", "%68%65%6C%6C%6F");
-
-        // THEN
-        assertThat(result, greaterThan(0));
+        assertThat("%68%65%6C%6C%6F%49", comparedBy(comparator).greaterThan("%68%65%6C%6C%6F"));
     }
 }
