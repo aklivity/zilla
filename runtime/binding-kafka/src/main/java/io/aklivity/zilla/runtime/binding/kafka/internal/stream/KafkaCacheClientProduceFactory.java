@@ -21,8 +21,10 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
+import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -86,6 +88,9 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final KafkaKeyFW EMPTY_KEY =
+        new OctetsFW().wrap(new UnsafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
+            .get(new KafkaKeyFW()::wrap);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
@@ -481,6 +486,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     final class KafkaCacheClientProduceFan
     {
+        private static final int PRODUCE_FLUSH_SEQUENCE = -1;
         private final KafkaCachePartition partition;
         private final KafkaCacheCursor cursor;
         private final KafkaOffsetType defaultOffset;
@@ -759,6 +765,47 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
+            creditor.credit(traceId, partitionIndex, reserved);
+        }
+
+        private void onClientInitialFlush(
+            KafkaCacheClientProduceStream stream,
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
+
+            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, 0);
+
+            int error = NO_ERROR;
+            if (stream.segment != null)
+            {
+                final long nextOffset = partition.nextOffset(defaultOffset);
+                assert partitionOffset >= 0 && partitionOffset >= nextOffset
+                    : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
+
+                final long keyHash = partition.computeKeyHash(EMPTY_KEY);
+                partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
+                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
+                    KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
+                stream.partitionOffset = partitionOffset;
+                partitionOffset++;
+
+                Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
+
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
+                flushClientFanInitialIfNecessary(traceId);
+            }
+            else
+            {
+                error = ERROR_RECORD_LIST_TOO_LARGE;
+            }
+
+            if (error != NO_ERROR)
+            {
+                stream.cleanupClient(traceId, error);
+                onClientFanMemberClosed(traceId, stream);
+            }
             creditor.credit(traceId, partitionIndex, reserved);
         }
 
@@ -1318,7 +1365,18 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            doClientInitialWindow(traceId, 0, initialBudgetMax);
+            if (initialSeq > initialAck + initialMax)
+            {
+                doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS);
+                doClientReplyAbortIfNecessary(traceId);
+                fan.onClientFanMemberClosed(traceId, this);
+            }
+            else
+            {
+                fan.onClientInitialFlush(this, flush);
+            }
+            final int noAck = (int) (initialSeq - initialAck);
+            doClientInitialWindow(traceId, noAck, initialBudgetMax);
         }
 
         private void onClientInitialEnd(

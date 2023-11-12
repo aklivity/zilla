@@ -144,6 +144,15 @@ read option zilla:ack 16
 read zilla:data.ext ${kafka:matchDataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
                                   .timestamp(newTimestamp)
                                   .ackMode("LEADER_ONLY")
                                   .build()
@@ -151,6 +160,15 @@ read zilla:data.ext ${kafka:matchDataEx()
 read "Hello, world #A2"
 
 read option zilla:ack 32
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+read zilla:data.empty
 
 
 accepted
@@ -182,6 +200,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                                   .build()
                               .build()}
 read "Hello, world #B1"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+read zilla:data.empty
 
 read zilla:data.ext ${kafka:matchDataEx()
                               .typeId(zilla:id("kafka"))
@@ -223,6 +250,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .build()}
 read "Hi, world #C1"
 read option zilla:ack 13
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+read zilla:data.empty
 
 read zilla:data.ext ${kafka:matchDataEx()
                               .typeId(zilla:id("kafka"))

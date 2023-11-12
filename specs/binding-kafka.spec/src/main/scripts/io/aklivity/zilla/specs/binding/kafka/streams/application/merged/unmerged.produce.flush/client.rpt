@@ -141,6 +141,15 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A1"
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+write zilla:data.empty
+write flush
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
@@ -152,6 +161,17 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world #A2"
 write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+write zilla:data.empty
+write flush
+
 
 connect await PARTITION_COUNT_3
         "zilla://streams/app1"
@@ -238,6 +258,16 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+write zilla:data.empty
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(2)
                                   .ackMode("LEADER_ONLY")
@@ -246,3 +276,12 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hi, world #C2"
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .sequence(-1)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
+write zilla:data.empty
+write flush
