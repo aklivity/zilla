@@ -207,7 +207,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     private String serverRef;
     private int reconnectAttempt;
-    private int contextCounter;
+    private int nextContextId;
 
     public MqttKafkaSessionFactory(
         MqttKafkaConfiguration config,
@@ -1230,7 +1230,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                                 expireAt = supplyTime.getAsLong() + expirySignal.delay();
                             }
 
-                            final int contextId = contextCounter++;
+                            final int contextId = nextContextId++;
                             expiryClientIds.put(contextId, expiryClientId);
 
                             final long signalId =
