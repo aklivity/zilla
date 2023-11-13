@@ -29,9 +29,6 @@ read  [0x10 0x12]                   # CONNECT
       [0x00 0x3c]                   # keep alive = 60s
       [0x00 0x06] "client"          # client id
 
-write [0x20 0x02]                   # CONNACK
-      [0x00]                        # flags = none
-      [0x00]                        # reason code
-
-
+write close
 read closed
+

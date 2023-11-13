@@ -14,24 +14,18 @@
 # under the License.
 #
 
-accept "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
-accepted
 connected
 
-read  [0x10 0x12]                   # CONNECT
+write [0x10 0x12]                   # CONNECT
       [0x00 0x04] "MQTT"            # protocol name
       [0x04]                        # protocol version
-      [0x02]                        # flags = clean start
+      [0x22]                        # flags = will retain, clean start
       [0x00 0x3c]                   # keep alive = 60s
       [0x00 0x06] "client"          # client id
-
-write [0x20 0x02]                   # CONNACK
-      [0x00]                        # flags = none
-      [0x00]                        # reason code
-
 
 read closed

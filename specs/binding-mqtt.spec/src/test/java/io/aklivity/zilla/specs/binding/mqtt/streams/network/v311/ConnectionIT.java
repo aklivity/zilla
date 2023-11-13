@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.mqtt.streams.network;
+package io.aklivity.zilla.specs.binding.mqtt.streams.network.v311;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -30,7 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class ConnectionIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/3.1.1");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

@@ -14,6 +14,8 @@
 # under the License.
 #
 
+property assignedClientId "123e4567-e89b-42d3-a456-556642440000"
+
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
@@ -22,16 +24,13 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x12]                   # CONNECT
-      [0x00 0x04] "MQTT"            # protocol name
-      [0x04]                        # protocol version
-      [0x02]                        # flags = clean start
-      [0x00 0x3c]                   # keep alive = 60s
-      [0x00 0x06] "client"          # client id
+read  [0x10 0x0c]               # CONNECT
+      [0x00 0x04] "MQTT"        # protocol name
+      [0x04]                    # protocol version
+      [0x02]                    # flags = clean start
+      [0x00 0x3c]               # keep alive = 60s
+      [0x00 0x00]               # client id
 
-write [0x20 0x02]                   # CONNACK
-      [0x00]                        # flags = none
-      [0x00]                        # reason code
-
-
-read closed
+write [0x20 0x02]               # CONNACK
+      [0x00]                    # flags = none
+      [0x00]                    # reason code

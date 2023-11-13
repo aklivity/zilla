@@ -22,16 +22,14 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x12]                   # CONNECT
+read  [0x10 0x20]                   # CONNECT
       [0x00 0x04] "MQTT"            # protocol name
       [0x04]                        # protocol version
-      [0x02]                        # flags = clean start
+      [0x82]                        # flags = username, clean start
       [0x00 0x3c]                   # keep alive = 60s
       [0x00 0x06] "client"          # client id
+      [0x00 0x0c] "Bearer TOKEN"    # username
 
 write [0x20 0x02]                   # CONNACK
       [0x00]                        # flags = none
       [0x00]                        # reason code
-
-
-read closed
