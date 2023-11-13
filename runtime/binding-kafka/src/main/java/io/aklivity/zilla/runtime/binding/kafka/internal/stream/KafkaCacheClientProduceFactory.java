@@ -96,6 +96,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                 .build();
+    private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
@@ -486,7 +487,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     final class KafkaCacheClientProduceFan
     {
-        private static final int PRODUCE_FLUSH_SEQUENCE = -1;
         private final KafkaCachePartition partition;
         private final KafkaCacheCursor cursor;
         private final KafkaOffsetType defaultOffset;
@@ -1361,22 +1361,25 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence + reserved;
-
-            assert initialAck <= initialSeq;
-
-            if (initialSeq > initialAck + initialMax)
+            if (reserved > 0)
             {
-                doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS);
-                doClientReplyAbortIfNecessary(traceId);
-                fan.onClientFanMemberClosed(traceId, this);
+                initialSeq = sequence + reserved;
+
+                assert initialAck <= initialSeq;
+
+                if (initialSeq > initialAck + initialMax)
+                {
+                    doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS);
+                    doClientReplyAbortIfNecessary(traceId);
+                    fan.onClientFanMemberClosed(traceId, this);
+                }
+                else
+                {
+                    fan.onClientInitialFlush(this, flush);
+                }
+                final int noAck = (int) (initialSeq - initialAck);
+                doClientInitialWindow(traceId, noAck, initialBudgetMax);
             }
-            else
-            {
-                fan.onClientInitialFlush(this, flush);
-            }
-            final int noAck = (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, initialBudgetMax);
         }
 
         private void onClientInitialEnd(
