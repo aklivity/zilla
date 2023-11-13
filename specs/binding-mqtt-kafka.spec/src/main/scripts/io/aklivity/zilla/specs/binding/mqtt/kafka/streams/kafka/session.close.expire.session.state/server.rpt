@@ -92,6 +92,25 @@ write ${mqtt:sessionSignal()
             .build()}
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-2")
+                .delay(1000)
+                .expireAt(2000)
+                .build()
+            .build()}
+write flush
+
 # cleanup session state
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -104,6 +123,17 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+# cleanup session state
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2")
+                               .hashKey("client-2")
+                               .build()
+                           .build()}
+read zilla:data.null
 
 accepted
 
