@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -49,6 +50,7 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Server
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ChannelView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -56,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
@@ -316,8 +319,8 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         return options;
     }
 
-    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRequests(
-        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
+        HttpOptionsConfigBuilder<C> options)
     {
         for (String name : asyncApi.operations.keySet())
         {
@@ -325,32 +328,73 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
             ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
             String path = channel.address();
             Method method = Method.valueOf(operation.bindings.get("http").method);
-            Map<String, Parameter> parameters = channel.parameters();
-            if (parameters != null)
+            options
+                .request()
+                    .path(path)
+                    .method(method)
+                    .inject(request -> injectContent(request, channel.messages()))
+                    .inject(request -> injectPathParams(request, channel.parameters()))
+                    .build();
+        }
+        return options;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectContent(
+        HttpRequestConfigBuilder<C> request,
+        Map<String, Message> messages)
+    {
+        if (messages != null)
+        {
+            request.
+                content(JsonValidatorConfig::builder) // TODO: Ati
+                    .catalog()
+                        .name("catalog0") // TODO: Ati
+                        .inject(catalog -> injectSchema(catalog, messages))
+                        .build()
+                    .build();
+        }
+        return request;
+    }
+
+    private <C> CatalogedConfigBuilder<C> injectSchema(
+        CatalogedConfigBuilder<C> catalog,
+        Map<String, Message> messages)
+    {
+        for (String name : messages.keySet())
+        {
+            catalog
+                .schema()
+                    .subject(name)
+                    .build()
+                .build();
+        }
+        return catalog;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectPathParams(
+        HttpRequestConfigBuilder<C> request,
+        Map<String, Parameter> parameters)
+    {
+        if (parameters != null)
+        {
+            for (String paramName: parameters.keySet())
             {
-                for (String paramName: parameters.keySet())
+                Parameter parameter = parameters.get(paramName);
+                if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    Parameter parameter = parameters.get(paramName);
-                    if (parameter.schema != null && parameter.schema.type != null)
+                    ValidatorConfig validator = validators.get(parameter.schema.type);
+                    if (validator != null)
                     {
-                        ValidatorConfig validator = validators.get(parameter.schema.type);
-                        if (validator != null)
-                        {
-                            options
-                                .request()
-                                    .path(path)
-                                    .method(method)
-                                    .pathParam()
-                                        .name(paramName)
-                                        .validator(validator)
-                                        .build()
-                                    .build();
-                        }
+                        request
+                            .pathParam()
+                                .name(paramName)
+                                .validator(validator)
+                                .build();
                     }
                 }
             }
         }
-        return options;
+        return request;
     }
 
 

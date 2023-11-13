@@ -21,8 +21,8 @@ import jakarta.json.bind.annotation.JsonbProperty;
 public class Channel
 {
     public String address;
-    public LinkedHashMap<String, Parameter> parameters;
     public LinkedHashMap<String, Message> messages;
+    public LinkedHashMap<String, Parameter> parameters;
 
     @JsonbProperty("$ref")
     public String ref;
