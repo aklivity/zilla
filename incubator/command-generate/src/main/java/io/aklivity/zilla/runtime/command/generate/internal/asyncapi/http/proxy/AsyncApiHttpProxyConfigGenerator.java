@@ -65,7 +65,6 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 {
     private final InputStream input;
 
-    private AsyncApi asyncApi;
     private int[] allPorts;
     private int[] httpPorts;
     private int[] httpsPorts;
@@ -243,6 +242,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
                 .build()
             .inject(this::injectGuard)
             .inject(this::injectVaults)
+            .inject(this::injectCatalog)
             .build();
     }
 
