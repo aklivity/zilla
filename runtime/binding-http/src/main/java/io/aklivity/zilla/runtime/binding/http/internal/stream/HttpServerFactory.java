@@ -1077,8 +1077,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
                             server.requestType = binding.resolveRequestType(beginEx);
-                            error = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth, policy, origin,
-                                beginEx);
+                            boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth,
+                                policy, origin, beginEx);
+                            if (!headersValid)
+                            {
+                                error = response400;
+                            }
                         }
                         else
                         {
@@ -2242,7 +2246,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert exchange == null;
         }
 
-        private DirectBuffer onDecodeHeaders(
+        private boolean onDecodeHeaders(
             long originId,
             long routedId,
             long traceId,
@@ -2252,7 +2256,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpBeginExFW beginEx)
         {
             boolean headersValid = binding.validateHeaders(requestType, beginEx);
-            DirectBuffer error = null;
             if (headersValid)
             {
                 final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
@@ -2264,11 +2267,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 this.exchange = exchange;
             }
-            else
-            {
-                error = response400;
-            }
-            return error;
+            return headersValid;
         }
 
         private void onDecodeHeadersOnly(
