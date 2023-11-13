@@ -82,6 +82,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMem
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
@@ -1797,6 +1798,13 @@ public final class KafkaFunctions
                 return new KafkaMergedProduceDataExBuilder();
             }
 
+            public KafkaMergedConsumerDataExBuilder consumer()
+            {
+                mergedDataExRW.kind(KafkaApi.CONSUMER.value());
+
+                return new KafkaMergedConsumerDataExBuilder();
+            }
+
             public final class KafkaMergedFetchDataExBuilder
             {
                 private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
@@ -2240,6 +2248,48 @@ public final class KafkaFunctions
                 public KafkaDataExBuilder build()
                 {
                     final KafkaMergedProduceDataExFW mergedProduceDataEx = mergedProduceDataExRW.build();
+                    dataExRO.wrap(writeBuffer, 0, mergedProduceDataEx.limit());
+                    return KafkaDataExBuilder.this;
+                }
+            }
+
+            public final class KafkaMergedConsumerDataExBuilder
+            {
+                private final KafkaMergedConsumerDataExFW.Builder mergedConsumerDataExRW =
+                    new KafkaMergedConsumerDataExFW.Builder();
+
+                private KafkaMergedConsumerDataExBuilder()
+                {
+                    mergedConsumerDataExRW.wrap(
+                        writeBuffer,
+                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_PRODUCE,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedConsumerDataExBuilder progress(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedConsumerDataExBuilder progress(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedConsumerDataExRW.progress(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+
+                public KafkaDataExBuilder build()
+                {
+                    final KafkaMergedConsumerDataExFW mergedProduceDataEx = mergedConsumerDataExRW.build();
                     dataExRO.wrap(writeBuffer, 0, mergedProduceDataEx.limit());
                     return KafkaDataExBuilder.this;
                 }

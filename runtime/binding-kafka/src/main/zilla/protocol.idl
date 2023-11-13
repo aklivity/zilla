@@ -476,7 +476,10 @@ scope protocol
                 string16 groupInstanceId = null;
                 int16 errorCode;
             }
+        }
 
+        scope offset_fetch
+        {
             struct OffsetFetchRequest
             {
                 string16 groupId;
@@ -506,6 +509,50 @@ scope protocol
                 int32 partitionIndex;
                 int64 committedOffset;
                 string16 metadata = null;
+                int16 errorCode;
+            }
+        }
+
+        scope offset_commit
+        {
+            struct OffsetCommitRequest
+            {
+                string16 groupId;
+                int32 generationId;
+                string16 memberId;
+                string16 groupInstanceId = null;
+                int32 topicCount;
+            }
+
+            struct OffsetCommitTopic
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetCommitTopicPartition
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                int32 committedLeaderEpoch;
+                string16 committedMetadata = null;
+            }
+
+            struct OffsetCommitResponse
+            {
+                int32 throttleTimeMs;
+                int32 topicCount;
+            }
+
+            struct OffsetCommitResponseTopic
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetCommitResponseTopicPartition
+            {
+                int32 partitionIndex;
                 int16 errorCode;
             }
         }

@@ -1,0 +1,52 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read 75                                # size
+      8s                                # offset fetch
+      7s                                # 7
+      (int:newRequestId)
+      -1s                               # no client id
+      8s "client-1"                     # group id
+      0
+      10s "memberId-1"                  # consumer member group id
+      5s "zilla"                        # group instance id
+      1                                 # topics
+        4s "test"                       # "test" topic
+        1                               # partitions
+          0                             # partition 0
+          2L                            # committed offset
+          0                             # committed leader epoch
+          -1s                           # no metadata
+
+write 28                                 # size
+      ${newRequestId}
+      0                                  # throttle time ms
+      1                                  # topics
+        4s "test"                          # "test" topic
+        1                                  # partitions
+          0                                   # partition index
+          0s                                  # no error

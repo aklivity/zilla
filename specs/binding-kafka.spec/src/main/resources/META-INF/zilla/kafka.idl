@@ -274,7 +274,7 @@ scope kafka
 
         struct KafkaMergedConsumerDataEx
         {
-            KafkaOffset partition;
+            KafkaOffset progress;
         }
 
         union KafkaMergedFlushEx switch (uint8)
@@ -449,7 +449,8 @@ scope kafka
 
         struct KafkaConsumerOffsetCommitDataEx
         {
-            KafkaOffset partition;
+            KafkaOffset progress;
+            int32 committedLeaderEpoch;
         }
 
         struct KafkaOffsetFetchTopic
@@ -485,8 +486,8 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
-            int32 partitionId;
-            int64 partitionOffset;
+            KafkaOffset progress;
+            int32 committedLeaderEpoch;
         }
     }
 

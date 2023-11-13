@@ -31,6 +31,6 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetFetch()
-                                 .topic("test", 0, 1)
+                                 .topic("test", 0, 1, 0)
                                  .build()
                              .build()}

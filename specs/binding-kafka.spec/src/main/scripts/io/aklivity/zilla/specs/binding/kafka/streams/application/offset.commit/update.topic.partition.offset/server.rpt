@@ -25,19 +25,17 @@ accepted
 read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetCommit()
-                                   .groupId("client-1")
                                    .topic("test")
-                                   .build()
+                                   .groupId("client-1")
+                                   .generationId(0)
+                                   .memberId("memberId-1")
                                .build()}
 
 connected
 
-
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0)
-                                 .partition(1)
+                                 .progress(0, 2)
                                  .build()
                              .build()}
-write flush
