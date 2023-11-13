@@ -5149,12 +5149,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (!HttpState.replyOpened(exchange.state))
                         {
                             doEncodeHeaders(traceId, authorization, streamId, headers400, true);
-                            doNetworkEnd(traceId, authorization);
                         }
-                        else
-                        {
-                            doEncodeRstStream(traceId, streamId, Http2ErrorCode.CANCEL);
-                        }
+                        doEncodeRstStream(traceId, streamId, Http2ErrorCode.CANCEL);
                         exchange.doRequestAbort(traceId, EMPTY_OCTETS);
                         exchange.doResponseReset(traceId);
                         progress += payloadLength;
