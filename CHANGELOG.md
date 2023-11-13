@@ -2,7 +2,26 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.56...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.57...HEAD)
+
+**Implemented enhancements:**
+
+- Integrate `http` binding with `validators` [\#455](https://github.com/aklivity/zilla/issues/455)
+
+**Fixed bugs:**
+
+- \[MQTT-Kafka\] Exception runtime.binding.mqtt.kafka.internal.types.MqttExpirySignalFW.wrap\(MqttExpirySignalFW.java:45\) [\#563](https://github.com/aklivity/zilla/issues/563)
+- Running mqtt benchmark triggers mqtt exception [\#488](https://github.com/aklivity/zilla/issues/488)
+- Fix IndexOutOfBoundsException when receiving expiry signal [\#567](https://github.com/aklivity/zilla/pull/567) ([bmaidics](https://github.com/bmaidics))
+
+**Merged pull requests:**
+
+- Integrate http binding with validators [\#571](https://github.com/aklivity/zilla/pull/571) ([attilakreiner](https://github.com/attilakreiner))
+- Fix flow conrol bug + indexoutofbound exception [\#568](https://github.com/aklivity/zilla/pull/568) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.57](https://github.com/aklivity/zilla/tree/0.9.57) (2023-11-04)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.56...0.9.57)
 
 **Fixed bugs:**
 

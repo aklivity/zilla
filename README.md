@@ -36,7 +36,7 @@ When Zilla is deployed alongside Apache Kafka®, any application or service can 
     - [REST-Kafka Proxying](#rest-kafka-proxying)
     - [SSE-Kafka Proxying](#sse-kafka-proxying)
     - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
-    - [MQTT-Kafka Proxying]((#mqtt-kafka-proxying))
+    - [MQTT-Kafka Proxying](#mqtt-kafka-proxying)
 - [Resources](#resources)
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
