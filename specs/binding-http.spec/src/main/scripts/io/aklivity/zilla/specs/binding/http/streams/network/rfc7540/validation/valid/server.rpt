@@ -1,0 +1,205 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property serverInitialWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${serverInitialWindow}
+  option zilla:transmission "duplex"
+accepted
+connected
+
+# client connection preface
+read "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
+      "\r\n"
+
+# server connection preface - SETTINGS frame
+write [0x00 0x00 0x12]                   # length = 18
+      [0x04]                             # HTTP2 SETTINGS frame
+      [0x00]                             # flags = 0x00
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
+      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+
+read [0x00 0x00 0x0c]                    # length = 12
+     [0x04]                              # HTTP2 SETTINGS frame
+     [0x00]                              # flags = 0x00
+     [0x00 0x00 0x00 0x00]               # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]     # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0xff 0xff]     # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
+
+
+# Request 1 - valid path params
+read [0x00 0x00 0x36]                    # length = 54
+     [0x01]                              # HEADERS frame
+     [0x05]                              # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x01]               # stream_id = 1
+     [0x83]                              # :method: POST
+     [0x86]                              # :scheme: http
+     [0x04] [0x22]                       # :path: /valid/1234567890123/1234567890123
+     "/valid/1234567890123/1234567890123"
+     [0x01] [0x0E] "localhost:8080"      # :authority: localhost:8080
+
+read [0x00 0x00 0x00]                    # length = 0
+     [0x04]                              # HTTP2 SETTINGS frame
+     [0x01]                              # ACK
+     [0x00 0x00 0x00 0x00]               # stream_id = 0
+
+write [0x00 0x00 0x00]                   # length = 0
+      [0x04]                             # HTTP2 SETTINGS frame
+      [0x01]                             # ACK
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+
+write [0x00 0x00 0x05]                   # length = 5
+      [0x01]                             # HTTP2 HEADERS frame
+      [0x04]                             # END_HEADERS
+      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      [0x88]                             # :status: 200
+      [0x0f 0x0d] [0x01] "9"             # content-length
+
+write [0x00 0x00 0x09]                   # length = 9
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x01]              # stream_id = 1
+      "response1"
+
+
+# Request 2 - valid path params, query param
+read [0x00 0x00 0x49]                    # length = 73
+     [0x01]                              # HEADERS frame
+     [0x05]                              # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x03]               # stream_id = 3
+     [0x83]                              # :method: POST
+     [0x86]                              # :scheme: http
+     [0x04] [0x35]                       # :path: /valid/1234567890123/1234567890123?page=1234567890123
+     "/valid/1234567890123/1234567890123?page=1234567890123"
+     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
+
+write [0x00 0x00 0x05]                   # length = 5
+      [0x01]                             # HTTP2 HEADERS frame
+      [0x04]                             # END_HEADERS
+      [0x00 0x00 0x00 0x03]              # stream_id = 3
+      [0x88]                             # :status: 200
+      [0x0f 0x0d] [0x01] "9"             # content-length
+
+write [0x00 0x00 0x09]                   # length = 9
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x03]              # stream_id = 3
+      "response2"
+
+
+# Request 3 - valid path params, url encoded query param
+read [0x00 0x00 0x51]                    # length = 81
+     [0x01]                              # HEADERS frame
+     [0x05]                              # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x05]               # stream_id = 5
+     [0x83]                              # :method: POST
+     [0x86]                              # :scheme: http
+     [0x04] [0x3d]                       # :path: /valid/1234567890123/1234567890123?%70%61%67%65=1234567890123
+     "/valid/1234567890123/1234567890123?%70%61%67%65=1234567890123"
+     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
+
+write [0x00 0x00 0x05]                   # length = 5
+      [0x01]                             # HTTP2 HEADERS frame
+      [0x04]                             # END_HEADERS
+      [0x00 0x00 0x00 0x05]              # stream_id = 5
+      [0x88]                             # :status: 200
+      [0x0f 0x0d] [0x01] "9"             # content-length
+
+write [0x00 0x00 0x09]                   # length = 9
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x05]              # stream_id = 5
+      "response3"
+
+
+# Request 4 - valid path params, query param, header field
+read [0x00 0x00 0x5d]                    # length = 93
+     [0x01]                              # HEADERS frame
+     [0x05]                              # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x07]               # stream_id = 7
+     [0x83]                              # :method: POST
+     [0x86]                              # :scheme: http
+     [0x04] [0x35]                       # :path: /valid/1234567890123/1234567890123?page=1234567890123
+     "/valid/1234567890123/1234567890123?page=1234567890123"
+     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
+     [0x40] [0x04] "code"
+            [0x0d] "1234567890123"       # code: 1234567890123
+
+write [0x00 0x00 0x05]                   # length = 5
+      [0x01]                             # HTTP2 HEADERS frame
+      [0x04]                             # END_HEADERS
+      [0x00 0x00 0x00 0x07]              # stream_id = 7
+      [0x88]                             # :status: 200
+      [0x0f 0x0d] [0x01] "9"             # content-length
+
+write [0x00 0x00 0x09]                   # length = 9
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x07]              # stream_id = 7
+      "response4"
+
+
+# Request 5 - valid path params, query param, header field, content
+read [0x00 0x00 0x7d]                    # length = 125
+     [0x01]                              # HEADERS frame
+     [0x04]                              # END_HEADERS
+     [0x00 0x00 0x00 0x09]               # stream_id = 9
+     [0x83]                              # :method: POST
+     [0x86]                              # :scheme: http
+     [0x04] [0x35]                       # :path: /valid/1234567890123/1234567890123?page=1234567890123
+     "/valid/1234567890123/1234567890123?page=1234567890123"
+     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
+     [0x40] [0x04] "code"
+            [0x0d] "1234567890123"       # code: 1234567890123
+     [0x0f] [0x10]                       # content-type
+            [0x18] "text/plain;charset=UTF-8"
+     [0x0f 0x0d] [0x02] "13"             # content-length
+
+write [0x00 0x00 0x04]                   # length
+      [0x08]                             # WINDOW_UPDATE frame
+      [0x00]                             # no flags
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+      [0x00 0x00 0x20 0x00]              # window size increment = 8192
+
+write [0x00 0x00 0x04]                   # length
+      [0x08]                             # WINDOW_UPDATE frame
+      [0x00]                             # no flags
+      [0x00 0x00 0x00 0x09]              # stream_id = 9
+      [0x00 0x00 0x20 0x00]              # window size increment = 8192
+
+read [0x00 0x00 0x0d]                    # length = 13
+     [0x00]                              # HTTP2 DATA frame
+     [0x01]                              # END_STREAM
+     [0x00 0x00 0x00 0x09]               # stream_id = 9
+     "1234567890123"
+
+write [0x00 0x00 0x05]                   # length = 5
+      [0x01]                             # HTTP2 HEADERS frame
+      [0x04]                             # END_HEADERS
+      [0x00 0x00 0x00 0x09]              # stream_id = 9
+      [0x88]                             # :status: 200
+      [0x0f 0x0d] [0x01] "9"             # content-length
+
+write [0x00 0x00 0x09]                   # length = 9
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x09]              # stream_id = 9
+      "response5"
