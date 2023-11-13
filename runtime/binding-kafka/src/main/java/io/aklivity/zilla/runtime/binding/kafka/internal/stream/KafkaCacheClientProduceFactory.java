@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -82,6 +81,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
@@ -251,10 +252,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
-                final KafkaTopicType type = binding.resolveWriteValidator(topicName);
+                final ValueValidator validateKey = binding.resolveValueWriter(topicName);
+                final FragmentValidator validateValue = binding.resolveFragmentWriter(topicName);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName, type);
+                            partition, cacheRoute, topicName, validateKey, validateValue);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -496,7 +498,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCacheClientBudget budget;
         private KafkaCacheRoute cacheRoute;
         private String topicName;
-        private KafkaTopicType type;
+        private ValueValidator validateKey;
+        private FragmentValidator validateValue;
 
         private int state;
 
@@ -526,7 +529,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
             String topicName,
-            KafkaTopicType type)
+            ValueValidator validateKey,
+            FragmentValidator validateValue)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -536,7 +540,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.budget = budget;
             this.cacheRoute = cacheRoute;
             this.topicName = topicName;
-            this.type = type;
+            this.validateKey = validateKey;
+            this.validateValue = validateValue;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
             this.cursor = cursorFactory.newCursor(
@@ -696,9 +701,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                     final long keyHash = partition.computeKeyHash(key);
-                    if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark,
+                    if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
                         stream.position, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
-                        headers, trailersSizeMax, type.key) == -1)
+                        headers, trailersSizeMax, validateKey) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
                         break init;
@@ -714,7 +719,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                if (partition.writeProduceEntryContinue(stream.segment, stream.position, valueFragment, type.value) == -1)
+                if (partition.writeProduceEntryContinue(
+                    flags, stream.segment, stream.valueMark, stream.position, valueFragment, validateValue) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -1145,6 +1151,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     {
         private final KafkaCacheCursor cursor;
         private final MutableInteger entryMark;
+        private final MutableInteger valueMark;
         private final MutableInteger position;
         private final KafkaCacheClientProduceFan fan;
         private final MessageConsumer sender;
@@ -1185,6 +1192,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
                         KafkaDeltaType.NONE);
             this.entryMark = new MutableInteger(0);
+            this.valueMark = new MutableInteger(0);
             this.position = new MutableInteger(0);
             this.fan = fan;
             this.sender = sender;

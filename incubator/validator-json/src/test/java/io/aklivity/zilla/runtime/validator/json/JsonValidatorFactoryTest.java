@@ -46,7 +46,7 @@ public class JsonValidatorFactoryTest
         ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(JsonReadValueValidator.class));
+        assertThat(reader, instanceOf(JsonReadValidator.class));
     }
 
     @Test
@@ -65,6 +65,6 @@ public class JsonValidatorFactoryTest
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(JsonWriteValueValidator.class));
+        assertThat(writer, instanceOf(JsonWriteValidator.class));
     }
 }

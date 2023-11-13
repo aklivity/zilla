@@ -19,6 +19,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -28,12 +29,17 @@ import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public class AvroReadValueValidator extends AvroValueValidator
+public class AvroReadValidator extends AvroValidator implements ValueValidator, FragmentValidator
 {
-    public AvroReadValueValidator(
+    private final DirectBuffer valueRO = new UnsafeBuffer();
+
+    public AvroReadValidator(
         AvroValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -47,10 +53,32 @@ public class AvroReadValueValidator extends AvroValueValidator
         int length,
         ValueConsumer next)
     {
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
         int valLength = -1;
 
         byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
+        data.getBytes(index, payloadBytes);
 
         int schemaId;
         int progress = 0;
@@ -81,7 +109,7 @@ public class AvroReadValueValidator extends AvroValueValidator
             }
             if (valLength != -1)
             {
-                next.accept(valueRO, index, valLength);
+                next.accept(valueRO, 0, valLength);
             }
         }
         return valLength;
@@ -98,7 +126,7 @@ public class AvroReadValueValidator extends AvroValueValidator
         {
             reader = new GenericDatumReader(schema);
             GenericRecord record = (GenericRecord) reader.read(null,
-                    decoder.binaryDecoder(bytes, offset, length, null));
+                decoder.binaryDecoder(bytes, offset, length, null));
             JsonEncoder jsonEncoder = encoder.jsonEncoder(record.getSchema(), outputStream);
             writer = record instanceof SpecificRecord ?
                 new SpecificDatumWriter<>(record.getSchema()) :

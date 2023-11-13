@@ -42,7 +42,7 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonReadValueValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
+        return createReader(config, supplyCatalog);
     }
 
     @Override
@@ -50,7 +50,7 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonWriteValueValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
+        return createWriter(config, supplyCatalog);
     }
 
     @Override
@@ -58,7 +58,7 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return createReader(config, supplyCatalog);
     }
 
     @Override
@@ -66,6 +66,20 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return createWriter(config, supplyCatalog);
+    }
+
+    private JsonReadValidator createReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new JsonReadValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
+    }
+
+    private JsonWriteValidator createWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new JsonWriteValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
     }
 }

@@ -28,14 +28,11 @@ import org.apache.avro.io.EncoderFactory;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public abstract class AvroValueValidator implements ValueValidator
+public abstract class AvroValidator
 {
     protected static final byte MAGIC_BYTE = 0x0;
-
-    protected final DirectBuffer valueRO = new UnsafeBuffer();
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -46,7 +43,7 @@ public abstract class AvroValueValidator implements ValueValidator
     protected DatumReader reader;
     protected DatumWriter writer;
 
-    public AvroValueValidator(
+    public AvroValidator(
         AvroValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -57,11 +54,11 @@ public abstract class AvroValueValidator implements ValueValidator
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.format = config.format;
         this.subject = catalog != null &&
-            catalog.subject != null ?
-            catalog.subject : config.subject;
+                catalog.subject != null ?
+                catalog.subject : config.subject;
     }
 
-    Schema fetchSchema(
+    protected Schema fetchSchema(
         int schemaId)
     {
         String schema = null;
@@ -80,7 +77,7 @@ public abstract class AvroValueValidator implements ValueValidator
         return schema != null ? new Schema.Parser().parse(schema) : null;
     }
 
-    boolean validate(
+    protected boolean validate(
         Schema schema,
         byte[] bytes,
         int offset,

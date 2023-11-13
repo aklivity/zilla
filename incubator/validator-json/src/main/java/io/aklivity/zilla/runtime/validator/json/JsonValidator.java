@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.function.LongFunction;
@@ -24,7 +23,7 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -33,14 +32,11 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
-public abstract class JsonValueValidator implements ValueValidator
+public abstract class JsonValidator
 {
     protected static final byte MAGIC_BYTE = 0x0;
-
-    protected final DirectBuffer valueRO = new UnsafeBuffer();
 
     protected final JsonProvider schemaProvider;
     protected final JsonValidationService service;
@@ -49,7 +45,7 @@ public abstract class JsonValueValidator implements ValueValidator
     protected final CatalogHandler handler;
     protected final String subject;
 
-    public JsonValueValidator(
+    public JsonValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -60,11 +56,11 @@ public abstract class JsonValueValidator implements ValueValidator
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.handler = supplyCatalog.apply(cataloged.id);
         this.subject = catalog != null && catalog.subject != null
-            ? catalog.subject
-            : config.subject;
+                ? catalog.subject
+                : config.subject;
     }
 
-    String fetchSchema(
+    protected String fetchSchema(
         int schemaId)
     {
         String schema = null;
@@ -84,10 +80,10 @@ public abstract class JsonValueValidator implements ValueValidator
         return schema;
     }
 
-    boolean validate(
+    protected boolean validate(
         String schema,
-        byte[] bytes,
-        int offset,
+        DirectBuffer buffer,
+        int index,
         int length)
     {
         boolean status = false;
@@ -97,7 +93,7 @@ public abstract class JsonValueValidator implements ValueValidator
             JsonSchemaReader reader = service.createSchemaReader(schemaParser);
             JsonSchema jsonSchema = reader.read();
             JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
-            InputStream input = new ByteArrayInputStream(bytes, offset, length);
+            InputStream input = new DirectBufferInputStream(buffer, index, length);
             provider.createReader(input).readObject();
             status = true;
         }

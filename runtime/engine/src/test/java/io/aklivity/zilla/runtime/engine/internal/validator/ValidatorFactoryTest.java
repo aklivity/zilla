@@ -25,9 +25,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.TestReadValueValidator;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.TestWriteValueValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestReadValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestWriteValidator;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
@@ -43,15 +44,15 @@ public class ValidatorFactoryTest
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        ValueValidator reader = factory.createReadValidator(testValidator, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(testValidator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(TestReadValueValidator.class));
+        assertThat(reader, instanceOf(TestReadValidator.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreateWriteValidator()
+    public void shouldCreateValueWriter()
     {
         // GIVEN
         ValidatorConfig testValidator = new TestValidatorConfig();
@@ -59,9 +60,41 @@ public class ValidatorFactoryTest
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        ValueValidator writer = factory.createWriteValidator(testValidator, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(testValidator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(TestWriteValueValidator.class));
+        assertThat(writer, instanceOf(TestWriteValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentReader()
+    {
+        // GIVEN
+        ValidatorConfig testValidator = new TestValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        ValidatorFactory factory = ValidatorFactory.instantiate();
+
+        // WHEN
+        FragmentValidator reader = factory.createFragmentReader(testValidator, supplyCatalog);
+
+        // THEN
+        assertThat(reader, instanceOf(TestReadValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentWriter()
+    {
+        // GIVEN
+        ValidatorConfig testValidator = new TestValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        ValidatorFactory factory = ValidatorFactory.instantiate();
+
+        // WHEN
+        FragmentValidator writer = factory.createFragmentWriter(testValidator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(TestWriteValidator.class));
     }
 }

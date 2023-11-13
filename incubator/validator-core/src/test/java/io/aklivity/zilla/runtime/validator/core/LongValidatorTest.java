@@ -23,10 +23,10 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
-public class LongValueValidatorTest
+public class LongValidatorTest
 {
     private final LongValidatorConfig config = new LongValidatorConfig();
-    private final LongValueValidator validator = new LongValueValidator(config);
+    private final LongValidator validator = new LongValidator(config);
 
     @Test
     public void shouldVerifyValidLong()

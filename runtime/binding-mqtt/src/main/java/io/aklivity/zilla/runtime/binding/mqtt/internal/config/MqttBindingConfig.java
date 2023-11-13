@@ -65,7 +65,7 @@ public final class MqttBindingConfig
             options.topics != null
             ? options.topics.stream()
             .collect(Collectors.toMap(t -> t.name,
-                t -> context.createWriteValidator(t.content))) : null;
+                t -> context.createValueWriter(t.content))) : null;
 
         this.guard = resolveGuard(context);
     }

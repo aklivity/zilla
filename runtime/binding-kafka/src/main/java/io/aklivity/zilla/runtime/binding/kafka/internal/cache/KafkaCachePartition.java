@@ -52,7 +52,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -65,7 +64,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class KafkaCachePartition
@@ -80,6 +81,7 @@ public final class KafkaCachePartition
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
     private static final String FORMAT_PRODUCE_PARTITION_DIRECTORY = "%s-%d-%d";
 
+    private static final int FLAGS_COMPLETE = 0x03;
     public static final int CACHE_ENTRY_FLAGS_DIRTY = 0x01;
     public static final int CACHE_ENTRY_FLAGS_COMPLETED = 0x02;
     public static final int CACHE_ENTRY_FLAGS_ABORTED = 0x04;
@@ -326,12 +328,13 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        KafkaTopicType type)
+        ValueValidator validateKey,
+        FragmentValidator validateValue)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType, type.key);
-        writeEntryContinue(value, type.value);
+        writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey);
+        writeEntryContinue(FLAGS_COMPLETE, value, validateValue);
         writeEntryFinish(headers, deltaType);
     }
 
@@ -425,8 +428,9 @@ public final class KafkaCachePartition
     }
 
     public void writeEntryContinue(
+        int flags,
         OctetsFW payload,
-        ValueValidator validateValue)
+        FragmentValidator validateValue)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -442,12 +446,15 @@ public final class KafkaCachePartition
 
         if (payload != null)
         {
-            final ValueConsumer writeValue = logFile::appendBytes;
-            int validated = validateValue.validate(payload.buffer(), payload.offset(), payload.sizeof(), writeValue);
+            final FragmentConsumer writeFragment = (flag, buffer, index, length) ->
+            {
+                logFile.appendBytes(buffer, index, length);
+            };
+            int validated = validateValue.validate(flags, payload.buffer(), payload.offset(), payload.sizeof(), writeFragment);
             if (validated == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
-                writeValue.accept(payload.buffer(), payload.offset(), payload.sizeof());
+                writeFragment.accept(flags, payload.buffer(), payload.offset(), payload.sizeof());
                 // TODO: Placeholder to log fetch validation failure
             }
         }
@@ -538,6 +545,7 @@ public final class KafkaCachePartition
         long offset,
         Node head,
         MutableInteger entryMark,
+        MutableInteger valueMark,
         MutableInteger position,
         long timestamp,
         long ownerId,
@@ -598,6 +606,7 @@ public final class KafkaCachePartition
             }
             logFile.appendInt(valueLength);
 
+            valueMark.value = logFile.capacity();
             position.value = logFile.capacity();
 
             final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
@@ -621,10 +630,12 @@ public final class KafkaCachePartition
     }
 
     public int writeProduceEntryContinue(
+        int flags,
         Node head,
+        MutableInteger valueMark,
         MutableInteger position,
         OctetsFW payload,
-        ValueValidator validateValue)
+        FragmentValidator validateValue)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -637,12 +648,21 @@ public final class KafkaCachePartition
 
         if (payload != null)
         {
-            final ValueConsumer writeValue = (buffer, index, length) ->
+            final FragmentConsumer writeFragment = (flag, buffer, index, length) ->
             {
                 logFile.writeBytes(position.value, buffer, index, length);
                 position.value += length;
             };
-            validated = validateValue.validate(payload.buffer(), payload.offset(), payloadLength, writeValue);
+            writeFragment.accept(flags, payload.buffer(), payload.offset(), payloadLength);
+
+            final FragmentConsumer flushFragment = (flag, buffer, index, length) ->
+            {
+                logFile.writeBytes(valueMark.value, buffer, index, length);
+                valueMark.value += length;
+                position.value = valueMark.value;
+            };
+            int valueLength = position.value - valueMark.value;
+            validated = validateValue.validate(flags, logFile.buffer(), valueMark.value, valueLength, flushFragment);
         }
         return validated;
     }

@@ -22,12 +22,17 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
-public class JsonWriteValueValidator extends JsonValueValidator
+public class JsonWriteValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
-    public JsonWriteValueValidator(
+    private final MutableDirectBuffer prefixRO = new UnsafeBuffer(new byte[5]);
+
+    public JsonWriteValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -41,25 +46,43 @@ public class JsonWriteValueValidator extends JsonValueValidator
         int length,
         ValueConsumer next)
     {
-        MutableDirectBuffer value;
-        int valLength = -1;
+        return validateComplete(data, index, length, next);
+    }
 
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return (flags & FLAGS_FIN) != 0x00
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    public int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
 
         int schemaId = catalog != null && catalog.id > 0
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
         String schema = fetchSchema(schemaId);
 
-        if (schema != null && validate(schema, payloadBytes, 0, length))
+        if (schema != null && validate(schema, data, index, length))
         {
             valLength = length + 5;
-            value = new UnsafeBuffer(new byte[valLength]);
-            value.putByte(0, MAGIC_BYTE);
-            value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-            value.putBytes(5, payloadBytes);
-            next.accept(value, index, valLength);
+            prefixRO.putByte(0, MAGIC_BYTE);
+            prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+
+            next.accept(prefixRO, 0, 5);
+            next.accept(data, index, length);
         }
         return valLength;
     }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
+import static io.aklivity.zilla.runtime.engine.validator.FragmentValidator.FLAGS_COMPLETE;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
@@ -22,18 +23,21 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
-public class StringValueValidatorTest
+public class StringValidatorTest
 {
+    private static final int FLAGS_INIT = 0x02;
+
     @Test
     public void shouldVerifyValidUTF8()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -48,7 +52,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -63,7 +67,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -79,7 +83,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -94,7 +98,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -109,7 +113,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -124,7 +128,7 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -139,12 +143,40 @@ public class StringValueValidatorTest
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringValueValidator validator = new StringValueValidator(config);
+        StringValidator validator = new StringValidator(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 65, 66, 67};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyCompleteAndValidMessage()
+    {
+        StringValidatorConfig config = StringValidatorConfig.builder()
+                .encoding("utf_8")
+                .build();
+        StringValidator validator = new StringValidator(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Valid String".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity(), validator.validate(FLAGS_COMPLETE, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyIncompleteMessage()
+    {
+        StringValidatorConfig config = new StringValidatorConfig("utf_8");
+        StringValidator validator = new StringValidator(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {(byte) 0xc0};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(0, validator.validate(FLAGS_INIT, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 }

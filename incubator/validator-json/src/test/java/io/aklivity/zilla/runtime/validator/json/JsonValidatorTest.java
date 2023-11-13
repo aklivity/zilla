@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
-public class JsonValueValidatorTest
+public class JsonValidatorTest
 {
     private static final String SCHEMA =
                 "{" +
@@ -86,7 +86,7 @@ public class JsonValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValueValidator validator = new JsonReadValueValidator(config, handler);
+        JsonReadValidator validator = new JsonReadValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -105,7 +105,7 @@ public class JsonValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValueValidator validator = new JsonReadValueValidator(config, handler);
+        JsonReadValidator validator = new JsonReadValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -129,7 +129,7 @@ public class JsonValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValueValidator validator = new JsonWriteValueValidator(config, handler);
+        JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 

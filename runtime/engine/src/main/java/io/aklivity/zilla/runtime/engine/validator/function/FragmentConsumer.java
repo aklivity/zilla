@@ -20,6 +20,8 @@ import org.agrona.DirectBuffer;
 @FunctionalInterface
 public interface FragmentConsumer
 {
+    FragmentConsumer NOP = (flags, buffer, index, length) -> {};
+
     void accept(
         int flags,
         DirectBuffer buffer,

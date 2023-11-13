@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
-public class ValueValidatorConfigAdapterTest
+public class ValidatorConfigAdapterTest
 {
     private Jsonb jsonb;
 

@@ -43,7 +43,7 @@ public class StringValidatorFactoryTest
         ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(StringValueValidator.class));
+        assertThat(reader, instanceOf(StringValidator.class));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class StringValidatorFactoryTest
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(StringValueValidator.class));
+        assertThat(writer, instanceOf(StringValidator.class));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class StringValidatorFactoryTest
         FragmentValidator reader = factory.createFragmentReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(StringFragmentValidator.class));
+        assertThat(reader, instanceOf(StringValidator.class));
     }
 
     @Test
@@ -91,6 +91,6 @@ public class StringValidatorFactoryTest
         FragmentValidator writer = factory.createFragmentWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(StringFragmentValidator.class));
+        assertThat(writer, instanceOf(StringValidator.class));
     }
 }

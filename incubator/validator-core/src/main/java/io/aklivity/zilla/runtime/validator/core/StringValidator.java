@@ -14,117 +14,68 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import java.util.HashMap;
-import java.util.Map;
+import static io.aklivity.zilla.runtime.validator.core.StringEncoding.ENCODING_VALIDATORS;
+import static io.aklivity.zilla.runtime.validator.core.StringEncoding.INVALID_ENCODING;
+
 import java.util.function.Predicate;
 
-public enum StringValidator
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
+
+public class StringValidator implements ValueValidator, FragmentValidator
 {
-    UTF_8
+    private Predicate<byte[]> predicate;
+
+    public StringValidator(
+        StringValidatorConfig config)
     {
-        public boolean validate(
-            byte[] byteArray)
+        this.predicate = ENCODING_VALIDATORS.getOrDefault(config.encoding, INVALID_ENCODING);
+    }
+
+    @Override
+    public int validate(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(index, payloadBytes);
+
+        if (predicate.test(payloadBytes))
         {
-            int i = 0;
-            while (i < byteArray.length)
-            {
-                int numBytes;
-                if ((byteArray[i] & 0b10000000) == 0b00000000)
-                {
-                    numBytes = 1;
-                }
-                else if ((byteArray[i] & 0b11100000) == 0b11000000)
-                {
-                    numBytes = 2;
-                }
-                else if ((byteArray[i] & 0b11110000) == 0b11100000)
-                {
-                    numBytes = 3;
-                }
-                else if ((byteArray[i] & 0b11111000) == 0b11110000)
-                {
-                    numBytes = 4;
-                }
-                else
-                {
-                    return false;
-                }
-
-                for (int j = 1; j < numBytes; j++)
-                {
-                    if (i + j >= byteArray.length)
-                    {
-                        return false;
-                    }
-                    if ((byteArray[i + j] & 0b11000000) != 0b10000000)
-                    {
-                        return false;
-                    }
-                }
-                i += numBytes;
-            }
-            return true;
+            next.accept(data, index, length);
+            valLength = length;
         }
-    },
-    UTF_16
-    {
-        public boolean validate(
-            byte[] byteArray)
-        {
-            int i = 0;
-            boolean status = false;
 
-            while (i < byteArray.length)
-            {
-                if (i + 1 >= byteArray.length)
-                {
-                    status = false;
-                    break;
-                }
-
-                int highByte = byteArray[i] & 0xFF;
-                int lowByte = byteArray[i + 1] & 0xFF;
-                int codeUnit = (highByte << 8) | lowByte;
-
-                if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
-                {
-                    if (i + 3 >= byteArray.length)
-                    {
-                        status = false;
-                        break;
-                    }
-                    int secondHighByte = byteArray[i + 2] & 0xFF;
-                    int secondLowByte = byteArray[i + 3] & 0xFF;
-                    int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
-                    if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
-                    {
-                        status = false;
-                        break;
-                    }
-                    i += 4;
-                }
-                else if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF)
-                {
-                    status = false;
-                    break;
-                }
-                else
-                {
-                    i += 2;
-                }
-                status = true;
-            }
-            return status;
-        }
-    };
-
-    public abstract boolean validate(byte[] byteArray);
-
-    static final Predicate<byte[]> INVALID_ENCODING = b -> false;
-    static final Map<String, Predicate<byte[]>> ENCODING_VALIDATORS = new HashMap<>();
-    static
-    {
-        ENCODING_VALIDATORS.put("utf_8", UTF_8::validate);
-        ENCODING_VALIDATORS.put("utf_16", UTF_16::validate);
+        return valLength;
     }
 }

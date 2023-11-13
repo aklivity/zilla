@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteOrder;
 import java.util.function.LongFunction;
@@ -22,6 +21,7 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.io.DirectBufferInputStream;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
@@ -30,12 +30,17 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public class AvroWriteValueValidator extends AvroValueValidator
+public class AvroWriteValidator extends AvroValidator implements ValueValidator, FragmentValidator
 {
-    public AvroWriteValueValidator(
+    private final MutableDirectBuffer prefixRO = new UnsafeBuffer(new byte[5]);
+
+    public AvroWriteValidator(
         AvroValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -49,11 +54,32 @@ public class AvroWriteValueValidator extends AvroValueValidator
         int length,
         ValueConsumer next)
     {
-        MutableDirectBuffer value = null;
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
         int valLength = -1;
 
         byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
+        data.getBytes(index, payloadBytes);
 
         int schemaId = catalog != null && catalog.id > 0
                 ? catalog.id
@@ -64,24 +90,27 @@ public class AvroWriteValueValidator extends AvroValueValidator
         {
             if ("json".equals(format))
             {
-                byte[] record = serializeJsonRecord(schema, payloadBytes);
-                value = new UnsafeBuffer(new byte[record.length + 5]);
-                value.putByte(0, MAGIC_BYTE);
-                value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-                value.putBytes(5, record);
+                byte[] record = serializeJsonRecord(schema, data, index, length);
+
+                int recordLength = record.length;
                 valLength = record.length + 5;
+
+                prefixRO.putByte(0, MAGIC_BYTE);
+                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+                next.accept(prefixRO, 0, 5);
+
+                MutableDirectBuffer valueRO = new UnsafeBuffer(new byte[recordLength]);
+                valueRO.putBytes(0, record);
+                next.accept(valueRO, 0, recordLength);
             }
             else if (validate(schema, payloadBytes, 0, length))
             {
-                value = new UnsafeBuffer(new byte[payloadBytes.length + 5]);
-                value.putByte(0, MAGIC_BYTE);
-                value.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-                value.putBytes(5, payloadBytes);
                 valLength = length + 5;
-            }
-            if (valLength != -1)
-            {
-                next.accept(value, index, valLength);
+                prefixRO.putByte(0, MAGIC_BYTE);
+                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+
+                next.accept(prefixRO, 0, 5);
+                next.accept(data, index, length);
             }
         }
         return valLength;
@@ -89,7 +118,9 @@ public class AvroWriteValueValidator extends AvroValueValidator
 
     private byte[] serializeJsonRecord(
         Schema schema,
-        byte[] bytes)
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try
@@ -97,7 +128,7 @@ public class AvroWriteValueValidator extends AvroValueValidator
             reader = new GenericDatumReader(schema);
             GenericRecord genericRecord = new GenericData.Record(schema);
             GenericRecord record = (GenericRecord) reader.read(genericRecord,
-                    decoder.jsonDecoder(schema, new ByteArrayInputStream(bytes)));
+                    decoder.jsonDecoder(schema, new DirectBufferInputStream(buffer, index, length)));
             writer = new GenericDatumWriter<>(schema);
             BinaryEncoder binaryEncoder = encoder.binaryEncoder(outputStream, null);
             writer.write(record, binaryEncoder);

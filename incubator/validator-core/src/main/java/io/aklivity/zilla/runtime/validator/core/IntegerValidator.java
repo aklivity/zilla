@@ -14,25 +14,29 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import static io.aklivity.zilla.runtime.validator.core.StringValidator.ENCODING_VALIDATORS;
-import static io.aklivity.zilla.runtime.validator.core.StringValidator.INVALID_ENCODING;
-
-import java.util.function.Predicate;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
-import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
-public class StringFragmentValidator implements FragmentValidator
+public class IntegerValidator implements ValueValidator, FragmentValidator
 {
-    private Predicate<byte[]> predicate;
-
-    public StringFragmentValidator(
-        StringValidatorConfig config)
+    public IntegerValidator(
+        IntegerValidatorConfig config)
     {
-        this.predicate = ENCODING_VALIDATORS.getOrDefault(config.encoding, INVALID_ENCODING);
+    }
+
+    @Override
+    public int validate(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return validateComplete(data, index, length, next);
     }
 
     @Override
@@ -43,19 +47,24 @@ public class StringFragmentValidator implements FragmentValidator
         int length,
         FragmentConsumer next)
     {
-        int valLength = 0;
-        if ((flags & FLAGS_FIN) != 0x00)
-        {
-            valLength = -1;
-            byte[] payloadBytes = new byte[length];
-            data.getBytes(0, payloadBytes);
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
 
-            if (predicate.test(payloadBytes))
-            {
-                next.accept(flags, data, index, length);
-                valLength = length;
-            }
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        boolean valid = length == 4;
+
+        if (valid)
+        {
+            next.accept(data, index, length);
         }
-        return valLength;
+
+        return valid ? length : -1;
     }
 }

@@ -43,7 +43,7 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new StringValueValidator(StringValidatorConfig.class.cast(config));
+        return new StringValidator(StringValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new StringValueValidator(StringValidatorConfig.class.cast(config));
+        return new StringValidator(StringValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -59,7 +59,7 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new StringFragmentValidator(StringValidatorConfig.class.cast(config));
+        return new StringValidator(StringValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -67,6 +67,6 @@ public final class StringValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new StringFragmentValidator(StringValidatorConfig.class.cast(config));
+        return new StringValidator(StringValidatorConfig.class.cast(config));
     }
 }

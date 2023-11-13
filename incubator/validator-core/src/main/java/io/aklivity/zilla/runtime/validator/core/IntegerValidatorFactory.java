@@ -43,7 +43,7 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new IntegerValueValidator(IntegerValidatorConfig.class.cast(config));
+        return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new IntegerValueValidator(IntegerValidatorConfig.class.cast(config));
+        return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -67,6 +67,6 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
     }
 }

@@ -42,7 +42,7 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroReadValueValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
+        return createReader(config, supplyCatalog);
     }
 
     @Override
@@ -50,7 +50,7 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroWriteValueValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
+        return createWriter(config, supplyCatalog);
     }
 
     @Override
@@ -58,7 +58,7 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return createReader(config, supplyCatalog);
     }
 
     @Override
@@ -66,6 +66,20 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return createWriter(config, supplyCatalog);
+    }
+
+    private AvroReadValidator createReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new AvroReadValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
+    }
+
+    private AvroWriteValidator createWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new AvroWriteValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
     }
 }

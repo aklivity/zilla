@@ -43,7 +43,7 @@ public class LongValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new LongValueValidator(LongValidatorConfig.class.cast(config));
+        return new LongValidator(LongValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class LongValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new LongValueValidator(LongValidatorConfig.class.cast(config));
+        return new LongValidator(LongValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class LongValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new LongValidator(LongValidatorConfig.class.cast(config));
     }
 
     @Override
@@ -67,6 +67,6 @@ public class LongValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return null;
+        return new LongValidator(LongValidatorConfig.class.cast(config));
     }
 }

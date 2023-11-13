@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public class AvroValueValidatorTest
+public class AvroValidatorTest
 {
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
             "{\"name\":\"status\",\"type\":\"string\"}]," +
@@ -70,7 +70,7 @@ public class AvroValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValueValidator validator = new AvroReadValueValidator(avroConfig, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -85,7 +85,7 @@ public class AvroValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValueValidator validator = new AvroWriteValueValidator(avroConfig, handler);
+        AvroWriteValidator validator = new AvroWriteValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -105,7 +105,7 @@ public class AvroValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValueValidator validator = new AvroReadValueValidator(avroConfig, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -119,7 +119,7 @@ public class AvroValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValueValidator validator = new AvroReadValueValidator(avroConfig, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -133,7 +133,7 @@ public class AvroValueValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValueValidator validator = new AvroReadValueValidator(avroConfig, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -158,7 +158,7 @@ public class AvroValueValidatorTest
                         .build()
                     .build()
                 .build();
-        AvroValueValidator validator = new AvroReadValueValidator(config, handler);
+        AvroReadValidator validator = new AvroReadValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -195,7 +195,7 @@ public class AvroValueValidatorTest
                         .build()
                     .build()
                 .build();
-        AvroValueValidator validator = new AvroWriteValueValidator(config, handler);
+        AvroWriteValidator validator = new AvroWriteValidator(config, handler);
 
         DirectBuffer expected = new UnsafeBuffer();
 

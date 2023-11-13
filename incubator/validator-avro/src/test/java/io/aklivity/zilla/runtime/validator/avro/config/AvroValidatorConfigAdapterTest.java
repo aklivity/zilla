@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.validator.json.config;
+package io.aklivity.zilla.runtime.validator.avro.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class JsonValueValidatorConfigAdapterTest
+public class AvroValidatorConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -34,27 +34,28 @@ public class JsonValueValidatorConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new JsonValidatorConfigAdapter());
+            .withAdapters(new AvroValidatorConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadJsonValidator()
+    public void shouldReadAvroValidator()
     {
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"json\"," +
+                "\"format\":\"json\"," +
+                "\"type\": \"avro\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
                     "[" +
                         "{" +
-                            "\"subject\": \"subject1\"," +
+                            "\"strategy\": \"topic\"," +
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
-                            "\"strategy\": \"topic\"," +
+                            "\"subject\": \"cat\"," +
                             "\"version\": \"latest\"" +
                         "}," +
                         "{" +
@@ -65,17 +66,19 @@ public class JsonValueValidatorConfigAdapterTest
             "}";
 
         // WHEN
-        JsonValidatorConfig validator = jsonb.fromJson(json, JsonValidatorConfig.class);
+        AvroValidatorConfig validator = jsonb.fromJson(json, AvroValidatorConfig.class);
 
         // THEN
         assertThat(validator, not(nullValue()));
-        assertThat(validator.type, equalTo("json"));
+        assertThat(validator.format, equalTo("json"));
+        assertThat(validator.type, equalTo("avro"));
         assertThat(validator.cataloged.size(), equalTo(1));
         assertThat(validator.cataloged.get(0).name, equalTo("test0"));
-        assertThat(validator.cataloged.get(0).schemas.get(0).subject, equalTo("subject1"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
         assertThat(validator.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
         assertThat(validator.cataloged.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(validator.cataloged.get(0).schemas.get(1).strategy, equalTo("topic"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).strategy, nullValue());
         assertThat(validator.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
         assertThat(validator.cataloged.get(0).schemas.get(1).id, equalTo(0));
         assertThat(validator.cataloged.get(0).schemas.get(2).strategy, nullValue());
@@ -84,22 +87,23 @@ public class JsonValueValidatorConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteJsonValidator()
+    public void shouldWriteAvroValidator()
     {
         // GIVEN
         String expectedJson =
             "{" +
-                "\"type\":\"json\"," +
+                "\"format\":\"json\"," +
+                "\"type\":\"avro\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
                     "[" +
                         "{" +
-                            "\"subject\":\"subject1\"," +
+                            "\"strategy\":\"topic\"," +
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
-                            "\"strategy\":\"topic\"," +
+                            "\"subject\":\"cat\"," +
                             "\"version\":\"latest\"" +
                         "}," +
                         "{" +
@@ -108,15 +112,16 @@ public class JsonValueValidatorConfigAdapterTest
                     "]" +
                 "}" +
             "}";
-        JsonValidatorConfig validator = JsonValidatorConfig.builder()
+        AvroValidatorConfig validator = AvroValidatorConfig.builder()
+            .format("json")
             .catalog()
                 .name("test0")
                     .schema()
-                        .subject("subject1")
+                        .strategy("topic")
                         .version("latest")
                         .build()
                     .schema()
-                        .strategy("topic")
+                        .subject("cat")
                         .version("latest")
                         .build()
                     .schema()

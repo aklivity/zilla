@@ -16,19 +16,43 @@ package io.aklivity.zilla.runtime.validator.core;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
-public class LongValueValidator implements ValueValidator
+public class LongValidator implements ValueValidator, FragmentValidator
 {
-    public LongValueValidator(
+    public LongValidator(
         LongValidatorConfig config)
     {
     }
 
     @Override
     public int validate(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    private int validateComplete(
         DirectBuffer data,
         int index,
         int length,

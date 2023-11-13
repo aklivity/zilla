@@ -51,7 +51,7 @@ public class AvroValidatorFactoryTest
         ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(AvroReadValueValidator.class));
+        assertThat(reader, instanceOf(AvroReadValidator.class));
     }
 
     @Test
@@ -75,6 +75,6 @@ public class AvroValidatorFactoryTest
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(AvroWriteValueValidator.class));
+        assertThat(writer, instanceOf(AvroWriteValidator.class));
     }
 }

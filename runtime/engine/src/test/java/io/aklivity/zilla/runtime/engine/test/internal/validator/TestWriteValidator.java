@@ -16,12 +16,17 @@
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-public class TestReadValueValidator implements ValueValidator
+public class TestWriteValidator implements ValueValidator, FragmentValidator
 {
+    private static final DirectBuffer SCHEMA_ID_PREFIX = new UnsafeBuffer(new byte[]{0, 0, 0, 0, 1});
+
     @Override
     public int validate(
         DirectBuffer data,
@@ -29,11 +34,35 @@ public class TestReadValueValidator implements ValueValidator
         int length,
         ValueConsumer next)
     {
-        boolean valid = length == 18;
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+                ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+                : 0;
+    }
+
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        boolean valid = length == 13;
         if (valid)
         {
+            next.accept(SCHEMA_ID_PREFIX, 0, 5);
             next.accept(data, index, length);
         }
         return valid ? length : -1;
     }
 }
+

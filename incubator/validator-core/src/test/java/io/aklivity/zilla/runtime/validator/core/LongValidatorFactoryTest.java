@@ -42,7 +42,7 @@ public class LongValidatorFactoryTest
         ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(LongValueValidator.class));
+        assertThat(reader, instanceOf(LongValidator.class));
     }
 
     @Test
@@ -58,6 +58,6 @@ public class LongValidatorFactoryTest
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(LongValueValidator.class));
+        assertThat(writer, instanceOf(LongValidator.class));
     }
 }

@@ -42,7 +42,7 @@ public class IntegerValidatorFactoryTest
         ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(IntegerValueValidator.class));
+        assertThat(reader, instanceOf(IntegerValidator.class));
     }
 
     @Test
@@ -58,6 +58,6 @@ public class IntegerValidatorFactoryTest
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(IntegerValueValidator.class));
+        assertThat(writer, instanceOf(IntegerValidator.class));
     }
 }

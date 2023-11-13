@@ -51,7 +51,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -88,6 +87,8 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
@@ -232,10 +233,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final KafkaTopicType type = binding.resolveReadValidator(topicName);
+                final ValueValidator validateKey = binding.resolveValueReader(topicName);
+                final FragmentValidator validateValue = binding.resolveFragmentReader(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset, type);
+                        affinity, partition, routeDeltaType, defaultOffset, validateKey, validateValue);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
@@ -472,7 +474,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final KafkaTopicType type;
+        private ValueValidator validateKey;
+        private FragmentValidator validateValue;
 
         private long leaderId;
         private long initialId;
@@ -507,7 +510,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
-            KafkaTopicType type)
+            ValueValidator validateKey,
+            FragmentValidator validateValue)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -518,7 +522,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.type = type;
+            this.validateKey = validateKey;
+            this.validateValue = validateValue;
         }
 
         private void onServerFanoutMemberOpening(
@@ -764,7 +769,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(partitionOffset, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE, type);
+                        entryFlags, KafkaDeltaType.NONE, validateKey, validateValue);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -868,12 +873,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(partitionOffset, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, type.key);
+                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(valueFragment, type.value);
+                partition.writeEntryContinue(flags, valueFragment, validateValue);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)

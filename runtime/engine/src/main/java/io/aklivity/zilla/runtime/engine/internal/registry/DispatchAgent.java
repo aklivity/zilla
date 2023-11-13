@@ -131,6 +131,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -862,17 +863,31 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public ValueValidator createReadValidator(
+    public ValueValidator createValueReader(
         ValidatorConfig validator)
     {
-        return validatorFactory.createReadValidator(validator, this::supplyCatalog);
+        return validatorFactory.createValueReader(validator, this::supplyCatalog);
     }
 
     @Override
-    public ValueValidator createWriteValidator(
+    public ValueValidator createValueWriter(
         ValidatorConfig validator)
     {
-        return validatorFactory.createWriteValidator(validator, this::supplyCatalog);
+        return validatorFactory.createValueWriter(validator, this::supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig validator)
+    {
+        return validatorFactory.createFragmentReader(validator, this::supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig validator)
+    {
+        return validatorFactory.createFragmentWriter(validator, this::supplyCatalog);
     }
 
     private void onSystemMessage(

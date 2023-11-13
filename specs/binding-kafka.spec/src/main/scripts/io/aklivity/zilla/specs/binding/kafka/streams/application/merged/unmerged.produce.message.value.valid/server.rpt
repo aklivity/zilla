@@ -135,4 +135,4 @@ read zilla:data.ext ${kafka:matchDataEx()
                                   .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
-read ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
+read [0x00] 0x01 ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"

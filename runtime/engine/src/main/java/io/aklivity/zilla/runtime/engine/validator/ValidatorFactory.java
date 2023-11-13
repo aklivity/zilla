@@ -37,7 +37,7 @@ public final class ValidatorFactory
         return instantiate(load(ValidatorFactorySpi.class));
     }
 
-    public ValueValidator createReadValidator(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -49,7 +49,7 @@ public final class ValidatorFactory
         return validatorSpi.createValueReader(config, supplyCatalog);
     }
 
-    public ValueValidator createWriteValidator(
+    public ValueValidator createValueWriter(
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -59,6 +59,30 @@ public final class ValidatorFactory
         ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
 
         return validatorSpi.createValueWriter(config, supplyCatalog);
+    }
+
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        String type = config.type;
+        requireNonNull(type, "name");
+
+        ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
+
+        return validatorSpi.createFragmentReader(config, supplyCatalog);
+    }
+
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        String type = config.type;
+        requireNonNull(type, "name");
+
+        ValidatorFactorySpi validatorSpi = requireNonNull(validatorSpis.get(type), () -> "Unrecognized validator name: " + type);
+
+        return validatorSpi.createFragmentWriter(config, supplyCatalog);
     }
 
     public Collection<ValidatorFactorySpi> validatorSpis()

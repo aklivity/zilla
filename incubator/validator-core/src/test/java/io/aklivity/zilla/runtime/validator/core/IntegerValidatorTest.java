@@ -23,10 +23,10 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
-public class IntegerValueValidatorTest
+public class IntegerValidatorTest
 {
     private final IntegerValidatorConfig config = new IntegerValidatorConfig();
-    private final IntegerValueValidator validator = new IntegerValueValidator(config);
+    private final IntegerValidator validator = new IntegerValidator(config);
 
     @Test
     public void shouldVerifyValidInteger()

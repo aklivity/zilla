@@ -103,6 +103,11 @@ public class KafkaCacheFile implements AutoCloseable
         this.maxCapacity = mappedBuf.capacity();
     }
 
+    public DirectBuffer buffer()
+    {
+        return mappedBuf;
+    }
+
     public Path location()
     {
         return location;

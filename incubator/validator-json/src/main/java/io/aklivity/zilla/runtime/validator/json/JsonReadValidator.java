@@ -18,14 +18,20 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
-public class JsonReadValueValidator extends JsonValueValidator
+public class JsonReadValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
-    public JsonReadValueValidator(
+    private final DirectBuffer valueRO = new UnsafeBuffer();
+
+    public JsonReadValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -39,10 +45,29 @@ public class JsonReadValueValidator extends JsonValueValidator
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
+        return validateComplete(data, index, length, next);
+    }
 
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return flags == FLAGS_COMPLETE
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
+    }
+
+    public int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
 
         int schemaId;
         int progress = 0;
@@ -58,11 +83,11 @@ public class JsonReadValueValidator extends JsonValueValidator
         }
 
         String schema = fetchSchema(schemaId);
-        if (schema != null && validate(schema, payloadBytes, progress, length - progress))
+        if (schema != null && validate(schema, data, progress, length - progress))
         {
             valueRO.wrap(data);
             valLength = length;
-            next.accept(valueRO, index, length);
+            next.accept(valueRO, 0, length);
         }
         return valLength;
     }
