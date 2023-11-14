@@ -33,7 +33,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncApi;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Schema;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -56,10 +58,21 @@ public abstract class ConfigGenerator
 
     public abstract String generate();
 
+    protected String resolveContentType()
+    {
+        String contentType = null;
+        if (asyncApi.components != null && asyncApi.components.messages != null && !asyncApi.components.messages.isEmpty())
+        {
+            Message firstMessage = asyncApi.components.messages.entrySet().stream().findFirst().get().getValue();
+            contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
+        }
+        return contentType;
+    }
+
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        if (asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
+        if (asyncApi.components != null && asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()

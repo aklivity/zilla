@@ -346,9 +346,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         if (messages != null)
         {
-            Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
-            String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
-            if (APPLICATION_JSON.equals(contentType))
+            if (APPLICATION_JSON.equals(resolveContentType()))
             {
                 request.
                     content(JsonValidatorConfig::builder)
