@@ -70,9 +70,11 @@ public class MqttKafkaRouteConfig
     }
 
     public boolean matches(
-        String topic)
+        String topic,
+        MqttKafkaConditionKind kind)
     {
         return when.isEmpty() || when.stream()
+            .filter(m -> m.kind == kind)
             .anyMatch(m -> m.matches(topic));
     }
 }
