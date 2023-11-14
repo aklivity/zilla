@@ -32,6 +32,8 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import org.apache.commons.collections4.MapUtils;
+
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -178,18 +180,20 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         requireNonNull(asyncApi);
         requireNonNull(asyncApi.components);
-        requireNonNull(asyncApi.components.messages);
         String result = null;
-        for (Map.Entry<String, Message> entry: asyncApi.components.messages.entrySet())
+        if (asyncApi.components.messages != null)
         {
-            Message message = entry.getValue();
-            if (message.headers != null && message.headers.properties != null)
+            for (Map.Entry<String, Message> entry : asyncApi.components.messages.entrySet())
             {
-                Item authorization = message.headers.properties.get("authorization");
-                if (authorization != null)
+                Message message = entry.getValue();
+                if (message.headers != null && message.headers.properties != null)
                 {
-                    result = authorization.description;
-                    break;
+                    Item authorization = message.headers.properties.get("authorization");
+                    if (authorization != null)
+                    {
+                        result = authorization.description;
+                        break;
+                    }
                 }
             }
         }
@@ -329,13 +333,16 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
             ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
             String path = channel.address();
             Method method = Method.valueOf(operation.bindings.get("http").method);
-            options
-                .request()
-                    .path(path)
-                    .method(method)
-                    .inject(request -> injectContent(request, channel.messages()))
-                    .inject(request -> injectPathParams(request, channel.parameters()))
-                    .build();
+            if (MapUtils.isNotEmpty(channel.messages()) || MapUtils.isNotEmpty(channel.parameters()))
+            {
+                options
+                    .request()
+                        .path(path)
+                        .method(method)
+                        .inject(request -> injectContent(request, channel.messages()))
+                        .inject(request -> injectPathParams(request, channel.parameters()))
+                        .build();
+            }
         }
         return options;
     }
@@ -367,9 +374,10 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         for (String name : messages.keySet())
         {
             MessageView message = MessageView.of(asyncApi.components.messages, messages.get(name));
+            String subject = message.refKey() != null ? message.refKey() : name;
             catalog
                 .schema()
-                    .subject(message.refKey())
+                    .subject(subject)
                     .build()
                 .build();
         }
@@ -382,7 +390,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         if (parameters != null)
         {
-            for (String name: parameters.keySet())
+            for (String name : parameters.keySet())
             {
                 Parameter parameter = parameters.get(name);
                 if (parameter.schema != null && parameter.schema.type != null)

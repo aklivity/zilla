@@ -22,6 +22,18 @@ bindings:
         params:
           path:
             id: string
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
     routes:
     - exit: http_client0
       when:
@@ -47,3 +59,17 @@ bindings:
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
       port: ${{env.TCP_CLIENT_PORT}}
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            properties:
+              greeting:
+                type: string
+            required:
+            - greeting
+            type: object
+          version: latest
