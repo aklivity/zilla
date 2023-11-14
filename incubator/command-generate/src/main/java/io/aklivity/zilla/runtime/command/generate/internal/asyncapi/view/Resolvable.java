@@ -23,6 +23,8 @@ public abstract class Resolvable<T>
     private final Map<String, T> map;
     private final String regex;
 
+    protected String key;
+
     public Resolvable(
         Map<String, T> map,
         String regex)
@@ -39,7 +41,7 @@ public abstract class Resolvable<T>
         Matcher matcher = pattern.matcher(ref);
         if (matcher.matches())
         {
-            String key = matcher.group(1);
+            key = matcher.group(1);
             result = map.get(key);
         }
         return result;

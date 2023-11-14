@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Schema
 public final class MessageView extends Resolvable<Message>
 {
     private final Message message;
+    private final String refKey;
 
     private MessageView(
         Map<String, Message> messages,
@@ -29,6 +30,12 @@ public final class MessageView extends Resolvable<Message>
     {
         super(messages, "#/components/messages/(\\w+)");
         this.message = message.ref == null ? message : resolveRef(message.ref);
+        this.refKey = this.key;
+    }
+
+    public String refKey()
+    {
+        return refKey;
     }
 
     public Schema headers()

@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Operat
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Parameter;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ChannelView;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
@@ -300,8 +301,8 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         return namespace;
     }
 
-    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerOptions(
-        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
+        HttpOptionsConfigBuilder<C> options)
     {
         if (isJwtEnabled)
         {
@@ -345,26 +346,32 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         if (messages != null)
         {
-            request.
-                content(JsonValidatorConfig::builder) // TODO: Ati
-                    .catalog()
-                        .name("catalog0") // TODO: Ati
-                        .inject(catalog -> injectSchema(catalog, messages))
-                        .build()
-                    .build();
+            Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
+            String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
+            if (APPLICATION_JSON.equals(contentType))
+            {
+                request.
+                    content(JsonValidatorConfig::builder)
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectSchemas(catalog, messages))
+                            .build()
+                        .build();
+            }
         }
         return request;
     }
 
-    private <C> CatalogedConfigBuilder<C> injectSchema(
+    private <C> CatalogedConfigBuilder<C> injectSchemas(
         CatalogedConfigBuilder<C> catalog,
         Map<String, Message> messages)
     {
         for (String name : messages.keySet())
         {
+            MessageView message = MessageView.of(asyncApi.components.messages, messages.get(name));
             catalog
                 .schema()
-                    .subject(name)
+                    .subject(message.refKey())
                     .build()
                 .build();
         }
@@ -377,9 +384,9 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         if (parameters != null)
         {
-            for (String paramName: parameters.keySet())
+            for (String name: parameters.keySet())
             {
-                Parameter parameter = parameters.get(paramName);
+                Parameter parameter = parameters.get(name);
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
                     ValidatorConfig validator = validators.get(parameter.schema.type);
@@ -387,7 +394,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
                     {
                         request
                             .pathParam()
-                                .name(paramName)
+                                .name(name)
                                 .validator(validator)
                                 .build();
                     }
