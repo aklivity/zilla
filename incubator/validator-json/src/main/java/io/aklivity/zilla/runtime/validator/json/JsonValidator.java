@@ -23,9 +23,11 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
+import org.leadpony.justify.api.JsonValidatingException;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
@@ -45,6 +47,8 @@ public abstract class JsonValidator
     protected final CatalogHandler handler;
     protected final String subject;
 
+    private final Int2ObjectCache<JsonSchema> cache;
+
     public JsonValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
@@ -58,22 +62,32 @@ public abstract class JsonValidator
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
-    protected String fetchSchema(
+    protected JsonSchema fetchSchema(
         int schemaId)
     {
-        String schema = null;
-        if (schemaId > 0)
-        {
-            schema = handler.resolve(schemaId);
-        }
-        else if (catalog != null)
+        JsonSchema schema = null;
+
+        if (schemaId == 0)
         {
             schemaId = handler.resolve(subject, catalog.version);
-            if (schemaId > 0)
+        }
+
+        if (cache.containsKey(schemaId))
+        {
+            schema = cache.get(schemaId);
+        }
+        else
+        {
+            String schemaStr = handler.resolve(schemaId);
+            if (schemaStr != null)
             {
-                schema = handler.resolve(schemaId);
+                JsonParser schemaParser = factory.createParser(new StringReader(schemaStr));
+                JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+                schema = reader.read();
+                cache.put(schemaId, schema);
             }
         }
 
@@ -81,7 +95,7 @@ public abstract class JsonValidator
     }
 
     protected boolean validate(
-        String schema,
+        JsonSchema schema,
         DirectBuffer buffer,
         int index,
         int length)
@@ -89,15 +103,12 @@ public abstract class JsonValidator
         boolean status = false;
         try
         {
-            JsonParser schemaParser = factory.createParser(new StringReader(schema));
-            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            JsonSchema jsonSchema = reader.read();
-            JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
+            JsonProvider provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
             InputStream input = new DirectBufferInputStream(buffer, index, length);
             provider.createReader(input).readObject();
             status = true;
         }
-        catch (Exception e)
+        catch (JsonValidatingException e)
         {
         }
         return status;

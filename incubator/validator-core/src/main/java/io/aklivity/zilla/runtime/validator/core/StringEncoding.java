@@ -14,117 +14,141 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Predicate;
+import org.agrona.DirectBuffer;
 
 public enum StringEncoding
 {
     UTF_8
     {
+        @Override
         public boolean validate(
-            byte[] byteArray)
+            DirectBuffer data,
+            int index,
+            int length)
         {
-            int i = 0;
-            while (i < byteArray.length)
+            byte[] bytes = new byte[length];
+            data.getBytes(index, bytes);
+
+            int bytesIndex = 0;
+            int bytesLength = bytes.length;
+            while (bytesIndex < bytesLength)
             {
                 int numBytes;
-                if ((byteArray[i] & 0b10000000) == 0b00000000)
+                if ((bytes[bytesIndex] & 0b10000000) == 0b00000000)
                 {
                     numBytes = 1;
                 }
-                else if ((byteArray[i] & 0b11100000) == 0b11000000)
+                else if ((bytes[bytesIndex] & 0b11100000) == 0b11000000)
                 {
                     numBytes = 2;
                 }
-                else if ((byteArray[i] & 0b11110000) == 0b11100000)
+                else if ((bytes[bytesIndex] & 0b11110000) == 0b11100000)
                 {
                     numBytes = 3;
                 }
-                else if ((byteArray[i] & 0b11111000) == 0b11110000)
+                else if ((bytes[bytesIndex] & 0b11111000) == 0b11110000)
                 {
                     numBytes = 4;
                 }
                 else
                 {
-                    return false;
+                    break;
                 }
 
                 for (int j = 1; j < numBytes; j++)
                 {
-                    if (i + j >= byteArray.length)
+                    if (bytesIndex + j >= bytesLength || (bytes[bytesIndex + j] & 0b11000000) != 0b10000000)
                     {
-                        return false;
-                    }
-                    if ((byteArray[i + j] & 0b11000000) != 0b10000000)
-                    {
-                        return false;
+                        break;
                     }
                 }
-                i += numBytes;
+                bytesIndex += numBytes;
             }
-            return true;
+            return bytesIndex == bytesLength;
         }
     },
+
     UTF_16
     {
+        @Override
         public boolean validate(
-            byte[] byteArray)
+            DirectBuffer data,
+            int index,
+            int length)
         {
-            int i = 0;
-            boolean status = false;
+            byte[] bytes = new byte[length];
+            data.getBytes(index, bytes);
 
-            while (i < byteArray.length)
+            int bytesIndex = 0;
+            int bytesLength = bytes.length;
+
+            while (bytesIndex < bytesLength)
             {
-                if (i + 1 >= byteArray.length)
+                if (bytesIndex == bytesLength - 1)
                 {
-                    status = false;
                     break;
                 }
 
-                int highByte = byteArray[i] & 0xFF;
-                int lowByte = byteArray[i + 1] & 0xFF;
+                int highByte = bytes[bytesIndex] & 0xFF;
+                int lowByte = bytes[bytesIndex + 1] & 0xFF;
                 int codeUnit = (highByte << 8) | lowByte;
 
                 if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
                 {
-                    if (i + 3 >= byteArray.length)
+                    if (bytesIndex + 3 >= bytesLength)
                     {
-                        status = false;
                         break;
                     }
-                    int secondHighByte = byteArray[i + 2] & 0xFF;
-                    int secondLowByte = byteArray[i + 3] & 0xFF;
+                    int secondHighByte = bytes[bytesIndex + 2] & 0xFF;
+                    int secondLowByte = bytes[bytesIndex + 3] & 0xFF;
                     int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
                     if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
                     {
-                        status = false;
                         break;
                     }
-                    i += 4;
+                    bytesIndex += 4;
                 }
                 else if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF)
                 {
-                    status = false;
                     break;
                 }
                 else
                 {
-                    i += 2;
+                    bytesIndex += 2;
                 }
-                status = true;
             }
-            return status;
+            return bytesIndex == bytesLength;
+        }
+    },
+
+    INVALID
+    {
+        @Override
+        public boolean validate(
+            DirectBuffer data,
+            int index,
+            int length)
+        {
+            return false;
         }
     };
 
-    public abstract boolean validate(byte[] byteArray);
+    public abstract boolean validate(
+        DirectBuffer data,
+        int index,
+        int length);
 
-    static final Predicate<byte[]> INVALID_ENCODING = b -> false;
-    static final Map<String, Predicate<byte[]>> ENCODING_VALIDATORS = new HashMap<>();
-    static
+    static StringEncoding of(
+        String encoding)
     {
-        ENCODING_VALIDATORS.put("utf_8", UTF_8::validate);
-        ENCODING_VALIDATORS.put("utf_16", UTF_16::validate);
+        switch (encoding)
+        {
+        case "utf_8":
+            return UTF_8;
+        case "utf_16":
+            return UTF_16;
+        default:
+            return INVALID;
+        }
     }
 }

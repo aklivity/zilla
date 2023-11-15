@@ -21,8 +21,8 @@ import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 
 public interface FragmentValidator
 {
-    int FLAGS_COMPLETE = 0x03;
     int FLAGS_FIN = 0x01;
+    int FLAGS_COMPLETE = 0x03;
 
     FragmentValidator NONE = (flags, data, index, length, next) ->
     {

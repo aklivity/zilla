@@ -14,10 +14,11 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
+import java.io.IOException;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.collections.Int2ObjectCache;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
@@ -43,7 +44,9 @@ public abstract class AvroValidator
     protected DatumReader reader;
     protected DatumWriter writer;
 
-    public AvroValidator(
+    private final Int2ObjectCache<Schema> cache;
+
+    protected AvroValidator(
         AvroValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -53,28 +56,37 @@ public abstract class AvroValidator
         this.handler = supplyCatalog.apply(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.format = config.format;
-        this.subject = catalog != null &&
-                catalog.subject != null ?
-                catalog.subject : config.subject;
+        this.subject = catalog != null && catalog.subject != null
+                ? catalog.subject
+                : config.subject;
+        this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
     protected Schema fetchSchema(
         int schemaId)
     {
-        String schema = null;
-        if (schemaId > 0)
-        {
-            schema = handler.resolve(schemaId);
-        }
-        else if (catalog != null)
+        Schema schema = null;
+
+        if (schemaId == 0)
         {
             schemaId = handler.resolve(subject, catalog.version);
-            if (schemaId > 0)
+        }
+
+        if (cache.containsKey(schemaId))
+        {
+            schema = cache.get(schemaId);
+        }
+        else
+        {
+            String schemaStr = handler.resolve(schemaId);
+            if (schemaStr != null)
             {
-                schema = handler.resolve(schemaId);
+                schema = new Schema.Parser().parse(schemaStr);
+                cache.put(schemaId, schema);
             }
         }
-        return schema != null ? new Schema.Parser().parse(schema) : null;
+
+        return schema;
     }
 
     protected boolean validate(
@@ -90,7 +102,7 @@ public abstract class AvroValidator
             reader.read(null, decoder.binaryDecoder(bytes, offset, length, null));
             status = true;
         }
-        catch (Exception e)
+        catch (IOException | AvroRuntimeException e)
         {
         }
         return status;

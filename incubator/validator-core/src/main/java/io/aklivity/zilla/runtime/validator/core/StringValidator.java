@@ -14,11 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import static io.aklivity.zilla.runtime.validator.core.StringEncoding.ENCODING_VALIDATORS;
-import static io.aklivity.zilla.runtime.validator.core.StringEncoding.INVALID_ENCODING;
-
-import java.util.function.Predicate;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -29,12 +24,12 @@ import io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfig;
 
 public class StringValidator implements ValueValidator, FragmentValidator
 {
-    private Predicate<byte[]> predicate;
+    private StringEncoding encoding;
 
     public StringValidator(
         StringValidatorConfig config)
     {
-        this.predicate = ENCODING_VALIDATORS.getOrDefault(config.encoding, INVALID_ENCODING);
+        this.encoding = StringEncoding.of(config.encoding);
     }
 
     @Override
@@ -55,7 +50,7 @@ public class StringValidator implements ValueValidator, FragmentValidator
         int length,
         FragmentConsumer next)
     {
-        return flags == FLAGS_COMPLETE
+        return (flags & FLAGS_FIN) != 0x00
             ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
             : 0;
     }
@@ -67,10 +62,8 @@ public class StringValidator implements ValueValidator, FragmentValidator
         ValueConsumer next)
     {
         int valLength = -1;
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(index, payloadBytes);
 
-        if (predicate.test(payloadBytes))
+        if (encoding.validate(data, index, length))
         {
             next.accept(data, index, length);
             valLength = length;

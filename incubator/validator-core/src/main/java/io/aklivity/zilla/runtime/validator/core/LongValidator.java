@@ -47,7 +47,7 @@ public class LongValidator implements ValueValidator, FragmentValidator
         int length,
         FragmentConsumer next)
     {
-        return flags == FLAGS_COMPLETE
+        return (flags & FLAGS_FIN) != 0x00
             ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
             : 0;
     }

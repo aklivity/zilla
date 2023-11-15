@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.validator.avro;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
@@ -64,7 +65,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         int length,
         FragmentConsumer next)
     {
-        return flags == FLAGS_COMPLETE
+        return (flags & FLAGS_FIN) != 0x00
             ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
             : 0;
     }
@@ -135,7 +136,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             jsonEncoder.flush();
             outputStream.close();
         }
-        catch (Exception e)
+        catch (IOException e)
         {
         }
         return outputStream.toByteArray();
