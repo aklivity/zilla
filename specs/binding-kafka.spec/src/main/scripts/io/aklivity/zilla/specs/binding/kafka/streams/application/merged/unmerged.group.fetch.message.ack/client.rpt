@@ -260,12 +260,11 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .progress(0, 2)
-                                 .committedLeaderEpoch(0)
+                                 .partition(0, 2)
+                                 .leaderEpoch(0)
                                  .build()
                              .build()}
 write flush
 
-read option zilla:ack 0
 
 

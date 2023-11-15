@@ -203,6 +203,7 @@ scope kafka
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
+            case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
@@ -340,12 +341,6 @@ scope kafka
             KafkaHeader[] headers;      // FIN only
         }
 
-        struct KafkaOffsetCommitFlushEx
-        {
-            KafkaOffsetCommitted partition;
-            int32 leaderEpoch;
-        }
-
         struct KafkaFetchFlushEx
         {
             KafkaOffset partition;
@@ -481,6 +476,12 @@ scope kafka
             string16 groupId;
             int32 generationId;
             string16 memberId;
+        }
+
+        struct KafkaOffsetCommitDataEx
+        {
+            KafkaOffsetCommitted partition;
+            int32 leaderEpoch;
         }
     }
 

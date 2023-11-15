@@ -181,15 +181,6 @@ write ${kafka:topicAssignment()
               .build()}
 write flush
 
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 2)
-                                  .build()
-                              .build()}
-write flush
-
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -257,6 +248,7 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .progress(0, 2)
+                                 .partition(0, 2)
+                                 .leaderEpoch(0)
                                  .build()
                              .build()}
