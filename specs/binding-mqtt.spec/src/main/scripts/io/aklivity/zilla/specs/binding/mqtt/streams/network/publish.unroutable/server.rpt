@@ -37,7 +37,7 @@ write [0x20 0x08]                   # CONNACK
       [0x27] 66560                  # maximum packet size = 66560
 
 write [0xe0 0x02]                   # disconnect header
-      [0x90]                        # reason = invalid topic name
+      [0x83]                        # reason = implementation specific error
       [0x00]                        # properties = none
 
 write close

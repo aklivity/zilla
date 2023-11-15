@@ -44,7 +44,7 @@ read  [0x82 0x0d]                   # SUBSCRIBE
       [0x20]                        # options = at-most-once
 
 write [0xe0 0x02]                   # disconnect header
-      [0x90]                        # reason = invalid topic name
+      [0x83]                        # reason = implementation specific error
       [0x00]                        # properties = none
 
 write close
