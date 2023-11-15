@@ -51,6 +51,7 @@ public class PublishIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -380,6 +381,16 @@ public class PublishIT
         "${app}/publish.reject.packet.too.large/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldRejectPacketTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.unroutable/client",
+        "${app}/publish.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
     {
         k3po.finish();
     }

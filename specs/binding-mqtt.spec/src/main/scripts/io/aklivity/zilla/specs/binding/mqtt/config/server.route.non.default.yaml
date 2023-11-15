@@ -30,4 +30,3 @@ bindings:
           - subscribe:
               - topic: reply
         exit: app1
-    exit: app0

@@ -260,4 +260,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.unroutable/client",
+        "${app}/subscribe.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
 }
