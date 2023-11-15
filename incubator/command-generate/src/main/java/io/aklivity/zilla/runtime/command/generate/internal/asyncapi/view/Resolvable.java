@@ -37,8 +37,7 @@ public abstract class Resolvable<T>
         String ref)
     {
         T result = null;
-        matcher.reset(ref);
-        if (matcher.matches())
+        if (matcher.reset(ref).matches())
         {
             key = matcher.group(1);
             result = map.get(key);

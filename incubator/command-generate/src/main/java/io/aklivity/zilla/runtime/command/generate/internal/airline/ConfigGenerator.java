@@ -20,6 +20,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.bind.Jsonb;
@@ -48,6 +49,7 @@ public abstract class ConfigGenerator
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String APPLICATION_JSON = "application/json";
     protected static final String VERSION_LATEST = "latest";
+    protected static final Matcher JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$").matcher("");
 
     protected final Map<String, ValidatorConfig> validators = Map.of(
         "string", StringValidatorConfig.builder().build(),
@@ -58,7 +60,18 @@ public abstract class ConfigGenerator
 
     public abstract String generate();
 
-    protected String resolveContentType()
+    protected boolean jsonContentType()
+    {
+        boolean result = false;
+        String contentType = resolveContentType();
+        if (contentType != null)
+        {
+            result = JSON_CONTENT_TYPE.reset(contentType).matches();
+        }
+        return result;
+    }
+
+    private String resolveContentType()
     {
         String contentType = null;
         if (asyncApi.components != null && asyncApi.components.messages != null && !asyncApi.components.messages.isEmpty())
