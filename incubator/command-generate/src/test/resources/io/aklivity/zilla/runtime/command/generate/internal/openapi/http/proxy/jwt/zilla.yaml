@@ -79,3 +79,44 @@ guards:
         "y": "${{env.JWT_Y}}"
         use: "${{env.JWT_USE}}"
         kid: "${{env.JWT_KID}}"
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        Item:
+          schema: |
+            type: object
+            properties:
+              greeting:
+                type: string
+              tag:
+                type: string
+            required:
+            - greeting
+          version: latest
+        Error:
+          schema: |
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+            required:
+            - code
+            - message
+          version: latest
+        Items:
+          schema: |
+            type: array
+            items:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                tag:
+                  type: string
+              required:
+              - greeting
+          version: latest

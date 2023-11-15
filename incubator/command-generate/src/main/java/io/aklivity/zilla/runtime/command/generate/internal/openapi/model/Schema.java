@@ -14,10 +14,18 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
 
+import java.util.List;
 import java.util.Map;
 
-public class Components
+import jakarta.json.bind.annotation.JsonbProperty;
+
+public class Schema
 {
-    public Map<String, SecurityScheme> securitySchemes;
-    public Map<String, Schema> schemas;
+    public String type;
+    public Schema items;
+    public Map<String, Item> properties;
+    public List<String> required;
+
+    @JsonbProperty("$ref")
+    public String ref;
 }

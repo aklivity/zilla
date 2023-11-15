@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.OpenApiConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
@@ -52,11 +52,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
+public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
 {
     private final InputStream inputStream;
 
-    private OpenApi openApi;
     private int[] allPorts;
     private int[] httpPorts;
     private int[] httpsPorts;
@@ -208,6 +207,7 @@ public class OpenApiHttpProxyConfigGenerator extends ConfigGenerator
                 .build()
             .inject(this::injectGuard)
             .inject(this::injectVaults)
+            .inject(this::injectCatalog)
             .build();
     }
 
