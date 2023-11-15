@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 public abstract class Resolvable<T>
 {
     private final Map<String, T> map;
-    private final String regex;
+    private final Matcher matcher;
 
     protected String key;
 
@@ -30,15 +30,14 @@ public abstract class Resolvable<T>
         String regex)
     {
         this.map = map;
-        this.regex = regex;
+        this.matcher = Pattern.compile(regex).matcher("");
     }
 
     protected T resolveRef(
         String ref)
     {
         T result = null;
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(ref);
+        matcher.reset(ref);
         if (matcher.matches())
         {
             key = matcher.group(1);
