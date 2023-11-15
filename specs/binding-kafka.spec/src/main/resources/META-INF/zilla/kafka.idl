@@ -431,11 +431,6 @@ scope kafka
 
         union KafkaConsumerDataEx switch (uint8)
         {
-            case 253: kafka::stream::KafkaConsumerGroupDataEx group;
-        }
-
-        struct KafkaConsumerGroupDataEx
-        {
             KafkaTopicPartition[] partitions;
             KafkaConsumerAssignment[] assignments;
         }
@@ -479,7 +474,7 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
-            KafkaOffsetCommitted partition;
+            KafkaOffset partition;
             int32 leaderEpoch;
         }
     }
