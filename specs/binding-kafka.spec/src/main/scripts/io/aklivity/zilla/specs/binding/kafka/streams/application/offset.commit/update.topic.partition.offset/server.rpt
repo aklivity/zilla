@@ -33,9 +33,17 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
+read zilla:flush.ext ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .partition(0, 2)
+                                  .committedLeaderEpoch(0)
+                                  .build()
+                              .build()}
+
+write zilla:flush.ext ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .progress(0, 2)
+                                 .partition(0, 2)
                                  .build()
                              .build()}

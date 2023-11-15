@@ -82,3 +82,18 @@ read zilla:data.ext ${kafka:dataEx()
                                  .progress(0, 2)
                                  .build()
                              .build()}
+
+read zilla:flush.ext ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .offsetCommit()
+                                 .partition(0, 2)
+                                 .leaderEpoch(0)
+                                 .build()
+                             .build()}
+
+write zilla:flush.ext ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .offsetCommit()
+                                 .partition(0, 2)
+                                 .build()
+                             .build()}

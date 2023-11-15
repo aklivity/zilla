@@ -48,15 +48,17 @@ read zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 
-write zilla:data.ext ${kafka:dataEx()
+write zilla:flush.ext ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
-                               .offsetCommit()
-                                 .progress(0, 2)
-
+                               .offset()
+                                 .partition(0, 2)
+                                 .leaderEpoch(0)
                              .build()}
 
-write zilla:data.empty
-write flush
-
-read option zilla:ack 0
+read zilla:flush.ext ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .consumer()
+                               .offset()
+                                 .partition(0, 2)
+                             .build()}

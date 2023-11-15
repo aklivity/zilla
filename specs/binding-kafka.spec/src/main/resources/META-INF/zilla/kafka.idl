@@ -35,6 +35,12 @@ scope kafka
         int64 latestOffset = -1;
     }
 
+    struct KafkaOffsetCommitted extends KafkaOffset
+    {
+        int32 metadataLen;
+        octets[metadataLen] metadata = null;
+    }
+
     enum KafkaTransactionResult
     {
         ABORT,
@@ -197,7 +203,6 @@ scope kafka
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
-            case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
@@ -206,6 +211,7 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 252: kafka::stream::KafkaConsumerFlushEx consumer;
             case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 8: kafka::stream::KafkaOffsetCommitFlushEx offsetCommit;
@@ -234,7 +240,7 @@ scope kafka
             string16 groupId = null;
             string16 consumerId = null;
             int32 timeout = 0;
-            KafkaOffset[] partitions;
+            KafkaOffsetCommitted[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
             KafkaIsolation isolation = READ_COMMITTED;
@@ -244,7 +250,6 @@ scope kafka
 
         union KafkaMergedDataEx switch (uint8)
         {
-            case 252: kafka::stream::KafkaMergedConsumerDataEx consumer;
             case 1: kafka::stream::KafkaMergedFetchDataEx fetch;
             case 0: kafka::stream::KafkaMergedProduceDataEx produce;
         }
@@ -254,7 +259,6 @@ scope kafka
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
             KafkaOffset partition;      // INIT only
-            KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaKey hashKey;           // INIT only
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
@@ -272,11 +276,6 @@ scope kafka
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
-        struct KafkaMergedConsumerDataEx
-        {
-            KafkaOffset progress;
-        }
-
         union KafkaMergedFlushEx switch (uint8)
         {
             case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
@@ -285,7 +284,7 @@ scope kafka
 
         struct KafkaMergedConsumerFlushEx
         {
-            KafkaOffset partition;
+            KafkaOffsetCommitted partition;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -343,7 +342,7 @@ scope kafka
 
         struct KafkaOffsetCommitFlushEx
         {
-            KafkaOffset partition;
+            KafkaOffsetCommitted partition;
         }
 
         struct KafkaFetchFlushEx
@@ -438,7 +437,6 @@ scope kafka
         union KafkaConsumerDataEx switch (uint8)
         {
             case 253: kafka::stream::KafkaConsumerGroupDataEx group;
-            case 8: kafka::stream::KafkaConsumerOffsetCommitDataEx offsetCommit;
         }
 
         struct KafkaConsumerGroupDataEx
@@ -447,10 +445,10 @@ scope kafka
             KafkaConsumerAssignment[] assignments;
         }
 
-        struct KafkaConsumerOffsetCommitDataEx
+        struct KafkaConsumerFlushEx
         {
-            KafkaOffset progress;
-            int32 committedLeaderEpoch;
+            KafkaOffsetCommitted partition;
+            int32 leaderEpoch = -1;
         }
 
         struct KafkaOffsetFetchTopic
@@ -482,12 +480,6 @@ scope kafka
             string16 groupId;
             int32 generationId;
             string16 memberId;
-        }
-
-        struct KafkaOffsetCommitDataEx
-        {
-            KafkaOffset progress;
-            int32 committedLeaderEpoch;
         }
     }
 
