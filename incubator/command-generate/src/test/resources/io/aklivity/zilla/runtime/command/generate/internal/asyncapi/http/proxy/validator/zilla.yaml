@@ -66,10 +66,10 @@ catalogs:
       subjects:
         item:
           schema: |
+            type: object
             properties:
               greeting:
                 type: string
             required:
             - greeting
-            type: object
           version: latest
