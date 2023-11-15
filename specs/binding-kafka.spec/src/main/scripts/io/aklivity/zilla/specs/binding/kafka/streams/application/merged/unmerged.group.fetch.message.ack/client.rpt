@@ -247,7 +247,7 @@ connect await RECEIVED_MESSAGE
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .offsetCommit()
+                               .offsetCommit()LL
                                    .topic("test")
                                    .groupId("client-1")
                                    .generationId(0)

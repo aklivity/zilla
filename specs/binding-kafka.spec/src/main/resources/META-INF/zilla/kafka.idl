@@ -215,7 +215,6 @@ scope kafka
             case 252: kafka::stream::KafkaConsumerFlushEx consumer;
             case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
-            case 8: kafka::stream::KafkaOffsetCommitFlushEx offsetCommit;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
         }
