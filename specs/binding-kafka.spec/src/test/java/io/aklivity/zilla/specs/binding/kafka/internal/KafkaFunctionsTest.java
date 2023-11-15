@@ -63,7 +63,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerGroupDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -567,7 +567,6 @@ public class KafkaFunctionsTest
                                         .produce()
                                          .timestamp(12345678L)
                                          .partition(0, 0L)
-                                         .progress(0, 1L)
                                          .key("match")
                                          .hashKey("hashKey")
                                          .header("name", "value")
@@ -585,13 +584,6 @@ public class KafkaFunctionsTest
         final KafkaOffsetFW partition = mergedProduceDataEx.partition();
         assertEquals(0, partition.partitionId());
         assertEquals(0L, partition.partitionOffset());
-
-        final MutableInteger progressCount = new MutableInteger();
-        mergedProduceDataEx.progress().forEach(f -> progressCount.value++);
-        assertEquals(1, progressCount.value);
-
-        assertNotNull(mergedProduceDataEx.progress()
-                .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 1L));
 
         assertEquals("match", mergedProduceDataEx.key()
                                          .value()
@@ -1154,7 +1146,6 @@ public class KafkaFunctionsTest
                     .deferred(100)
                     .timestamp(12345678L)
                     .partition(p -> p.partitionId(0).partitionOffset(0L))
-                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
                     .key(k -> k.length(5)
                         .value(v -> v.set("match".getBytes(UTF_8))))
                     .hashKey(k -> k.length(7)
@@ -1595,7 +1586,6 @@ public class KafkaFunctionsTest
                 .merged(m -> m.produce(mp -> mp
                     .timestamp(12345678L)
                     .partition(p -> p.partitionId(0).partitionOffset(0L))
-                    .progressItem(p -> p.partitionId(0).partitionOffset(1L))
                     .key(k -> k.length(-1)
                         .value((OctetsFW) null))
                     .headersItem(h -> h.nameLen(4)
@@ -4267,12 +4257,11 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x03)
             .consumer()
-                .group()
+                .partition(0)
+                .assignments()
+                    .id("localhost:9092")
                     .partition(0)
-                    .assignments()
-                        .id("localhost:9092")
-                        .partition(0)
-                        .build()
+                    .build()
                 .build()
             .build();
 
@@ -4281,7 +4270,7 @@ public class KafkaFunctionsTest
         assertEquals(0x03, dataEx.typeId());
         assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
 
-        final KafkaConsumerGroupDataExFW consumerGroupDataEx = dataEx.consumer().group();
+        final KafkaConsumerDataExFW consumerGroupDataEx = dataEx.consumer();
         assertTrue(consumerGroupDataEx.partitions().fieldCount() == 1);
         assertTrue(consumerGroupDataEx.assignments().fieldCount() == 1);
     }
@@ -4314,8 +4303,8 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetCommit()
-                .partitionId(0)
-                .partitionOffset(1L)
+                .partitionId(0, 2L)
+                .leaderEpoch(0)
                 .build()
             .build();
 
@@ -4325,8 +4314,9 @@ public class KafkaFunctionsTest
         assertEquals(KafkaApi.OFFSET_COMMIT.value(), dataEx.kind());
 
         final KafkaOffsetCommitDataExFW offsetCommitDataEx = dataEx.offsetCommit();
-        assertEquals(0, offsetCommitDataEx.partitionId());
-        assertEquals(1L, offsetCommitDataEx.partitionOffset());
+        assertEquals(0, offsetCommitDataEx.partition().partitionId());
+        assertEquals(2L, offsetCommitDataEx.partition().partitionOffset());
+        assertEquals(0, offsetCommitDataEx.leaderEpoch());
     }
 
     @Test

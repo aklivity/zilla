@@ -48,6 +48,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolationFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaNotFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
@@ -68,7 +69,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstra
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -82,7 +82,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMem
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
@@ -1798,13 +1797,6 @@ public final class KafkaFunctions
                 return new KafkaMergedProduceDataExBuilder();
             }
 
-            public KafkaMergedConsumerDataExBuilder consumer()
-            {
-                mergedDataExRW.kind(KafkaApi.CONSUMER.value());
-
-                return new KafkaMergedConsumerDataExBuilder();
-            }
-
             public final class KafkaMergedFetchDataExBuilder
             {
                 private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
@@ -2080,26 +2072,6 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedProduceDataExBuilder progress(
-                    int partitionId,
-                    long partitionOffset)
-                {
-                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
-                    return this;
-                }
-
-                public KafkaMergedProduceDataExBuilder progress(
-                    int partitionId,
-                    long partitionOffset,
-                    long latestOffset)
-                {
-                    mergedProduceDataExRW.progressItem(p -> p
-                        .partitionId(partitionId)
-                        .partitionOffset(partitionOffset)
-                        .latestOffset(latestOffset));
-                    return this;
-                }
-
                 public KafkaMergedProduceDataExBuilder key(
                     String key)
                 {
@@ -2248,48 +2220,6 @@ public final class KafkaFunctions
                 public KafkaDataExBuilder build()
                 {
                     final KafkaMergedProduceDataExFW mergedProduceDataEx = mergedProduceDataExRW.build();
-                    dataExRO.wrap(writeBuffer, 0, mergedProduceDataEx.limit());
-                    return KafkaDataExBuilder.this;
-                }
-            }
-
-            public final class KafkaMergedConsumerDataExBuilder
-            {
-                private final KafkaMergedConsumerDataExFW.Builder mergedConsumerDataExRW =
-                    new KafkaMergedConsumerDataExFW.Builder();
-
-                private KafkaMergedConsumerDataExBuilder()
-                {
-                    mergedConsumerDataExRW.wrap(
-                        writeBuffer,
-                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_PRODUCE,
-                        writeBuffer.capacity());
-                }
-
-                public KafkaMergedConsumerDataExBuilder progress(
-                    int partitionId,
-                    long partitionOffset)
-                {
-                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
-                    return this;
-                }
-
-                public KafkaMergedConsumerDataExBuilder progress(
-                    int partitionId,
-                    long partitionOffset,
-                    long latestOffset)
-                {
-                    mergedConsumerDataExRW.progress(p -> p
-                        .partitionId(partitionId)
-                        .partitionOffset(partitionOffset)
-                        .latestOffset(latestOffset));
-                    return this;
-                }
-
-
-                public KafkaDataExBuilder build()
-                {
-                    final KafkaMergedConsumerDataExFW mergedProduceDataEx = mergedConsumerDataExRW.build();
                     dataExRO.wrap(writeBuffer, 0, mergedProduceDataEx.limit());
                     return KafkaDataExBuilder.this;
                 }
@@ -2445,78 +2375,58 @@ public final class KafkaFunctions
                 consumerDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
             }
 
-            public KafkaConsumerGroupDataExBuilder group()
+            public KafkaConsumerDataExBuilder partition(
+                int partitionId)
             {
-                consumerDataExRW.kind(KafkaApi.GROUP.value());
-
-                return new KafkaConsumerGroupDataExBuilder();
+                consumerDataExRW.partitionsItem(p -> p.partitionId(partitionId));
+                return this;
             }
 
-            public final class KafkaConsumerGroupDataExBuilder
+            public KafkaConsumerAssignmentBuilder assignments()
             {
-                private final KafkaConsumerGroupDataExFW.Builder consumerGroupDataExRW = new KafkaConsumerGroupDataExFW.Builder();
+                KafkaConsumerAssignmentBuilder kafkaConsumerAssignmentBuilder = new KafkaConsumerAssignmentBuilder();
+                return kafkaConsumerAssignmentBuilder;
+            }
 
-                private KafkaConsumerGroupDataExBuilder()
+            public KafkaDataExBuilder build()
+            {
+                final KafkaConsumerDataExFW groupDataEx = consumerDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+
+            class KafkaConsumerAssignmentBuilder
+            {
+                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
+
+                KafkaConsumerAssignmentBuilder()
                 {
-                    consumerGroupDataExRW.wrap(
-                        writeBuffer,
-                        KafkaDataExFW.FIELD_OFFSET_CONSUMER + KafkaConsumerDataExFW.FIELD_OFFSET_GROUP,
-                        writeBuffer.capacity());
+                    assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
                 }
 
-                public KafkaConsumerGroupDataExBuilder partition(
-                    int partitionId)
+                public KafkaConsumerAssignmentBuilder id(
+                    String id)
                 {
-                    consumerGroupDataExRW.partitionsItem(p -> p.partitionId(partitionId));
+                    assignmentRW.consumerId(id);
                     return this;
                 }
 
-                public KafkaConsumerAssignmentBuilder assignments()
+                public KafkaConsumerAssignmentBuilder partition(
+                    int partitionId)
                 {
-                    KafkaConsumerAssignmentBuilder kafkaConsumerAssignmentBuilder = new KafkaConsumerAssignmentBuilder();
-                    return kafkaConsumerAssignmentBuilder;
+                    assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
+                    return this;
                 }
 
-                public KafkaDataExBuilder build()
+                public KafkaConsumerDataExBuilder build()
                 {
-                    final KafkaConsumerGroupDataExFW groupDataEx = consumerGroupDataExRW.build();
-                    dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
-                    return KafkaDataExBuilder.this;
-                }
+                    KafkaConsumerAssignmentFW consumer = assignmentRW.build();
+                    consumerDataExRW.assignmentsItem(a -> a
+                        .consumerId(consumer.consumerId())
+                        .partitions(consumer.partitions()));
 
-                class KafkaConsumerAssignmentBuilder
-                {
-                    private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-                    private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
-
-                    KafkaConsumerAssignmentBuilder()
-                    {
-                        assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
-                    }
-
-                    public KafkaConsumerAssignmentBuilder id(
-                        String id)
-                    {
-                        assignmentRW.consumerId(id);
-                        return this;
-                    }
-
-                    public KafkaConsumerAssignmentBuilder partition(
-                        int partitionId)
-                    {
-                        assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
-                        return this;
-                    }
-
-                    public KafkaConsumerGroupDataExBuilder build()
-                    {
-                        KafkaConsumerAssignmentFW consumer = assignmentRW.build();
-                        consumerGroupDataExRW.assignmentsItem(a -> a
-                            .consumerId(consumer.consumerId())
-                            .partitions(consumer.partitions()));
-
-                        return KafkaConsumerGroupDataExBuilder.this;
-                    }
+                    return KafkaConsumerDataExBuilder.this;
                 }
             }
         }
@@ -2559,16 +2469,17 @@ public final class KafkaFunctions
             }
 
             public KafkaOffsetCommitDataExBuilder partitionId(
-                int partitionId)
+                int partitionId,
+                long partitionOffset)
             {
-                offsetCommitDataExRW.partitionId(partitionId);
+                offsetCommitDataExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
                 return this;
             }
 
-            public KafkaOffsetCommitDataExBuilder partitionOffset(
-                long partitionId)
+            public KafkaOffsetCommitDataExBuilder leaderEpoch(
+                int leaderEpoch)
             {
-                offsetCommitDataExRW.partitionOffset(partitionId);
+                offsetCommitDataExRW.leaderEpoch(leaderEpoch);
                 return this;
             }
 
@@ -4150,7 +4061,6 @@ public final class KafkaFunctions
                 {
                     KafkaMergedProduceDataExFW produce = dataEx.merged().produce();
                     return matchPartition(produce) &&
-                        matchProgress(produce) &&
                         matchDeferred(produce) &&
                         matchTimestamp(produce) &&
                         matchKey(produce) &&
@@ -4162,12 +4072,6 @@ public final class KafkaFunctions
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return partitionRW == null || partitionRW.build().equals(mergedProduceDataEx.partition());
-                }
-
-                private boolean matchProgress(
-                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
-                {
-                    return progressRW == null || progressRW.build().equals(mergedProduceDataEx.progress());
                 }
 
                 private boolean matchDeferred(
@@ -5305,7 +5209,7 @@ public final class KafkaFunctions
             private String16FW topic;
             private String16FW groupId;
             private String16FW consumerId;
-            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
+            private Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
             private KafkaEvaluation evaluation;
@@ -5370,8 +5274,8 @@ public final class KafkaFunctions
             {
                 if (partitionsRW == null)
                 {
-                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                                                 .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetCommittedFW.Builder(),
+                        new KafkaOffsetCommittedFW()).wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
                 partitionsRW.item(i -> i
                     .partitionId(partitionId)

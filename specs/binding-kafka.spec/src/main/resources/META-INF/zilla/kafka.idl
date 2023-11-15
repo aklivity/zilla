@@ -37,8 +37,7 @@ scope kafka
 
     struct KafkaOffsetCommitted extends KafkaOffset
     {
-        int32 metadataLen;
-        octets[metadataLen] metadata = null;
+        string16 metadata = null;
     }
 
     enum KafkaTransactionResult
@@ -429,7 +428,7 @@ scope kafka
             KafkaTopicPartition[] partitions;
         }
 
-        union KafkaConsumerDataEx switch (uint8)
+        struct KafkaConsumerDataEx
         {
             KafkaTopicPartition[] partitions;
             KafkaConsumerAssignment[] assignments;
