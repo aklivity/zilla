@@ -476,45 +476,7 @@ scope protocol
                 string16 groupInstanceId = null;
                 int16 errorCode;
             }
-        }
 
-        scope offset_fetch
-        {
-            struct OffsetFetchRequest
-            {
-                string16 groupId;
-                int32 topicCount;
-            }
-
-            struct OffsetFetchTopicRequest
-            {
-                string16 topic;
-                int32 partitionsCount;
-            }
-
-            struct OffsetFetchResponse
-            {
-                int32 correlationId;
-                int32 topicCount;
-            }
-
-            struct OffsetFetchTopicResponse
-            {
-                string16 name;
-                int32 partitionCount;
-            }
-
-            struct OffsetFetchPartition
-            {
-                int32 partitionIndex;
-                int64 committedOffset;
-                string16 metadata = null;
-                int16 errorCode;
-            }
-        }
-
-        scope offset_commit
-        {
             struct OffsetCommitRequest
             {
                 string16 groupId;
@@ -553,6 +515,38 @@ scope protocol
             struct OffsetCommitResponseTopicPartition
             {
                 int32 partitionIndex;
+                int16 errorCode;
+            }
+
+            struct OffsetFetchRequest
+            {
+                string16 groupId;
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicRequest
+            {
+                string16 topic;
+                int32 partitionsCount;
+            }
+
+            struct OffsetFetchResponse
+            {
+                int32 correlationId;
+                int32 topicCount;
+            }
+
+            struct OffsetFetchTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetFetchPartition
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                string16 metadata = null;
                 int16 errorCode;
             }
         }

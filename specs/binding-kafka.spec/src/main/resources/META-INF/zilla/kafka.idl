@@ -343,6 +343,7 @@ scope kafka
         struct KafkaOffsetCommitFlushEx
         {
             KafkaOffsetCommitted partition;
+            int32 leaderEpoch;
         }
 
         struct KafkaFetchFlushEx
