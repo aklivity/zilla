@@ -49,18 +49,6 @@ bindings:
               :authority: localhost:7114
               :path: /api/*
         exit: north_rest_api_http_kafka_mapping
-      - when:
-          - headers:
-              :scheme: http
-              :authority: localhost:7114
-              :path: /iot/sse
-        exit: north_sse_server
-      - when:
-          - headers:
-              :scheme: http
-              :authority: localhost:7114
-              :path: /iot/*
-        exit: mqtt_http_kafka_proxy
     telemetry:
       metrics:
         - stream.*
@@ -173,11 +161,6 @@ bindings:
         exit: north_kafka_cache_client
         with:
           topic: events-sse
-      - when:
-          - path: /iot/sse
-        exit: north_kafka_cache_client
-        with:
-          topic: iot-messages
 
 # MQTT Server to Kafka topics
   north_mqtt_server:
@@ -250,7 +233,7 @@ bindings:
         - items-crud
         - route-guide-requests
         - route-guide-responses
-        - iot-sessions
+        - iot-messages
         - iot-retained
     exit: south_kafka_client
 
