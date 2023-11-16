@@ -29,4 +29,4 @@ bindings:
               - topic: command/two
           - subscribe:
               - topic: reply
-        exit: app1
+        exit: app0

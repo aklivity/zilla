@@ -2165,7 +2165,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
 
-            openStreams:
+            suback:
             {
                 for (Subscription subscription : subscriptions)
                 {
@@ -2181,7 +2181,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
                         decoder = decodeIgnoreAll;
-                        break openStreams;
+                        break suback;
                     }
                 }
 
