@@ -21,6 +21,7 @@ import org.agrona.collections.Int2ObjectCache;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
@@ -41,8 +42,8 @@ public abstract class AvroValidator
     protected final EncoderFactory encoder;
     protected final String subject;
     protected final String format;
-    protected DatumReader reader;
-    protected DatumWriter writer;
+    protected DatumReader<GenericRecord> reader;
+    protected DatumWriter<GenericRecord> writer;
 
     private final Int2ObjectCache<Schema> cache;
 
@@ -98,7 +99,7 @@ public abstract class AvroValidator
         boolean status = false;
         try
         {
-            reader = new GenericDatumReader(schema);
+            reader = new GenericDatumReader<>(schema);
             reader.read(null, decoder.binaryDecoder(bytes, offset, length, null));
             status = true;
         }

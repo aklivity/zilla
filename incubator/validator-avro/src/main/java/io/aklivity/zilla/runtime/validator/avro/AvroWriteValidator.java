@@ -126,9 +126,9 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try
         {
-            reader = new GenericDatumReader(schema);
+            reader = new GenericDatumReader<>(schema);
             GenericRecord genericRecord = new GenericData.Record(schema);
-            GenericRecord record = (GenericRecord) reader.read(genericRecord,
+            GenericRecord record = reader.read(genericRecord,
                     decoder.jsonDecoder(schema, new DirectBufferInputStream(buffer, index, length)));
             writer = new GenericDatumWriter<>(schema);
             BinaryEncoder binaryEncoder = encoder.binaryEncoder(outputStream, null);
