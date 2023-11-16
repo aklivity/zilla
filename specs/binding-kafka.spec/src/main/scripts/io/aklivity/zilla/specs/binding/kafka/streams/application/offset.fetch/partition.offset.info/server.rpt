@@ -14,23 +14,32 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
                                    .groupId("client-1")
-                                   .topic("test", 0)
+                                   .topic("test")
+                                   .partition(0)
                                    .build()
                                .build()}
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetFetch()
-                                 .topic("test", 0, 1, 0)
-                                 .build()
-                             .build()}
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .topic()
+                                           .name("test")
+                                           .partition(0, 2, 0, "test-meta")
+                                       .build()
+                                   .build()}
+
+write flush

@@ -378,6 +378,14 @@ scope kafka
             int32 partitionId;
         }
 
+        struct KafkaTopicPartitionOffset
+        {
+            int32 partitionId = -1;
+            int64 partitionOffset = -1;
+            int32 leaderEpoch;
+            string16 metadata;
+        }
+
         struct KafkaGroupTopicMetadata
         {
             string16 topic;
@@ -449,13 +457,14 @@ scope kafka
         struct KafkaOffsetFetchBeginEx
         {
             string16 groupId;
-            KafkaOffsetFetchTopic[] topics;
+            string16 topic;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaOffsetFetchTopicOffsets
         {
             string16 topic;
-            KafkaOffset[] offsets;
+            KafkaTopicPartitionOffset[] partitions;
         }
 
         struct KafkaOffsetFetchDataEx

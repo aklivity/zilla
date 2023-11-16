@@ -51,15 +51,15 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A1"
 write flush
 
-read zilla:flush.ext ${kafka:flushEx()
+read advised zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "test")
                                   .build()
                               .build()}
 
-write zilla:flush.ext ${kafka:flushEx()
+write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()

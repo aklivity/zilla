@@ -36,13 +36,14 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
+import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableInteger;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
@@ -84,7 +85,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCo
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicOffsetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -4184,7 +4185,8 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .offsetFetch()
             .groupId("test")
-            .topic("topic", 0)
+            .topic("topic")
+            .partition(0)
             .build()
             .build();
 
@@ -4194,9 +4196,8 @@ public class KafkaFunctionsTest
         assertEquals(KafkaApi.OFFSET_FETCH.value(), beginEx.kind());
 
         final KafkaOffsetFetchBeginExFW offsetFetchBeginEx = beginEx.offsetFetch();
-        KafkaOffsetFetchTopicFW topic = offsetFetchBeginEx.topics()
-            .matchFirst(t -> t.topic().asString().equals("topic"));
-        assertEquals(1, topic.partitions().fieldCount());
+        assertEquals("topic", offsetFetchBeginEx.topic().asString());
+        assertEquals(1, offsetFetchBeginEx.partitions().fieldCount());
     }
 
     @Test
@@ -4281,8 +4282,11 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetFetch()
-                .topic("test", 0, 1L)
+                .topic()
+                    .name("test")
+                    .partition(0, 1L, 0, "test-meta")
                 .build()
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -4291,10 +4295,9 @@ public class KafkaFunctionsTest
         assertEquals(KafkaApi.OFFSET_FETCH.value(), dataEx.kind());
 
         final KafkaOffsetFetchDataExFW offsetFetchDataEx = dataEx.offsetFetch();
-        KafkaOffsetFW offset = offsetFetchDataEx.topic().offsets().matchFirst(o -> o.partitionId() == 0);
-        assertEquals("test", offsetFetchDataEx.topic().topic().asString());
-        assertEquals(0, offset.partitionId());
-        assertEquals(1L, offset.partitionOffset());
+        KafkaOffsetFetchTopicOffsetsFW topic = offsetFetchDataEx.topic();
+        assertEquals("test", topic.topic().asString());
+        assertEquals(1, topic.partitions().fieldCount());
     }
 
     @Test

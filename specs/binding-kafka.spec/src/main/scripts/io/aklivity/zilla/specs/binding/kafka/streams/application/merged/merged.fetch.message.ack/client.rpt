@@ -44,15 +44,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #A1"
 
-write zilla:flush.ext ${kafka:flushEx()
+write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "test")
                                   .build()
                               .build()}
 
-read zilla:flush.ext ${kafka:flushEx()
+read advised zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
