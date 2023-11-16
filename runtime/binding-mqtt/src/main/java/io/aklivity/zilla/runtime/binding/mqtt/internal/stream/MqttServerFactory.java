@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.BA
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.CLIENT_IDENTIFIER_NOT_VALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.DISCONNECT_WITH_WILL_MESSAGE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.IMPLEMENTATION_SPECIFIC_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.KEEP_ALIVE_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
@@ -35,7 +36,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SH
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
@@ -1944,7 +1944,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                onDecodeError(traceId, authorization, TOPIC_NAME_INVALID);
+                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
                 decoder = decodeIgnoreAll;
             }
 
@@ -2165,38 +2165,46 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
 
-            if (!implicitSubscribe)
+            suback:
             {
-                final byte[] subscriptionPayload = new byte[subscriptions.size()];
-                for (int i = 0; i < subscriptionPayload.length; i++)
+                for (Subscription subscription : subscriptions)
                 {
-                    subscriptionPayload[i] = (byte) subscriptions.get(i).reasonCode;
+                    final MqttBindingConfig binding = bindings.get(routedId);
+                    final MqttRouteConfig resolved =
+                        binding != null ? binding.resolveSubscribe(sessionId, subscription.filter) : null;
+
+                    if (resolved != null)
+                    {
+                        subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>()).add(subscription);
+                    }
+                    else
+                    {
+                        onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
+                        decoder = decodeIgnoreAll;
+                        break suback;
+                    }
                 }
 
-                doEncodeSuback(traceId, sessionId, packetId, subscriptionPayload);
-            }
-
-            for (Subscription subscription : subscriptions)
-            {
-                final MqttBindingConfig binding = bindings.get(routedId);
-                final MqttRouteConfig resolved =
-                    binding != null ? binding.resolveSubscribe(sessionId, subscription.filter) : null;
-
-                if (resolved != null)
+                if (!implicitSubscribe)
                 {
-                    subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>()).add(subscription);
-                }
-                //TODO: unroutable
-            }
+                    final byte[] subscriptionPayload = new byte[subscriptions.size()];
+                    for (int i = 0; i < subscriptionPayload.length; i++)
+                    {
+                        subscriptionPayload[i] = (byte) subscriptions.get(i).reasonCode;
+                    }
 
-            subscriptionsByRouteId.forEach((key, value) ->
-            {
-                MqttSubscribeStream stream = subscribes.computeIfAbsent(key, s ->
-                    new MqttSubscribeStream(routedId, key, implicitSubscribe));
-                stream.packetId = packetId;
-                value.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
-                stream.doSubscribeBeginOrFlush(traceId, affinity, value);
-            });
+                    doEncodeSuback(traceId, sessionId, packetId, subscriptionPayload);
+                }
+
+                subscriptionsByRouteId.forEach((key, value) ->
+                {
+                    MqttSubscribeStream stream = subscribes.computeIfAbsent(key, s ->
+                        new MqttSubscribeStream(routedId, key, implicitSubscribe));
+                    stream.packetId = packetId;
+                    value.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
+                    stream.doSubscribeBeginOrFlush(traceId, affinity, value);
+                });
+            }
         }
 
         private void onDecodeUnsubscribe(
@@ -3927,7 +3935,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!MqttState.initialOpened(state))
                 {
-                    onDecodeError(traceId, authorization, TOPIC_NAME_INVALID);
+                    onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
                     decoder = decodeIgnoreAll;
                 }
 
@@ -4352,12 +4360,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
 
-                //TODO: can this happen that the server sends a reset, before suback?
-                //                if (!MqttState.initialOpened(state))
-                //                {
-                //                    subscription.onSubscribeFailed(traceId, authorization, packetId, subackIndex);
-                //                }
-
+                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
+                decoder = decodeIgnoreAll;
                 decodeNetwork(traceId);
                 cleanupAbort(traceId);
             }

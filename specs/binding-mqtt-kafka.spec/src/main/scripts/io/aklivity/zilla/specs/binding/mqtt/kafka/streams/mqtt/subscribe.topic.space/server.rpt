@@ -69,3 +69,6 @@ write zilla:data.ext ${mqtt:dataEx()
                            .build()}
 write "Hi, world"
 write flush
+
+
+rejected

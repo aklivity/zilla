@@ -48,7 +48,6 @@ public class SessionIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
-        .external("app1")
         .clean();
 
     @Rule

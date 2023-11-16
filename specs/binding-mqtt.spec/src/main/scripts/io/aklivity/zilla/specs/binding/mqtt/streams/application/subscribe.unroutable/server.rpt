@@ -51,61 +51,13 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("reply", 1)
+               .subscription("error", 1)
                .build()}
 
 write ${mqtt:session()
-               .subscription("reply", 1)
+               .subscription("error", 1)
                .build()}
 write flush
 
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client")
-                                .filter("reply", 1)
-                                .build()
-                             .build()}
-
-connected
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("command/one")
-                                .build()
-                             .build()}
-
-connected
-
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .build()
-                            .build()}
-read "message1"
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("command/two")
-                                .build()
-                             .build()}
-
-connected
-
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .build()
-                            .build()}
-read "message2"
+read aborted
 
