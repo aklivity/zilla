@@ -49,26 +49,22 @@ public abstract class ConfigGenerator
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String APPLICATION_JSON = "application/json";
     protected static final String VERSION_LATEST = "latest";
-    protected static final Matcher JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$").matcher("");
+    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
     protected final Map<String, ValidatorConfig> validators = Map.of(
         "string", StringValidatorConfig.builder().build(),
         "integer", IntegerValidatorConfig.builder().build()
     );
+    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
     protected AsyncApi asyncApi;
 
     public abstract String generate();
 
-    protected boolean jsonContentType()
+    protected boolean hasJsonContentType()
     {
-        boolean result = false;
         String contentType = resolveContentType();
-        if (contentType != null)
-        {
-            result = JSON_CONTENT_TYPE.reset(contentType).matches();
-        }
-        return result;
+        return contentType != null && jsonContentType.reset(contentType).matches();
     }
 
     private String resolveContentType()

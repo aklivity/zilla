@@ -242,7 +242,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
         {
             String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
             Map<String, Message> messages = channelEntry.getValue().messages;
-            if (jsonContentType())
+            if (hasJsonContentType())
             {
                 binding
                     .options(MqttOptionsConfig::builder)

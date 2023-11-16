@@ -353,7 +353,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         if (messages != null)
         {
-            if (jsonContentType())
+            if (hasJsonContentType())
             {
                 request.
                     content(JsonValidatorConfig::builder)
