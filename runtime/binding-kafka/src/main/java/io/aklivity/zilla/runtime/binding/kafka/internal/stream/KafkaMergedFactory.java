@@ -20,7 +20,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabi
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW.Builder.DEFAULT_MINIMUM;
-import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1044,7 +1044,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private int nextNullKeyHashData;
         private int nextNullKeyHashFlush;
         private int fetchStreamIndex;
-        private long mergedReplyBudgetId = NO_CREDITOR_INDEX;
+        private long mergedReplyBudgetId = NO_BUDGET_ID;
 
         private KafkaUnmergedConsumerStream consumerStream;
         private KafkaUnmergedProduceStream producer;
@@ -1431,13 +1431,13 @@ public final class KafkaMergedFactory implements BindingHandler
             if (KafkaState.replyOpening(state))
             {
                 state = KafkaState.openedReply(state);
-                if (mergedReplyBudgetId == NO_CREDITOR_INDEX)
+                if (mergedReplyBudgetId == NO_BUDGET_ID)
                 {
                     mergedReplyBudgetId = creditor.acquire(replyId, budgetId);
                 }
             }
 
-            if (mergedReplyBudgetId != NO_CREDITOR_INDEX)
+            if (mergedReplyBudgetId != NO_BUDGET_ID)
             {
                 creditor.credit(traceId, mergedReplyBudgetId, credit);
             }
@@ -1510,7 +1510,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (!KafkaState.replyOpened(state) && replyBudget > 0)
             {
                 state = KafkaState.openedReply(state);
-                if (mergedReplyBudgetId == NO_CREDITOR_INDEX)
+                if (mergedReplyBudgetId == NO_BUDGET_ID)
                 {
                     mergedReplyBudgetId = creditor.acquire(replyId, replyBudgetId);
                     creditor.credit(traceId, mergedReplyBudgetId, replyBudget);
@@ -1791,10 +1791,10 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void cleanupBudgetCreditorIfNecessary()
         {
-            if (mergedReplyBudgetId != NO_CREDITOR_INDEX)
+            if (mergedReplyBudgetId != NO_BUDGET_ID)
             {
                 creditor.release(mergedReplyBudgetId);
-                mergedReplyBudgetId = NO_CREDITOR_INDEX;
+                mergedReplyBudgetId = NO_BUDGET_ID;
             }
         }
 
