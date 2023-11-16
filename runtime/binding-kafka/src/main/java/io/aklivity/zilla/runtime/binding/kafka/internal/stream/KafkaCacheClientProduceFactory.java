@@ -192,7 +192,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.initialBudgetMax = bufferPool.slotCapacity();
         this.localIndex = context.index();
         this.cleanupDelay = config.cacheClientCleanupDelay();
-        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer());
+        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
         this.trailersSizeMax = config.cacheClientTrailersSizeMax();
         this.reconnectDelay = config.cacheServerReconnect();
     }
@@ -702,8 +702,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                     final long keyHash = partition.computeKeyHash(key);
                     if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
-                        stream.position, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
-                        headers, trailersSizeMax, validateKey) == -1)
+                        stream.valueLimit, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
+                        headers, trailersSizeMax, validateKey, validateValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
                         break init;
@@ -719,8 +719,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                if (partition.writeProduceEntryContinue(
-                    flags, stream.segment, stream.valueMark, stream.position, valueFragment, validateValue) == -1)
+                if (partition.writeProduceEntryContinue(flags, stream.segment,
+                        stream.entryMark, stream.valueMark, stream.valueLimit,
+                        valueFragment, validateValue) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -744,7 +745,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     }
                 }
 
-                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
                 flushClientFanInitialIfNecessary(traceId);
             }
 
@@ -1151,8 +1152,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     {
         private final KafkaCacheCursor cursor;
         private final MutableInteger entryMark;
+        private final MutableInteger valueLimit;
         private final MutableInteger valueMark;
-        private final MutableInteger position;
         private final KafkaCacheClientProduceFan fan;
         private final MessageConsumer sender;
         private final long originId;
@@ -1193,7 +1194,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         KafkaDeltaType.NONE);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
-            this.position = new MutableInteger(0);
+            this.valueLimit = new MutableInteger(0);
             this.fan = fan;
             this.sender = sender;
             this.originId = originId;
