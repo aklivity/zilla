@@ -19,6 +19,7 @@ import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.Map;
+import java.util.Optional;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -34,7 +35,9 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Schema;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -45,7 +48,17 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
 
     protected String resolveContentType()
     {
-        return ""; // TODO: Ati
+        String contentType = null;
+        if (MapUtils.isNotEmpty(openApi.paths))
+        {
+            PathView path = PathView.of(openApi.paths.entrySet().stream().findFirst().get().getValue());
+            Optional<Operation> operation = path.methods().values().stream().filter(o -> o.requestBody != null).findFirst();
+            if (operation.isPresent())
+            {
+                contentType = operation.get().requestBody.content.keySet().stream().findFirst().orElse(null);
+            }
+        }
+        return contentType;
     }
 
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(

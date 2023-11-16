@@ -35,6 +35,7 @@ import jakarta.json.bind.JsonbBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -186,6 +187,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                         .policy(CROSS_ORIGIN)
                         .build()
                     .inject(this::injectHttpServerOptions)
+                    .inject(this::injectHttpServerRequests)
                     .build()
                 .inject(this::injectHttpServerRoutes)
                 .build()
@@ -265,8 +267,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return namespace;
     }
 
-    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerOptions(
-        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
+        HttpOptionsConfigBuilder<C> options)
     {
         if (isJwtEnabled)
         {
@@ -282,6 +284,29 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                 .build();
         }
         return options;
+    }
+
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
+        HttpOptionsConfigBuilder<C> options)
+    {
+        for (String pathName : openApi.paths.keySet())
+        {
+            PathView path = PathView.of(openApi.paths.get(pathName));
+            for (String methodName : path.methods().keySet())
+            {
+                if (hasJsonContentType()) // TODO: Ati
+                {
+                    options
+                        .request()
+                            .path(pathName)
+                            .method(HttpRequestConfig.Method.valueOf(methodName))
+                            //.inject(request -> injectContent(request, channel.messages()))
+                            //.inject(request -> injectPathParams(request, channel.parameters()))
+                            .build();
+                }
+            }
+        }
+        return options; // TODO: Ati
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(

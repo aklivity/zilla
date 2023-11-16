@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
 
-import java.util.List;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
-public class Operation
+public class RequestBody
 {
-    public List<Map<String, List<String>>> security;
-    public RequestBody requestBody;
+    public LinkedHashMap<String, MediaType> content;
 }
