@@ -194,7 +194,7 @@ The previous asynchronous request will complete with `200 OK` if done within `60
 < HTTP/1.1 202 Accepted
 < Content-Length: 0
 < Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8
-< 
+<
 * Connection #0 to host localhost left intact
 ```
 

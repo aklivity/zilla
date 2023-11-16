@@ -14,14 +14,14 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 
+      port:
         - 7143
         - 7114
     routes:
         - when:
             - port: 7143
           exit: north_tls_server
-        - when: 
+        - when:
             - port: 7114
           exit: north_http_server
   north_tls_server:
@@ -42,9 +42,11 @@ bindings:
           - headers:
               :scheme: http
               :authority: localhost:7114
+              upgrade: websocket
           - headers:
               :scheme: https
               :authority: localhost:7143
+              upgrade: websocket
         exit: north_ws_server
   north_ws_server:
     type: ws

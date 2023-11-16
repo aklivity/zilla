@@ -6,6 +6,8 @@ services:
     pull_policy: always
     restart: unless-stopped
     ports:
+      - 7114:7114
+      - 7143:7143
       - 7183:7183
       - 7883:7883
     environment:

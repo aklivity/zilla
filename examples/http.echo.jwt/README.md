@@ -86,7 +86,7 @@ The request is rejected as expected, and without leaking any information about f
 ```
 < HTTP/1.1 404 Not Found
 < Connection: close
-< 
+<
 ```
 
 Create a token with the `echo:stream` scope.

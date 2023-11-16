@@ -13,6 +13,10 @@ readinessProbePort: 7183
 
 service:
   ports:
+    - port: 7114
+      name: http
+    - port: 7143
+      name: https
     - port: 7183
       name: mqtt
     - port: 7883

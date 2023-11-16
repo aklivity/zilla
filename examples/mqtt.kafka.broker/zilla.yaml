@@ -1,24 +1,33 @@
 ---
 name: zilla-mqtt-kafka-broker
 bindings:
-
-# Proxy service entrypoint
+  # Proxy service entrypoint
   north_tcp_server:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
-      port: 
+      port:
+        - 7114
+        - 7143
         - 7183
         - 7883
     routes:
-        - when: 
-            - port: 7183
-          exit: north_mqtt_server
-        - when:
-            - port: 7883
-          exit: north_tls_server
-  north_tls_server:
+      - when:
+          - port: 7114
+        exit: north_http_server
+      - when:
+          - port: 7143
+        exit: north_wss_tls_server
+      - when:
+          - port: 7183
+        exit: north_mqtt_server
+      - when:
+          - port: 7883
+        exit: north_mqtts_tls_server
+
+  # TLS decrypting
+  north_mqtts_tls_server:
     type: tls
     kind: server
     vault: my_servers
@@ -28,12 +37,47 @@ bindings:
       sni:
         - localhost
     exit: north_mqtt_server
+  north_wss_tls_server:
+    type: tls
+    kind: server
+    vault: my_servers
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+    exit: north_http_server
+
+  # WebSocket server
+  north_http_server:
+    type: http
+    kind: server
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:7114
+              upgrade: websocket
+          - headers:
+              :scheme: https
+              :authority: localhost:7143
+              upgrade: websocket
+        exit: north_ws_server
+  north_ws_server:
+    type: ws
+    kind: server
+    routes:
+      - when:
+          - protocol: mqtt
+        exit: north_mqtt_server
+
+  # Shared MQTT server
   north_mqtt_server:
     type: mqtt
     kind: server
     exit: north_mqtt_kafka_mapping
 
-# MQTT messages to Kafka topics
+  # MQTT messages to Kafka topics
   north_mqtt_kafka_mapping:
     type: mqtt-kafka
     kind: proxy
@@ -43,9 +87,22 @@ bindings:
         sessions: mqtt-sessions
         messages: mqtt-messages
         retained: mqtt-retained
+    clients:
+      - place/{identity}/#
+    routes:
+      - when:
+          - publish:
+              - topic: place/+/device/#
+              - topic: device/#
+          - subscribe:
+              - topic: place/+/device/#
+              - topic: device/#
+        with:
+          messages: mqtt-devices
+        exit: north_kafka_cache_client
     exit: north_kafka_cache_client
 
-# Kafka sync layer
+  # Kafka sync layer
   north_kafka_cache_client:
     type: kafka
     kind: cache_client
@@ -57,9 +114,10 @@ bindings:
       bootstrap:
         - mqtt-messages
         - mqtt-retained
+        - mqtt-devices
     exit: south_kafka_client
 
-# Connect to Kafka
+  # Connect to Kafka
   south_kafka_client:
     type: kafka
     kind: client

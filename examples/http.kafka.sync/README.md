@@ -154,9 +154,9 @@ The previous `PUT` request will complete.
 ```text
 < HTTP/1.1 200 OK
 < Content-Length: 56
-< 
+<
 * Connection #0 to host localhost left intact
-{"greeting":"Hello, world Thu Oct 26 13:18:18 EDT 2023"}%  
+{"greeting":"Hello, world Thu Oct 26 13:18:18 EDT 2023"}% 
 ```
 
 Verify the response via the kafka `items-responses` topic.

@@ -32,7 +32,7 @@ The `setup.sh` script:
 - starts port forwarding
 
 ```bash
-./setup.sh 
+./setup.sh
 ```
 
 ```text

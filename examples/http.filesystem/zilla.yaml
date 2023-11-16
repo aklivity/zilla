@@ -14,11 +14,11 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 
+      port:
         - 7114
         - 7143
     routes:
-        - when: 
+        - when:
             - port: 7114
           exit: north_http_server
         - when:

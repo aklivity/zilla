@@ -14,14 +14,14 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 
+      port:
         - 7144
         - 7115
     routes:
         - when:
             - port: 7144
           exit: north_tls_server
-        - when: 
+        - when:
             - port: 7115
           exit: north_http_server
   north_tls_server:

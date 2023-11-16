@@ -10,10 +10,10 @@ fi
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 NAMESPACE=zilla-mqtt-kafka-broker
 ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-echo "Installing $ZILLA_CHART to $NAMESPACE"
+echo "Installing $ZILLA_CHART to $NAMESPACE with Kafka at $KAFKA_HOST:$KAFKA_PORT"
 helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
-    --set extraEnv[1].value="$KAFKA_HOST",extraEnv[2].value="$KAFKA_PORT" \
+    --set extraEnv[1].value="\"$KAFKA_HOST\"",extraEnv[2].value="\"$KAFKA_PORT\"" \
     --set-file zilla\\.yaml=../../zilla.yaml \
     --set-file secrets.tls.data.localhost\\.p12=../../tls/localhost.p12
 
@@ -22,6 +22,7 @@ kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm
 echo 'Creating topics for $KAFKA_HOST:$KAFKA_PORT'
 /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-sessions
 /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-messages --config cleanup.policy=compact
+/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-devices --config cleanup.policy=compact
 /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-retained --config cleanup.policy=compact
 "
 kubectl wait --namespace $NAMESPACE --for=delete pod/kafka-init-pod
