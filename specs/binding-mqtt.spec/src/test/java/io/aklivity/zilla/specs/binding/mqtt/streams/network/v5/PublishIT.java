@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class PublishIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

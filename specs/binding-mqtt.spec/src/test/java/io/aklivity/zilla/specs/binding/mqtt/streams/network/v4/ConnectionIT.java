@@ -18,7 +18,6 @@ package io.aklivity.zilla.specs.binding.mqtt.streams.network.v4;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -96,6 +95,15 @@ public class ConnectionIT
         "${net}/connect.reject.missing.client.id/client",
         "${net}/connect.reject.missing.client.id/server"})
     public void shouldRejectMissingClientId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.no.client.id.no.clean.session/client",
+        "${net}/connect.reject.no.client.id.no.clean.session/server"})
+    public void shouldRejectNoClientIdNoCleanSession() throws Exception
     {
         k3po.finish();
     }
@@ -269,9 +277,9 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.subscribe.unfragmented/client",
-        "${net}/connect.subscribe.unfragmented/server"})
-    public void shouldConnectAndSubscribeUnfragmented() throws Exception
+        "${net}/connect.subscribe.false.start/client",
+        "${net}/connect.subscribe.false.start/server"})
+    public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
         k3po.finish();
     }
@@ -290,6 +298,15 @@ public class ConnectionIT
         "${net}/connect.non.successful.connack/client",
         "${net}/connect.non.successful.connack/server"})
     public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/close.network.after.keep.alive.timeout/client",
+        "${net}/close.network.after.keep.alive.timeout/server"})
+    public void shouldCloseNetworkKeepAliveTimeouts() throws Exception
     {
         k3po.finish();
     }

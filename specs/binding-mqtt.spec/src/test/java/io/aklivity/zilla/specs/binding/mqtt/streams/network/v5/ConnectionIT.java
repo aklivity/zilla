@@ -30,7 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class ConnectionIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -412,9 +412,9 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.subscribe.unfragmented/client",
-        "${net}/connect.subscribe.unfragmented/server"})
-    public void shouldConnectAndSubscribeUnfragmented() throws Exception
+        "${net}/connect.subscribe.false.start/client",
+        "${net}/connect.subscribe.false.start/server"})
+    public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
         k3po.finish();
     }

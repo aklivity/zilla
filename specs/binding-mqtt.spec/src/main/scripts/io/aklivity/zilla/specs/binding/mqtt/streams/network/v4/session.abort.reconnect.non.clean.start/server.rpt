@@ -14,47 +14,52 @@
 # under the License.
 #
 
-connect "zilla://streams/net0"
-   option zilla:window 8192
-   option zilla:transmission "duplex"
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
+accepted
 connected
 
-write [0x10 0x13]                    # CONNECT
+read  [0x10 0x12]                    # CONNECT
       [0x00 0x04] "MQTT"             # protocol name
-      [0x05]                         # protocol version
+      [0x04]                         # protocol version
       [0x02]                         # flags = clean start
       [0x00 0x3c]                    # keep alive = 60s
-      [0x00]                         # properties = none
       [0x00 0x06] "client"           # client id
 
-read  [0x20 0x08]                    # CONNACK
+write [0x20 0x02]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
-      [0x05]                         # properties
-      [0x27] 66560                   # maximum packet size = 66560
 
-write [0x82 0x10]                    # SUBSCRIBE
+read  [0x82 0x0f]                    # SUBSCRIBE
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # properties
       [0x00 0x0a] "sensor/one"       # topic filter
-      [0x20]                         # options = at-most-once
+      [0x00]                         # options = at-most-once
 
-read  [0x90 0x04]                    # SUBACK
+write [0x90 0x03]                    # SUBACK
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # properties = none
       [0x00]                         # reason code
 
-write [0x30 0x16]                    # PUBLISH
-      [0x00 0x0a] "sensor/one"       # topic name
-      [0x02]                         # properties
-      [0x01 0x01]                    # format = utf-8
-      "message"                      # payload
+read aborted
+write abort
 
-read  [0x30 0x18]                    # PUBLISH
+
+accepted
+connected
+
+read [0x10 0x12]                    # CONNECT
+      [0x00 0x04] "MQTT"             # protocol name
+      [0x04]                         # protocol version
+      [0x02]                         # flags = clean start
+      [0x00 0x3c]                    # keep alive = 60s
+      [0x00 0x06] "client"           # client id
+
+write [0x20 0x02]                    # CONNACK
+      [0x00]                         # flags = none
+      [0x00]                         # reason code
+
+write [0x30 0x13]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x04]                         # properties
-      [0x0b 0x01]                    # subscription id = 1
-      [0x01 0x01]                    # format = utf-8
       "message"                      # payload

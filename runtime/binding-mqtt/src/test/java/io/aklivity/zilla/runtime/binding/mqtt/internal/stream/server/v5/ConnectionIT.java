@@ -442,9 +442,9 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.subscribe.unfragmented/client",
+        "${net}/connect.subscribe.false.start/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    public void shouldConnectAndSubscribeUnfragmented() throws Exception
+    public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
         k3po.finish();
     }
