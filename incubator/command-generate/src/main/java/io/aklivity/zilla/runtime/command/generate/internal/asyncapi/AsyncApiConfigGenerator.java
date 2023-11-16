@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncA
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Schema;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.SchemaView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
@@ -86,10 +87,11 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
                 .build();
             for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
             {
+                SchemaView schema = SchemaView.of(asyncApi.components.schemas, entry.getValue());
                 subjects
                     .subject(entry.getKey())
                         .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, entry.getValue()))
+                        .schema(writeSchemaYaml(jsonb, yaml, schema))
                         .build();
             }
         }
@@ -103,7 +105,7 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
     protected static String writeSchemaYaml(
         Jsonb jsonb,
         YAMLMapper yaml,
-        Schema schema)
+        SchemaView schema)
     {
         String result = null;
         try
