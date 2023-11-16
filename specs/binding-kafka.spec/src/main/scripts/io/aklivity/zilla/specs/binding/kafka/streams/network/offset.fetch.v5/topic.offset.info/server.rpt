@@ -36,15 +36,15 @@ read  38                                # size
         1                               # partitions
           0                             # partition
 
-write 46                                 # size
+write 57                                 # size
       ${newRequestId}
       0                                  # throttle time ms
       1                                  # topics
         4s "test"                          # "test" topic
         1                                  # partitions
           0                                   # partition index
-          1L                                  # committed offset
+          2L                                  # committed offset
           0                                   # committed leader epoch
-          -1s                                 # metadata
+          9s "test-meta"                      # metadata
           0s                                  # no error
       0                                  # error code

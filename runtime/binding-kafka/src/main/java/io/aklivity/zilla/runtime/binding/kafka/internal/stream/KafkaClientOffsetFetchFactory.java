@@ -18,15 +18,14 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.IntHashSet;
 import org.agrona.collections.LongLongConsumer;
+import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -38,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchErrorFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchResponseFW;
@@ -62,7 +62,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-
 public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
@@ -74,7 +73,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final short OFFSET_FETCH_API_KEY = 9;
-    private static final short OFFSET_FETCH_API_VERSION = 0;
+    private static final short OFFSET_FETCH_API_VERSION = 5;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -105,6 +104,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final OffsetFetchResponseFW offsetFetchResponseRO = new OffsetFetchResponseFW();
     private final OffsetFetchTopicResponseFW offsetFetchTopicResponseRO = new OffsetFetchTopicResponseFW();
     private final OffsetFetchPartitionFW offsetFetchPartitionRO = new OffsetFetchPartitionFW();
+    private final OffsetFetchErrorFW offsetFetchErrorRO = new OffsetFetchErrorFW();
 
     private final KafkaOffsetFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaOffsetFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -117,6 +117,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final KafkaOffsetFetchClientDecoder decodeOffsetFetchTopic = this::decodeOffsetFetchTopic;
     private final KafkaOffsetFetchClientDecoder decodeOffsetFetchPartitions = this::decodeOffsetFetchPartitions;
     private final KafkaOffsetFetchClientDecoder decodeOffsetFetchPartition = this::decodeOffsetFetchPartition;
+    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchError = this::decodeOffsetFetchError;
 
     private final KafkaOffsetFetchClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaOffsetFetchClientDecoder decodeReject = this::decodeReject;
@@ -171,14 +172,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_FETCH;
         final KafkaOffsetFetchBeginExFW kafkaOffsetFetchBeginEx = kafkaBeginEx.offsetFetch();
         final String groupId = kafkaOffsetFetchBeginEx.groupId().asString();
-        List<KafkaOffsetFetchTopic> topics = new ArrayList<>();
-        kafkaOffsetFetchBeginEx.topics().forEach(t ->
-        {
-            List<Integer> partitions = new ArrayList<>();
-            t.partitions().forEach(p -> partitions.add(p.partitionId()));
-            topics.add(new KafkaOffsetFetchTopic(t.topic().asString(), partitions));
-        });
-
+        final String topic = kafkaOffsetFetchBeginEx.topic().asString();
+        IntHashSet partitions = new IntHashSet();
+        kafkaOffsetFetchBeginEx.partitions().forEach(p -> partitions.add(p.partitionId()));
 
         MessageConsumer newStream = null;
 
@@ -199,7 +195,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                     affinity,
                     resolvedId,
                     groupId,
-                    topics,
+                    topic,
+                    partitions,
                     sasl)::onApplication;
         }
 
@@ -304,7 +301,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-    private void doDataNull(
+    private void doData(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -316,21 +313,25 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         long authorization,
         long budgetId,
         int reserved,
+        DirectBuffer payload,
+        int offset,
+        int length,
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .payload(payload, offset, length)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
@@ -517,9 +518,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     {
         if (client.decodeableTopics == 0)
         {
-            assert client.decodeableResponseBytes == 0;
-
-            client.decoder = decodeOffsetFetchResponse;
+            client.decoder = decodeOffsetFetchError;
         }
         else
         {
@@ -553,7 +552,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             final String topic = topicOffsetFetch.name().asString();
 
-            client.onDecodeTopic(traceId, authorization, topic);
+            client.onDecodeTopic(topic);
 
             progress = topicOffsetFetch.limit();
 
@@ -616,11 +615,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 break decode;
             }
 
-            final int partitionError = partition.errorCode();
-            final int partitionId = partition.partitionIndex();
-            final long offsetCommitted = partition.committedOffset();
-
-            client.onDecodePartition(traceId, partitionId, offsetCommitted, partitionError);
+            client.onDecodePartition(partition);
 
             progress = partition.limit();
 
@@ -631,6 +626,47 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             assert client.decodeablePartitions >= 0;
 
             client.decoder = decodeOffsetFetchPartitions;
+        }
+
+        return progress;
+    }
+
+    private int decodeOffsetFetchError(
+        KafkaOffsetFetchStream.KafkaOffsetFetchClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final OffsetFetchErrorFW error = offsetFetchErrorRO.tryWrap(buffer, progress, limit);
+
+            if (error == null)
+            {
+                break decode;
+            }
+
+            progress = error.limit();
+
+            if (error.code() == ERROR_NONE)
+            {
+                client.decodeableResponseBytes -= error.sizeof();
+                assert client.decodeableResponseBytes >= 0;
+
+                client.decoder = decodeOffsetFetchResponse;
+            }
+            else
+            {
+                client.decoder = decodeReject;
+            }
         }
 
         return progress;
@@ -675,7 +711,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         private final long replyId;
         private final long affinity;
         private final KafkaOffsetFetchClient client;
-        private final KafkaClientRoute clientRoute;
 
         private int state;
 
@@ -698,7 +733,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long affinity,
             long resolvedId,
             String groupId,
-            List<KafkaOffsetFetchTopic> topics,
+            String topic,
+            IntHashSet partitions,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -707,8 +743,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaOffsetFetchClient(routedId, resolvedId, groupId, topics, sasl);
+            this.client = new KafkaOffsetFetchClient(routedId, resolvedId, groupId, topic, partitions, sasl);
         }
 
         private void onApplication(
@@ -852,8 +887,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         {
             final int reserved = replyPad;
 
-            doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, extension);
+            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, replyBudgetId, reserved, EMPTY_BUFFER, 0, 0,
+                extension);
 
             replySeq += reserved;
 
@@ -864,7 +900,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
             doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
@@ -873,7 +908,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
@@ -958,8 +992,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             private final LongLongConsumer encodeOffsetFetchRequest = this::doEncodeOffsetFetchRequest;
 
             private final String groupId;
-            private final List<KafkaOffsetFetchTopic> topics;
-            private final Int2ObjectHashMap<Long> topicPartitions;
+            private final String topic;
+            private final IntHashSet partitions;
+            private final ObjectHashSet<PartitionOffset> topicPartitions;
             private String newTopic;
 
             private MessageConsumer network;
@@ -996,13 +1031,15 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 long originId,
                 long routedId,
                 String groupId,
-                List<KafkaOffsetFetchTopic> topics,
+                String topic,
+                IntHashSet partitions,
                 KafkaSaslConfig sasl)
             {
                 super(sasl, originId, routedId);
                 this.groupId = requireNonNull(groupId);
-                this.topics = topics;
-                this.topicPartitions = new Int2ObjectHashMap<>();
+                this.topic = topic;
+                this.partitions = partitions;
+                this.topicPartitions = new ObjectHashSet<>();
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeOffsetFetchRequest;
                 this.decoder = decodeReject;
@@ -1333,29 +1370,26 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 final OffsetFetchRequestFW offsetFetchRequest =
                         offsetFetchRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                             .groupId(groupId)
-                            .topicCount(topics.size())
+                            .topicCount(1)
                             .build();
 
                 encodeProgress = offsetFetchRequest.limit();
 
-                for (KafkaOffsetFetchTopic topic: topics)
+
+                final OffsetFetchTopicRequestFW offsetFetchTopicRequest =
+                    offsetFetchTopicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .topic(topic)
+                        .partitionsCount(partitions.size())
+                        .build();
+                encodeProgress = offsetFetchTopicRequest.limit();
+
+                for (Integer partition : partitions)
                 {
-                    final OffsetFetchTopicRequestFW offsetFetchTopicRequest =
-                        offsetFetchTopicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                            .topic(topic.topic)
-                            .partitionsCount(topic.partitions.size())
-                            .build();
-                    encodeProgress = offsetFetchTopicRequest.limit();
-
-                    for (Integer partition : topic.partitions)
-                    {
-                        final PartitionIndexFW partitionIndex =
-                            partitionIndexRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                    .index(partition)
-                                    .build();
-                        encodeProgress = partitionIndex.limit();
-                    }
-
+                    final PartitionIndexFW partitionIndex =
+                        partitionIndexRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                                .index(partition)
+                                .build();
+                    encodeProgress = partitionIndex.limit();
                 }
 
                 final int requestId = nextRequestId++;
@@ -1575,10 +1609,12 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                     .offsetFetch(m ->
                         m.topic(t ->
                             t.topic(newTopic)
-                             .offsets(o -> topicPartitions.forEach((k, v) ->
+                             .partitions(o -> topicPartitions.forEach(tp ->
                                 o.item(to -> to
-                                    .partitionId(k)
-                                    .partitionOffset(v)
+                                    .partitionId(tp.partitionId)
+                                    .partitionOffset(tp.partitionOffset)
+                                    .leaderEpoch(tp.leaderEpoch)
+                                    .metadata(tp.metadata)
                                 )))))
                     .build();
 
@@ -1588,22 +1624,21 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             }
 
             public void onDecodeTopic(
-                long traceId,
-                long authorization,
                 String topic)
             {
                 newTopic = topic;
             }
 
             public void onDecodePartition(
-                long traceId,
-                int partitionId,
-                long offsetCommitted,
-                int partitionError)
+                OffsetFetchPartitionFW partition)
             {
-                if (partitionError == ERROR_NONE)
+                if (partition.errorCode() == ERROR_NONE)
                 {
-                    topicPartitions.put(partitionId, (Long) offsetCommitted);
+                    topicPartitions.add(new PartitionOffset(
+                        partition.partitionIndex(),
+                        partition.committedOffset(),
+                        partition.committedLeaderEpoch(),
+                        partition.metadata().asString()));
                 }
             }
 
@@ -1640,5 +1675,23 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         }
     }
 
+    private final class PartitionOffset
+    {
+        public final int partitionId;
+        public final long partitionOffset;
+        public final int leaderEpoch;
+        public final String metadata;
 
+        private PartitionOffset(
+            int partitionId,
+            long partitionOffset,
+            int leaderEpoch,
+            String metadata)
+        {
+            this.partitionId = partitionId;
+            this.partitionOffset = partitionOffset;
+            this.leaderEpoch = leaderEpoch;
+            this.metadata = metadata;
+        }
+    }
 }

@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class ClientOffsetFetchIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/offset.fetch.v0")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/offset.fetch.v5")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/offset.fetch");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
@@ -51,7 +51,7 @@ public class ClientOffsetFetchIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/partition.offset/client",
+        "${app}/topic.offset.info/client",
         "${net}/topic.offset.info/server"})
     public void shouldFetchPartitionLastCommittedOffset() throws Exception
     {

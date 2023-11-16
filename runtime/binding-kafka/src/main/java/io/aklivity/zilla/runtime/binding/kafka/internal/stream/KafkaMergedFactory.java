@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaNotFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
@@ -81,8 +82,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFetchD
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
@@ -221,9 +222,9 @@ public final class KafkaMergedFactory implements BindingHandler
         if (binding != null)
         {
             final long resolvedId = routedId;
-            final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
+            final ArrayFW<KafkaOffsetCommittedFW> partitions = kafkaMergedBeginEx.partitions();
 
-            final KafkaOffsetFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
+            final KafkaOffsetCommittedFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
             final long defaultOffset = partition != null ? partition.partitionOffset() : HISTORICAL.value();
 
             final Long2LongHashMap initialOffsetsById = new Long2LongHashMap(-3L);
@@ -1162,7 +1163,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
             final Array32FW<KafkaFilterFW> filters = mergedBeginEx.filters();
 
-            this.maximumOffset = asMaximumOffset(mergedBeginEx.partitions());
+            this.maximumOffset = asMaximumBeginOffset(mergedBeginEx.partitions());
             this.filters = asMergedFilters(filters);
             this.evaluation = mergedBeginEx.evaluation();
             this.groupId = mergedBeginEx.groupId().asString();
@@ -1216,10 +1217,10 @@ public final class KafkaMergedFactory implements BindingHandler
 
                     assert kafkaDataEx != null;
                     assert kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED;
-                    final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                    final KafkaKeyFW key = kafkaMergedDataEx.key();
-                    final KafkaKeyFW hashKey = kafkaMergedDataEx.hashKey();
-                    final KafkaOffsetFW partition = kafkaMergedDataEx.partition();
+                    KafkaMergedProduceDataExFW produce = kafkaDataEx.merged().produce();
+                    final KafkaKeyFW key = produce.key();
+                    final KafkaKeyFW hashKey = produce.hashKey();
+                    final KafkaOffsetFW partition = produce.partition();
                     final int partitionId = partition.partitionId();
                     final int nextPartitionId = partitionId == DYNAMIC_PARTITION ? nextPartitionData(hashKey, key) : partitionId;
 
@@ -1253,7 +1254,14 @@ public final class KafkaMergedFactory implements BindingHandler
             }
         }
 
-        private KafkaOffsetType asMaximumOffset(
+        private KafkaOffsetType asMaximumBeginOffset(
+            Array32FW<KafkaOffsetCommittedFW> partitions)
+        {
+            return partitions.isEmpty() ||
+                partitions.anyMatch(p -> p.latestOffset() != HISTORICAL.value()) ? LIVE : HISTORICAL;
+        }
+
+        private KafkaOffsetType asMaximumFlushOffset(
             Array32FW<KafkaOffsetFW> partitions)
         {
             return partitions.isEmpty() ||
@@ -1341,7 +1349,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             if (capabilities != newCapabilities)
             {
-                this.maximumOffset = asMaximumOffset(kafkaMergedFlushEx.fetch().progress());
+                this.maximumOffset = asMaximumFlushOffset(kafkaMergedFlushEx.fetch().progress());
 
                 if (hasFetchCapability(newCapabilities) && !hasFetchCapability(capabilities))
                 {
@@ -1578,21 +1586,21 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 newKafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                      .typeId(kafkaTypeId)
-                     .merged(f -> f.deferred(deferred)
-                                   .timestamp(timestamp)
-                                   .filters(filters)
-                                   .partition(p -> p.partitionId(partitionId)
-                                                    .partitionOffset(partitionOffset)
-                                                    .latestOffset(latestOffset))
-                                   .progress(ps -> nextOffsetsById.longForEach((p, o) -> ps.item(i -> i.partitionId((int) p)
-                                                                                                       .partitionOffset(o))))
-                                   .key(k -> k.length(key.length())
-                                              .value(key.value()))
-                                   .delta(d -> d.type(t -> t.set(delta.type())).ancestorOffset(delta.ancestorOffset()))
-                                   .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                     .name(h.name())
-                                                                                     .valueLen(h.valueLen())
-                                                                                     .value(h.value())))))
+                     .merged(m -> m.fetch(f -> f.deferred(deferred)
+                         .timestamp(timestamp)
+                         .filters(filters)
+                         .partition(p -> p.partitionId(partitionId)
+                             .partitionOffset(partitionOffset)
+                             .latestOffset(latestOffset))
+                         .progress(ps -> nextOffsetsById.longForEach((p, o) -> ps.item(i -> i.partitionId((int) p)
+                             .partitionOffset(o))))
+                         .key(k -> k.length(key.length())
+                             .value(key.value()))
+                         .delta(d -> d.type(t -> t.set(delta.type())).ancestorOffset(delta.ancestorOffset()))
+                         .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                             .name(h.name())
+                             .valueLen(h.valueLen())
+                             .value(h.value()))))))
                      .build();
             }
 
@@ -3372,12 +3380,12 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 assert kafkaDataEx != null;
                 assert kafkaDataEx.kind() == KafkaFlushExFW.KIND_MERGED;
-                final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                final int deferred = kafkaMergedDataEx.deferred();
-                final long timestamp = kafkaMergedDataEx.timestamp();
-                final KafkaOffsetFW partition = kafkaMergedDataEx.partition();
-                final KafkaKeyFW key = kafkaMergedDataEx.key();
-                final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx.headers();
+                final KafkaMergedProduceDataExFW produce = kafkaDataEx.merged().produce();
+                final int deferred = produce.deferred();
+                final long timestamp = produce.timestamp();
+                final KafkaOffsetFW partition = produce.partition();
+                final KafkaKeyFW key = produce.key();
+                final Array32FW<KafkaHeaderFW> headers = produce.headers();
 
                 final int partitionId = partition.partitionId();
                 assert partitionId == DYNAMIC_PARTITION || partitionId == this.partitionId;

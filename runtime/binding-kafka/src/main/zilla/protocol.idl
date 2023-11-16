@@ -533,6 +533,7 @@ scope protocol
             struct OffsetFetchResponse
             {
                 int32 correlationId;
+                int32 throttleTimeMillis;
                 int32 topicCount;
             }
 
@@ -546,8 +547,14 @@ scope protocol
             {
                 int32 partitionIndex;
                 int64 committedOffset;
+                int32 committedLeaderEpoch;
                 string16 metadata = null;
                 int16 errorCode;
+            }
+
+            struct OffsetFetchError
+            {
+                int16 code;
             }
         }
 

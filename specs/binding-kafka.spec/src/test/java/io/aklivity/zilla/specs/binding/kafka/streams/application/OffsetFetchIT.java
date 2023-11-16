@@ -38,8 +38,8 @@ public class OffsetFetchIT
 
     @Test
     @Specification({
-        "${app}/partition.offset.info/client",
-        "${app}/partition.offset.info/server"})
+        "${app}/topic.offset.info/client",
+        "${app}/topic.offset.info/server"})
     public void shouldFetchPartitionOffsetInfo() throws Exception
     {
         k3po.finish();
