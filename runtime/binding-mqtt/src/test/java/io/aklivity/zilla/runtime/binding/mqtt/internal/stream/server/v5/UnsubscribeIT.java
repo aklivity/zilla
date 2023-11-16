@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class UnsubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/5.0")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));

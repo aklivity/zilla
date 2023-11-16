@@ -255,15 +255,15 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttWillMessageFW.Builder mqttWillMessageRW = new MqttWillMessageFW.Builder();
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
-    private final MqttConnectV5FW mqttConnectRO = new MqttConnectV5FW();
-    private final MqttWillV5FW mqttWillRO = new MqttWillV5FW();
-    private final MqttPublishV5FW mqttPublishRO = new MqttPublishV5FW();
-    private final MqttSubscribeV5FW mqttSubscribeRO = new MqttSubscribeV5FW();
+    private final MqttConnectV5FW mqttConnectV5RO = new MqttConnectV5FW();
+    private final MqttWillV5FW mqttWillV5RO = new MqttWillV5FW();
+    private final MqttPublishV5FW mqttPublishV5RO = new MqttPublishV5FW();
+    private final MqttSubscribeV5FW mqttSubscribeV5RO = new MqttSubscribeV5FW();
     private final MqttSubscribePayloadFW mqttSubscribePayloadRO = new MqttSubscribePayloadFW();
-    private final MqttUnsubscribeV5FW mqttUnsubscribeRO = new MqttUnsubscribeV5FW();
+    private final MqttUnsubscribeV5FW mqttUnsubscribeV5RO = new MqttUnsubscribeV5FW();
     private final MqttUnsubscribePayloadFW mqttUnsubscribePayloadRO = new MqttUnsubscribePayloadFW();
     private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
-    private final MqttDisconnectV5FW mqttDisconnectRO = new MqttDisconnectV5FW();
+    private final MqttDisconnectV5FW mqttDisconnectV5RO = new MqttDisconnectV5FW();
 
     private final OctetsFW octetsRO = new OctetsFW();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
@@ -282,13 +282,13 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttPublishHeader mqttPublishHeaderRO = new MqttPublishHeader();
     private final MqttConnectPayload mqttConnectPayloadRO = new MqttConnectPayload();
 
-    private final MqttConnackV5FW.Builder mqttConnackRW = new MqttConnackV5FW.Builder();
-    private final MqttPublishV5FW.Builder mqttPublishRW = new MqttPublishV5FW.Builder();
-    private final MqttSubackV5FW.Builder mqttSubackRW = new MqttSubackV5FW.Builder();
-    private final MqttUnsubackV5FW.Builder mqttUnsubackRW = new MqttUnsubackV5FW.Builder();
+    private final MqttConnackV5FW.Builder mqttConnackV5RW = new MqttConnackV5FW.Builder();
+    private final MqttPublishV5FW.Builder mqttPublishV5RW = new MqttPublishV5FW.Builder();
+    private final MqttSubackV5FW.Builder mqttSubackV5RW = new MqttSubackV5FW.Builder();
+    private final MqttUnsubackV5FW.Builder mqttUnsubackV5RW = new MqttUnsubackV5FW.Builder();
     private final MqttUnsubackPayloadFW.Builder mqttUnsubackPayloadRW = new MqttUnsubackPayloadFW.Builder();
     private final MqttPingRespFW.Builder mqttPingRespRW = new MqttPingRespFW.Builder();
-    private final MqttDisconnectV5FW.Builder mqttDisconnectRW = new MqttDisconnectV5FW.Builder();
+    private final MqttDisconnectV5FW.Builder mqttDisconnectV5RW = new MqttDisconnectV5FW.Builder();
     private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
     private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> willUserPropertiesRW =
@@ -794,7 +794,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectV5FW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
+            final MqttConnectV5FW mqttConnect = mqttConnectV5RO.tryWrap(buffer, offset, limit);
             int flags = 0;
             decode:
             {
@@ -925,7 +925,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length >= server.decodeablePacketBytes)
         {
             int reasonCode = SUCCESS;
-            final MqttPublishV5FW publish = mqttPublishRO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            final MqttPublishV5FW publish = mqttPublishV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
 
             final MqttPublishHeader mqttPublishHeader = mqttPublishHeaderRO.reset();
 
@@ -1053,7 +1053,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttSubscribeV5FW subscribe = mqttSubscribeRO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            final MqttSubscribeV5FW subscribe = mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
             if (subscribe == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -1101,7 +1101,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttUnsubscribeV5FW unsubscribe = mqttUnsubscribeRO.tryWrap(buffer, offset,
+            final MqttUnsubscribeV5FW unsubscribe = mqttUnsubscribeV5RO.tryWrap(buffer, offset,
                 offset + server.decodeablePacketBytes);
             if (unsubscribe == null || unsubscribe.payload().sizeof() == 0 || unsubscribe.packetId() == 0)
             {
@@ -1187,7 +1187,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break decode;
             }
 
-            final MqttDisconnectV5FW disconnect = mqttDisconnectRO.tryWrap(buffer, offset, limit);
+            final MqttDisconnectV5FW disconnect = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
             if (disconnect == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -2663,7 +2663,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final int propertiesSize0 = propertiesSize.get();
                 final MqttPublishV5FW publish =
-                    mqttPublishRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    mqttPublishV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .typeAndFlags(publishNetworkTypeAndFlags)
                         .remainingLength(3 + topicNameLength + propertiesSize.get() + payloadSize + deferred)
                         .topicName(topicName)
@@ -2810,7 +2810,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final int propertiesSize0 = propertiesSize;
             final MqttConnackV5FW connack =
-                mqttConnackRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                mqttConnackV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x20)
                     .remainingLength(3 + propertiesSize0)
                     .flags(flags)
@@ -2832,7 +2832,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .put(subscriptions)
                 .build();
 
-            final MqttSubackV5FW suback = mqttSubackRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttSubackV5FW suback = mqttSubackV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(0x90)
                 .remainingLength(3 + reasonCodes.sizeof())
                 .packetId(packetId)
@@ -2850,7 +2850,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             OctetsFW payload)
         {
             final MqttUnsubackV5FW unsuback =
-                mqttUnsubackRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                mqttUnsubackV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0xb0)
                     .remainingLength(3 + payload.sizeof())
                     .packetId(packetId)
@@ -2893,7 +2893,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final int propertySize0 = propertiesSize;
             final MqttDisconnectV5FW disconnect =
-                mqttDisconnectRW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                mqttDisconnectV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0xe0)
                     .remainingLength(2 + propertySize0)
                     .reasonCode(reasonCode & 0xff)
@@ -4717,7 +4717,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (isSetWillFlag(flags))
                 {
-                    final MqttWillV5FW mqttWill = mqttWillRO.tryWrap(buffer, offset, limit);
+                    final MqttWillV5FW mqttWill = mqttWillV5RO.tryWrap(buffer, offset, limit);
                     if (mqttWill == null)
                     {
                         reasonCode = MALFORMED_PACKET;
