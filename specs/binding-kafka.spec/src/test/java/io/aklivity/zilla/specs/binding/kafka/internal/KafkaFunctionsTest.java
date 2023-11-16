@@ -36,14 +36,13 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-
+import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableInteger;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
-import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
@@ -4306,7 +4305,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetCommit()
-                .partitionId(0, 2L)
+                .partition(0, 2L)
                 .leaderEpoch(0)
                 .build()
             .build();

@@ -53,4 +53,13 @@ public class ConsumerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.message.offset/client",
+        "${app}/acknowledge.message.offset/server"})
+    public void shouldAcknowledgeMessageOffset() throws Exception
+    {
+        k3po.finish();
+    }
 }

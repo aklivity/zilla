@@ -29,6 +29,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .groupId("client-1")
                                    .generationId(0)
                                    .memberId("memberId-1")
+                                   .build()
                                .build()}
 
 connected
@@ -41,3 +42,4 @@ read zilla:data.ext ${kafka:dataEx()
                                   .build()
                               .build()}
 
+read "test-meta"

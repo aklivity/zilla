@@ -39,9 +39,9 @@ public class OffsetCommitIT
 
     @Test
     @Specification({
-        "${app}/partition.offset.info/client",
-        "${app}/partition.offset.info/server"})
-    public void shouldFetchPartitionOffsetInfo() throws Exception
+        "${app}/update.topic.partition.offset/client",
+        "${app}/update.topic.partition.offset/server"})
+    public void shouldUpdateTopicPartitionOffset() throws Exception
     {
         k3po.finish();
     }
