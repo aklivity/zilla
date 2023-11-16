@@ -40,6 +40,7 @@ write zilla:data.ext ${kafka:dataEx()
                                            .name("test")
                                            .partition(0, 2, 0, "test-meta")
                                        .build()
+                                     .build()
                                    .build()}
-
+write zilla:data.empty
 write flush

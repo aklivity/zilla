@@ -46,20 +46,21 @@ read zilla:data.ext ${kafka:dataEx()
                                      .build()
                                  .build()
                              .build()}
+read zilla:data.empty
 
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
                                  .partition(0, 2, "test-meta")
                                  .leaderEpoch(0)
-                             .build()
+                                 .build()
                              .build()}
 
 read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
                                  .partition(0, 2)
-                             .build()
+                                 .build()
                              .build()}
 
 

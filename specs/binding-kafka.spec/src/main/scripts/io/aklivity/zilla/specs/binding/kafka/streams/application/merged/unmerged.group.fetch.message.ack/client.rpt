@@ -192,7 +192,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
                                    .groupId("client-1")
-                                   .topic("test", 0)
+                                   .topic("test")
+                                   .partition(0)
                                    .build()
                                .build()}
 
@@ -201,9 +202,13 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetFetch()
-                                 .topic("test", 0, 1, 0)
+                                 .topic()
+                                    .name("test")
+                                    .partition(0, 2, 0, "test-meta")
                                  .build()
+                                .build()
                              .build()}
+read zilla:data.empty
 
 read notify RECEIVED_OFFSET_FETCH
 
@@ -247,7 +252,7 @@ connect await RECEIVED_MESSAGE
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .offsetCommit()LL
+                               .offsetCommit()
                                    .topic("test")
                                    .groupId("client-1")
                                    .generationId(0)
@@ -264,6 +269,8 @@ write zilla:data.ext ${kafka:dataEx()
                                  .leaderEpoch(0)
                                  .build()
                              .build()}
+
+write "test-meta"
 write flush
 
 

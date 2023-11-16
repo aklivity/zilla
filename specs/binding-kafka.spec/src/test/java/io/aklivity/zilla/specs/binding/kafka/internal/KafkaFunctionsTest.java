@@ -4286,7 +4286,7 @@ public class KafkaFunctionsTest
                     .partition(0, 1L, 0, "test-meta")
                 .build()
             .build()
-            .build();
+        .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());

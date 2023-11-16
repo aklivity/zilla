@@ -187,18 +187,23 @@ read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
                                    .groupId("client-1")
-                                   .topic("test", 0)
+                                   .topic("test")
+                                   .partition(0)
                                    .build()
                                .build()}
 
 connected
 
 write zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetFetch()
-                                 .topic("test", 0, 0, 0)
-                                 .build()
-                             .build()}
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .topic()
+                                           .name("test")
+                                           .partition(0, 2, 0, "test-meta")
+                                       .build()
+                                     .build()
+                                   .build()}
+write zilla:data.empty
 write flush
 
 accepted
@@ -241,14 +246,17 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .groupId("client-1")
                                    .generationId(0)
                                    .memberId("memberId-1")
+                                   .build()
                                .build()}
 
 connected
 
 read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetCommit()
-                                 .partition(0, 2)
-                                 .leaderEpoch(0)
-                                 .build()
-                             .build()}
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .partition(0, 2)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read "test-meta"
+

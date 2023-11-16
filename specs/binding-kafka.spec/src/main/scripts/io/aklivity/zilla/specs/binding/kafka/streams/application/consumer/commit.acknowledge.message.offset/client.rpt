@@ -35,35 +35,23 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
-                                .group()
                                  .partition(0)
-                                 .consumer()
+                                 .assignments()
                                      .id("consumer-1")
                                      .partition(0)
                                      .build()
-                                 .consumer()
+                                 .assignments()
                                      .id("consumer-2")
                                      .partition(1)
                                      .build()
                                  .build()
                              .build()}
-
-write zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .consumer()
-                               .offsetCommit()
-                                 .progress(0, 2)
-
-                             .build()}
-
-write zilla:data.empty
-write flush
-
+read zilla:data.empty
 
 read notify RECEIVED_OFFSET_COMMIT
 
 connect await RECEIVED_OFFSET_COMMIT
-    "zilla://streams/app1"
+    "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -86,4 +74,5 @@ write zilla:data.ext ${kafka:dataEx()
                                  .leaderEpoch(0)
                                  .build()
                              .build()}
-
+write zilla:data.empty
+write flush

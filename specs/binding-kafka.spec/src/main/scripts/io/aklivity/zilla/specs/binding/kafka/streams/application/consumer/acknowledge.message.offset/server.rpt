@@ -36,7 +36,6 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
@@ -51,7 +50,6 @@ write zilla:data.ext ${kafka:dataEx()
                                      .build()
                                  .build()
                              .build()}
-
 write zilla:data.empty
 write flush
 
@@ -60,12 +58,12 @@ read advised zilla:flush ${kafka:flushEx()
                              .consumer()
                                  .partition(0, 2, "test-meta")
                                  .leaderEpoch(0)
-                             .build()
+                                 .build()
                              .build()}
 
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
                                  .partition(0, 2)
-                             .build()
+                                 .build()
                              .build()}
