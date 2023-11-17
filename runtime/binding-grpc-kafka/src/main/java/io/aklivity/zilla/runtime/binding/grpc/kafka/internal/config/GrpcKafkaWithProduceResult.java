@@ -27,15 +27,15 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckModeF
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaKeyFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
 public class GrpcKafkaWithProduceResult
 {
-    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
-        new KafkaOffsetFW.Builder()
+    private static final KafkaOffsetCommittedFW KAFKA_OFFSET_HISTORICAL =
+        new KafkaOffsetCommittedFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
             .partitionId(-1)
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
@@ -97,7 +97,7 @@ public class GrpcKafkaWithProduceResult
     }
 
     public void partitions(
-        Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
+        Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> builder)
     {
         builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
     }

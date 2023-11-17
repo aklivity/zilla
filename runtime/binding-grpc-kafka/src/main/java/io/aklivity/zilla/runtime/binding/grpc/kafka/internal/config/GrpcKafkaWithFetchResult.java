@@ -20,28 +20,28 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
 
 public class GrpcKafkaWithFetchResult
 {
-    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
-        new KafkaOffsetFW.Builder()
+    private static final KafkaOffsetCommittedFW KAFKA_OFFSET_HISTORICAL =
+        new KafkaOffsetCommittedFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
             .partitionId(-1)
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
 
-    private final Array32FW<KafkaOffsetFW> partitions;
+    private final Array32FW<KafkaOffsetCommittedFW> partitions;
     private final List<GrpcKafkaWithFetchFilterResult> filters;
     private final String16FW topic;
     private final Varuint32FW fieldId;
 
     GrpcKafkaWithFetchResult(
         String16FW topic,
-        Array32FW<KafkaOffsetFW> partitions,
+        Array32FW<KafkaOffsetCommittedFW> partitions,
         List<GrpcKafkaWithFetchFilterResult> filters,
         Varuint32FW fieldId)
     {
@@ -62,7 +62,7 @@ public class GrpcKafkaWithFetchResult
     }
 
     public void partitions(
-        Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
+        Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> builder)
     {
         if (partitions != null)
         {

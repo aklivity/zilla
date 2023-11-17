@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWit
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcRe
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.WindowFW;
@@ -844,7 +844,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
             final KafkaMergedBeginExFW kafkaMergedBeginEx =
                 kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ? kafkaMergedBeginEx.partitions() : null;
+            final Array32FW<KafkaOffsetCommittedFW> partitions = kafkaMergedBeginEx != null ?
+                kafkaMergedBeginEx.partitions() : null;
 
             if (kafkaMergedBeginEx != null)
             {
@@ -895,8 +896,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                     final KafkaDataExFW kafkaDataEx =
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-                    final KafkaMergedDataExFW kafkaMergedDataEx =
-                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+                    final KafkaMergedFetchDataExFW kafkaMergedDataEx =
+                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ?
+                            kafkaDataEx.merged().fetch() : null;
                     progress = kafkaMergedDataEx != null ?
                         messageFieldHelper.encodeProgress(kafkaMergedDataEx.progress()) :
                         null;
@@ -1160,12 +1162,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 kafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m
+                    .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(producer.result::key)
-                        .headers(producer.result::headers))
+                        .headers(producer.result::headers)))
                     .build();
             }
 
@@ -1314,7 +1316,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     final KafkaDataExFW kafkaDataEx =
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
 
-                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().headers()
+                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().fetch().headers()
                         .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_STATUS.value().equals(h.name().value()));
 
                     if (grpcStatus != null &&
@@ -1766,11 +1768,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             Flyweight tombstoneDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m
+                .merged(m -> m.produce(mp -> mp
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(result::key)
-                    .headers(result::headers))
+                    .headers(result::headers)))
                 .build();
 
             doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
