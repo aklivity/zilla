@@ -294,8 +294,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.one.message.subscribe.unfragmented/client",
-        "${net}/publish.one.message.subscribe.unfragmented/server"})
+        "${net}/publish.subscribe.batched/client",
+        "${net}/publish.subscribe.batched/server"})
     public void shouldPublishOneMessageThenSubscribeUnfragmented() throws Exception
     {
         k3po.finish();

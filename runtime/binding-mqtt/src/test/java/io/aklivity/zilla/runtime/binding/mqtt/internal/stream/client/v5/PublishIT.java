@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client;
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -31,7 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ConnectionIT
+public class PublishIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
@@ -51,12 +51,14 @@ public class ConnectionIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+
+    //TODO: adapt this once we decided
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/client.sent.abort/server",
-        "${app}/client.sent.abort/client"})
-    public void shouldReceiveClientSentAbort() throws Exception
+        "${net}/publish.empty.message/server",
+        "${app}/publish.empty.message/client"})
+    public void shouldSendEmptyMessage() throws Exception
     {
         k3po.finish();
     }
@@ -64,9 +66,9 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/session.will.message.retain/server",
-        "${app}/session.will.message.retain/client"})
-    public void shouldConnectWithWillMessageRetain() throws Exception
+        "${net}/publish.empty.retained.message/server",
+        "${app}/publish.empty.retained.message/client"})
+    public void shouldSendEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -74,9 +76,9 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/connect.non.successful.connack/server",
-        "${app}/connect.non.successful.connack/client"})
-    public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
+        "${net}/publish.multiple.messages/server",
+        "${app}/publish.multiple.messages/client"})
+    public void shouldSendMultipleMessages() throws Exception
     {
         k3po.finish();
     }
@@ -84,9 +86,9 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/connect.non.successful.disconnect/server",
-        "${app}/connect.non.successful.disconnect/client"})
-    public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
+        "${net}/publish.one.message/server",
+        "${app}/publish.one.message/client"})
+    public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -94,9 +96,9 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/disconnect.after.subscribe.and.publish/server",
-        "${app}/disconnect.after.subscribe.and.publish/client"})
-    public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
+        "${net}/publish.retained/server",
+        "${app}/publish.retained/client"})
+    public void shouldPublishRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -104,9 +106,29 @@ public class ConnectionIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/connect.delegate.connack.properties/server",
-        "${app}/connect.delegate.connack.properties/client"})
-    public void shouldDelegateConnackProperties() throws Exception
+        "${net}/publish.with.user.properties.distinct/server",
+        "${app}/publish.with.user.properties.distinct/client"})
+    public void shouldSendWithDistinctUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.with.user.properties.repeated/server",
+        "${app}/publish.with.user.properties.repeated/client"})
+    public void shouldSendWithRepeatedUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.with.user.property/server",
+        "${app}/publish.with.user.property/client"})
+    public void shouldSendWithUserProperty() throws Exception
     {
         k3po.finish();
     }

@@ -412,8 +412,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.subscribe.false.start/client",
-        "${net}/connect.subscribe.false.start/server"})
+        "${net}/connect.subscribe.batched/client",
+        "${net}/connect.subscribe.batched/server"})
     public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
         k3po.finish();

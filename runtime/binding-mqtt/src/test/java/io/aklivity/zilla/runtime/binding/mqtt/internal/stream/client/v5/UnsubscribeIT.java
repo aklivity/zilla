@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client;
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -31,7 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class PublishIT
+public class UnsubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
@@ -51,14 +51,12 @@ public class PublishIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-
-    //TODO: adapt this once we decided
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/publish.empty.message/server",
-        "${app}/publish.empty.message/client"})
-    public void shouldSendEmptyMessage() throws Exception
+        "${net}/unsubscribe.topic.filter.single/server",
+        "${app}/unsubscribe.topic.filter.single/client"})
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -66,9 +64,9 @@ public class PublishIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/publish.empty.retained.message/server",
-        "${app}/publish.empty.retained.message/client"})
-    public void shouldSendEmptyRetainedMessage() throws Exception
+        "${net}/unsubscribe.after.subscribe/server",
+        "${app}/unsubscribe.after.subscribe/client"})
+    public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
     }
@@ -76,9 +74,9 @@ public class PublishIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/publish.multiple.messages/server",
-        "${app}/publish.multiple.messages/client"})
-    public void shouldSendMultipleMessages() throws Exception
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server",
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact/client"})
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -86,49 +84,9 @@ public class PublishIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/publish.one.message/server",
-        "${app}/publish.one.message/client"})
-    public void shouldSendOneMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${net}/publish.retained/server",
-        "${app}/publish.retained/client"})
-    public void shouldPublishRetainedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${net}/publish.with.user.properties.distinct/server",
-        "${app}/publish.with.user.properties.distinct/client"})
-    public void shouldSendWithDistinctUserProperties() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${net}/publish.with.user.properties.repeated/server",
-        "${app}/publish.with.user.properties.repeated/client"})
-    public void shouldSendWithRepeatedUserProperties() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${net}/publish.with.user.property/server",
-        "${app}/publish.with.user.property/client"})
-    public void shouldSendWithUserProperty() throws Exception
+        "${net}/unsubscribe.topic.filters.non.successful/server",
+        "${app}/unsubscribe.topic.filters.non.successful/client"})
+    public void shouldAcknowledgeNonSuccessful() throws Exception
     {
         k3po.finish();
     }

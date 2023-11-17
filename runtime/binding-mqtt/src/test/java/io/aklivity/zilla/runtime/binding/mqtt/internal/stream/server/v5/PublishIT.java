@@ -130,8 +130,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.one.message.subscribe.unfragmented/client",
-        "${app}/publish.one.message.subscribe.unfragmented/server"})
+        "${net}/publish.subscribe.batched/client",
+        "${app}/publish.subscribe.batched/server"})
     public void shouldPublishOneMessageSubscribeUnfragmented() throws Exception
     {
         k3po.finish();

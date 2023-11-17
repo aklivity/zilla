@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client;
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -31,7 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class UnsubscribeIT
+public class ConnectionIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
@@ -54,9 +54,9 @@ public class UnsubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/unsubscribe.topic.filter.single/server",
-        "${app}/unsubscribe.topic.filter.single/client"})
-    public void shouldAcknowledgeSingleTopicFilters() throws Exception
+        "${net}/client.sent.abort/server",
+        "${app}/client.sent.abort/client"})
+    public void shouldReceiveClientSentAbort() throws Exception
     {
         k3po.finish();
     }
@@ -64,9 +64,9 @@ public class UnsubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/unsubscribe.after.subscribe/server",
-        "${app}/unsubscribe.after.subscribe/client"})
-    public void shouldAcknowledge() throws Exception
+        "${net}/session.will.message.retain/server",
+        "${app}/session.will.message.retain/client"})
+    public void shouldConnectWithWillMessageRetain() throws Exception
     {
         k3po.finish();
     }
@@ -74,9 +74,9 @@ public class UnsubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server",
-        "${app}/unsubscribe.aggregated.topic.filters.both.exact/client"})
-    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
+        "${net}/connect.non.successful.connack/server",
+        "${app}/connect.non.successful.connack/client"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulConnack() throws Exception
     {
         k3po.finish();
     }
@@ -84,9 +84,29 @@ public class UnsubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/unsubscribe.topic.filters.non.successful/server",
-        "${app}/unsubscribe.topic.filters.non.successful/client"})
-    public void shouldAcknowledgeNonSuccessful() throws Exception
+        "${net}/connect.non.successful.disconnect/server",
+        "${app}/connect.non.successful.disconnect/client"})
+    public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/disconnect.after.subscribe.and.publish/server",
+        "${app}/disconnect.after.subscribe.and.publish/client"})
+    public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/connect.delegate.connack.properties/server",
+        "${app}/connect.delegate.connack.properties/client"})
+    public void shouldDelegateConnackProperties() throws Exception
     {
         k3po.finish();
     }

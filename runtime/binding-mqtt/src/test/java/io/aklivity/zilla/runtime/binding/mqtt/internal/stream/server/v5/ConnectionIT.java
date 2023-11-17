@@ -442,7 +442,7 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.subscribe.false.start/client",
+        "${net}/connect.subscribe.batched/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
