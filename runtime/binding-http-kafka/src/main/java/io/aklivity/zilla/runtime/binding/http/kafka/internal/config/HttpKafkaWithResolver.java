@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.stream.HttpKafkaEta
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
@@ -132,7 +132,7 @@ public final class HttpKafkaWithResolver
         String16FW topic = new String16FW(topic0);
 
         long timeout = 0L;
-        Array32FW<KafkaOffsetFW> partitions = null;
+        Array32FW<KafkaOffsetCommittedFW> partitions = null;
         String16FW etag = null;
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
