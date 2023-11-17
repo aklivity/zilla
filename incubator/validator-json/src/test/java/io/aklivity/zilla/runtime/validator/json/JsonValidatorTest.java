@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
@@ -146,5 +147,53 @@ public class JsonValidatorTest
         value.putBytes(5, bytes);
 
         assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteValidFragmentJsonData()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        JsonWriteValidator validator = new JsonWriteValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+
+        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+        value.putBytes(5, bytes);
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(value.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidFragmentJsonData()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        JsonReadValidator validator = new JsonReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 }

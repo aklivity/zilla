@@ -101,16 +101,13 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             {
                 byte[] record = deserializeAvroRecord(schema, payloadBytes, progress, length - progress);
                 valueRO.wrap(record);
+                next.accept(valueRO, 0, valLength);
                 valLength = record.length;
             }
             else if (validate(schema, payloadBytes, progress, length - progress))
             {
-                valueRO.wrap(data);
+                next.accept(data, index, length);
                 valLength = length;
-            }
-            if (valLength != -1)
-            {
-                next.accept(valueRO, 0, valLength);
             }
         }
         return valLength;
@@ -126,7 +123,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         try
         {
             reader = new GenericDatumReader(schema);
-            GenericRecord record = (GenericRecord) reader.read(null,
+            GenericRecord record = reader.read(null,
                 decoder.binaryDecoder(bytes, offset, length, null));
             JsonEncoder jsonEncoder = encoder.jsonEncoder(record.getSchema(), outputStream);
             writer = record instanceof SpecificRecord ?

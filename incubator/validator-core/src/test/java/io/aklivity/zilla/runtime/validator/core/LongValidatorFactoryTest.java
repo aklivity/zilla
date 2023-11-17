@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
 
@@ -31,7 +32,7 @@ public class LongValidatorFactoryTest
 {
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreateReadValidator()
+    public void shouldCreateValueReader()
     {
         // GIVEN
         ValidatorConfig validator = new LongValidatorConfig();
@@ -47,7 +48,7 @@ public class LongValidatorFactoryTest
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreateWriteValidator()
+    public void shouldCreateValueWriter()
     {
         // GIVEN
         ValidatorConfig validator = new LongValidatorConfig();
@@ -56,6 +57,38 @@ public class LongValidatorFactoryTest
 
         // WHEN
         ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(LongValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentReader()
+    {
+        // GIVEN
+        ValidatorConfig validator = new LongValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        LongValidatorFactory factory = new LongValidatorFactory();
+
+        // WHEN
+        FragmentValidator reader = factory.createFragmentReader(validator, supplyCatalog);
+
+        // THEN
+        assertThat(reader, instanceOf(LongValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentWriter()
+    {
+        // GIVEN
+        ValidatorConfig validator = new LongValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        LongValidatorFactory factory = new LongValidatorFactory();
+
+        // WHEN
+        FragmentValidator writer = factory.createFragmentWriter(validator, supplyCatalog);
 
         // THEN
         assertThat(writer, instanceOf(LongValidator.class));

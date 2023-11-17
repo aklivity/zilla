@@ -18,7 +18,6 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.leadpony.justify.api.JsonSchema;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -30,8 +29,6 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonReadValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
-    private final DirectBuffer valueRO = new UnsafeBuffer();
-
     public JsonReadValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
@@ -86,9 +83,8 @@ public class JsonReadValidator extends JsonValidator implements ValueValidator, 
         JsonSchema schema = fetchSchema(schemaId);
         if (schema != null && validate(schema, data, progress, length - progress))
         {
-            valueRO.wrap(data);
+            next.accept(data, index, length);
             valLength = length;
-            next.accept(valueRO, 0, length);
         }
         return valLength;
     }

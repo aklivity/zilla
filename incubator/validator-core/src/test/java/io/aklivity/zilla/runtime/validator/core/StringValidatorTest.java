@@ -179,4 +179,22 @@ public class StringValidatorTest
         data.wrap(bytes, 0, bytes.length);
         assertEquals(0, validator.validate(FLAGS_INIT, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
+
+    @Test
+    public void shouldVerifyValidFragmentUTF8()
+    {
+        StringValidatorConfig config = StringValidatorConfig.builder()
+                .encoding("utf_8")
+                .build();
+        StringValidator validator = new StringValidator(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Valid String".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
 }
