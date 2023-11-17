@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
@@ -87,7 +87,7 @@ public final class GrpcKafkaWithResolver
         final DirectBuffer metadataName = options.reliability.metadata.value();
         GrpcMetadataFW lastMessageIdMetadata = metadata
             .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
-        Array32FW<KafkaOffsetCommittedFW> partitions = null;
+        Array32FW<KafkaOffsetFW> partitions = null;
         if (lastMessageIdMetadata != null)
         {
             final String8FW lastMessageId = string8RW

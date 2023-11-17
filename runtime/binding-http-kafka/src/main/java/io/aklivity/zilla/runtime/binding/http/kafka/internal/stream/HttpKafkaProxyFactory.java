@@ -21,7 +21,6 @@ import static java.time.Instant.now;
 
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetCommittedFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -1114,7 +1113,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (kafkaBeginEx != null)
             {
                 final KafkaMergedBeginExFW kafkaMergedBeginEx = kafkaBeginEx.merged();
-                final Array32FW<KafkaOffsetCommittedFW> partitions = kafkaMergedBeginEx.partitions();
+                final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
                 final String16FW etag = etagHelper.encodeLatest(partitions);
 
                 if (fetcher.resolved.partitions(partitions))

@@ -33,10 +33,6 @@ scope kafka
         int64 partitionOffset = -1;
         int64 stableOffset = -1;
         int64 latestOffset = -1;
-    }
-
-    struct KafkaOffsetCommitted extends KafkaOffset
-    {
         string16 metadata = null;
     }
 
@@ -239,7 +235,7 @@ scope kafka
             string16 groupId = null;
             string16 consumerId = null;
             int32 timeout = 0;
-            KafkaOffsetCommitted[] partitions;
+            KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
             KafkaIsolation isolation = READ_COMMITTED;
@@ -283,7 +279,7 @@ scope kafka
 
         struct KafkaMergedConsumerFlushEx
         {
-            KafkaOffsetCommitted partition;
+            KafkaOffset partition;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -444,7 +440,7 @@ scope kafka
 
         struct KafkaConsumerFlushEx
         {
-            KafkaOffsetCommitted partition;
+            KafkaOffset partition;
             int32 leaderEpoch = -1;
         }
 

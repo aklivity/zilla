@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWit
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
@@ -844,7 +844,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
             final KafkaMergedBeginExFW kafkaMergedBeginEx =
                 kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
-            final Array32FW<KafkaOffsetCommittedFW> partitions = kafkaMergedBeginEx != null ?
+            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ?
                 kafkaMergedBeginEx.partitions() : null;
 
             if (kafkaMergedBeginEx != null)

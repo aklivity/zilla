@@ -25,7 +25,6 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -35,8 +34,8 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKaf
 
 public final class HttpKafkaEtagHelper
 {
-    private final Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> progressRW =
-        new Array32FW.Builder<>(new KafkaOffsetCommittedFW.Builder(), new KafkaOffsetCommittedFW())
+    private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
+        new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[2048]), 0, 2048);
 
     private final HttpKafkaEtagFW.Builder etagRW =
@@ -120,29 +119,29 @@ public final class HttpKafkaEtagHelper
         return encodedBuf;
     }
 
-    public Array32FW<KafkaOffsetCommittedFW> decodeLive(
+    public Array32FW<KafkaOffsetFW> decodeLive(
         final String16FW decodable)
     {
         return decode(decodable, this::decodeLiveOffset);
     }
 
-    public Array32FW<KafkaOffsetCommittedFW> decodeHistorical(
+    public Array32FW<KafkaOffsetFW> decodeHistorical(
         final String16FW decodable)
     {
         return decode(decodable, this::decodeHistoricalOffset);
     }
 
-    public Array32FW<KafkaOffsetCommittedFW> decodeLatest(
+    public Array32FW<KafkaOffsetFW> decodeLatest(
         final String16FW decodable)
     {
         return decode(decodable, this::decodeLatestOffset);
     }
 
-    private Array32FW<KafkaOffsetCommittedFW> decode(
+    private Array32FW<KafkaOffsetFW> decode(
         final String16FW decodable,
-        BiConsumer<HttpKafkaEtagPartitionV1FW, KafkaOffsetCommittedFW.Builder> decodeOffset)
+        BiConsumer<HttpKafkaEtagPartitionV1FW, KafkaOffsetFW.Builder> decodeOffset)
     {
-        Array32FW<KafkaOffsetCommittedFW> progress = null;
+        Array32FW<KafkaOffsetFW> progress = null;
 
         HttpKafkaEtagFW decoded = null;
 
@@ -207,7 +206,7 @@ public final class HttpKafkaEtagHelper
                 DirectBuffer wrapBuffer = etagV1.buffer();
                 int wrapOffset = etagV1.limit();
 
-                final Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> progressV1RW = progressRW;
+                final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressV1RW = progressRW;
                 progressV1RW.wrap(progressV1RW.buffer(), 0, progressV1RW.buffer().capacity());
                 for (int i = 0; i < partitionCount; i++)
                 {
@@ -234,7 +233,7 @@ public final class HttpKafkaEtagHelper
 
     private void decodeLiveOffset(
         HttpKafkaEtagPartitionV1FW partitionV1,
-        KafkaOffsetCommittedFW.Builder builder)
+        KafkaOffsetFW.Builder builder)
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(partitionV1.partitionOffset())
@@ -244,7 +243,7 @@ public final class HttpKafkaEtagHelper
 
     private void decodeHistoricalOffset(
         HttpKafkaEtagPartitionV1FW partitionV1,
-        KafkaOffsetCommittedFW.Builder builder)
+        KafkaOffsetFW.Builder builder)
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(partitionV1.partitionOffset())
@@ -254,7 +253,7 @@ public final class HttpKafkaEtagHelper
 
     private void decodeLatestOffset(
         HttpKafkaEtagPartitionV1FW partitionV1,
-        KafkaOffsetCommittedFW.Builder builder)
+        KafkaOffsetFW.Builder builder)
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(0L)

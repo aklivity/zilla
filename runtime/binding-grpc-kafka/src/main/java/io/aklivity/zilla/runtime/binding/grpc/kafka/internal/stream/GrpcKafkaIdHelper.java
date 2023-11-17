@@ -26,15 +26,14 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldV1FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 
 public final class GrpcKafkaIdHelper
 {
-    private final Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> progressRW =
-        new Array32FW.Builder<>(new KafkaOffsetCommittedFW.Builder(), new KafkaOffsetCommittedFW())
+    private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
+        new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[2048]), 0, 2048);
 
     private final GrpcKafkaMessageFieldFW.Builder messageFieldRW =
@@ -53,8 +52,8 @@ public final class GrpcKafkaIdHelper
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
 
-    private final Array32FW<KafkaOffsetCommittedFW> historical =
-        new Array32FW.Builder<>(new KafkaOffsetCommittedFW.Builder(), new KafkaOffsetCommittedFW())
+    private final Array32FW<KafkaOffsetFW> historical =
+        new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[38]), 0, 38)
                 .item(o -> o
                     .partitionId(-1)
@@ -84,10 +83,10 @@ public final class GrpcKafkaIdHelper
         return encoded;
     }
 
-    public Array32FW<KafkaOffsetCommittedFW> decode(
+    public Array32FW<KafkaOffsetFW> decode(
         final DirectBuffer progress64)
     {
-        Array32FW<KafkaOffsetCommittedFW> progress = historical;
+        Array32FW<KafkaOffsetFW> progress = historical;
 
         GrpcKafkaMessageFieldFW decoded = null;
 
@@ -147,7 +146,7 @@ public final class GrpcKafkaIdHelper
                 DirectBuffer wrapBuffer = messageFieldV1.buffer();
                 int wrapOffset = messageFieldV1.limit();
 
-                final Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> progressV1RW = progressRW;
+                final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressV1RW = progressRW;
                 progressV1RW.wrap(progressV1RW.buffer(), 0, progressV1RW.buffer().capacity());
                 for (int i = 0; i < partitionCount; i++)
                 {

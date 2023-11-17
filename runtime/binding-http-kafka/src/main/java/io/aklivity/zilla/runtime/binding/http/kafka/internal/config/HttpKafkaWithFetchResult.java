@@ -22,7 +22,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
@@ -36,8 +35,8 @@ public class HttpKafkaWithFetchResult
 
     private static final String16FW HTTP_HEADER_VALUE_STATUS_200 = new String16FW("200");
 
-    private static final KafkaOffsetCommittedFW KAFKA_OFFSET_HISTORICAL =
-            new KafkaOffsetCommittedFW.Builder()
+    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
+            new KafkaOffsetFW.Builder()
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
@@ -45,8 +44,8 @@ public class HttpKafkaWithFetchResult
                 .latestOffset(KafkaOffsetType.HISTORICAL.value())
                 .build();
 
-    private static final KafkaOffsetCommittedFW KAFKA_OFFSET_LIVE =
-            new KafkaOffsetCommittedFW.Builder()
+    private static final KafkaOffsetFW KAFKA_OFFSET_LIVE =
+            new KafkaOffsetFW.Builder()
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
@@ -55,7 +54,7 @@ public class HttpKafkaWithFetchResult
                 .build();
 
     private final String16FW topic;
-    private final Array32FW<KafkaOffsetCommittedFW> partitions;
+    private final Array32FW<KafkaOffsetFW> partitions;
     private final List<HttpKafkaWithFetchFilterResult> filters;
     private final String16FW etag;
     private final long timeout;
@@ -63,7 +62,7 @@ public class HttpKafkaWithFetchResult
 
     HttpKafkaWithFetchResult(
         String16FW topic,
-        Array32FW<KafkaOffsetCommittedFW> partitions,
+        Array32FW<KafkaOffsetFW> partitions,
         List<HttpKafkaWithFetchFilterResult> filters,
         String16FW etag,
         long timeout,
@@ -83,7 +82,7 @@ public class HttpKafkaWithFetchResult
     }
 
     public void partitions(
-        Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> builder)
+        Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
         if (merge == null && partitions != null)
         {

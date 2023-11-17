@@ -60,7 +60,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaNotFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
@@ -222,9 +221,9 @@ public final class KafkaMergedFactory implements BindingHandler
         if (binding != null)
         {
             final long resolvedId = routedId;
-            final ArrayFW<KafkaOffsetCommittedFW> partitions = kafkaMergedBeginEx.partitions();
+            final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
 
-            final KafkaOffsetCommittedFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
+            final KafkaOffsetFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
             final long defaultOffset = partition != null ? partition.partitionOffset() : HISTORICAL.value();
 
             final Long2LongHashMap initialOffsetsById = new Long2LongHashMap(-3L);
@@ -1163,7 +1162,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
             final Array32FW<KafkaFilterFW> filters = mergedBeginEx.filters();
 
-            this.maximumOffset = asMaximumBeginOffset(mergedBeginEx.partitions());
+            this.maximumOffset = asMaximumOffset(mergedBeginEx.partitions());
             this.filters = asMergedFilters(filters);
             this.evaluation = mergedBeginEx.evaluation();
             this.groupId = mergedBeginEx.groupId().asString();
@@ -1254,14 +1253,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
         }
 
-        private KafkaOffsetType asMaximumBeginOffset(
-            Array32FW<KafkaOffsetCommittedFW> partitions)
-        {
-            return partitions.isEmpty() ||
-                partitions.anyMatch(p -> p.latestOffset() != HISTORICAL.value()) ? LIVE : HISTORICAL;
-        }
-
-        private KafkaOffsetType asMaximumFlushOffset(
+        private KafkaOffsetType asMaximumOffset(
             Array32FW<KafkaOffsetFW> partitions)
         {
             return partitions.isEmpty() ||
@@ -1349,7 +1341,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             if (capabilities != newCapabilities)
             {
-                this.maximumOffset = asMaximumFlushOffset(kafkaMergedFlushEx.fetch().progress());
+                this.maximumOffset = asMaximumOffset(kafkaMergedFlushEx.fetch().progress());
 
                 if (hasFetchCapability(newCapabilities) && !hasFetchCapability(capabilities))
                 {

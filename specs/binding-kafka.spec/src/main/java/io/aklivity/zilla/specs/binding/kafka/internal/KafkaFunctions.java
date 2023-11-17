@@ -48,7 +48,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolationFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaNotFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetCommittedFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
@@ -5315,7 +5314,7 @@ public final class KafkaFunctions
             private String16FW topic;
             private String16FW groupId;
             private String16FW consumerId;
-            private Array32FW.Builder<KafkaOffsetCommittedFW.Builder, KafkaOffsetCommittedFW> partitionsRW;
+            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
             private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
             private KafkaEvaluation evaluation;
@@ -5380,8 +5379,8 @@ public final class KafkaFunctions
             {
                 if (partitionsRW == null)
                 {
-                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetCommittedFW.Builder(),
-                        new KafkaOffsetCommittedFW()).wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(),
+                        new KafkaOffsetFW()).wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
                 partitionsRW.item(i -> i
                     .partitionId(partitionId)
