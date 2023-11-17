@@ -38,8 +38,6 @@ import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroReadValidator extends AvroValidator implements ValueValidator, FragmentValidator
 {
-    private final DirectBuffer valueRO = new UnsafeBuffer();
-
     public AvroReadValidator(
         AvroValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)

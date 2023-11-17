@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.validator.avro;
 import java.io.IOException;
 import java.util.function.LongFunction;
 
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -44,6 +46,7 @@ public abstract class AvroValidator
     protected final String format;
     protected DatumReader<GenericRecord> reader;
     protected DatumWriter<GenericRecord> writer;
+    protected final DirectBuffer valueRO = new UnsafeBuffer();
 
     private final Int2ObjectCache<Schema> cache;
 

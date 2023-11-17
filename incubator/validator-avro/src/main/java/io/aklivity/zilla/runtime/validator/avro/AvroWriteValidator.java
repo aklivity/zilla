@@ -100,8 +100,7 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
                 prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
                 next.accept(prefixRO, 0, 5);
 
-                MutableDirectBuffer valueRO = new UnsafeBuffer(new byte[recordLength]);
-                valueRO.putBytes(0, record);
+                valueRO.wrap(record);
                 next.accept(valueRO, 0, recordLength);
             }
             else if (validate(schema, payloadBytes, 0, length))
