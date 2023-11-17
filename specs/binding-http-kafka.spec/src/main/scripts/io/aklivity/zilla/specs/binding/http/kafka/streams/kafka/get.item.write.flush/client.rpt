@@ -36,6 +36,7 @@ write advise zilla:flush
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .partition(0, 1, 2)
                                .progress(0, 2)
                                .progress(1, 1)
