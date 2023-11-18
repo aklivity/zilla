@@ -657,9 +657,11 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
-                    key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key().value() : null;
-                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ? kafkaMergedDataEx.headers() : null;
+                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ?
+                        kafkaMergedDataEx.fetch().progress() : null;
+                    key = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().key().value() : null;
+                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ?
+                        kafkaMergedDataEx.fetch().headers() : null;
                     final KafkaHeaderFW etag = headers.matchFirst(h -> HEADER_NAME_ETAG.value().equals(h.name().value()));
 
                     switch (delegate.resolved.eventId())
