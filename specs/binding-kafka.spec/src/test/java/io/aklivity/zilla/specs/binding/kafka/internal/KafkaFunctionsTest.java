@@ -64,6 +64,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -331,6 +332,7 @@ public class KafkaFunctionsTest
                                          .topic("topic")
                                          .groupId("groupId")
                                          .consumerId("consumerId")
+                                         .timeout(0)
                                          .partition(0, 1L)
                                          .filter()
                                              .key("match")
@@ -565,11 +567,18 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .merged()
                                         .produce()
+                                         .deferred(0)
                                          .timestamp(12345678L)
                                          .partition(0, 0L)
                                          .key("match")
                                          .hashKey("hashKey")
                                          .header("name", "value")
+                                         .headerNull("null")
+                                         .headerByte("test", "t".getBytes()[0])
+                                         .headerShort("short", (short) 2)
+                                         .headerInt("int", 3)
+                                         .headerLong("long", 4L)
+                                         .headerBytes("bytes", "test".getBytes())
                                          .build()
                                      .build();
 
@@ -591,7 +600,7 @@ public class KafkaFunctionsTest
 
         final MutableInteger headersCount = new MutableInteger();
         mergedProduceDataEx.headers().forEach(f -> headersCount.value++);
-        assertEquals(1, headersCount.value);
+        assertEquals(7, headersCount.value);
         assertNotNull(mergedProduceDataEx.headers()
                 .matchFirst(h ->
                     "name".equals(h.name()
@@ -612,6 +621,7 @@ public class KafkaFunctionsTest
                                      .merged()
                                         .fetch()
                                              .timestamp(12345678L)
+                                             .filters(0L)
                                              .partition(0, 0L)
                                              .progress(0, 1L)
                                              .key("match")
@@ -1134,6 +1144,7 @@ public class KafkaFunctionsTest
                                                  .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
+                                                 .headerNull("name-n")
                                                  .hashKey("hashKey")
                                                  .build()
                                              .build();
@@ -1153,7 +1164,11 @@ public class KafkaFunctionsTest
                     .headersItem(h -> h.nameLen(4)
                         .name(n -> n.set("name".getBytes(UTF_8)))
                         .valueLen(5)
-                        .value(v -> v.set("value".getBytes(UTF_8))))))
+                        .value(v -> v.set("value".getBytes(UTF_8))))
+                    .headersItem(h -> h.nameLen(6)
+                        .name(n -> n.set("name-n".getBytes(UTF_8)))
+                        .valueLen(-1)
+                        .value((OctetsFW) null))))
                 .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -2310,6 +2325,29 @@ public class KafkaFunctionsTest
         assertEquals("consumer-1", leaderId);
         assertEquals("consumer-2", memberId);
         assertEquals(2, groupFlushEx.members().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateConsumerFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .consumer()
+                .partition(0, 1L, "test")
+                .leaderEpoch(0)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        final KafkaConsumerFlushExFW consumerFlushEx = flushEx.consumer();
+        KafkaOffsetFW partition = consumerFlushEx.partition();
+        assertEquals(0, partition.partitionId());
+        assertEquals(1L, partition.partitionOffset());
+        assertEquals("test", partition.metadata().asString());
+        assertEquals(0, consumerFlushEx.leaderEpoch());
     }
 
     @Test
@@ -4232,6 +4270,7 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
+                .metadata("meta".getBytes())
                 .build()
             .build();
 
@@ -4244,7 +4283,7 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .timeout(10)
-                .metadataLen("test".length())
+                .metadataLen("meta".length())
                 .metadata(m -> m.set("test".getBytes())))
             .build();
 
