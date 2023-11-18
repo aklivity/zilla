@@ -83,7 +83,6 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                              .produce()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
                                 .groupId("mqtt-clients")

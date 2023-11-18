@@ -256,7 +256,7 @@ scope kafka
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaKey hashKey;           // INIT only
-            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+            KafkaHeader[] headers;      // INIT + FIN
         }
 
         struct KafkaMergedFetchDataEx
@@ -268,7 +268,7 @@ scope kafka
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+            KafkaHeader[] headers;      // INIT only
         }
 
         union KafkaMergedFlushEx switch (uint8)

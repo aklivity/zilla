@@ -85,7 +85,6 @@ accepted
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                              .produce()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
                                 .partition(-1, -2)

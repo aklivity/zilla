@@ -41,7 +41,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
-                               .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}

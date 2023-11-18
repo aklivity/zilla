@@ -101,7 +101,7 @@ public class MqttKafkaHeaderHelper
         this.userPropertiesOffsets = new IntArrayList();
         if (dataEx != null)
         {
-            dataEx.headers().matchFirst(this::dispatch);
+            dataEx.fetch().headers().matchFirst(this::dispatch);
         }
     }
 

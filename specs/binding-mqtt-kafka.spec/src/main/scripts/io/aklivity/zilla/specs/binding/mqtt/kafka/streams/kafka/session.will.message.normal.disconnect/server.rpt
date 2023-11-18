@@ -45,7 +45,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#will-signal")
-                               .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
                            .build()}
