@@ -33,7 +33,10 @@ write [0x20 0x02]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
 
-read  [0x30 0x13]                    # PUBLISH
+read  [0x30 0xff 0x7f]               # PUBLISH, remaining length = 16383
       [0x00 0x0a] "sensor/one"       # topic name
-      "message"                      # payload
+      [0..16326]                     # payload
+
+write close
+read closed
 

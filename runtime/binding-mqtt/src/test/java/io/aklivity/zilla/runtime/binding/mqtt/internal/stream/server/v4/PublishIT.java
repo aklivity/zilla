@@ -13,16 +13,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +41,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class PublishIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v4")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -49,22 +51,15 @@ public class PublishIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
+        .configure(SUBSCRIPTION_ID_NAME,
+            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.PublishIT::supplySubscriptionId")
+
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.one.message.properties/client",
-        "${app}/publish.one.message.properties/server"})
-    public void shouldPublishOneMessage() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Configuration("server.validator.yaml")
@@ -92,17 +87,6 @@ public class PublishIT
         "${net}/publish.retained/client",
         "${app}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.message.with.topic.alias/client",
-        "${app}/publish.message.with.topic.alias/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldPublishMessageWithTopicAlias() throws Exception
     {
         k3po.finish();
     }
@@ -170,50 +154,6 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.messages.with.topic.alias.distinct/client",
-        "${app}/publish.messages.with.topic.alias.distinct/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldPublishMessagesWithTopicAliasDistinct() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.messages.with.topic.alias.repeated/client",
-        "${app}/publish.messages.with.topic.alias.repeated/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldPublishMessagesWithTopicAliasRepeated() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.messages.with.topic.alias.replaced/client",
-        "${app}/publish.messages.with.topic.alias.replaced/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
-    public void shouldPublishMessagesWithTopicAliasReplaced() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.messages.with.topic.alias.invalid.scope/client",
-        "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
-    public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/publish.topic.not.routed/client",
         "${app}/session.connect/server"})
     public void shouldRejectTopicNotRouted() throws Exception
@@ -224,131 +164,29 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.topic.alias.exceeds.maximum/client",
+        "${net}/publish.reject.qos0.with.packet.id/client",
         "${app}/session.connect/server"})
-    public void shouldRejectPublishWhenTopicAliasExceedsMaximum() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.topic.alias.repeated/client",
-        "${app}/session.connect/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldRejectPublishWithMultipleTopicAliases() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.client.sent.subscription.id/client",
-        "${app}/session.connect/server"})
-    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
-    public void shouldRejectPublishClientSentSubscriptionId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.invalid.payload.format/client",
-        "${app}/session.connect/server"})
-    public void shouldRejectPublishInvalidPayloadFormat() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos1.not.supported/client",
-        "${app}/publish.reject.qos.not.supported/server"})
-    public void shouldRejectPublishQos1NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos2.not.supported/client",
-        "${app}/publish.reject.qos.not.supported/server"})
-    public void shouldRejectPublishQos2NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos0.with.packet.id/client"})
     public void shouldRejectPublishQos0WithPacketId() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.qos1.without.packet.id/client"})
+        "${net}/publish.reject.qos1.without.packet.id/client",
+        "${app}/session.connect/server"})
     public void shouldRejectPublishQos1WithoutPacketId() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.reject.qos2.without.packet.id/client"})
+        "${net}/publish.reject.qos2.without.packet.id/client",
+        "${app}/session.connect/server"})
     public void shouldRejectPublishQos2WithoutPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.retain.not.supported/client",
-        "${app}/publish.reject.retain.not.supported/server"})
-    public void shouldRejectPublishRetainNotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.with.user.property/client",
-        "${app}/publish.with.user.property/server"})
-    public void shouldPublishWithUserProperty() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.with.user.properties.distinct/client",
-        "${app}/publish.with.user.properties.distinct/server"})
-    public void shouldPublishWithDistinctUserProperties() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.with.user.properties.repeated/client",
-        "${app}/publish.with.user.properties.repeated/server"})
-    public void shouldPublishWithRepeatedUserProperties() throws Exception
     {
         k3po.finish();
     }
@@ -382,5 +220,17 @@ public class PublishIT
     public void shouldRejectPacketTooLarge() throws Exception
     {
         k3po.finish();
+    }
+
+    @Before
+    public void setSubscriptionId()
+    {
+        subscriptionId = 0;
+    }
+
+    private static int subscriptionId = 0;
+    public static int supplySubscriptionId()
+    {
+        return ++subscriptionId;
     }
 }

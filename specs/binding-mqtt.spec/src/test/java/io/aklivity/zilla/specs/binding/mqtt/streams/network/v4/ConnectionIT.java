@@ -83,6 +83,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.password.flag.no.username.flag/client",
+        "${net}/connect.reject.password.flag.no.username.flag/server"})
+    public void shouldRejectPasswordFlagNoUsernameFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.server.assigned.client.id/client",
         "${net}/connect.server.assigned.client.id/server"})
     public void shouldConnectWithServerAssignedClientId() throws Exception

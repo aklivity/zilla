@@ -78,7 +78,6 @@ write zilla:data.ext ${mqtt:dataEx()
                              .subscribe()
                                  .topic("sensor/one")
                                  .subscriptionId(1)
-                                 .format("TEXT")
                                  .build()
                              .build()}
 write "message"
@@ -98,7 +97,6 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .format("TEXT")
                                 .build()
                             .build()}
 read "message"

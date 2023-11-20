@@ -38,15 +38,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.one.message/client",
-        "${net}/publish.one.message/server"})
-    public void shouldSendOneMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/publish.multiple.messages/client",
         "${net}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -145,7 +136,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.subscribe.batched/client",
         "${net}/publish.subscribe.batched/server"})
-    public void shouldPublishOneMessageThenSubscribeUnfragmented() throws Exception
+    public void shouldPublishSubscribeBatched() throws Exception
     {
         k3po.finish();
     }
@@ -164,6 +155,15 @@ public class PublishIT
         "${net}/publish.valid.message/client",
         "${net}/publish.valid.message/server"})
     public void shouldPublishValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.packet.too.large/client",
+        "${net}/publish.reject.packet.too.large/server"})
+    public void shouldRejectPacketTooLarge() throws Exception
     {
         k3po.finish();
     }

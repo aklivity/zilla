@@ -29,4 +29,8 @@ read  [0x10 0x0c]               # CONNECT
       [0x00 0x3c]               # keep alive = 60s
       [0x00 0x00]               # client id
 
+write [0x20 0x02]               # CONNACK
+      [0x00]                    # flags = none
+      [0x02]                    # reason code = identifier rejected
+
 write close

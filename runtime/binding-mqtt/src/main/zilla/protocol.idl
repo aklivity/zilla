@@ -94,21 +94,21 @@
             case 0x2A: uint8 sharedSubscriptionAvailable;
         }
 
-        struct MqttConnectV3 extends MqttPacketHeader
+        struct MqttConnectHeader extends MqttPacketHeader
         {
             string16 protocolName;
             uint8 protocolVersion;
             uint8 flags;
             uint16 keepAlive;
+        }
+
+        struct MqttConnectV3
+        {
             string16 clientId;
         }
 
-        struct MqttConnectV5 extends MqttPacketHeader
+        struct MqttConnectV5
         {
-            string16 protocolName;
-            uint8 protocolVersion;
-            uint8 flags;
-            uint16 keepAlive;
             MqttProperties properties;
             string16 clientId;
         }

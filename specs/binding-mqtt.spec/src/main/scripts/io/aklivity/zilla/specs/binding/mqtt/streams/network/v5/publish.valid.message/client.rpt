@@ -36,14 +36,9 @@ read  [0x20 0x08]                           # CONNACK
       [0x05]                                # properties
       [0x27] 66560                          # maximum packet size = 66560
 
-write [0x30 0x3f]                           # PUBLISH
+write [0x30 0x1a]                           # PUBLISH
       [0x00 0x0a] "sensor/one"              # topic name
-      [0x25]                                # properties
-      [0x02] 0x0f                           # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"            # content type
-      [0x01 0x01]                           # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"         # response topic
-      [0x09 0x00 0x04] "info"               # correlation data
+      [0x00]                                # properties
       "1234567890123"                       # payload
 
 
