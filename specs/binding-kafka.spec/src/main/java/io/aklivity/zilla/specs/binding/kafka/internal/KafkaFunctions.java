@@ -1542,13 +1542,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaOffsetCommitBeginExBuilder generationId(
-                int generationId)
-            {
-                offsetCommitBeginExRW.generationId(generationId);
-                return this;
-            }
-
             public KafkaOffsetCommitBeginExBuilder memberId(
                 String memberId)
             {
@@ -2516,6 +2509,13 @@ public final class KafkaFunctions
                 long partitionOffset)
             {
                 offsetCommitDataExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
+                return this;
+            }
+
+            public KafkaOffsetCommitDataExBuilder generationId(
+                int generationId)
+            {
+                offsetCommitDataExRW.generationId(generationId);
                 return this;
             }
 

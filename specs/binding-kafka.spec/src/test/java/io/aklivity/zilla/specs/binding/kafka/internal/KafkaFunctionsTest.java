@@ -4245,7 +4245,6 @@ public class KafkaFunctionsTest
             .offsetCommit()
                 .topic("topic")
                 .groupId("test")
-                .generationId(0)
                 .memberId("member-1")
                 .build()
             .build();
@@ -4259,7 +4258,6 @@ public class KafkaFunctionsTest
         assertEquals("test", offsetCommitBeginEx.groupId().asString());
         assertEquals("topic", offsetCommitBeginEx.topic().asString());
         assertEquals("member-1", offsetCommitBeginEx.memberId().asString());
-        assertEquals(0, offsetCommitBeginEx.generationId());
     }
 
     @Test
@@ -4345,6 +4343,7 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .offsetCommit()
                 .partition(0, 2L)
+                .generationId(0)
                 .leaderEpoch(0)
                 .build()
             .build();
@@ -4358,6 +4357,7 @@ public class KafkaFunctionsTest
         assertEquals(0, offsetCommitDataEx.partition().partitionId());
         assertEquals(2L, offsetCommitDataEx.partition().partitionOffset());
         assertEquals(0, offsetCommitDataEx.leaderEpoch());
+        assertEquals(0, offsetCommitDataEx.generationId());
     }
 
     @Test

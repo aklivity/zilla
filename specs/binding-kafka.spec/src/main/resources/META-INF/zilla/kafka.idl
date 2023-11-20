@@ -472,13 +472,13 @@ scope kafka
         {
             string16 topic;
             string16 groupId;
-            int32 generationId;
             string16 memberId;
         }
 
         struct KafkaOffsetCommitDataEx
         {
             KafkaOffset partition;
+            int32 generationId;
             int32 leaderEpoch;
         }
     }
