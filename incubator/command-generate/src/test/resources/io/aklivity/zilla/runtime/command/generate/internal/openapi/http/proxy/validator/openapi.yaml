@@ -98,6 +98,24 @@ paths:
           description: The id of the item to update
           schema:
             type: string
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: integer
+        - name: hello
+          in: header
+          description: Example header parameter
+          required: false
+          schema:
+            type: integer
+        - name: ciao
+          in: query
+          description: Example query parameter
+          required: false
+          schema:
+            type: string
       responses:
         '204':
           description: No Content

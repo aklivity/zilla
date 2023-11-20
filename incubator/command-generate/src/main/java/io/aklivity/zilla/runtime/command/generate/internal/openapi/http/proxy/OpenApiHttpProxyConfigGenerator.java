@@ -32,17 +32,23 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import org.apache.commons.collections4.MapUtils;
+
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.OpenApiConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Parameter;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
@@ -50,7 +56,9 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
@@ -294,19 +302,87 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             PathView path = PathView.of(openApi.paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                if (hasJsonContentType()) // TODO: Ati
+                if (true) // TODO: Ati
                 {
+                    Operation operation = path.methods().get(methodName);
                     options
                         .request()
                             .path(pathName)
                             .method(HttpRequestConfig.Method.valueOf(methodName))
-                            //.inject(request -> injectContent(request, channel.messages()))
-                            //.inject(request -> injectPathParams(request, channel.parameters()))
+                            .inject(request -> injectContent(request, operation))
+                            .inject(request -> injectParams(request, operation))
                             .build();
                 }
             }
         }
         return options; // TODO: Ati
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectContent(
+        HttpRequestConfigBuilder<C> request,
+        Operation operation)
+    {
+        if (operation.requestBody != null && MapUtils.isNotEmpty(operation.requestBody.content))
+        {
+            SchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content);
+            if (schema != null)
+            {
+                request.
+                    content(JsonValidatorConfig::builder)
+                    .catalog()
+                        .name(INLINE_CATALOG_NAME)
+                        .schema()
+                            .subject(schema.refKey())
+                            .build()
+                        .build()
+                    .build();
+            }
+        }
+        return request;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectParams(
+        HttpRequestConfigBuilder<C> request,
+        Operation operation)
+    {
+        if (operation != null && operation.parameters != null)
+        {
+            for (Parameter parameter : operation.parameters)
+            {
+                if (parameter.schema != null && parameter.schema.type != null)
+                {
+                    ValidatorConfig validator = validators.get(parameter.schema.type);
+                    if (validator != null)
+                    {
+                        switch (parameter.in)
+                        {
+                        case "path":
+                            request.
+                                pathParam()
+                                    .name(parameter.name)
+                                    .validator(validator)
+                                    .build();
+                            break;
+                        case "query":
+                            request.
+                                queryParam()
+                                    .name(parameter.name)
+                                    .validator(validator)
+                                    .build();
+                            break;
+                        case "header":
+                            request.
+                                header()
+                                    .name(parameter.name)
+                                    .validator(validator)
+                                    .build();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return request;
     }
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(

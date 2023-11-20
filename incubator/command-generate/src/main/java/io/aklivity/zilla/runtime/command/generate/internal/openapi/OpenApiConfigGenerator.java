@@ -19,7 +19,6 @@ import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.Map;
-import java.util.Optional;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -34,10 +33,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.MediaType;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
-import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Schema;
-import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -46,19 +44,19 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
 {
     protected OpenApi openApi;
 
-    protected String resolveContentType()
+    protected SchemaView resolveSchemaForJsonContentType(
+        Map<String, MediaType> content)
     {
-        String contentType = null;
-        if (MapUtils.isNotEmpty(openApi.paths))
+        MediaType mediaType = null;
+        for (String contentType : content.keySet())
         {
-            PathView path = PathView.of(openApi.paths.entrySet().stream().findFirst().get().getValue());
-            Optional<Operation> operation = path.methods().values().stream().filter(o -> o.requestBody != null).findFirst();
-            if (operation.isPresent())
+            if (jsonContentType.reset(contentType).matches())
             {
-                contentType = operation.get().requestBody.content.keySet().stream().findFirst().orElse(null);
+                mediaType = content.get(contentType);
+                break;
             }
         }
-        return contentType;
+        return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
     }
 
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(

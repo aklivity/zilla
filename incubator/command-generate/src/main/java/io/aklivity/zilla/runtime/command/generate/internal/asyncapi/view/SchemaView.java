@@ -40,7 +40,11 @@ public final class SchemaView extends Resolvable<Schema>
         Schema schema)
     {
         super(schemas, "#/components/schemas/(\\w+)");
-        if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
+        if (schema.ref != null)
+        {
+            schema = resolveRef(schema.ref);
+        }
+        else if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
         {
             schema.items = resolveRef(schema.items.ref);
         }

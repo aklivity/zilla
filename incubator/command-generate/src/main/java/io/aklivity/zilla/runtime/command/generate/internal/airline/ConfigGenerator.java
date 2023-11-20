@@ -39,14 +39,6 @@ public abstract class ConfigGenerator
 
     public abstract String generate();
 
-    protected boolean hasJsonContentType()
-    {
-        String contentType = resolveContentType();
-        return contentType != null && jsonContentType.reset(contentType).matches();
-    }
-
-    protected abstract String resolveContentType();
-
     protected final String unquoteEnvVars(
         String yaml,
         List<String> unquotedEnvVars)

@@ -16,6 +16,39 @@ bindings:
     options:
       access-control:
         policy: cross-origin
+      requests:
+      - path: /items
+        method: GET
+        params:
+          query:
+            limit: integer
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: Item
+      - path: "/items/{id}"
+        method: GET
+        params:
+          path:
+            id: string
+      - path: "/items/{id}"
+        method: PUT
+        headers:
+          hello: integer
+        params:
+          path:
+            id: string
+          query:
+            limit: integer
+            ciao: string
+      - path: "/items/{id}"
+        method: DELETE
+        params:
+          path:
+            id: string
     routes:
     - exit: http_client0
       when:

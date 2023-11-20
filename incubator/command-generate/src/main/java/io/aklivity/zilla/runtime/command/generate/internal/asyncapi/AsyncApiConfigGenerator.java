@@ -45,7 +45,7 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
 {
     protected AsyncApi asyncApi;
 
-    protected String resolveContentType()
+    protected boolean hasJsonContentType()
     {
         String contentType = null;
         if (asyncApi.components != null && MapUtils.isNotEmpty(asyncApi.components.messages))
@@ -53,7 +53,7 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
             Message firstMessage = asyncApi.components.messages.entrySet().stream().findFirst().get().getValue();
             contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
         }
-        return contentType;
+        return contentType != null && jsonContentType.reset(contentType).matches();
     }
 
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
