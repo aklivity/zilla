@@ -30,4 +30,4 @@ read  [0x10 0x20]                       # CONNECT
       [0x00 0x06] "client"              # client id
       [0x00 0x0c] "Bearer TOKEN"        # password
 
-write closed
+write close

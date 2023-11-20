@@ -37,7 +37,7 @@ write [0x20 0x08]                           # CONNACK
       [0x05]                                # properties
       [0x27] 66560                          # maximum packet size = 66560
 
-read  [0x30 0x16]                           # PUBLISH
+read  [0x30 0x1a]                           # PUBLISH
       [0x00 0x0a] "sensor/one"              # topic name
       [0x00]                                # properties
       "1234567890123"                       # payload

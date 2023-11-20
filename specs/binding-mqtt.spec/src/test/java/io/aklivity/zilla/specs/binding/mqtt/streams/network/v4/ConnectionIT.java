@@ -128,15 +128,6 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.invalid.protocol.version/client",
-        "${net}/connect.invalid.protocol.version/server"})
-    public void shouldRejectInvalidProtocolVersion() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/connect.invalid.flags/client",
         "${net}/connect.invalid.flags/server"})
     public void shouldRejectMalformedConnectPacket() throws Exception

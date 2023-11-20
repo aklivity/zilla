@@ -38,8 +38,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.one.message/client",
-        "${net}/publish.one.message/server"})
+        "${net}/publish.one.message.properties/client",
+        "${net}/publish.one.message.properties/server"})
     public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();

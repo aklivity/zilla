@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -51,7 +52,7 @@ public class ConnectionIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.SubscribeIT::supplySubscriptionId")
+            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.ConnectionIT::supplySubscriptionId")
         .external("app0")
         .clean();
 
@@ -326,5 +327,17 @@ public class ConnectionIT
     public void shouldRejectPacketTooLarge() throws Exception
     {
         k3po.finish();
+    }
+
+    @Before
+    public void setSubscriptionId()
+    {
+        subscriptionId = 0;
+    }
+
+    private static int subscriptionId = 0;
+    public static int supplySubscriptionId()
+    {
+        return ++subscriptionId;
     }
 }

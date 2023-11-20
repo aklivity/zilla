@@ -16,10 +16,12 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -44,6 +46,8 @@ public class UnsubscribeIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
+        .configure(SUBSCRIPTION_ID_NAME,
+            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.UnsubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
@@ -139,5 +143,17 @@ public class UnsubscribeIT
     public void shouldAcknowledgeNonSuccessful() throws Exception
     {
         k3po.finish();
+    }
+
+    @Before
+    public void setSubscriptionId()
+    {
+        subscriptionId = 0;
+    }
+
+    private static int subscriptionId = 0;
+    public static int supplySubscriptionId()
+    {
+        return ++subscriptionId;
     }
 }

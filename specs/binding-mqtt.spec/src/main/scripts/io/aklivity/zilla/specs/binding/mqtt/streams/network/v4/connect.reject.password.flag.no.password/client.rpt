@@ -23,7 +23,7 @@ connected
 
 write [0x10 0x1c]                   # CONNECT
       [0x00 0x04] "MQTT"            # protocol name
-      [0x03]                        # protocol version
+      [0x04]                        # protocol version
       [0xc2]                        # flags = username, password, clean start
       [0x00 0x3c]                   # keep alive = 60s
       [0x00 0x06] "client"          # client id

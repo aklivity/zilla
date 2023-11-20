@@ -138,23 +138,12 @@ public class SessionIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.will.message.normal.disconnect/client",
         "${app}/session.will.message.normal.disconnect/server"})
     public void shouldCloseSessionNormalDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/session.will.message.disconnect.with.will.message/client",
-        "${app}/session.will.message.abort/server"})
-    public void shouldCloseSessionDisconnectWithWill() throws Exception
     {
         k3po.finish();
     }
@@ -196,26 +185,6 @@ public class SessionIT
         "${net}/session.client.takeover/client",
         "${app}/session.client.takeover/server"})
     public void shouldClientTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/session.server.redirect.after.connack/client",
-        "${app}/session.server.redirect.after.connack/server"})
-    public void shouldRedirectAfterConnack() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/session.server.redirect.before.connack/client",
-        "${app}/session.server.redirect.before.connack/server"})
-    public void shouldRedirectBeforeConnack() throws Exception
     {
         k3po.finish();
     }

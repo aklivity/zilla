@@ -21,15 +21,14 @@ connect "zilla://streams/net0"
 
 connected
 
-write [0x10 0x3a]                                      # CONNECT
+write [0x10 0x38]                                      # CONNECT
       [0x00 0x04] "MQTT"                               # protocol name
       [0x05]                                           # protocol version
       [0x26]                                           # flags = will retain, will flag, clean start
       [0x00 0x0a]                                      # keep alive = 10s
       [0x00]                                           # properties
       [0x00 0x03] "one"                                # client id
-      [0x02]                                           # will properties
-      [0x01 0x01]                                      # format = utf-8
+      [0x00]                                           # will properties
       [0x00 0x09] "wills/one"                          # will topic
 write [0x00 0x1a] "client one session expired"         # will payload
 

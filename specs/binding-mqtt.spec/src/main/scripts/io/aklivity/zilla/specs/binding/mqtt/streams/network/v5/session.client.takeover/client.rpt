@@ -58,10 +58,10 @@ read closed
 write close
 
 connect await FIRST_CONNECTED
-        "zilla://streams/net0"
-      option zilla:window 8192
-      option zilla:transmission "duplex"
-  option zilla:byteorder "network"
+    "zilla://streams/net0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+    option zilla:byteorder "network"
 
 connected
 

@@ -124,12 +124,12 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectHeaderFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV5FW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPacketHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPacketType;
@@ -137,21 +137,21 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPingReqFW
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPingRespFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertiesFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPublishV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPublishV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPublishV5FW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubackV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubackV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubackV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubscribePayloadFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubscribeV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubscribeV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttSubscribeV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubackPayloadFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubackV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubackV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubackV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribePayloadFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribeV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribeV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscribeV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUserPropertyFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV3FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.BeginFW;
@@ -238,7 +238,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
     public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
-    public static final int MAX_CONNACK_REASONCODE_V3 = 5;
+    public static final int MAX_CONNACK_REASONCODE_V4 = 5;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -271,20 +271,20 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnectHeaderFW mqttConnectHeaderRO = new MqttConnectHeaderFW();
     private final MqttConnectV5FW mqttConnectV5RO = new MqttConnectV5FW();
-    private final MqttConnectV3FW mqttConnectV3RO = new MqttConnectV3FW();
+    private final MqttConnectV4FW mqttConnectV4RO = new MqttConnectV4FW();
     private final MqttWillV5FW mqttWillV5RO = new MqttWillV5FW();
-    private final MqttWillV3FW mqttWillV3RO = new MqttWillV3FW();
+    private final MqttWillV4FW mqttWillV4RO = new MqttWillV4FW();
     private final MqttPublishV5FW mqttPublishV5RO = new MqttPublishV5FW();
-    private final MqttPublishV3FW mqttPublishV3RO = new MqttPublishV3FW();
+    private final MqttPublishV4FW mqttPublishV4RO = new MqttPublishV4FW();
     private final MqttSubscribeV5FW mqttSubscribeV5RO = new MqttSubscribeV5FW();
-    private final MqttSubscribeV3FW mqttSubscribeV3RO = new MqttSubscribeV3FW();
+    private final MqttSubscribeV4FW mqttSubscribeV4RO = new MqttSubscribeV4FW();
     private final MqttSubscribePayloadFW mqttSubscribePayloadRO = new MqttSubscribePayloadFW();
     private final MqttUnsubscribeV5FW mqttUnsubscribeV5RO = new MqttUnsubscribeV5FW();
-    private final MqttUnsubscribeV3FW mqttUnsubscribeV3RO = new MqttUnsubscribeV3FW();
+    private final MqttUnsubscribeV4FW mqttUnsubscribeV4RO = new MqttUnsubscribeV4FW();
     private final MqttUnsubscribePayloadFW mqttUnsubscribePayloadRO = new MqttUnsubscribePayloadFW();
     private final MqttPingReqFW mqttPingReqRO = new MqttPingReqFW();
     private final MqttDisconnectV5FW mqttDisconnectV5RO = new MqttDisconnectV5FW();
-    private final MqttDisconnectV3FW mqttDisconnectV3RO = new MqttDisconnectV3FW();
+    private final MqttDisconnectV4FW mqttDisconnectV4RO = new MqttDisconnectV4FW();
 
     private final OctetsFW octetsRO = new OctetsFW();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
@@ -304,12 +304,12 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttConnectPayload mqttConnectPayloadRO = new MqttConnectPayload();
 
     private final MqttConnackV5FW.Builder mqttConnackV5RW = new MqttConnackV5FW.Builder();
-    private final MqttConnackV3FW.Builder mqttConnackV3RW = new MqttConnackV3FW.Builder();
-    private final MqttPublishV3FW.Builder mqttPublishV4RW = new MqttPublishV3FW.Builder();
+    private final MqttConnackV4FW.Builder mqttConnackV4RW = new MqttConnackV4FW.Builder();
+    private final MqttPublishV4FW.Builder mqttPublishV4RW = new MqttPublishV4FW.Builder();
     private final MqttPublishV5FW.Builder mqttPublishV5RW = new MqttPublishV5FW.Builder();
     private final MqttSubackV5FW.Builder mqttSubackV5RW = new MqttSubackV5FW.Builder();
-    private final MqttSubackV3FW.Builder mqttSubackV3RW = new MqttSubackV3FW.Builder();
-    private final MqttUnsubackV3FW.Builder mqttUnsubackV3RW = new MqttUnsubackV3FW.Builder();
+    private final MqttSubackV4FW.Builder mqttSubackV4RW = new MqttSubackV4FW.Builder();
+    private final MqttUnsubackV4FW.Builder mqttUnsubackV4RW = new MqttUnsubackV4FW.Builder();
     private final MqttUnsubackV5FW.Builder mqttUnsubackV5RW = new MqttUnsubackV5FW.Builder();
     private final MqttUnsubackPayloadFW.Builder mqttUnsubackPayloadRW = new MqttUnsubackPayloadFW.Builder();
     private final MqttPingRespFW.Builder mqttPingRespRW = new MqttPingRespFW.Builder();
@@ -787,9 +787,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
             final MqttServerDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
 
-            if (packetType != MqttPacketType.CONNECT &&
-                packet.sizeof() + length > maximumPacketSize)
+            if (packet.sizeof() + length > maximumPacketSize)
             {
+                if (packetType == MqttPacketType.CONNECT)
+                {
+                    // We must look ahead to get the version, so we can reject according to the spec
+                    final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
+                    server.version = mqttConnectHeader.protocolVersion();
+                }
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
@@ -836,7 +841,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 reasonCode = decodeConnectType(mqttConnectHeader, flags);
                 if (reasonCode != SUCCESS)
                 {
-                    reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
@@ -846,7 +850,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                if (length > maximumPacketSize)
+                if (server.decodeablePacketBytes > maximumPacketSize)
                 {
                     server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnectHeader.protocolVersion());
                     server.decoder = decodeIgnoreAll;
@@ -870,15 +874,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (mqttConnectHeader.protocolVersion())
                 {
                 case 4:
-                    final MqttConnectV3FW mqttConnectV3 = mqttConnectV3RO.tryWrap(buffer, progress, limit);
+                    final MqttConnectV4FW mqttConnectV4 = mqttConnectV4RO.tryWrap(buffer, progress, limit);
 
-                    if (mqttConnectV3 == null)
+                    if (mqttConnectV4 == null)
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
 
-                    clientId = mqttConnectV3.clientId();
+                    clientId = mqttConnectV4.clientId();
 
                     if (clientId.length() == 0 && !isCleanStart(flags))
                     {
@@ -886,7 +890,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
 
-                    progress = mqttConnectV3.limit();
+                    progress = mqttConnectV4.limit();
                     break;
                 case 5:
                     final MqttConnectV5FW mqttConnectV5 = mqttConnectV5RO.tryWrap(buffer, progress, limit);
@@ -1000,17 +1004,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (server.version)
             {
             case 4:
-                final MqttPublishV3FW publishV3 = mqttPublishV3RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (publishV3 == null)
+                final MqttPublishV4FW publishV4 = mqttPublishV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+                if (publishV4 == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
-                reasonCode = mqttPublishHeader.decodeV3(server, publishV3.topicName(), publishV3.typeAndFlags());
+                reasonCode = mqttPublishHeader.decodeV4(server, publishV4.topicName(), publishV4.typeAndFlags());
 
-                payload = publishV3.payload();
-                publishLimit = publishV3.limit();
+                payload = publishV4.payload();
+                publishLimit = publishV4.limit();
                 break;
             case 5:
                 final MqttPublishV5FW publishV5 = mqttPublishV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
@@ -1020,7 +1024,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                reasonCode = mqttPublishHeader.decodeV5(server, publishV5.topicName(), publishV5.properties(), publishV5.typeAndFlags());
+                reasonCode = mqttPublishHeader.decodeV5(server, publishV5.topicName(), publishV5.properties(),
+                    publishV5.typeAndFlags());
 
                 payload = publishV5.payload();
 
@@ -1146,12 +1151,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (server.version)
             {
             case 4:
-                final MqttSubscribeV3FW subscribeV3 = mqttSubscribeV3RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (subscribeV3 == null)
+                final MqttSubscribeV4FW subscribeV4 =
+                    mqttSubscribeV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+                if (subscribeV4 == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                 }
-                else if ((subscribeV3.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
+                else if ((subscribeV4.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                 }
@@ -1163,9 +1169,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         //We don't know the server capabilities yet
                         break decode;
                     }
-                    server.onDecodeSubscribeV3(traceId, authorization, subscribeV3);
+                    server.onDecodeSubscribeV4(traceId, authorization, subscribeV4);
                     server.decoder = decodePacketType;
-                    progress = subscribeV3.limit();
+                    progress = subscribeV4.limit();
                 }
                 else
                 {
@@ -1174,7 +1180,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 break;
             case 5:
-                final MqttSubscribeV5FW subscribeV5 = mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+                final MqttSubscribeV5FW subscribeV5 =
+                    mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
                 if (subscribeV5 == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1229,22 +1236,22 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (server.version)
             {
             case 4:
-                final MqttUnsubscribeV3FW unsubscribeV3 = mqttUnsubscribeV3RO.tryWrap(buffer, offset,
+                final MqttUnsubscribeV4FW unsubscribeV4 = mqttUnsubscribeV4RO.tryWrap(buffer, offset,
                     offset + server.decodeablePacketBytes);
-                if (unsubscribeV3 == null || unsubscribeV3.payload().sizeof() == 0 || unsubscribeV3.packetId() == 0)
+                if (unsubscribeV4 == null || unsubscribeV4.payload().sizeof() == 0 || unsubscribeV4.packetId() == 0)
                 {
                     reasonCode = PROTOCOL_ERROR;
                 }
-                else if ((unsubscribeV3.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
+                else if ((unsubscribeV4.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                 }
 
                 if (reasonCode == 0)
                 {
-                    packetId = unsubscribeV3.packetId();
-                    payload = unsubscribeV3.payload();
-                    progress = unsubscribeV3.limit();
+                    packetId = unsubscribeV4.packetId();
+                    payload = unsubscribeV4.payload();
+                    progress = unsubscribeV4.limit();
                 }
                 break;
             case 5:
@@ -1336,21 +1343,21 @@ public final class MqttServerFactory implements MqttStreamFactory
             switch (server.version)
             {
             case 4:
-                final MqttDisconnectV3FW disconnectV3 = mqttDisconnectV3RO.tryWrap(buffer, offset, limit);
-                if (disconnectV3 == null)
+                final MqttDisconnectV4FW disconnectV4 = mqttDisconnectV4RO.tryWrap(buffer, offset, limit);
+                if (disconnectV4 == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                 }
-                else if ((disconnectV3.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
+                else if ((disconnectV4.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                 }
 
                 if (reasonCode == 0)
                 {
-                    server.onDecodeDisconnectV3(traceId, authorization);
+                    server.onDecodeDisconnectV4(traceId, authorization);
                     server.decoder = decodePacketType;
-                    progress = disconnectV3.limit();
+                    progress = disconnectV4.limit();
                 }
                 break;
             case 5:
@@ -2188,10 +2195,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private void onDecodeSubscribeV3(
+        private void onDecodeSubscribeV4(
             long traceId,
             long authorization,
-            MqttSubscribeV3FW subscribe)
+            MqttSubscribeV4FW subscribe)
         {
             final int packetId = subscribe.packetId();
             final OctetsFW decodePayload = subscribe.payload();
@@ -2243,6 +2250,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     Subscription subscription = new Subscription();
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
+                    subscription.flags = SEND_RETAINED_FLAG;
                     subscription.qos = options;
                     subscribePacketIds.put(subscriptionId, packetId);
 
@@ -2465,7 +2473,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (version)
                 {
                 case 4:
-                    doEncodeSubackV3(traceId, sessionId, packetId, subscriptionPayload);
+                    doEncodeSubackV4(traceId, sessionId, packetId, subscriptionPayload);
                     break;
                 case 5:
                     doEncodeSubackV5(traceId, sessionId, packetId, subscriptionPayload);
@@ -2653,7 +2661,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             doEncodePingResp(traceId, authorization);
         }
 
-        private void onDecodeDisconnectV3(
+        private void onDecodeDisconnectV4(
             long traceId,
             long authorization)
         {
@@ -2755,7 +2763,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 cleanupStreamsUsingAbort(traceId);
                 break;
             }
-            if (version == MQTT_PROTOCOL_VERSION_5 || (reasonCode & 0xff)  <= MAX_CONNACK_REASONCODE_V3)
+            if (version != MQTT_PROTOCOL_VERSION_4 || (reasonCode & 0xff)  <= MAX_CONNACK_REASONCODE_V4)
             {
                 if (connected || reasonCode == SESSION_TAKEN_OVER)
                 {
@@ -2910,7 +2918,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int publishNetworkTypeAndFlags = PUBLISH_TYPE << 4 |
                     calculatePublishNetworkFlags(PUBLISH_TYPE << 4 | publishApplicationFlags, qos);
 
-                final MqttPublishV3FW publish =
+                final MqttPublishV4FW publish =
                     mqttPublishV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .typeAndFlags(publishNetworkTypeAndFlags)
                         .remainingLength(2 + topicNameLength + payloadSize + deferred)
@@ -3090,7 +3098,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doEncodeConnackV5(traceId, authorization, reasonCode, assignedClientId, sessionPresent, serverReference);
                 break;
             default:
-                doEncodeConnackV4(traceId, authorization, reasonCode, sessionPresent);
+                doEncodeConnackV5(traceId, authorization, reasonCode, assignedClientId, sessionPresent, serverReference);
                 break;
             }
 
@@ -3104,8 +3112,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int flags = sessionPresent ? CONNACK_SESSION_PRESENT : 0x00;
 
-            final MqttConnackV3FW connack =
-                mqttConnackV3RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttConnackV4FW connack =
+                mqttConnackV4RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x20)
                     .remainingLength(2)
                     .flags(flags)
@@ -3231,7 +3239,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             doNetworkData(traceId, authorization, 0L, connack);
         }
 
-        private void doEncodeSubackV3(
+        private void doEncodeSubackV4(
             long traceId,
             long authorization,
             int packetId,
@@ -3241,7 +3249,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .put(subscriptions)
                 .build();
 
-            final MqttSubackV3FW suback = mqttSubackV3RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttSubackV4FW suback = mqttSubackV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(0x90)
                 .remainingLength(2 + reasonCodes.sizeof())
                 .packetId(packetId)
@@ -3277,8 +3285,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttUnsubackV3FW unsuback =
-                mqttUnsubackV3RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttUnsubackV4FW unsuback =
+                mqttUnsubackV4RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0xb0)
                     .remainingLength(2)
                     .packetId(packetId)
@@ -5100,8 +5108,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         if (!MQTT_PROTOCOL_NAME.equals(connectHeader.protocolName()) ||
-            (connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_5 &&
-                connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_4))
+            connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_5 &&
+                connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_4)
         {
             reasonCode = UNSUPPORTED_PROTOCOL_VERSION;
         }
@@ -5175,16 +5183,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                     switch (version)
                     {
                     case 4:
-                        final MqttWillV3FW mqttWillV3 = mqttWillV3RO.tryWrap(buffer, offset, limit);
-                        if (mqttWillV3 == null)
+                        final MqttWillV4FW mqttWillV4 = mqttWillV4RO.tryWrap(buffer, offset, limit);
+                        if (mqttWillV4 == null)
                         {
                             reasonCode = MALFORMED_PACKET;
                             break decode;
                         }
 
-                        willTopic = mqttWillV3.topic();
-                        willPayload = mqttWillV3.payload();
-                        progress = mqttWillV3.limit();
+                        willTopic = mqttWillV4.topic();
+                        willPayload = mqttWillV4.payload();
+                        progress = mqttWillV4.limit();
                         break;
                     case 5:
                         final MqttWillV5FW mqttWillV5 = mqttWillV5RO.tryWrap(buffer, offset, limit);
@@ -5237,7 +5245,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (isSetPassword(flags))
                 {
                     password = passwordRO.tryWrap(buffer, progress, limit);
-                    if (password == null || !isSetUsername(flags))
+                    if (password == null || version == 4 && !isSetUsername(flags))
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
@@ -5441,7 +5449,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             return reasonCode;
         }
 
-        private int decodeV3(
+        private int decodeV4(
             MqttServer server,
             String16FW topicName,
             int typeAndFlags)

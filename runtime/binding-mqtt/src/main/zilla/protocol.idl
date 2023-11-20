@@ -102,7 +102,7 @@
             uint16 keepAlive;
         }
 
-        struct MqttConnectV3
+        struct MqttConnectV4
         {
             string16 clientId;
         }
@@ -113,7 +113,7 @@
             string16 clientId;
         }
 
-        struct MqttWillV3
+        struct MqttWillV4
         {
             string16 topic;
             Binary payload; //TODO: data fragmentation
@@ -126,7 +126,7 @@
             Binary payload; //TODO: data fragmentation
         }
 
-        struct MqttConnackV3 extends MqttPacketHeader
+        struct MqttConnackV4 extends MqttPacketHeader
         {
             uint8 flags;
             uint8 reasonCode;
@@ -139,7 +139,7 @@
             MqttProperties properties;
         }
 
-        struct MqttPublishV3 extends MqttPacketHeader
+        struct MqttPublishV4 extends MqttPacketHeader
         {
             string16 topicName;
             octets payload;
@@ -152,7 +152,7 @@
             octets payload;
         }
 
-        struct MqttPubackV3 extends MqttPacketHeader
+        struct MqttPubackV4 extends MqttPacketHeader
         {
             uint16 packetId;
             uint8 reasonCode;
@@ -165,7 +165,7 @@
             MqttProperties properties;
         }
 
-        struct MqttPubrecV3 extends MqttPacketHeader
+        struct MqttPubrecV4 extends MqttPacketHeader
         {
             uint16 packetId;
             uint8 reasonCode;
@@ -178,7 +178,7 @@
             MqttProperties properties;
         }
 
-        struct MqttPubrelV3 extends MqttPacketHeader
+        struct MqttPubrelV4 extends MqttPacketHeader
         {
             uint16 packetId;
             uint8 reasonCode;
@@ -191,7 +191,7 @@
             MqttProperties properties;
         }
 
-        struct MqttPubcompV3 extends MqttPacketHeader
+        struct MqttPubcompV4 extends MqttPacketHeader
         {
             uint16 packetId;
             uint8 reasonCode;
@@ -204,7 +204,7 @@
             MqttProperties properties;
         }
 
-        struct MqttSubscribeV3 extends MqttPacketHeader
+        struct MqttSubscribeV4 extends MqttPacketHeader
         {
             uint16 packetId;
             octets payload;
@@ -223,7 +223,7 @@
             uint8 options;
         }
 
-        struct MqttSubackV3 extends MqttPacketHeader
+        struct MqttSubackV4 extends MqttPacketHeader
         {
             uint16 packetId;
             octets payload;
@@ -241,7 +241,7 @@
             uint8 reasonCode;
         }
 
-        struct MqttUnsubscribeV3 extends MqttPacketHeader
+        struct MqttUnsubscribeV4 extends MqttPacketHeader
         {
             uint16 packetId;
             octets payload;
@@ -259,7 +259,7 @@
             string16 filter;
         }
 
-        struct MqttUnsubackV3 extends MqttPacketHeader
+        struct MqttUnsubackV4 extends MqttPacketHeader
         {
             uint16 packetId;
         }
@@ -284,7 +284,7 @@
         {
         }
 
-        struct MqttDisconnectV3 extends MqttPacketHeader
+        struct MqttDisconnectV4 extends MqttPacketHeader
         {
         }
 
