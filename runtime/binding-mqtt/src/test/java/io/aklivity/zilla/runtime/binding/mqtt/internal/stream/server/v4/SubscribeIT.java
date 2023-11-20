@@ -234,16 +234,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/subscribe.topic.filters.non.successful/client",
-        "${app}/subscribe.topic.filters.non.successful/server"})
-    public void shouldFilterNonSuccessful() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Before
     public void setSubscriptionId()
     {

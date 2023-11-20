@@ -44,7 +44,7 @@ write [0x30 0x14]                    # PUBLISH
       [0x02]                         # properties
       [0x0b 0x01]                    # subscription id = 1
       [0x00 0x0a] "sensor/two"       # topic filter
-      [0x20]                         # options = at-most-once
+      [0x00]                         # options = at-most-once, send retained
       [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00]                         # properties

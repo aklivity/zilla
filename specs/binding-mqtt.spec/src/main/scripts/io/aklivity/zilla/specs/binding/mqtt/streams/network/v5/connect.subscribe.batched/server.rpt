@@ -34,7 +34,7 @@ read  [0x10 0x13]                   # CONNECT
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x00 0x0a] "sensor/one"      # topic filter
-      [0x20]                        # options = at-most-once
+      [0x00]                        # options = at-most-once, send retained
 
 write [0x20 0x08]                   # CONNACK
       [0x00]                        # flags = none

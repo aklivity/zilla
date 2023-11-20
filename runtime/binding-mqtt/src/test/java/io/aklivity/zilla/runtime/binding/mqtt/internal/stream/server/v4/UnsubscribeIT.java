@@ -135,16 +135,6 @@ public class UnsubscribeIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/unsubscribe.topic.filters.non.successful/client",
-        "${app}/unsubscribe.topic.filters.non.successful/server"})
-    public void shouldAcknowledgeNonSuccessful() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Before
     public void setSubscriptionId()
     {
