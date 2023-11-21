@@ -27,17 +27,12 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - subscribe:
-              - topic: sensor/one
           - publish:
               - topic: sensor/one
         with:
           messages: mqtt-sensors
       - exit: kafka0
         when:
-          - subscribe:
-              - topic: device/#
-              - topic: sensor/two
           - publish:
               - topic: device/#
               - topic: sensor/two

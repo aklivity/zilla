@@ -14,19 +14,8 @@ defaultContentType: application/json
 channels:
   items:
     address: /items
-    messages:
-      items:
-        $ref: '#/components/messages/item'
   itemsbyid:
     address: /items/{id}
-    parameters:
-      id:
-        description: Event ID.
-        schema:
-          type: string
-    messages:
-      items:
-        $ref: '#/components/messages/item'
 
 operations:
   postEvents:
@@ -68,16 +57,3 @@ components:
             description: Unique identifier for a given event
             type: string
       contentType: application/json
-      payload:
-        type: object
-        properties:
-          item:
-            $ref: "#/components/schemas/item"
-  schemas:
-    item:
-      type: object
-      properties:
-        greeting:
-          type: string
-      required:
-        - greeting

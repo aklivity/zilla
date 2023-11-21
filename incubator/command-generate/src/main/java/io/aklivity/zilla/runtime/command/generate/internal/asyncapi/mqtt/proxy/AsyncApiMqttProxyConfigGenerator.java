@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.asyncapi.mqtt.proxy;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
@@ -32,23 +30,15 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Channel;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
-import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Schema;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -61,14 +51,8 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
 {
-    private static final String INLINE_CATALOG_NAME = "catalog0";
-    private static final String INLINE_CATALOG_TYPE = "inline";
-    private static final String APPLICATION_JSON = "application/json";
-    private static final String VERSION_LATEST = "latest";
-
     private final InputStream input;
 
-    private AsyncApi asyncApi;
     private int[] allPorts;
     private int[] mqttPorts;
     private int[] mqttsPorts;
@@ -258,9 +242,7 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
         {
             String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
             Map<String, Message> messages = channelEntry.getValue().messages;
-            Message firstMessage = messages.entrySet().stream().findFirst().get().getValue();
-            String contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
-            if (APPLICATION_JSON.equals(contentType))
+            if (hasJsonContentType())
             {
                 binding
                     .options(MqttOptionsConfig::builder)
@@ -382,70 +364,6 @@ public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
                     .build();
         }
         return namespace;
-    }
-
-    private NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
-    {
-        if (asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
-        {
-            namespace
-                .catalog()
-                    .name(INLINE_CATALOG_NAME)
-                    .type(INLINE_CATALOG_TYPE)
-                    .options(InlineOptionsConfig::builder)
-                        .subjects()
-                            .inject(this::injectSubjects)
-                            .build()
-                        .build()
-                    .build();
-
-        }
-        return namespace;
-    }
-
-    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects)
-    {
-        try (Jsonb jsonb = JsonbBuilder.create())
-        {
-            YAMLMapper yaml = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
-            {
-                subjects
-                    .subject(entry.getKey())
-                        .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, entry.getValue()))
-                        .build();
-            }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return subjects;
-    }
-
-    private static String writeSchemaYaml(
-        Jsonb jsonb,
-        YAMLMapper yaml,
-        Schema schema)
-    {
-        String result = null;
-        try
-        {
-            String schemaJson = jsonb.toJson(schema);
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 
     private JsonPatch createEnvVarsPatch()

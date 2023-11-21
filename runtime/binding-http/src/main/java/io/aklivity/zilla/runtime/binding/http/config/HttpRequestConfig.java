@@ -35,13 +35,13 @@ public class HttpRequestConfig
         TRACE
     }
 
-    public String path;
-    public Method method;
-    public List<String> contentType;
-    public List<HttpParamConfig> headers;
-    public List<HttpParamConfig> pathParams;
-    public List<HttpParamConfig> queryParams;
-    public ValidatorConfig content;
+    public final String path;
+    public final Method method;
+    public final List<String> contentType;
+    public final List<HttpParamConfig> headers;
+    public final List<HttpParamConfig> pathParams;
+    public final List<HttpParamConfig> queryParams;
+    public final ValidatorConfig content;
 
     public HttpRequestConfig(
         String path,

@@ -46,6 +46,7 @@ catalogs:
       subjects:
         item:
           schema: |
+            type: object
             properties:
               id:
                 type: string
@@ -57,6 +58,7 @@ catalogs:
           version: latest
         thing:
           schema: |
+            type: object
             properties:
               sunshine:
                 type: integer
