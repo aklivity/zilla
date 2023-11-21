@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.59](https://github.com/aklivity/zilla/tree/0.9.59) (2023-11-21)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.58...0.9.59)
+
+**Implemented enhancements:**
+
+- Generate `http` server request `validators` from `AsyncAPI` specification [\#460](https://github.com/aklivity/zilla/issues/460)
+
+**Fixed bugs:**
+
+- MQTT topic routing doesn't correctly reject pub/sub requests [\#572](https://github.com/aklivity/zilla/issues/572)
+- Fix producing empty message to retained topic [\#577](https://github.com/aklivity/zilla/pull/577) ([bmaidics](https://github.com/bmaidics))
+- Fix MQTT topic routing doesn't correctly reject pub/sub requests [\#573](https://github.com/aklivity/zilla/pull/573) ([bmaidics](https://github.com/bmaidics))
+
+**Closed issues:**
+
+- Empty messages on `retained` topic for all MQTT messages [\#575](https://github.com/aklivity/zilla/issues/575)
+- \[DOCS\] Fix typos in README file [\#540](https://github.com/aklivity/zilla/issues/540)
+
+**Merged pull requests:**
+
+- Consumer group session timeout defaults [\#584](https://github.com/aklivity/zilla/pull/584) ([jfallows](https://github.com/jfallows))
+- Fix json validator to also accept arrays [\#576](https://github.com/aklivity/zilla/pull/576) ([attilakreiner](https://github.com/attilakreiner))
+- Include validation in the `asyncapi.http.proxy` generator [\#574](https://github.com/aklivity/zilla/pull/574) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.58](https://github.com/aklivity/zilla/tree/0.9.58) (2023-11-13)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.57...0.9.58)
