@@ -940,7 +940,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             Flyweight extension)
         {
             state = KafkaState.closedInitial(state);
-            //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, client.authorization, extension);
@@ -1041,7 +1040,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 this.partitions = partitions;
                 this.topicPartitions = new ObjectHashSet<>();
 
-                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeOffsetFetchRequest;
                 this.decoder = decodeReject;
             }
 

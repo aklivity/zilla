@@ -486,18 +486,18 @@ scope protocol
                 int32 topicCount;
             }
 
-            struct OffsetCommitTopic
+            struct OffsetCommitTopicRequest
             {
                 string16 name;
                 int32 partitionCount;
             }
 
-            struct OffsetCommitTopicPartition
+            struct OffsetCommitTopicPartitionRequest
             {
                 int32 partitionIndex;
-                int64 committedOffset;
-                int32 committedLeaderEpoch;
-                string16 committedMetadata = null;
+                int64 partitionOffset;
+                int32 leaderEpoch;
+                string16 metadata = null;
             }
 
             struct OffsetCommitResponse
@@ -506,13 +506,13 @@ scope protocol
                 int32 topicCount;
             }
 
-            struct OffsetCommitResponseTopic
+            struct OffsetCommitTopicResponse
             {
                 string16 name;
                 int32 partitionCount;
             }
 
-            struct OffsetCommitResponseTopicPartition
+            struct OffsetCommitTopicPartitionResponse
             {
                 int32 partitionIndex;
                 int16 errorCode;

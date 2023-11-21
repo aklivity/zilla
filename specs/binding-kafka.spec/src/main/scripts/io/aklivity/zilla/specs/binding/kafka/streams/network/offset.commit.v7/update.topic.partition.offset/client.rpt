@@ -28,7 +28,7 @@ connect "zilla://streams/net0"
 
 connected
 
-write 75                                # size
+write 84                                # size
       8s                                # offset fetch
       7s                                # 7
       ${newRequestId}
@@ -43,7 +43,7 @@ write 75                                # size
           0                             # partition 0
           2L                            # committed offset
           0                             # committed leader epoch
-          -1s                           # no metadata
+          9s "test-meta"                # no metadata
 
 read 28                                 # size
      (int:newRequestId)

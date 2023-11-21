@@ -24,6 +24,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .groupId("client-1")
                                    .memberId("memberId-1")
+                                   .instanceId("zilla")
                                    .build()
                                .build()}
 
@@ -32,11 +33,11 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2)
+                                 .partition(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()
                              .build()}
 
-write "test-meta"
+write zilla:data.empty
 write flush

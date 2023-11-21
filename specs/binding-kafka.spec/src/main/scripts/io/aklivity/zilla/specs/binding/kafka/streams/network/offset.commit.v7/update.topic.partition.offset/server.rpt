@@ -25,7 +25,7 @@ accepted
 
 connected
 
-read 75                                # size
+read 84                                # size
       8s                                # offset fetch
       7s                                # 7
       (int:newRequestId)
@@ -40,7 +40,7 @@ read 75                                # size
           0                             # partition 0
           2L                            # committed offset
           0                             # committed leader epoch
-          -1s                           # no metadata
+          9s "test-meta"                # no metadata
 
 write 28                                 # size
       ${newRequestId}

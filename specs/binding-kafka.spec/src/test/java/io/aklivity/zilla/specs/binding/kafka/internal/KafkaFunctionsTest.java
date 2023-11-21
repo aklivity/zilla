@@ -4151,6 +4151,7 @@ public class KafkaFunctionsTest
             .group()
                 .groupId("test")
                 .protocol("roundrobin")
+                .instanceId("client-1")
                 .timeout(10)
                 .metadata("test".getBytes())
                 .build()
@@ -4246,6 +4247,7 @@ public class KafkaFunctionsTest
                 .topic("topic")
                 .groupId("test")
                 .memberId("member-1")
+                .memberId("client-1")
                 .build()
             .build();
 
@@ -4342,7 +4344,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetCommit()
-                .partition(0, 2L)
+                .partition(0, 2L, "test-meta")
                 .generationId(0)
                 .leaderEpoch(0)
                 .build()

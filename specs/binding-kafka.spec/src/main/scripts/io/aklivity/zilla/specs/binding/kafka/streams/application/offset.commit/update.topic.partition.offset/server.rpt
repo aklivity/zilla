@@ -28,6 +28,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .groupId("client-1")
                                    .memberId("memberId-1")
+                                   .instanceId("zilla")
                                    .build()
                                .build()}
 
@@ -36,10 +37,10 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "test-meta")
                                   .generationId(0)
                                   .leaderEpoch(0)
                                   .build()
                               .build()}
 
-read "test-meta"
+read zilla:data.empty

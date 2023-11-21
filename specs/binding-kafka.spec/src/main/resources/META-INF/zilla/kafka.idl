@@ -398,6 +398,7 @@ scope kafka
         {
             string16 groupId;
             string16 protocol;
+            string16 instanceId = null;
             int32 timeout;
             varint32 metadataLen;
             octets[metadataLen] metadata = null;
@@ -473,6 +474,7 @@ scope kafka
             string16 topic;
             string16 groupId;
             string16 memberId;
+            string16 instanceId;
         }
 
         struct KafkaOffsetCommitDataEx

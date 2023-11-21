@@ -1399,6 +1399,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExBuilder instanceId(
+                String instanceId)
+            {
+                groupBeginExRW.instanceId(instanceId);
+                return this;
+            }
+
             public KafkaGroupBeginExBuilder timeout(
                 int timeout)
             {
@@ -1546,6 +1553,13 @@ public final class KafkaFunctions
                 String memberId)
             {
                 offsetCommitBeginExRW.memberId(memberId);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder instanceId(
+                String instanceId)
+            {
+                offsetCommitBeginExRW.instanceId(instanceId);
                 return this;
             }
 
@@ -2506,9 +2520,13 @@ public final class KafkaFunctions
 
             public KafkaOffsetCommitDataExBuilder partition(
                 int partitionId,
-                long partitionOffset)
+                long partitionOffset,
+                String metadata)
             {
-                offsetCommitDataExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
+                offsetCommitDataExRW.partition(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .metadata(metadata));
                 return this;
             }
 
