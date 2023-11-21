@@ -41,7 +41,7 @@ write [0x30 0x15]                    # PUBLISH
       "message"                      # payload
 
 read  [0xe0 0x02]                    # disconnect header
-      [0x90]                         # DISCONNECT = topic name invalid
+      [0x83]                         # reason = implementation specific error
       [0x00]                         # properties = none
 
 read closed

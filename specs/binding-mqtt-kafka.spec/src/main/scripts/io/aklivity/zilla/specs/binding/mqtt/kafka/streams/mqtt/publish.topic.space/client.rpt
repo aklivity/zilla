@@ -63,4 +63,21 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "Hello, again"
 write flush
+write notify SENT_DATA
+
+
+connect await SENT_DATA
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1)
+                                .build()
+                             .build()}
+
+connect aborted
 

@@ -38,6 +38,24 @@ bindings:
           credentials:
             headers:
               authorization: "Bearer {credentials}"
+      requests:
+      - path: "/items/{id}"
+        method: GET
+        params:
+          path:
+            id: string
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
     routes:
     - exit: http_client0
       when:
@@ -127,3 +145,17 @@ vaults:
         store: "${{env.KEYSTORE_PATH}}"
         type: "${{env.KEYSTORE_TYPE}}"
         password: "${{env.KEYSTORE_PASSWORD}}"
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            type: object
+            properties:
+              greeting:
+                type: string
+            required:
+            - greeting
+          version: latest
