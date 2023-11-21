@@ -29,13 +29,15 @@ module io.aklivity.zilla.runtime.command.generate
 
     requires com.fasterxml.jackson.dataformat.yaml;
     requires com.fasterxml.jackson.databind;
+    requires org.apache.commons.collections4;
 
     opens io.aklivity.zilla.runtime.command.generate.internal.airline
         to com.github.rvesse.airline;
 
     opens io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
-
+    opens io.aklivity.zilla.runtime.command.generate.internal.openapi.view;
     opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
+    opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view;
 
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
         with io.aklivity.zilla.runtime.command.generate.internal.ZillaConfigCommandSpi;
