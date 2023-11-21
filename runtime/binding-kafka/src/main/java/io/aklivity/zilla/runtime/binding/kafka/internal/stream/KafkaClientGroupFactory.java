@@ -1349,10 +1349,30 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void onStreamData(
             DataFW data)
         {
-            final long traceId = data.traceId();
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long authorization = data.authorization();
             final long budgetId = data.budgetId();
+            final long traceId = data.traceId();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
 
-            coordinatorClient.doSyncGroupRequest(traceId, budgetId, data.payload());
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            if (initialSeq > initialAck + initialMax)
+            {
+                cleanupStream(traceId, ERROR_EXISTS);
+                coordinatorClient.cleanupNetwork(traceId, authorization);
+            }
+            else
+            {
+                coordinatorClient.doSyncGroupRequest(traceId, budgetId, payload);
+            }
         }
 
         private void onStreamEnd(
@@ -1490,6 +1510,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .group(g -> g
                         .groupId(groupId)
                         .protocol(protocol)
+                        .instanceId(groupMembership.instanceId)
                         .timeout(timeout))
                     .build();
 

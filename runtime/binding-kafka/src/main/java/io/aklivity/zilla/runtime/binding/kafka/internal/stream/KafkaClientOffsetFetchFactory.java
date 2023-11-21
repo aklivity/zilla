@@ -1039,6 +1039,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 this.topic = topic;
                 this.partitions = partitions;
                 this.topicPartitions = new ObjectHashSet<>();
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeOffsetFetchRequest;
 
                 this.decoder = decodeReject;
             }

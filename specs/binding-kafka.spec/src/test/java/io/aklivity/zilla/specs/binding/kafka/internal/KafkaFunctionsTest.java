@@ -2308,6 +2308,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
             .typeId(0x01)
             .group()
+                .generationId(0)
                 .leaderId("consumer-1")
                 .memberId("consumer-2")
                 .members("memberId-1", "test".getBytes())
@@ -2356,11 +2357,12 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
             .typeId(0x01)
             .group()
-            .leaderId("consumer-1")
-            .memberId("consumer-2")
-            .members("memberId-1")
-            .members("memberId-2")
-            .build()
+                .generationId(0)
+                .leaderId("consumer-1")
+                .memberId("consumer-2")
+                .members("memberId-1")
+                .members("memberId-2")
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -4247,7 +4249,7 @@ public class KafkaFunctionsTest
                 .topic("topic")
                 .groupId("test")
                 .memberId("member-1")
-                .memberId("client-1")
+                .instanceId("zilla")
                 .build()
             .build();
 
@@ -5036,6 +5038,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
             .group()
+                .generationId(0)
                 .leaderId("memberId-1")
                 .memberId("memberId-2")
                 .members("memberId-1")
@@ -5046,7 +5049,10 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
+            .group(f -> f
+                .generationId(0)
+                .leaderId("memberId-1")
+                .memberId("memberId-2").
                 members(m -> m.item(i -> i.id("memberId-1"))))
             .build();
 
@@ -5059,6 +5065,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
             .group()
+               .generationId(0)
                .leaderId("memberId-1")
                .memberId("memberId-2")
                .members("memberId-1", "test")
@@ -5069,8 +5076,11 @@ public class KafkaFunctionsTest
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .group(f -> f.leaderId("memberId-1").memberId("memberId-2").
-                members(m -> m.item(i -> i.id("memberId-1")
+            .group(f -> f
+                .generationId(0)
+                .leaderId("memberId-1")
+                .memberId("memberId-2")
+                .members(m -> m.item(i -> i.id("memberId-1")
                      .metadataLen("test".length()).metadata(o -> o.set("test".getBytes())))))
             .build();
 

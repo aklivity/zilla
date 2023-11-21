@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -33,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
@@ -44,12 +46,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -59,6 +62,8 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class KafkaCacheServerConsumerFactory implements BindingHandler
 {
+    private static final int OFFSET_COMMIT_REQUEST_RECORD_MAX = 512;
+
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -74,8 +79,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
     private final KafkaGroupMemberMetadataFW kafkaGroupMemberMetadataRO = new KafkaGroupMemberMetadataFW();
-    private final Array32FW<KafkaGroupTopicMetadataFW> groupTopicsMetadataRO =
-        new Array32FW<>(new KafkaGroupTopicMetadataFW());
     private final Array32FW<TopicAssignmentFW> topicAssignmentsRO =
         new Array32FW<>(new TopicAssignmentFW());
 
@@ -549,7 +552,9 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private int replyPad;
         private String leaderId;
         private String memberId;
+        private String instanceId;
         private int timeout;
+        private int generationId;
 
 
         private KafkaCacheServerConsumerFanout(
@@ -827,6 +832,13 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaBeginExFW groupBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
+            final KafkaGroupBeginExFW kafkaGroupBeginEx = groupBeginEx != null ? groupBeginEx.group() : null;
+
+            instanceId = kafkaGroupBeginEx.instanceId().asString();
 
             state = KafkaState.openedReply(state);
 
@@ -858,6 +870,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             {
                 KafkaGroupFlushExFW kafkaGroupFlushEx = flushEx.group();
 
+                generationId = kafkaGroupFlushEx.generationId();
                 leaderId = kafkaGroupFlushEx.leaderId().asString();
                 memberId = kafkaGroupFlushEx.memberId().asString();
 
@@ -1103,6 +1116,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
     final class KafkaCacheServerConsumerStream
     {
         private final KafkaCacheServerConsumerFanout fanout;
+        private final KafkaOffsetCommitStream offsetCommit;
         private final MessageConsumer sender;
         private final String topic;
         private final List<Integer> partitions;
@@ -1148,6 +1162,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.authorization = authorization;
             this.topic = topic;
             this.partitions = partitions;
+            this.offsetCommit = new KafkaOffsetCommitStream(this, originId, routedId, authorization);
         }
 
         private void onConsumerMessage(
@@ -1256,6 +1271,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -1264,6 +1281,16 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
 
             assert initialAck <= initialSeq;
+
+            final ExtensionFW dataEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaFlushExFW kafkaFlushEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
+                kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+
+            KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
+            final KafkaOffsetFW partition = consumerFlushEx.partition();
+            final int leaderEpoch = consumerFlushEx.leaderEpoch();
+
+            offsetCommit.onOffsetCommitRequest(traceId, authorization, partition, leaderEpoch);
         }
 
         private void onConsumerInitialAbort(
@@ -1355,6 +1382,14 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
+        private void doConsumerReplyFlush(
+            long traceId,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            doFlush(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, 0, 0, extension);
+        }
+
         private void onConsumerReplyReset(
             ResetFW reset)
         {
@@ -1413,11 +1448,357 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             }
         }
 
+        private void onOffsetCommitAck(
+            long traceId,
+            int partitionId,
+            long partitionOffset)
+        {
+            doConsumerReplyFlush(traceId,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .consumer(c -> c
+                        .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset)))
+                    .build()
+                    .sizeof()));
+        }
+
         private void cleanup(
             long traceId)
         {
             doConsumerInitialReset(traceId);
             doConsumerReplyAbort(traceId);
+        }
+    }
+
+    final class KafkaOffsetCommitStream
+    {
+        private final long originId;
+        private final long routedId;
+        private final long authorization;
+        private final KafkaCacheServerConsumerStream delegate;
+        private final ArrayDeque<KafkaPartitionOffset> commitRequests;
+        private final ArrayDeque<KafkaPartitionOffset> commitResponses;
+
+        private long initialId;
+        private long replyId;
+        private MessageConsumer receiver;
+
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private long initialBud;
+        private int initialPad;
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+
+        private KafkaOffsetCommitStream(
+            KafkaCacheServerConsumerStream delegate,
+            long originId,
+            long routedId,
+            long authorization)
+        {
+            this.delegate = delegate;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.receiver = MessageConsumer.NOOP;
+            this.authorization = authorization;
+            this.commitRequests = new ArrayDeque<>();
+            this.commitResponses = new ArrayDeque<>();
+        }
+
+        private int initialWindow()
+        {
+            return initialMax - (int)(initialSeq - initialAck);
+        }
+
+        private void doOffsetCommitInitialBegin(
+            long traceId,
+            long affinity)
+        {
+            if (!KafkaState.initialOpening(state))
+            {
+                assert state == 0;
+
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+                this.receiver = newStream(this::onOffsetCommitMessage,
+                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, this.authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .offsetCommit(oc -> oc
+                            .topic(delegate.topic)
+                            .groupId(delegate.fanout.groupId)
+                            .memberId(delegate.fanout.memberId)
+                            .instanceId(delegate.fanout.instanceId))
+                        .build().sizeof()));
+                state = KafkaState.openingInitial(state);
+            }
+        }
+
+        private void doOffsetCommitInitialData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, flags, reserved, payload, extension);
+
+            initialSeq += reserved;
+
+            assert initialSeq <= initialAck + initialMax;
+        }
+
+
+        private void doOffsetCommitInitialEnd(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+
+                state = KafkaState.closedInitial(state);
+            }
+        }
+
+        private void doOffsetCommitInitialAbort(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+
+                state = KafkaState.closedInitial(state);
+            }
+        }
+
+        private void onOffsetCommitInitialReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+
+            delegate.initialAck = acknowledge;
+            state = KafkaState.closedInitial(state);
+
+            assert delegate.initialAck <= delegate.initialSeq;
+
+            //delegate.onConsumerInitial(traceId);
+
+            doOffsetCommitReplyReset(traceId);
+        }
+
+
+        private void onOffsetCommitInitialWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            initialBud = budgetId;
+            initialPad = padding;
+            state = KafkaState.openedInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            doOffsetCommit(traceId, authorization);
+            onOffsetCommitResponse(traceId);
+        }
+
+        private void onOffsetCommitMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onOffsetCommitReplyBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onOffsetCommitReplyData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onOffsetCommitReplyEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onOffsetCommitReplyAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onOffsetCommitInitialReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onOffsetCommitInitialWindow(window);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onOffsetCommitReplyBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            state = KafkaState.openingReply(state);
+        }
+
+        private void onOffsetCommitReplyData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+            assert replySeq <= replyAck + replyMax;
+        }
+
+        private void onOffsetCommitReplyEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = KafkaState.closedReply(state);
+
+            assert replyAck <= replySeq;
+
+            //delegate.doOffsetCommitReplyEnd(traceId);
+        }
+
+        private void onOffsetCommitReplyAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = KafkaState.closedReply(state);
+
+            assert replyAck <= replySeq;
+
+            //delegate.doOffsetCommitReplyAbort(traceId);
+        }
+
+        private void doOffsetCommitReplyReset(
+            long traceId)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+
+                state = KafkaState.closedReply(state);
+            }
+        }
+
+        private void onOffsetCommitRequest(
+            long traceId,
+            long authorization,
+            KafkaOffsetFW partition,
+            int leaderEpoch)
+        {
+            doOffsetCommitInitialBegin(traceId, 0);
+
+            commitRequests.add(new KafkaPartitionOffset(
+                partition.partitionId(),
+                partition.partitionOffset(),
+                delegate.fanout.generationId,
+                leaderEpoch,
+                partition.metadata().asString()));
+
+            doOffsetCommit(traceId, authorization);
+        }
+
+        private void onOffsetCommitResponse(
+            long traceId)
+        {
+            if (!commitResponses.isEmpty())
+            {
+                KafkaPartitionOffset commit = commitResponses.remove();
+                delegate.onOffsetCommitAck(traceId, commit.partitionId, commit.partitionOffset);
+            }
+        }
+
+        private void doOffsetCommit(
+            long traceId,
+            long authorization)
+        {
+            if (KafkaState.initialOpened(state))
+            {
+                //TODO: find better way to handle flow control
+                final int recordSize = OFFSET_COMMIT_REQUEST_RECORD_MAX + initialPad;
+                while (commitRequests.isEmpty() && initialWindow() > recordSize)
+                {
+                    KafkaPartitionOffset commit = commitRequests.remove();
+                    Consumer<OctetsFW.Builder> offsetCommitDataEx = ex -> ex
+                        .set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .offsetCommit(oc -> oc
+                            .partition(p -> p.partitionId(commit.partitionId)
+                                .partitionOffset(commit.partitionOffset)
+                                .metadata(commit.metadata))
+                            .generationId(delegate.fanout.generationId)
+                            .leaderEpoch(commit.leaderEpoch))
+                        .build()
+                        .sizeof());
+
+                    doOffsetCommitInitialData(traceId, authorization, initialBud, recordSize, 3,
+                        EMPTY_OCTETS, offsetCommitDataEx);
+
+                    commitResponses.add(commit);
+                }
+            }
         }
     }
 

@@ -64,9 +64,10 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
-    private static final int OFFSET_COMMIT_REQUEST_OFFSET_MAX = 1024;
+    private static final int OFFSET_COMMIT_REQUEST_OFFSET_MAX = 512;
 
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_EXIST = -1;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -716,17 +717,25 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             assert initialAck <= initialSeq;
 
-            final ExtensionFW dataEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-            final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
-                kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+            if (initialSeq > initialAck + initialMax)
+            {
+                cleanupApplication(traceId, ERROR_EXIST);
+                client.cleanupNetwork(traceId);
+            }
+            else
+            {
+                final ExtensionFW dataEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
+                    kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
-            final KafkaOffsetCommitDataExFW commitDataExFW = kafkaDataEx.offsetCommit();
-            final KafkaOffsetFW partition = commitDataExFW.partition();
-            final int generationId = commitDataExFW.generationId();
-            final int leaderEpoch = commitDataExFW.leaderEpoch();
+                final KafkaOffsetCommitDataExFW commitDataExFW = kafkaDataEx.offsetCommit();
+                final KafkaOffsetFW partition = commitDataExFW.partition();
+                final int generationId = commitDataExFW.generationId();
+                final int leaderEpoch = commitDataExFW.leaderEpoch();
 
-            client.doOffsetCommit(traceId, partition.partitionId(), partition.partitionOffset(),
-                generationId, leaderEpoch, partition.metadata().asString());
+                client.onOffsetCommit(traceId, partition.partitionId(), partition.partitionOffset(),
+                    generationId, leaderEpoch, partition.metadata().asString());
+            }
         }
 
         private void onApplicationEnd(
@@ -850,7 +859,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             state = KafkaState.openedInitial(state);
 
             doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, client.authorization, 0, OFFSET_COMMIT_REQUEST_OFFSET_MAX);
+                traceId, client.authorization, client.initialBudgetId, client.initialPad);
         }
 
         private void doApplicationReset(
@@ -914,7 +923,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         private final String memberId;
         private final String instanceId;
         private final KafkaOffsetCommitStream delegate;
-        private final ArrayDeque<PartitionOffset> commits;
+        private final ArrayDeque<KafkaPartitionOffset> commits;
 
         private MessageConsumer network;
         private int state;
@@ -1253,7 +1262,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
         }
 
-        private void doOffsetCommit(
+        private void onOffsetCommit(
             long traceId,
             int partitionId,
             long partitionOffset,
@@ -1261,7 +1270,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             int leaderEpoch,
             String metadata)
         {
-            commits.add(new PartitionOffset(partitionId,
+            commits.add(new KafkaPartitionOffset(partitionId,
                 partitionOffset, generationId, leaderEpoch, metadata));
 
             doEncodeRequestIfNecessary(traceId, initialBudgetId);
@@ -1305,7 +1314,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             assert !commits.isEmpty();
 
-            PartitionOffset commit = commits.remove();
+            KafkaPartitionOffset commit = commits.remove();
 
             final OffsetCommitRequestFW offsetCommitRequest =
                 offsetCommitRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -1578,29 +1587,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
             }
-        }
-    }
-
-    private final class PartitionOffset
-    {
-        public final int partitionId;
-        public final long partitionOffset;
-        public final int generationId;
-        public final int leaderEpoch;
-        public final String metadata;
-
-        private PartitionOffset(
-            int partitionId,
-            long partitionOffset,
-            int generationId,
-            int leaderEpoch,
-            String metadata)
-        {
-            this.partitionId = partitionId;
-            this.partitionOffset = partitionOffset;
-            this.generationId = generationId;
-            this.leaderEpoch = leaderEpoch;
-            this.metadata = metadata;
         }
     }
 }

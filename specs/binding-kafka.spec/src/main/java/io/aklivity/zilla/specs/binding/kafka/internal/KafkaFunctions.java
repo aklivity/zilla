@@ -2952,6 +2952,13 @@ public final class KafkaFunctions
                 memberRW.wrap(memberBuffer, 0, memberBuffer.capacity());
             }
 
+            public KafkaGroupFlushExBuilder generationId(
+                int generationId)
+            {
+                flushGroupExRW.generationId(generationId);
+                return this;
+            }
+
             public KafkaGroupFlushExBuilder leaderId(
                 String leaderId)
             {
@@ -4724,12 +4731,20 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExMatchBuilder
         {
+            private Integer generationId;
             private String16FW leaderId;
             private String16FW memberId;
             private Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> membersRW;
 
             private KafkaGroupFlushExMatchBuilder()
             {
+            }
+
+            public KafkaGroupFlushExMatchBuilder generationId(
+                int generationId)
+            {
+                this.generationId = Integer.valueOf(generationId);
+                return this;
             }
 
             public KafkaGroupFlushExMatchBuilder leaderId(
@@ -4781,9 +4796,16 @@ public final class KafkaFunctions
                 KafkaFlushExFW flushEx)
             {
                 final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
-                return matchLeaderId(groupFlushEx) &&
+                return matchGenerationId(groupFlushEx) &&
+                    matchLeaderId(groupFlushEx) &&
                     matchMemberId(groupFlushEx) &&
                     matchMembers(groupFlushEx);
+            }
+
+            private boolean matchGenerationId(
+                final KafkaGroupFlushExFW groupFLushEx)
+            {
+                return generationId == null || generationId.intValue() == groupFLushEx.generationId();
             }
 
             private boolean matchLeaderId(

@@ -413,6 +413,7 @@ scope kafka
 
         struct KafkaGroupFlushEx
         {
+            int32 generationId;
             string16 leaderId;
             string16 memberId;
             KafkaGroupMember[] members;
