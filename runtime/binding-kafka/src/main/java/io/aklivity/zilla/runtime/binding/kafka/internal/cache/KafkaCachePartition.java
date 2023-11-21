@@ -440,6 +440,9 @@ public final class KafkaCachePartition
 
     public void writeEntryContinue(
         int flags,
+        MutableInteger entryMark,
+        MutableInteger valueMark,
+        MutableInteger valueLimit,
         OctetsFW payload,
         FragmentValidator validateValue)
     {
@@ -450,6 +453,9 @@ public final class KafkaCachePartition
         assert headSegment != null;
 
         final KafkaCacheFile logFile = headSegment.logFile();
+        final KafkaCacheFile convertedFile = headSegment.convertedFile();
+
+        int validated = 0;
 
         final int logAvailable = logFile.available();
         final int logRequired = payload.sizeof();
@@ -457,16 +463,32 @@ public final class KafkaCachePartition
 
         if (payload != null)
         {
-            final FragmentConsumer writeFragment = (flag, buffer, index, length) ->
+            valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
+
+            if (validateValue != FragmentValidator.NONE)
             {
-                logFile.appendBytes(buffer, index, length);
-            };
-            int validated = validateValue.validate(flags, payload.buffer(), payload.offset(), payload.sizeof(), writeFragment);
-            if (validated == -1)
-            {
-                // For Fetch Validation failure, we still push the event to Cache
-                writeFragment.accept(flags, payload.buffer(), payload.offset(), payload.sizeof());
-                // TODO: Placeholder to log fetch validation failure
+                final FragmentConsumer consumeConverted = (flag, buffer, index, length) ->
+                {
+                    final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
+                    final int convertedLength = convertedFile.readInt(convertedLengthAt);
+                    final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
+                    final int convertedPadding = convertedFile.readInt(convertedValueLimit);
+
+                    assert convertedPadding - length >= 0;
+
+                    convertedFile.writeInt(convertedLengthAt, convertedLength + length);
+                    convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
+                    convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                };
+
+                final int valueLength = valueLimit.value - valueMark.value;
+                validated = validateValue.validate(flags, logFile.buffer(), valueMark.value, valueLength, consumeConverted);
+                if (validated == -1)
+                {
+                    // For Fetch Validation failure, we still push the event to Cache
+                    consumeConverted.accept(flags, payload.buffer(), payload.offset(), payload.sizeof());
+                    // TODO: Placeholder to log fetch validation failure
+                }
             }
         }
     }

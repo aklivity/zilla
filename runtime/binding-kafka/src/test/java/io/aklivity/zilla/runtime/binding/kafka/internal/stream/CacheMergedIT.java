@@ -238,6 +238,16 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.options.validate.yaml")
+    @Specification({
+        "${app}/merged.fetch.message.value.valid/client",
+        "${app}/unmerged.fetch.message.value.valid/server"})
+    public void shouldFetchMergedMessageValueValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.partition.leader.changed/client",
