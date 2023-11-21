@@ -32,6 +32,7 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -302,9 +303,9 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             PathView path = PathView.of(openApi.paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                if (true) // TODO: Ati
+                Operation operation = path.methods().get(methodName);
+                if (operation.requestBody != null || CollectionUtils.isNotEmpty(operation.parameters))
                 {
-                    Operation operation = path.methods().get(methodName);
                     options
                         .request()
                             .path(pathName)
@@ -315,7 +316,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                 }
             }
         }
-        return options; // TODO: Ati
+        return options;
     }
 
     private <C> HttpRequestConfigBuilder<C> injectContent(

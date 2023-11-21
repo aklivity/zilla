@@ -48,12 +48,15 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
         Map<String, MediaType> content)
     {
         MediaType mediaType = null;
-        for (String contentType : content.keySet())
+        if (content != null)
         {
-            if (jsonContentType.reset(contentType).matches())
+            for (String contentType : content.keySet())
             {
-                mediaType = content.get(contentType);
-                break;
+                if (jsonContentType.reset(contentType).matches())
+                {
+                    mediaType = content.get(contentType);
+                    break;
+                }
             }
         }
         return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);

@@ -21,6 +21,14 @@ bindings:
           credentials:
             headers:
               authorization: "Bearer {credentials}"
+      requests:
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: Item
     routes:
     - exit: http_client0
       when:
@@ -38,21 +46,6 @@ bindings:
       guarded:
         jwt0:
         - create:items
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: GET
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: PUT
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: DELETE
   http_client0:
     type: http
     kind: client
