@@ -178,6 +178,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 sender,
                 originId,
                 routedId,
+                resolvedId,
                 initialId,
                 affinity,
                 authorization,
@@ -544,6 +545,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
         private long initialBud;
 
         private long replySeq;
@@ -590,7 +592,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             if (KafkaState.initialOpened(state))
             {
-                stream.doConsumerInitialWindow(authorization, traceId, initialBud, 0);
+                stream.doConsumerInitialWindow(authorization, traceId, initialBud, initialPad);
             }
 
             if (KafkaState.replyOpened(state))
@@ -780,6 +782,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
+            initialPad = padding;
             state = KafkaState.openedInitial(state);
 
             assert initialAck <= initialSeq;
@@ -1146,6 +1149,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             MessageConsumer sender,
             long originId,
             long routedId,
+            long resolverId,
             long initialId,
             long affinity,
             long authorization,
@@ -1162,7 +1166,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.authorization = authorization;
             this.topic = topic;
             this.partitions = partitions;
-            this.offsetCommit = new KafkaOffsetCommitStream(this, originId, routedId, authorization);
+            this.offsetCommit = new KafkaOffsetCommitStream(this, originId, resolverId, authorization);
         }
 
         private void onConsumerMessage(
@@ -1333,7 +1337,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, fanout.initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -1387,7 +1391,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             Consumer<OctetsFW.Builder> extension)
         {
-            doFlush(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, 0, 0, extension);
         }
 
@@ -1766,7 +1770,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             {
                 //TODO: find better way to handle flow control
                 final int recordSize = OFFSET_COMMIT_REQUEST_RECORD_MAX + initialPad;
-                while (commitRequests.isEmpty() && initialWindow() > recordSize)
+                while (!commitRequests.isEmpty() && initialWindow() > recordSize)
                 {
                     KafkaPartitionOffset commit = commitRequests.remove();
                     Consumer<OctetsFW.Builder> offsetCommitDataEx = ex -> ex

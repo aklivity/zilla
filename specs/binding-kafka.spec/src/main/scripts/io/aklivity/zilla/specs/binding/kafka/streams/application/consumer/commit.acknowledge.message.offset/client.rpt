@@ -14,44 +14,110 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .consumer()
+                               .group()
                                    .groupId("client-1")
-                                   .consumerId("consumer-1")
+                                   .protocol("highlander")
                                    .timeout(45000)
-                                   .topic("test")
-                                   .partition(0)
-                                   .partition(1)
+                                   .metadata(kafka:memberMetadata()
+                                       .consumerId("consumer-1")
+                                       .topic("test")
+                                           .partitionId(0)
+                                           .partitionId(1)
+                                           .build()
+                                       .build())
                                    .build()
                                .build()}
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+
+read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
-                             .consumer()
-                                 .partition(0)
-                                 .assignments()
-                                     .id("consumer-1")
-                                     .partition(0)
-                                     .build()
-                                 .assignments()
-                                     .id("consumer-2")
-                                     .partition(1)
-                                     .build()
-                                 .build()
+                             .group()
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1", kafka:memberMetadata()
+                                     .consumerId("consumer-1")
+                                     .topic("test")
+                                         .partitionId(0)
+                                         .partitionId(1)
+                                         .build()
+                                     .build())
+                                  .members("memberId-2", kafka:memberMetadata()
+                                      .consumerId("consumer-2")
+                                      .topic("test")
+                                          .partitionId(0)
+                                          .partitionId(1)
+                                          .build()
+                                      .build())
+                                  .build()
                              .build()}
-read zilla:data.empty
+
+write ${kafka:memberAssignment()
+          .member("memberId-1")
+              .assignment()
+                  .topic("test")
+                  .partitionId(1)
+                  .consumer()
+                      .id("consumer-1")
+                      .partitionId(1)
+                      .build()
+                  .consumer()
+                     .id("consumer-2")
+                     .partitionId(0)
+                     .build()
+                  .build()
+              .build()
+          .member("memberId-2")
+              .assignment()
+                  .topic("test")
+                  .partitionId(0)
+                  .consumer()
+                    .id("consumer-1")
+                    .partitionId(1)
+                    .build()
+                  .consumer()
+                    .id("consumer-2")
+                    .partitionId(0)
+                    .build()
+                  .build()
+              .build()
+          .build()}
+write flush
+
+read ${kafka:topicAssignment()
+                .topic()
+                    .id("test")
+                    .partitionId(0)
+                    .consumer()
+                        .id("consumer-1")
+                        .partitionId(0)
+                        .build()
+                    .consumer()
+                        .id("consumer-2")
+                        .partitionId(1)
+                        .build()
+                    .build()
+                .build()}
 
 read notify RECEIVED_OFFSET_COMMIT
 
 connect await RECEIVED_OFFSET_COMMIT
-    "zilla://streams/app0"
+    "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -61,6 +127,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .groupId("client-1")
                                    .memberId("memberId-1")
+                                   .instanceId("zilla")
                                    .build()
                                .build()}
 
@@ -69,7 +136,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2)
+                                 .partition(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()

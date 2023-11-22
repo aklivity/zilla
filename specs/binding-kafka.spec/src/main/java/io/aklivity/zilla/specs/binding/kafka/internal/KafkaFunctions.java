@@ -3012,7 +3012,9 @@ public final class KafkaFunctions
                 int partitionId,
                 long partitionOffset)
             {
-                partition(partitionId, partitionOffset, null);
+                flushConsumerExRW.partition(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset));
                 return this;
             }
 
@@ -4284,6 +4286,15 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaConsumerFlushExMatchBuilder consumer()
+        {
+            final KafkaConsumerFlushExMatchBuilder matcherBuilder = new KafkaConsumerFlushExMatchBuilder();
+
+            this.kind = KafkaApi.CONSUMER.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaFlushExMatcherBuilder typeId(
             int typeId)
         {
@@ -4826,6 +4837,61 @@ public final class KafkaFunctions
                 return membersRW == null || membersRW.build().equals(groupFLushEx.members());
             }
         }
+
+        public final class KafkaConsumerFlushExMatchBuilder
+        {
+            private Integer leaderEpoch;
+            private KafkaOffsetFW.Builder partitionRW;
+
+            private KafkaConsumerFlushExMatchBuilder()
+            {
+            }
+
+            public KafkaConsumerFlushExMatchBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                if (partitionRW == null)
+                {
+                    this.partitionRW = new KafkaOffsetFW.Builder()
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                this.partitionRW.partitionId(partitionId).partitionOffset(partitionOffset);
+                return this;
+            }
+
+            public KafkaConsumerFlushExMatchBuilder leaderEpoch(
+                int leaderEpoch)
+            {
+                this.leaderEpoch = Integer.valueOf(leaderEpoch);
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                KafkaConsumerFlushExFW consumerFlushEx = flushEx.consumer();
+                return matchPartition(consumerFlushEx) &&
+                    matchLeaderEpoch(consumerFlushEx);
+            }
+
+            private boolean matchPartition(
+                final KafkaConsumerFlushExFW consumerFLushEx)
+            {
+                return partitionRW == null || partitionRW.build().equals(consumerFLushEx.partition());
+            }
+
+            private boolean matchLeaderEpoch(
+                final KafkaConsumerFlushExFW consumerFLushEx)
+            {
+                return leaderEpoch == null || leaderEpoch.intValue() == consumerFLushEx.leaderEpoch();
+            }
+        }
     }
 
     public static final class KafkaBeginExMatcherBuilder
@@ -5206,6 +5272,7 @@ public final class KafkaFunctions
         {
             private String16FW groupId;
             private String16FW protocol;
+            private String16FW instanceId;
             private Integer timeout;
 
             private byte[] metadata;
@@ -5235,6 +5302,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder instanceId(
+                String instanceId)
+            {
+                this.instanceId = new String16FW(instanceId);
+                return this;
+            }
+
             public KafkaGroupBeginExMatcherBuilder metadata(
                 byte[] metadata)
             {
@@ -5252,9 +5326,9 @@ public final class KafkaFunctions
             {
                 final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
                 return matchGroupId(groupBeginEx) &&
-                    matchGroupId(groupBeginEx) &&
                     matchProtocol(groupBeginEx) &&
                     matchTimeout(groupBeginEx) &&
+                    matchInstanceId(groupBeginEx) &&
                     matchMetadata(groupBeginEx);
             }
 
@@ -5274,6 +5348,12 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 return timeout == null || timeout == groupBeginExFW.timeout();
+            }
+
+            private boolean matchInstanceId(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return instanceId == null || instanceId.equals(groupBeginExFW.instanceId());
             }
 
             private boolean matchMetadata(

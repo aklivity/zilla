@@ -14,7 +14,7 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property serverAddress "zilla://streams/app1"
 
 accept ${serverAddress}
     option zilla:window 8192
@@ -22,35 +22,103 @@ accept ${serverAddress}
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .consumer()
-                                  .groupId("client-1")
-                                  .consumerId("consumer-1")
-                                  .timeout(45000)
-                                  .topic("test")
-                                  .partition(0)
-                                  .partition(1)
-                                  .build()
-                              .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .timeout(45000)
+                                   .metadata(kafka:memberMetadata()
+                                        .consumerId("consumer-1")
+                                        .topic("test")
+                                           .partitionId(0)
+                                           .partitionId(1)
+                                           .build()
+                                        .build())
+                                   .build()
+                               .build()}
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-1")
+                                   .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .timeout(30000)
+                                   .build()
+                               .build()}
+write flush
+
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
-                             .consumer()
-                                 .partition(0)
-                                 .assignments()
-                                     .id("consumer-1")
-                                     .partition(0)
-                                     .build()
-                                 .assignments()
-                                     .id("consumer-2")
-                                     .partition(1)
-                                     .build()
-                                 .build()
+                             .group()
+                                 .generationId(0)
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1", kafka:memberMetadata()
+                                    .consumerId("consumer-1")
+                                    .topic("test")
+                                       .partitionId(0)
+                                       .partitionId(1)
+                                       .build()
+                                  .build())
+                                  .members("memberId-2", kafka:memberMetadata()
+                                     .consumerId("consumer-2")
+                                     .topic("test")
+                                        .partitionId(0)
+                                        .partitionId(1)
+                                        .build()
+                                   .build())
+                              .build()
                              .build()}
-write zilla:data.empty
+
+read ${kafka:memberAssignment()
+          .member("memberId-1")
+              .assignment()
+                  .topic("test")
+                  .partitionId(1)
+                  .consumer()
+                      .id("consumer-1")
+                      .partitionId(1)
+                      .build()
+                  .consumer()
+                      .id("consumer-2")
+                      .partitionId(0)
+                      .build()
+                  .build()
+              .build()
+          .member("memberId-2")
+              .assignment()
+                  .topic("test")
+                  .partitionId(0)
+                  .consumer()
+                      .id("consumer-1")
+                      .partitionId(1)
+                      .build()
+                  .consumer()
+                      .id("consumer-2")
+                      .partitionId(0)
+                      .build()
+                  .build()
+              .build()
+          .build()}
+
+write ${kafka:topicAssignment()
+                .topic()
+                    .id("test")
+                    .partitionId(0)
+                    .consumer()
+                        .id("consumer-1")
+                        .partitionId(0)
+                        .build()
+                    .consumer()
+                       .id("consumer-2")
+                       .partitionId(1)
+                       .build()
+                    .build()
+                .build()}
 write flush
 
 accepted
@@ -61,6 +129,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .groupId("client-1")
                                    .memberId("memberId-1")
+                                   .instanceId("zilla")
                                    .build()
                                .build()}
 
@@ -69,7 +138,7 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2)
+                                 .partition(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()
