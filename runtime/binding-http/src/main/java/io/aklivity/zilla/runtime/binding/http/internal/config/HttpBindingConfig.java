@@ -226,7 +226,7 @@ public final class HttpBindingConfig
                         queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
                     }
                 }
-                Validator content = createValidator.apply(request.content, this.resolveId);
+                Validator content = request.content == null ? null : createValidator.apply(request.content, this.resolveId);
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
