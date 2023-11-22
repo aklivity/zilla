@@ -38,8 +38,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
                                 .fetch()
-                                 .partition(0, 1, 2)
-                                 .progress(0, 2)
+                                 .partition(0, 2, 2)
+                                 .progress(0, 3)
                                  .build()
                              .build()}
 read "Hello, world #A1"
@@ -52,7 +52,7 @@ write advise zilla:flush ${kafka:flushEx()
                                   .build()
                               .build()}
 
-read advised zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()

@@ -45,7 +45,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .fetch()
                                   .timestamp(newTimestamp)
                                   .partition(0, 1, 2)
-                                  .progress(0, 2)
+                                  .progress(0, 3)
                                   .build()
                               .build()}
 write "Hello, world #A1"

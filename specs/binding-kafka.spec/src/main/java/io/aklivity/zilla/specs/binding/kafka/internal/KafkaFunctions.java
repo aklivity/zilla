@@ -4464,6 +4464,7 @@ public final class KafkaFunctions
         public final class KafkaMergedFlushExMatcherBuilder
         {
             KafkaMergedFetchFlushEx mergedFetchFlush;
+            KafkaMergedConsumerFlushEx mergedConsumerFlush;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
@@ -4477,6 +4478,11 @@ public final class KafkaFunctions
                 {
                     matched = fetch().match(kafkaFlushEx);
                 }
+                else if (kafkaFlushEx.merged().kind() == KafkaApi.CONSUMER.value())
+                {
+                    matched = consumer().match(kafkaFlushEx);
+                }
+
                 return matched;
             }
 
@@ -4487,6 +4493,15 @@ public final class KafkaFunctions
                     mergedFetchFlush = new KafkaMergedFetchFlushEx();
                 }
                 return mergedFetchFlush;
+            }
+
+            public KafkaMergedConsumerFlushEx consumer()
+            {
+                if (mergedConsumerFlush == null)
+                {
+                    mergedConsumerFlush = new KafkaMergedConsumerFlushEx();
+                }
+                return mergedConsumerFlush;
             }
 
             public final class KafkaMergedFetchFlushEx
@@ -4659,6 +4674,58 @@ public final class KafkaFunctions
                     final KafkaMergedFetchFlushExFW mergedFlush)
                 {
                     return filtersRW == null || filtersRW.build().equals(mergedFlush.filters());
+                }
+            }
+
+            public final class KafkaMergedConsumerFlushEx
+            {
+                private KafkaOffsetFW.Builder partitionRW;
+
+                private KafkaMergedConsumerFlushEx()
+                {
+                }
+
+                public KafkaMergedConsumerFlushEx partition(
+                    int partitionId,
+                    long offset,
+                    String metadata)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset).metadata(metadata);
+
+                    return this;
+                }
+
+                public KafkaMergedConsumerFlushEx partition(
+                    int partitionId,
+                    long offset)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset);
+
+                    return this;
+                }
+
+                public KafkaFlushExMatcherBuilder build()
+                {
+                    return KafkaFlushExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaFlushExFW flushEx)
+                {
+                    final KafkaMergedConsumerFlushExFW mergedFlushEx = flushEx.merged().consumer();
+                    return matchPartition(mergedFlushEx);
+                }
+
+                private boolean matchPartition(
+                    final KafkaMergedConsumerFlushExFW mergedFlush)
+                {
+                    return partitionRW == null || partitionRW.build().equals(mergedFlush.partition());
                 }
             }
         }

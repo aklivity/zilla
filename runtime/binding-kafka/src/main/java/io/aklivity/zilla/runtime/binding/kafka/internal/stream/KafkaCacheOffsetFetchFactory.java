@@ -115,11 +115,12 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_FETCH;
         final KafkaOffsetFetchBeginExFW kafkaOffsetFetchBeginEx = kafkaBeginEx.offsetFetch();
         final String groupId = kafkaOffsetFetchBeginEx.groupId().asString();
+        final String topic = kafkaOffsetFetchBeginEx.topic().asString();
 
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null, groupId) : null;
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, groupId) : null;
 
         if (resolved != null)
         {

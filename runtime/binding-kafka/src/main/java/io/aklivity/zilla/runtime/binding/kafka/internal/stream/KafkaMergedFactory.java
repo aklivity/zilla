@@ -2063,7 +2063,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (!offsetsByPartitionId.isEmpty())
             {
                 KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get(partitionId);
-                partitionOffset = kafkaPartitionOffset.partitionOffset;
+                partitionOffset = kafkaPartitionOffset.partitionOffset + 1;
             }
             else
             {
@@ -3085,7 +3085,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     .offsetFetch(c -> c
                         .groupId(merged.groupId)
                         .topic(merged.topic)
-                        .partitions(p -> merged.leadersByPartitionId.forEach((k, v) ->
+                        .partitions(p -> merged.leadersByAssignedId.forEach((k, v) ->
                             p.item(tp -> tp.partitionId(k))))
                     )
                     .build()
