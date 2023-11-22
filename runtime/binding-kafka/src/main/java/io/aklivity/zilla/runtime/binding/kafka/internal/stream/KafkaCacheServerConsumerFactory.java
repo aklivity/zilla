@@ -1288,8 +1288,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            final ExtensionFW dataEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-            final KafkaFlushExFW kafkaFlushEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
+            final ExtensionFW flushEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaFlushExFW kafkaFlushEx = flushEx != null && flushEx.typeId() == kafkaTypeId ?
                 kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
