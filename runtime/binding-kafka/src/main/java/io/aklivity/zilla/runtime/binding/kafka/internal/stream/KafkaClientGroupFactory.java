@@ -261,7 +261,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorIgnoreAll = this::decodeIgnoreAll;
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorReject = this::decodeCoordinatorReject;
 
-    private final Map<String, String> configs = new LinkedHashMap<>();
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -275,9 +274,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
+    private final Map<String, String> configs;
     private final String clientId;
     private final Duration rebalanceTimeout;
-
+    private final String groupMinSessionTimeoutDefault;
+    private final String groupMaxSessionTimeoutDefault;
 
     public KafkaClientGroupFactory(
         KafkaConfiguration config,
@@ -288,21 +289,24 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         BindingHandler streamFactory)
     {
         super(config, context);
+        this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
+        this.clientId = config.clientId();
+        this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.signaler = signaler;
-        this.streamFactory = streamFactory;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
-        this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
-        this.clientId = config.clientId();
-        this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.supplyDebitor = supplyDebitor;
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
+        this.configs = new LinkedHashMap<>();
+        this.groupMinSessionTimeoutDefault = String.valueOf(config.clientGroupMinSessionTimeoutDefault());
+        this.groupMaxSessionTimeoutDefault = String.valueOf(config.clientGroupMaxSessionTimeoutDefault());
     }
 
     @Override
@@ -3073,8 +3077,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            int timeoutMin = Integer.valueOf(newConfigs.get(GROUP_MIN_SESSION_TIMEOUT)).intValue();
-            int timeoutMax = Integer.valueOf(newConfigs.get(GROUP_MAX_SESSION_TIMEOUT)).intValue();
+            int timeoutMin =
+                Integer.valueOf(newConfigs.getOrDefault(GROUP_MIN_SESSION_TIMEOUT, groupMinSessionTimeoutDefault)).intValue();
+            int timeoutMax =
+                Integer.valueOf(newConfigs.getOrDefault(GROUP_MAX_SESSION_TIMEOUT, groupMaxSessionTimeoutDefault)).intValue();
             if (delegate.timeout < timeoutMin)
             {
                 delegate.timeout = timeoutMin;

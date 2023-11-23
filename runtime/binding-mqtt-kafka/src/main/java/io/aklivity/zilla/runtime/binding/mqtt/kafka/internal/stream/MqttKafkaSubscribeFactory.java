@@ -38,6 +38,7 @@ import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
@@ -980,7 +981,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         public boolean matchesTopicFilter(
             String topicFilter)
         {
-            return routeConfig.matches(topicFilter);
+            return routeConfig.matches(topicFilter, MqttKafkaConditionKind.SUBSCRIBE);
         }
 
         private void doKafkaBegin(

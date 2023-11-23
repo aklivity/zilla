@@ -17,8 +17,16 @@ package io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.bind.annotation.JsonbPropertyOrder;
+
+@JsonbPropertyOrder({
+    "type",
+    "properties",
+    "required"
+})
 public class Schema
 {
+    public String type;
     public Map<String, Item> properties;
     public List<String> required;
 }

@@ -117,8 +117,8 @@ write advise zilla:flush ${kafka:flushEx()
                                 .merged()
                                   .fetch()
                                     .partition(-1, -1)
-                                    .key("key9")
                                     .capabilities("PRODUCE_ONLY")
+                                    .key("key9")
                                     .build()
                                 .build()}
 

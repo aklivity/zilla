@@ -32,9 +32,13 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import org.apache.commons.collections4.MapUtils;
+
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -43,23 +47,27 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncA
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Item;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Operation;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Parameter;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ChannelView;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
 {
     private final InputStream input;
 
-    private AsyncApi asyncApi;
     private int[] allPorts;
     private int[] httpPorts;
     private int[] httpsPorts;
@@ -172,18 +180,20 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
     {
         requireNonNull(asyncApi);
         requireNonNull(asyncApi.components);
-        requireNonNull(asyncApi.components.messages);
         String result = null;
-        for (Map.Entry<String, Message> entry: asyncApi.components.messages.entrySet())
+        if (asyncApi.components.messages != null)
         {
-            Message message = entry.getValue();
-            if (message.headers != null && message.headers.properties != null)
+            for (Map.Entry<String, Message> entry : asyncApi.components.messages.entrySet())
             {
-                Item authorization = message.headers.properties.get("authorization");
-                if (authorization != null)
+                Message message = entry.getValue();
+                if (message.headers != null && message.headers.properties != null)
                 {
-                    result = authorization.description;
-                    break;
+                    Item authorization = message.headers.properties.get("authorization");
+                    if (authorization != null)
+                    {
+                        result = authorization.description;
+                        break;
+                    }
                 }
             }
         }
@@ -215,6 +225,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
                         .policy(CROSS_ORIGIN)
                         .build()
                     .inject(this::injectHttpServerOptions)
+                    .inject(this::injectHttpServerRequests)
                     .build()
                 .inject(this::injectHttpServerRoutes)
                 .build()
@@ -236,6 +247,7 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
                 .build()
             .inject(this::injectGuard)
             .inject(this::injectVaults)
+            .inject(this::injectCatalog)
             .build();
     }
 
@@ -293,8 +305,8 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         return namespace;
     }
 
-    private HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerOptions(
-        HttpOptionsConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> options)
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
+        HttpOptionsConfigBuilder<C> options)
     {
         if (isJwtEnabled)
         {
@@ -311,6 +323,93 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
         }
         return options;
     }
+
+    private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
+        HttpOptionsConfigBuilder<C> options)
+    {
+        for (String name : asyncApi.operations.keySet())
+        {
+            Operation operation = asyncApi.operations.get(name);
+            ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
+            String path = channel.address();
+            Method method = Method.valueOf(operation.bindings.get("http").method);
+            if (MapUtils.isNotEmpty(channel.messages()) || MapUtils.isNotEmpty(channel.parameters()))
+            {
+                options
+                    .request()
+                        .path(path)
+                        .method(method)
+                        .inject(request -> injectContent(request, channel.messages()))
+                        .inject(request -> injectPathParams(request, channel.parameters()))
+                        .build();
+            }
+        }
+        return options;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectContent(
+        HttpRequestConfigBuilder<C> request,
+        Map<String, Message> messages)
+    {
+        if (messages != null)
+        {
+            if (hasJsonContentType())
+            {
+                request.
+                    content(JsonValidatorConfig::builder)
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectSchemas(catalog, messages))
+                            .build()
+                        .build();
+            }
+        }
+        return request;
+    }
+
+    private <C> CatalogedConfigBuilder<C> injectSchemas(
+        CatalogedConfigBuilder<C> catalog,
+        Map<String, Message> messages)
+    {
+        for (String name : messages.keySet())
+        {
+            MessageView message = MessageView.of(asyncApi.components.messages, messages.get(name));
+            String subject = message.refKey() != null ? message.refKey() : name;
+            catalog
+                .schema()
+                    .subject(subject)
+                    .build()
+                .build();
+        }
+        return catalog;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectPathParams(
+        HttpRequestConfigBuilder<C> request,
+        Map<String, Parameter> parameters)
+    {
+        if (parameters != null)
+        {
+            for (String name : parameters.keySet())
+            {
+                Parameter parameter = parameters.get(name);
+                if (parameter.schema != null && parameter.schema.type != null)
+                {
+                    ValidatorConfig validator = validators.get(parameter.schema.type);
+                    if (validator != null)
+                    {
+                        request
+                            .pathParam()
+                                .name(name)
+                                .validator(validator)
+                                .build();
+                    }
+                }
+            }
+        }
+        return request;
+    }
+
 
     private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
         BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)

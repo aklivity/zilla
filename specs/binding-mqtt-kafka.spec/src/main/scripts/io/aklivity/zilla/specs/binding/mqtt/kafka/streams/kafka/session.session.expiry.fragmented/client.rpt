@@ -44,14 +44,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-read ${mqtt:sessionSignal()
-            .expiry()
-                .instanceId("zilla-1")
-                .clientId("client-1")
-                .delay(2000)
-                .expireAt(expireAt)
-                .build()
-            .build()}
+read [0x01 0x07 0x00 0x7a 0x69 0x6c 0x6c 0x61 0x2d 0x31 0x08 0x00 0x63 0x6c 0x69 0x65 0x6e 0x74 0x2d]
+
+read [0x31 0xd0 0x07 0x00 0x00 0xbe 0x35 0x1a 0xa5 0x8a 0x01 0x00 0x00]
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -64,4 +59,3 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read zilla:data.null
-

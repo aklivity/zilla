@@ -13,13 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property delayMillis 2000L
-property expireAt ${mqtt:timestamp() + delayMillis}
-
 accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
-
 
 accepted
 
