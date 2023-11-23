@@ -424,6 +424,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeDataExBuilder packetId(
+                int packetId)
+            {
+                subscribeDataExRW.packetId(packetId);
+                return this;
+            }
+
             public MqttSubscribeDataExBuilder qos(
                 String qos)
             {
@@ -650,6 +657,13 @@ public final class MqttFunctions
             private MqttSubscribeFlushExBuilder()
             {
                 subscribeFlushExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+            }
+
+            public MqttSubscribeFlushExBuilder packetId(
+                int packetId)
+            {
+                subscribeFlushExRW.packetId(packetId);
+                return this;
             }
 
             public MqttSubscribeFlushExBuilder filter(
@@ -1510,6 +1524,7 @@ public final class MqttFunctions
             private MqttBinaryFW.Builder correlationRW;
             private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
             private String16FW topic;
+            private Integer packetId;
             private Integer qos;
             private Integer flags;
             private Integer expiryInterval = -1;
@@ -1527,6 +1542,13 @@ public final class MqttFunctions
                 String topic)
             {
                 this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public MqttSubscribeDataExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
                 return this;
             }
 
@@ -1639,6 +1661,7 @@ public final class MqttFunctions
             {
                 final MqttSubscribeDataExFW subscribeDataEx = dataEx.subscribe();
                 return matchTopic(subscribeDataEx) &&
+                    matchPacketId(subscribeDataEx) &&
                     matchQos(subscribeDataEx) &&
                     matchFlags(subscribeDataEx) &&
                     matchSubscriptionIds(subscribeDataEx) &&
@@ -1654,6 +1677,12 @@ public final class MqttFunctions
                 final MqttSubscribeDataExFW data)
             {
                 return topic == null || topic.equals(data.topic());
+            }
+
+            private boolean matchPacketId(
+                final MqttSubscribeDataExFW data)
+            {
+                return packetId == null || packetId == data.packetId();
             }
 
             private boolean matchQos(

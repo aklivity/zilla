@@ -189,4 +189,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.dup.after.puback/client",
+        "${app}/publish.qos1.dup.after.puback/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.finish();
+    }
 }

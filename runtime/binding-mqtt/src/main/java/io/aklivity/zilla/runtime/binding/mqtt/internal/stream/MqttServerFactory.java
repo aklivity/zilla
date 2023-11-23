@@ -300,6 +300,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeConnectPayload = this::decodeConnectPayload;
     private final MqttServerDecoder decodeConnectWillMessage = this::decodeConnectWillMessage;
     private final MqttServerDecoder decodePublish = this::decodePublish;
+    //    private final MqttServerDecoder decodePuback = this::decodePuback;
+    //    private final MqttServerDecoder decodePubrec = this::decodePubrec;
+    //    private final MqttServerDecoder decodePubrel = this::decodePubrel;
+    //    private final MqttServerDecoder decodePubcomp = this::decodePubcomp;
     private final MqttServerDecoder decodeSubscribe = this::decodeSubscribe;
     private final MqttServerDecoder decodeUnsubscribe = this::decodeUnsubscribe;
     private final MqttServerDecoder decodePingreq = this::decodePingreq;
@@ -317,9 +321,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
         decodersByPacketType.put(MqttPacketType.CONNECT, decodeConnect);
         decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
-        // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
-        // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
-        // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
+        //        decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
+        //        decodersByPacketType.put(MqttPacketType.PUBACK, decodePuback);
+        //        decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
+        //        decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
         decodersByPacketType.put(MqttPacketType.SUBSCRIBE, decodeSubscribe);
         decodersByPacketType.put(MqttPacketType.UNSUBSCRIBE, decodeUnsubscribe);
         decodersByPacketType.put(MqttPacketType.PINGREQ, decodePingreq);
@@ -4339,6 +4344,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
+                    //TODO: only send window when we received the PUBACK/PUBCOMP
                     doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
                 }
             }

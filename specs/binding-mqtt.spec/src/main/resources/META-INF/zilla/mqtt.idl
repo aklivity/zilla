@@ -185,6 +185,7 @@ scope mqtt
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
+            uint16 packetId = 0;
             uint8 qos = 0;
             uint8 flags = 0;
             varuint32[] subscriptionIds;
@@ -233,6 +234,7 @@ scope mqtt
 
         struct MqttSubscribeFlushEx
         {
+            uint16 packetId = 0;
             MqttTopicFilter[] filters;
         }
     }

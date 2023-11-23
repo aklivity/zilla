@@ -387,6 +387,7 @@ public class MqttFunctionsTest
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .subscribe()
                 .topic("sensor/one")
+                .packetId(1)
                 .qos("AT_MOST_ONCE")
                 .flags("RETAIN")
                 .subscriptionId(1)
@@ -408,6 +409,7 @@ public class MqttFunctionsTest
             .subscribe(s ->
             {
                 s.topic("sensor/one");
+                s.packetId(1);
                 s.qos(0);
                 s.flags(1);
                 s.subscriptionIdsItem(i -> i.set(1));
@@ -499,6 +501,7 @@ public class MqttFunctionsTest
             .typeId(0)
                 .subscribe()
                 .topic("sensor/one")
+                .packetId(1)
                 .subscriptionId(1)
                 .subscriptionId(2)
                 .expiryInterval(15)
@@ -515,6 +518,7 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
+        assertEquals(1, mqttDataEx.subscribe().packetId());
         assertNotNull(mqttDataEx.subscribe().subscriptionIds().matchFirst(s -> s.value() == 1));
         assertNotNull(mqttDataEx.subscribe().subscriptionIds().matchFirst(s -> s.value() == 2));
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
@@ -1162,6 +1166,7 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
             .subscribe()
+                .packetId(1)
                 .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                 .build()
             .build();
@@ -1170,6 +1175,7 @@ public class MqttFunctionsTest
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
+        assertEquals(1, mqttFlushEx.subscribe().packetId());
         assertNotNull(mqttFlushEx.subscribe().filters()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&

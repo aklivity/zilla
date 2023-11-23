@@ -125,6 +125,14 @@
             octets payload;
         }
 
+        struct MqttPublish2 extends MqttPacketHeader
+        {
+            string16 topicName;
+            uint16 packetId;
+            MqttProperties properties;
+            octets payload;
+        }
+
         struct MqttPuback extends MqttPacketHeader
         {
             uint16 packetId;
