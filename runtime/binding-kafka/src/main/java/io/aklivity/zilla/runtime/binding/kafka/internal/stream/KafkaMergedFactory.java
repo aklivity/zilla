@@ -1325,6 +1325,8 @@ public final class KafkaMergedFactory implements BindingHandler
             FlushFW flush)
         {
             final long traceId = flush.traceId();
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
             final OctetsFW extension = flush.extension();
             final int reserved = flush.reserved();
             final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
@@ -1379,6 +1381,10 @@ public final class KafkaMergedFactory implements BindingHandler
 
                         final KafkaUnmergedProduceStream producer = findProducePartitionLeader(nextPartitionId);
                         assert producer != null;
+
+                        initialSeq = sequence + reserved;
+                        assert initialAck <= initialSeq;
+
                         producer.doProduceInitialFlush(traceId, reserved, kafkaMergedFlushEx);
                     }
                 }

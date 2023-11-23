@@ -50,6 +50,7 @@ public class SubscribeIT
             "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.SubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -372,6 +373,16 @@ public class SubscribeIT
         "${net}/subscribe.topic.filters.non.successful/client",
         "${app}/subscribe.topic.filters.non.successful/server"})
     public void shouldFilterNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.unroutable/client",
+        "${app}/subscribe.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
     {
         k3po.finish();
     }

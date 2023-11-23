@@ -36,7 +36,7 @@ When Zilla is deployed alongside Apache Kafka®, any application or service can 
     - [REST-Kafka Proxying](#rest-kafka-proxying)
     - [SSE-Kafka Proxying](#sse-kafka-proxying)
     - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
-    - [MQTT-Kafka Proxying]((#mqtt-kafka-proxying))
+    - [MQTT-Kafka Proxying](#mqtt-kafka-proxying)
 - [Resources](#resources)
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
@@ -99,7 +99,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 - **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
-- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A repo of sample Zilla configurations for different use cases running on Kubernetes.
+- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A collection of pre-canned Zilla feature demos.
 - **[Todo Application](https://docs.aklivity.io/zilla/latest/tutorials/todo-app/build.html):** Follow the tutorial and see how Zilla and Kafka can be used to build a Todo app based on streaming and CQRS.
 
 ### 📝 Check out blog posts
