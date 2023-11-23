@@ -1309,6 +1309,16 @@ public final class KafkaMergedFactory implements BindingHandler
             fetchStreams.forEach(f -> f.onMergedInitialEnd(traceId));
             produceStreams.forEach(f -> f.doProduceInitialEndIfNecessary(traceId));
 
+            if (consumerStream != null)
+            {
+                consumerStream.doConsumerInitialEndIfNecessary(traceId);
+            }
+
+            if (offsetFetchStream != null)
+            {
+                offsetFetchStream.doOffsetFetchInitialEndIfNecessary(traceId);
+            }
+
             if (fetchStreams.isEmpty())
             {
                 doMergedReplyEndIfNecessary(traceId);
@@ -1327,6 +1337,16 @@ public final class KafkaMergedFactory implements BindingHandler
             metaStream.doMetaInitialAbortIfNecessary(traceId);
             fetchStreams.forEach(f -> f.onMergedInitialAbort(traceId));
             produceStreams.forEach(f -> f.doProduceInitialEndIfNecessary(traceId));
+
+            if (consumerStream != null)
+            {
+                consumerStream.doConsumerInitialAbortIfNecessary(traceId);
+            }
+
+            if (offsetFetchStream != null)
+            {
+                offsetFetchStream.doOffsetFetchInitialAbortIfNecessary(traceId);
+            }
 
             if (fetchStreams.isEmpty())
             {
@@ -1355,7 +1375,7 @@ public final class KafkaMergedFactory implements BindingHandler
             switch (kafkaMergedFlushEx.kind())
             {
             case KafkaMergedFlushExFW.KIND_FETCH:
-                onMergedFetchFlush(kafkaMergedFlushEx, traceId, reserved);
+                onMergedFetchFlush(kafkaMergedFlushEx, traceId, sequence, reserved);
                 break;
             case KafkaMergedFlushExFW.KIND_CONSUMER:
                 onMergedConsumerFlush(kafkaMergedFlushEx, traceId);
@@ -1366,6 +1386,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMergedFetchFlush(
             KafkaMergedFlushExFW kafkaMergedFlushEx,
             long traceId,
+            long sequence,
             int reserved)
         {
             final KafkaCapabilities newCapabilities = kafkaMergedFlushEx.fetch().capabilities().get();
@@ -1522,6 +1543,16 @@ public final class KafkaMergedFactory implements BindingHandler
             metaStream.doMetaReplyResetIfNecessary(traceId);
             fetchStreams.forEach(f -> f.onMergedReplyReset(traceId));
             produceStreams.forEach(f -> f.doProduceReplyResetIfNecessary(traceId));
+
+            if (consumerStream != null)
+            {
+                consumerStream.doConsumerReplyResetIfNecessary(traceId);
+            }
+
+            if (offsetFetchStream != null)
+            {
+                offsetFetchStream.doOffsetFetchReplyResetIfNecessary(traceId);
+            }
 
             if (fetchStreams.isEmpty())
             {
@@ -2799,7 +2830,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
                 doConsumerInitialEnd(traceId);
             }
@@ -3101,7 +3132,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
                 doOffsetFetchInitialEnd(traceId);
             }
