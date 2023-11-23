@@ -266,13 +266,12 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2)
+                                 .partition(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()
                              .build()}
-
-write "test-meta"
+write zilla:data.empty
 write flush
 
 

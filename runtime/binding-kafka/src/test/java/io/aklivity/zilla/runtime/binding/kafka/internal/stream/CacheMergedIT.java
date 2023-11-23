@@ -607,16 +607,6 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
-        "${app}/merged.group.fetch.message.value/client",
-        "${app}/unmerged.group.fetch.message.value/server"})
-    public void shouldFetchGroupMessageValue() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.options.merged.yaml")
-    @Specification({
         "${app}/merged.group.produce.invalid.partition/client",
         "${app}/unmerged.group.produce.invalid.partition/server"})
     public void shouldRejectMessageForInvalidPartition() throws Exception

@@ -4236,7 +4236,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doStreamFlush(traceId, authorization,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leaderId)
+                    .group(g -> g
+                        .generationId(generationId)
+                        .leaderId(leaderId)
                         .memberId(memberId)
                         .members(gm -> members.forEach(m ->
                         {

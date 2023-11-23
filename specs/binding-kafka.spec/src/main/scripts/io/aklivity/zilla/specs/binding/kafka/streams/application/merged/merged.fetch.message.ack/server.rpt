@@ -44,7 +44,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .merged()
                                 .fetch()
                                   .timestamp(newTimestamp)
-                                  .partition(0, 1, 2)
+                                  .partition(0, 2, 2)
                                   .progress(0, 3)
                                   .build()
                               .build()}

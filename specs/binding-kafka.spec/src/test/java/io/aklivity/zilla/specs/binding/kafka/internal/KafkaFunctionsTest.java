@@ -4271,6 +4271,7 @@ public class KafkaFunctionsTest
             .group()
                 .groupId("test")
                 .protocol("roundrobin")
+                .instanceId("zilla")
                 .timeout(10)
                 .metadata("meta".getBytes())
                 .build()
@@ -4284,6 +4285,7 @@ public class KafkaFunctionsTest
             .group(f -> f
                 .groupId("test")
                 .protocol("roundrobin")
+                .instanceId("zilla")
                 .timeout(10)
                 .metadataLen("meta".length())
                 .metadata(m -> m.set("test".getBytes())))
@@ -4619,31 +4621,78 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldMatchMergedFlushExtension() throws Exception
+    public void shouldMatchMergedConsumerFlushExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
-                .typeId(0x01)
-                .merged()
-                    .fetch()
-                        .partition(1, 2)
-                        .progress(0, 1L)
-                        .capabilities("FETCH_ONLY")
-                        .key("key")
-                        .build()
-                .build();
+            .typeId(0x01)
+            .merged()
+            .consumer()
+            .partition(1, 2L)
+            .build()
+            .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-                .typeId(0x01)
-                .merged(f -> f
-                    .fetch(m -> m.partition(p -> p.partitionId(1).partitionOffset(2))
+            .typeId(0x01)
+            .merged(f -> f
+                .consumer(m -> m.partition(p -> p.partitionId(1).partitionOffset(2L))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedConsumerWithMetadataFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .merged()
+            .consumer()
+            .partition(1, 2L, "test-meta")
+            .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .consumer(m -> m.partition(p -> p
+                    .partitionId(1)
+                    .partitionOffset(2L)
+                    .metadata("test-meta"))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .merged()
+            .fetch()
+            .partition(1, 2)
+            .progress(0, 1L)
+            .capabilities("FETCH_ONLY")
+            .key("key")
+            .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .fetch(m -> m.partition(p -> p.partitionId(1).partitionOffset(2))
                     .progressItem(p -> p
                         .partitionId(0)
                         .partitionOffset(1L))
-                        .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
+                    .capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                     .key(k -> k.length(3).value(v -> v.set("key".getBytes(UTF_8))))))
-                .build();
+            .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
@@ -5031,6 +5080,30 @@ public class KafkaFunctionsTest
 
         matcher.match(byteBuf);
     }
+
+    @Test
+    public void shouldMatchConsumerFlushExtensionMembers() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .consumer()
+                .partition(0, 1L)
+                .leaderEpoch(0)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .consumer(f -> f
+                .partition(p -> p.partitionId(0).partitionOffset(1L))
+                .leaderEpoch(0))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
 
     @Test
     public void shouldMatchGroupFlushExtensionMembers() throws Exception
