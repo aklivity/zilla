@@ -350,6 +350,7 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
