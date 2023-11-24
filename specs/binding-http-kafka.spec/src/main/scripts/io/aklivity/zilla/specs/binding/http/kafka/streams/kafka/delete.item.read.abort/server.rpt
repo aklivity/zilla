@@ -60,7 +60,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
+                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-52c8b0263f77e9bea16eeb717574ec15")
                                     .build()
                                   .build()
                               .build()}

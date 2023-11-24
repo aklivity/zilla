@@ -73,8 +73,6 @@ public final class HttpKafkaWithResolver
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
 
-    private final byte[] hashBytesRW = new byte[8192];
-
     private final HttpKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final HttpKafkaWithConfig with;
@@ -276,7 +274,7 @@ public final class HttpKafkaWithResolver
             correlationId = idempotencyKey;
         }
 
-        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId, hashBytesRW);
+        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId);
 
         if (produce.async.isPresent() &&
             (asyncId != null || preferValue != null && preferAsyncMatcher.reset(preferValue).find()))

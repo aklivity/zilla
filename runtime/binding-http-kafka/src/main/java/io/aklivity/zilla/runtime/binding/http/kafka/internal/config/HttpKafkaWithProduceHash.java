@@ -18,6 +18,8 @@ import static org.agrona.BitUtil.toHex;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
@@ -27,29 +29,36 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 public class HttpKafkaWithProduceHash
 {
     private final String16FW correlationId;
-    private final byte[] hashBytesRW;
     private final MessageDigest md5;
+    private final Map<byte[], Integer> inputs;
 
     private byte[] digest;
 
     HttpKafkaWithProduceHash(
-        String16FW correlationId,
-        byte[] hashBytesRW)
+        String16FW correlationId)
     {
         this.correlationId = correlationId;
-        this.hashBytesRW = hashBytesRW;
         this.md5 = initMD5();
+        this.inputs = new TreeMap<>(this::compareByteArrays);
     }
 
     public void updateHash(
         DirectBuffer value)
     {
-        value.getBytes(0, hashBytesRW, 0, value.capacity());
-        md5.update(hashBytesRW, 0, value.capacity());
+        byte[] hashBytes = new byte[value.capacity()];
+        value.getBytes(0, hashBytes, 0, value.capacity());
+        inputs.compute(hashBytes, (k, v) -> (v == null) ? 1 : v + 1);
     }
 
     public void digestHash()
     {
+        for (Map.Entry<byte[], Integer> entry : inputs.entrySet())
+        {
+            for (int i = 0; i < entry.getValue(); i++)
+            {
+                md5.update(entry.getKey());
+            }
+        }
         digest = md5.digest();
     }
 
@@ -74,5 +83,18 @@ public class HttpKafkaWithProduceHash
         }
 
         return md5;
+    }
+
+    private int compareByteArrays(
+        byte[] array1,
+        byte[] array2)
+    {
+        int minLength = Math.min(array1.length, array2.length);
+        int result = 0;
+        for (int i = 0; i < minLength && result == 0; i++)
+        {
+            result = Byte.compare(array1[i], array2[i]);
+        }
+        return result != 0 ? result : Integer.compare(array1.length, array2.length);
     }
 }

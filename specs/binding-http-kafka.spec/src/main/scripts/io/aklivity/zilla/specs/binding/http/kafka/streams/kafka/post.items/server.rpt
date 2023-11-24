@@ -64,7 +64,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .partition(-1, -1)
-                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-a30dab48a321d1f254819c6f2988f90c")
                                .build()
                            .build()}
 read zilla:data.empty
@@ -81,7 +81,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-a30dab48a321d1f254819c6f2988f90c")
                                     .build()
                                   .build()
                               .build()}
@@ -101,7 +101,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "201")
                                 .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-a30dab48a321d1f254819c6f2988f90c")
                                 .build()
                             .build()}
 write '{ "name": "widget" }'
