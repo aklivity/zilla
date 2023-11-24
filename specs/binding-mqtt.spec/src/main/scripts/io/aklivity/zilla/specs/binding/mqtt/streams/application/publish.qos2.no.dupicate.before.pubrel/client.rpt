@@ -58,7 +58,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
@@ -67,7 +67,7 @@ write zilla:data.ext ${mqtt:matchDataEx()
 write "message"
 write flush
 
-write zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")

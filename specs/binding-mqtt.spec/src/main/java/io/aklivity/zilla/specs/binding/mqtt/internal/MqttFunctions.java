@@ -52,6 +52,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
@@ -117,6 +119,12 @@ public final class MqttFunctions
     public static MqttSessionStateBuilder session()
     {
         return new MqttSessionStateBuilder();
+    }
+
+    @Function
+    public static MqttOffsetMetadataBuilder metadata()
+    {
+        return new MqttOffsetMetadataBuilder();
     }
 
     @Function
@@ -798,6 +806,34 @@ public final class MqttFunctions
             final MqttSessionStateFW sessionState = sessionStateRW.build();
             final byte[] array = new byte[sessionState.sizeof()];
             sessionState.buffer().getBytes(sessionState.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class MqttOffsetMetadataBuilder
+    {
+        private final MqttOffsetMetadataFW.Builder offsetMetadataRW = new MqttOffsetMetadataFW.Builder();
+
+        private MqttOffsetMetadataBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttOffsetMetadataBuilder metadata(
+            int packetId,
+            String state)
+        {
+            offsetMetadataRW.metadataItem(f -> f.packetId(packetId)
+                .state(1 << MqttOffsetStateFlags.valueOf(state).value()));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            final byte[] array = new byte[offsetMetadata.sizeof()];
+            offsetMetadata.buffer().getBytes(offsetMetadata.offset(), array);
             return array;
         }
     }

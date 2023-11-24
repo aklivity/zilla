@@ -637,4 +637,34 @@ public class MqttIT
         k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1/client",
+        "${mqtt}/publish.qos1/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2/client",
+        "${mqtt}/publish.qos2/server"})
+    public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos1/client",
+        "${mqtt}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
 }

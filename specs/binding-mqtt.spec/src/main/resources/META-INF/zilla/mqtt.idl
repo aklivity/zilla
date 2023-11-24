@@ -237,5 +237,22 @@ scope mqtt
             uint16 packetId = 0;
             MqttTopicFilter[] filters;
         }
+
+        enum MqttOffsetStateFlags (uint8)
+        {
+            INCOMPLETE(0)
+        }
+
+        struct MqttOffsetState
+        {
+            uint16 packetId;
+            uint8 state;
+        }
+
+        struct MqttOffsetMetadata
+        {
+            uint8 version = 1;
+            MqttOffsetState[] metadata;
+        }
     }
 }

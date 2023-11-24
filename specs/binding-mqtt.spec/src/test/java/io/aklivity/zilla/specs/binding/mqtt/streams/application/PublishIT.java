@@ -198,4 +198,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.no.dupicate.before.pubrel/client",
+        "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
+    public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -799,4 +799,34 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1/client",
+        "${kafka}/publish.qos1/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2/client",
+        "${kafka}/publish.qos2/server"})
+    public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos1/client",
+        "${kafka}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
 }

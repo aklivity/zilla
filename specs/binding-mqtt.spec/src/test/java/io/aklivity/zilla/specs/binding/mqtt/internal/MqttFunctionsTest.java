@@ -37,6 +37,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -1225,6 +1226,28 @@ public class MqttFunctionsTest
                     0 == f.qos() &&
                     0 == f.reasonCode() &&
                     0b0000 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttOffsetMetadata()
+    {
+        final byte[] array = MqttFunctions.metadata()
+            .metadata(1, "INCOMPLETE")
+            .metadata(2, "INCOMPLETE")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                    1 == m.packetId() &&
+                    0b0001 == m.state()));
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                2 == m.packetId() &&
+                    0b0001 == m.state()));
     }
 
     @Test
