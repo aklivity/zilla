@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
@@ -71,6 +72,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final SignalFW signalRO = new SignalFW();
+
+    private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
 
@@ -155,6 +158,11 @@ public final class TlsProxyFactory implements TlsStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+        final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
+            ? begin.extension().get(beginExRO::tryWrap)
+            : null;
+        final int port = TlsBindingConfig.resolveDestinationPort(beginEx);
 
         TlsBindingConfig binding = bindings.get(routedId);
 
@@ -167,7 +175,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 originId,
                 routedId,
                 initialId,
-                authorization)::onNetMessage;
+                authorization,
+                port)::onNetMessage;
         }
 
         return newStream;
@@ -594,6 +603,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private final long initialId;
         private final long authorization;
         private final long replyId;
+        private final int port;
         private long affinity;
 
         private ProxyBeginExFW extension;
@@ -628,7 +638,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
             long originId,
             long routedId,
             long initialId,
-            long authorization)
+            long authorization,
+            int port)
         {
             this.net = net;
             this.originId = originId;
@@ -637,6 +648,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
+            this.port = port;
             this.decoder = decodeRecord;
             this.stream = NULL_STREAM;
         }
@@ -1222,7 +1234,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             long traceId)
         {
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol) : null;
+            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port) : null;
 
             if (route != null)
             {

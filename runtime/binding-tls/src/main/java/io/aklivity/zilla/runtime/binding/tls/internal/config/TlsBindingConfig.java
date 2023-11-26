@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyAddressFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -142,21 +143,64 @@ public final class TlsBindingConfig
         ProxyBeginExFW beginEx)
     {
         Array32FW<ProxyInfoFW> infos = beginEx != null ? beginEx.infos() : null;
+
         ProxyInfoFW authorityInfo = infos != null ? infos.matchFirst(a -> a.kind() == AUTHORITY) : null;
-        ProxyInfoFW alpnInfo = infos != null ? infos.matchFirst(a -> a.kind() == ALPN) : null;
         String authority = authorityInfo != null ? authorityInfo.authority().asString() : null;
+
+        ProxyInfoFW alpnInfo = infos != null ? infos.matchFirst(a -> a.kind() == ALPN) : null;
         String alpn = alpnInfo != null ? alpnInfo.alpn().asString() : null;
 
-        return resolve(authorization, authority, alpn);
+        int port = resolveDestinationPort(beginEx);
+
+        return resolve(authorization, authority, alpn, port);
+    }
+
+    public TlsRouteConfig resolvePortOnly(
+        long authorization,
+        int port)
+    {
+        return routes.stream()
+                .filter(r -> r.authorized(authorization) && r.matchesPortOnly(port))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static int resolveDestinationPort(
+        ProxyBeginExFW beginEx)
+    {
+        int port = 0;
+
+        if (beginEx != null)
+        {
+            ProxyAddressFW address = beginEx.address();
+
+            switch (address.kind())
+            {
+            case INET:
+                port = address.inet().destinationPort();
+                break;
+            case INET4:
+                port = address.inet4().destinationPort();
+                break;
+            case INET6:
+                port = address.inet6().destinationPort();
+                break;
+            default:
+                break;
+            }
+        }
+
+        return port;
     }
 
     public TlsRouteConfig resolve(
         long authorization,
         String hostname,
-        String alpn)
+        String alpn,
+        int port)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(hostname, alpn))
+                .filter(r -> r.authorized(authorization) && r.matches(hostname, alpn, port))
                 .findFirst()
                 .orElse(null);
     }
@@ -235,7 +279,8 @@ public final class TlsBindingConfig
     }
 
     public SSLEngine newServerEngine(
-        long authorization)
+        long authorization,
+        int port)
     {
         SSLEngine engine = null;
 
@@ -259,7 +304,7 @@ public final class TlsBindingConfig
                 break;
             }
 
-            engine.setHandshakeApplicationProtocolSelector((ngin, alpns) -> selectAlpn(ngin, alpns, authorization));
+            engine.setHandshakeApplicationProtocolSelector((ngin, alpns) -> selectAlpn(ngin, alpns, authorization, port));
         }
 
         return engine;
@@ -268,7 +313,8 @@ public final class TlsBindingConfig
     private String selectAlpn(
         SSLEngine engine,
         List<String> protocols,
-        long authorization)
+        long authorization,
+        int port)
     {
         List<SNIServerName> serverNames = null;
 
@@ -317,7 +363,7 @@ public final class TlsBindingConfig
                             }
 
                             if (route.authorized(authorization) &&
-                                route.matches(authority, protocol))
+                                route.matches(authority, protocol, port))
                             {
                                 selected = protocol;
                                 break;
@@ -339,7 +385,7 @@ public final class TlsBindingConfig
                     }
 
                     if (route.authorized(authorization) &&
-                        route.matches(null, protocol))
+                        route.matches(null, protocol, port))
                     {
                         selected = protocol;
                         break;

@@ -228,6 +228,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
                 ? begin.extension().get(beginExRO::tryWrap)
                 : null;
+        final int port = TlsBindingConfig.resolveDestinationPort(beginEx);
 
         MessageConsumer newStream = null;
 
@@ -250,6 +251,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                     routedId,
                     initialId,
                     affinity,
+                    port,
                     tlsEngine,
                     resolvedId)::onAppMessage;
             }
@@ -835,6 +837,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         private final long initialId;
         private final long replyId;
         private final long affinity;
+        private final int port;
         private final TlsClient client;
 
         private long initialSeq;
@@ -854,6 +857,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             long routedId,
             long initialId,
             long affinity,
+            int port,
             SSLEngine tlsEngine,
             long resolvedId)
         {
@@ -861,6 +865,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
+            this.port = port;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.client = new TlsClient(tlsEngine, routedId, resolvedId);
@@ -1935,7 +1940,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                         .orElse(null);
 
                 TlsBindingConfig binding = bindings.get(TlsStream.this.routedId);
-                TlsRouteConfig route = binding.resolve(initialAuth, hostname, protocol);
+                TlsRouteConfig route = binding.resolve(initialAuth, hostname, protocol, port);
 
                 if (route == null || route.id != client.routedId)
                 {

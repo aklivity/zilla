@@ -26,6 +26,7 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
 
     private String authority;
     private String alpn;
+    private int[] ports;
 
     TlsConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -53,10 +54,16 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
         this.alpn = alpn;
         return this;
     }
+    public TlsConditionConfigBuilder<T> ports(
+        int[] ports)
+    {
+        this.ports = ports;
+        return this;
+    }
 
     @Override
     public T build()
     {
-        return mapper.apply(new TlsConditionConfig(authority, alpn));
+        return mapper.apply(new TlsConditionConfig(authority, alpn, ports));
     }
 }
