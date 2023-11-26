@@ -69,6 +69,8 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
@@ -96,6 +98,9 @@ public class KafkaConfiguration extends Configuration
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
             (c, v) -> Duration.parse(v), "PT4S");
+        KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT = config.property("client.group.min.session.timeout.default", 0);
+        KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
+            Integer.MAX_VALUE);
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -288,6 +293,16 @@ public class KafkaConfiguration extends Configuration
     public Duration clientGroupRebalanceTimeout()
     {
         return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.get(this);
+    }
+
+    public int clientGroupMinSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
+    public int clientGroupMaxSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT.get(this);
     }
 
     private static Path cacheDirectory(
