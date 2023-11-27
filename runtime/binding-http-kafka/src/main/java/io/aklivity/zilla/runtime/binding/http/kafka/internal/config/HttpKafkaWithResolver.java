@@ -18,6 +18,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -67,11 +69,14 @@ public final class HttpKafkaWithResolver
     private static final OctetsFW MERGE_HEADER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("[").value(), 0, 1);
     private static final OctetsFW MERGE_SEPARATOR_JSON_ARRAY = new OctetsFW().wrap(new String8FW(",").value(), 0, 1);
     private static final OctetsFW MERGE_TRAILER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("]").value(), 0, 1);
+    private static final HttpKafkaProduceHashComparator HTTP_KAFKA_PRODUCE_HASH_COMPARATOR = new HttpKafkaProduceHashComparator();
 
     private final String16FW.Builder stringRW = new String16FW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
+
+    private final Map<byte[], Integer> hashInputs = new TreeMap<>(HTTP_KAFKA_PRODUCE_HASH_COMPARATOR);
 
     private final HttpKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
@@ -274,7 +279,7 @@ public final class HttpKafkaWithResolver
             correlationId = idempotencyKey;
         }
 
-        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId);
+        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId, hashInputs);
 
         if (produce.async.isPresent() &&
             (asyncId != null || preferValue != null && preferAsyncMatcher.reset(preferValue).find()))

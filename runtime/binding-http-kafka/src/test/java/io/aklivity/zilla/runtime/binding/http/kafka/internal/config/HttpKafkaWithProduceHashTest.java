@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -28,7 +31,8 @@ public class HttpKafkaWithProduceHashTest
     {
         // GIVEN
         String16FW correlationId = new String16FW("1");
-        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId);
+        Map<byte[], Integer> inputs = new TreeMap<>(new HttpKafkaProduceHashComparator());
+        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId, inputs);
 
         // WHEN
         hash.updateHash(new String16FW("Input 1").buffer());
@@ -45,9 +49,10 @@ public class HttpKafkaWithProduceHashTest
     {
         // GIVEN
         String16FW correlationId = new String16FW("1");
-        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId);
+        Map<byte[], Integer> inputs = new TreeMap<>(new HttpKafkaProduceHashComparator());
+        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId, inputs);
 
         // WHEN
         hash1.updateHash(new String16FW("Input 1").buffer());
@@ -76,9 +81,10 @@ public class HttpKafkaWithProduceHashTest
     {
         // GIVEN
         String16FW correlationId = new String16FW("1");
-        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId);
+        Map<byte[], Integer> inputs = new TreeMap<>(new HttpKafkaProduceHashComparator());
+        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId, inputs);
 
         // WHEN
         hash1.updateHash(new String16FW("Input 4").buffer());
@@ -107,9 +113,10 @@ public class HttpKafkaWithProduceHashTest
     {
         // GIVEN
         String16FW correlationId = new String16FW("1");
-        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId);
-        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId);
+        Map<byte[], Integer> inputs = new TreeMap<>(new HttpKafkaProduceHashComparator());
+        HttpKafkaWithProduceHash hash1 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash2 = new HttpKafkaWithProduceHash(correlationId, inputs);
+        HttpKafkaWithProduceHash hash3 = new HttpKafkaWithProduceHash(correlationId, inputs);
 
         // WHEN
         hash1.updateHash(new String16FW("Input 42").buffer());

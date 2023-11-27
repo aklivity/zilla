@@ -19,7 +19,6 @@ import static org.agrona.BitUtil.toHex;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
@@ -29,17 +28,18 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 public class HttpKafkaWithProduceHash
 {
     private final String16FW correlationId;
-    private final MessageDigest md5;
     private final Map<byte[], Integer> inputs;
+    private final MessageDigest md5;
 
     private byte[] digest;
 
     HttpKafkaWithProduceHash(
-        String16FW correlationId)
+        String16FW correlationId,
+        Map<byte[], Integer> inputs)
     {
         this.correlationId = correlationId;
+        this.inputs = inputs;
         this.md5 = initMD5();
-        this.inputs = new TreeMap<>(this::compareByteArrays);
     }
 
     public void updateHash(
@@ -60,6 +60,7 @@ public class HttpKafkaWithProduceHash
             }
         }
         digest = md5.digest();
+        inputs.clear();
     }
 
     public String16FW correlationId()
@@ -83,18 +84,5 @@ public class HttpKafkaWithProduceHash
         }
 
         return md5;
-    }
-
-    private int compareByteArrays(
-        byte[] array1,
-        byte[] array2)
-    {
-        int minLength = Math.min(array1.length, array2.length);
-        int result = 0;
-        for (int i = 0; i < minLength && result == 0; i++)
-        {
-            result = Byte.compare(array1[i], array2[i]);
-        }
-        return result != 0 ? result : Integer.compare(array1.length, array2.length);
     }
 }
