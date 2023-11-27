@@ -28,7 +28,7 @@ read  [0x10 0x26]                       # CONNECT
       [0xc2]                            # flags = username, password, clean start
       [0x00 0x3c]                       # keep alive = 60s
       [0x00 0x06] "client"              # client id
-      [0x00 0x00] ""                    # username
+      [0x00 0x00]                       # username
       [0x00 0x10] "Bearer INCORRECT"    # password
 
 write close
