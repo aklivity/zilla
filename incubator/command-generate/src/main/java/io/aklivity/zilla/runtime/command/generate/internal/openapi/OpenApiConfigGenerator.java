@@ -25,9 +25,6 @@ import jakarta.json.bind.JsonbBuilder;
 
 import org.apache.commons.collections4.MapUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -105,24 +102,5 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
             rethrowUnchecked(ex);
         }
         return subjects;
-    }
-
-    protected static String writeSchemaYaml(
-        Jsonb jsonb,
-        YAMLMapper yaml,
-        SchemaView schema)
-    {
-        String result = null;
-        try
-        {
-            String schemaJson = jsonb.toJson(schema);
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 }
