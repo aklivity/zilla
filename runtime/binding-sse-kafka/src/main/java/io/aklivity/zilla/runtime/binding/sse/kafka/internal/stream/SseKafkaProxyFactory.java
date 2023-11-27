@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKaf
 
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -657,11 +658,12 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+                    KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaMergedDataEx.fetch();
                     final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ?
-                        kafkaMergedDataEx.fetch().progress() : null;
-                    key = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().key().value() : null;
+                        kafkaMergedFetchDataEx.progress() : null;
+                    key = kafkaMergedDataEx != null ? kafkaMergedFetchDataEx.key().value() : null;
                     final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ?
-                        kafkaMergedDataEx.fetch().headers() : null;
+                        kafkaMergedFetchDataEx.headers() : null;
                     final KafkaHeaderFW etag = headers.matchFirst(h -> HEADER_NAME_ETAG.value().equals(h.name().value()));
 
                     switch (delegate.resolved.eventId())

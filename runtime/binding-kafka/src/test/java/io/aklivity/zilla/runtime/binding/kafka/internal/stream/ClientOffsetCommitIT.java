@@ -53,7 +53,7 @@ public class ClientOffsetCommitIT
     @Specification({
         "${app}/update.topic.partition.offset/client",
         "${net}/update.topic.partition.offset/server"})
-    public void shouldFetchPartitionLastCommittedOffset() throws Exception
+    public void shouldUpdateTopicPartitionOffset() throws Exception
     {
         k3po.finish();
     }

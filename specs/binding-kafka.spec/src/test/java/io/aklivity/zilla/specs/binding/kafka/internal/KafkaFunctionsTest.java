@@ -85,7 +85,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCo
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicOffsetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -4324,10 +4323,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetFetch()
-                .topic()
-                    .name("test")
-                    .partition(0, 1L, 0, "test-meta")
-                .build()
+                .partition(0, 1L, 0, "test-meta")
             .build()
         .build();
 
@@ -4337,9 +4333,7 @@ public class KafkaFunctionsTest
         assertEquals(KafkaApi.OFFSET_FETCH.value(), dataEx.kind());
 
         final KafkaOffsetFetchDataExFW offsetFetchDataEx = dataEx.offsetFetch();
-        KafkaOffsetFetchTopicOffsetsFW topic = offsetFetchDataEx.topic();
-        assertEquals("test", topic.topic().asString());
-        assertEquals(1, topic.partitions().fieldCount());
+        assertEquals(1, offsetFetchDataEx.partitions().fieldCount());
     }
 
     @Test

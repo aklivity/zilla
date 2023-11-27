@@ -94,7 +94,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCo
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFetchTopicOffsetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
@@ -2452,9 +2451,18 @@ public final class KafkaFunctions
                 offsetFetchDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
 
-            public KafkaOffsetFetchTopicOffsetsBuilder topic()
+            public KafkaOffsetFetchDataExBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                int leaderEpoch,
+                String metadata)
             {
-                return new KafkaOffsetFetchTopicOffsetsBuilder();
+                offsetFetchDataExRW.partitionsItem(o -> o
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .leaderEpoch(leaderEpoch)
+                    .metadata(metadata));
+                return this;
             }
 
             public KafkaDataExBuilder build()
@@ -2462,50 +2470,6 @@ public final class KafkaFunctions
                 final KafkaOffsetFetchDataExFW offsetFetchDataEx = offsetFetchDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, offsetFetchDataEx.limit());
                 return KafkaDataExBuilder.this;
-            }
-
-            public final class KafkaOffsetFetchTopicOffsetsBuilder
-            {
-                private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-
-                private final KafkaOffsetFetchTopicOffsetsFW.Builder topicRW =
-                    new KafkaOffsetFetchTopicOffsetsFW.Builder();
-
-                KafkaOffsetFetchTopicOffsetsBuilder()
-                {
-                    topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
-                }
-
-                public KafkaOffsetFetchTopicOffsetsBuilder name(
-                    String topic)
-                {
-                    topicRW.topic(topic);
-                    return this;
-                }
-
-                public KafkaOffsetFetchTopicOffsetsBuilder partition(
-                    int partitionId,
-                    long partitionOffset,
-                    int leaderEpoch,
-                    String metadata)
-                {
-                    topicRW.partitionsItem(o -> o
-                        .partitionId(partitionId)
-                        .partitionOffset(partitionOffset)
-                        .leaderEpoch(leaderEpoch)
-                        .metadata(metadata));
-                    return this;
-                }
-
-
-
-                public KafkaOffsetFetchDataExBuilder build()
-                {
-                    KafkaOffsetFetchTopicOffsetsFW topic = topicRW.build();
-                    offsetFetchDataExRW.topic(topic);
-
-                    return KafkaOffsetFetchDataExBuilder.this;
-                }
             }
         }
 

@@ -41,7 +41,7 @@ public class OffsetFetchSaslIT
     @Specification({
         "${net}/topic.offset.info.sasl.plain/client",
         "${net}/topic.offset.info.sasl.plain/server"})
-    public void shouldFetchPartitionOffsetInfoWithSalsPlain() throws Exception
+    public void shouldFetchTopicOffsetInfoWithSaslPlain() throws Exception
     {
         k3po.finish();
     }
@@ -50,7 +50,7 @@ public class OffsetFetchSaslIT
     @Specification({
         "${net}/topic.offset.info.sasl.scram/client",
         "${net}/topic.offset.info.sasl.scram/server"})
-    public void shouldFetchPartitionOffsetInfoWithSalsScarm() throws Exception
+    public void shouldFetchTopicOffsetInfoWithSaslScram() throws Exception
     {
         k3po.finish();
     }

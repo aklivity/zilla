@@ -641,8 +641,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     }
                     else if (kafkaDataEx != null)
                     {
-                        final KafkaMergedFetchDataExFW fetch = kafkaDataEx.merged().fetch();
-                        final int contentLength = payload.sizeof() + fetch.deferred();
+                        final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaDataEx.merged().fetch();
+                        final int contentLength = payload.sizeof() + kafkaMergedFetchDataEx.deferred();
 
                         final HttpBeginExFW.Builder builder = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -658,7 +658,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                    .headersItem(h -> h.name(httpContentLength).value(Integer.toString(contentLength)));
                         }
 
-                        final Array32FW<KafkaHeaderFW> headers = fetch.headers();
+                        final Array32FW<KafkaHeaderFW> headers = kafkaMergedFetchDataEx.headers();
 
                         // TODO: header inclusion configuration
                         final KafkaHeaderFW contentType =
@@ -674,7 +674,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                 headers.matchFirst(h -> httpEtag.value().equals(h.name().value()));
                         if (etag != null)
                         {
-                            final String16FW progress64 = etagHelper.encode(fetch.progress());
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedFetchDataEx.progress());
                             String implicitEtag = String.format("%s/%s",
                                 progress64.asString(),
                                 etag.value().value().getStringWithoutLengthAscii(0, etag.valueLen()));
@@ -682,7 +682,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         }
                         else
                         {
-                            final String16FW progress64 = etagHelper.encode(fetch.progress());
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedFetchDataEx.progress());
 
                             builder.headersItem(h -> h
                                 .name(httpEtag.value(), 0, httpEtag.length())

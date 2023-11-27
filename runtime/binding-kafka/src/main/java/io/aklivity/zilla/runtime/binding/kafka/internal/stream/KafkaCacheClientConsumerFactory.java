@@ -58,6 +58,8 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
+    private static final int FLAGS_INIT_FIN = 3;
+
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -1047,7 +1049,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             final int reserved = replyPad;
 
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0, 3, reserved, EMPTY_OCTETS, extension);
+                traceId, authorization, 0, FLAGS_INIT_FIN, reserved, EMPTY_OCTETS, extension);
 
             replySeq += reserved;
         }

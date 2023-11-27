@@ -198,10 +198,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                                    .typeId(zilla:id("kafka"))
                                    .offsetFetch()
-                                       .topic()
-                                           .name("test")
                                            .partition(0, 1, 0, "test-meta")
-                                       .build()
                                      .build()
                                    .build()}
 write zilla:data.empty

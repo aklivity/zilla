@@ -79,7 +79,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, supplyClientRoute);
 
         final KafkaClientOffsetFetchFactory clientOffsetFetchFactory = new KafkaClientOffsetFetchFactory(
-            config, context, bindings::get, supplyClientRoute);
+            config, context, bindings::get);
 
         final KafkaClientOffsetCommitFactory clientOffsetCommitFactory = new KafkaClientOffsetCommitFactory(
             config, context, bindings::get);

@@ -1198,7 +1198,7 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaOffsetFW> progress = fetch.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[merged] (%d) %d %s %d %d %d",
+            format("[merged] [fetch] (%d) %d %s %d %d %d",
                 fetch.deferred(), fetch.timestamp(), asString(key.value()),
                 partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
@@ -1217,7 +1217,7 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = produce.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[merged] (%d) %d %s %d %d %d",
+            format("[merged] [produce] (%d) %d %s %d %d %d",
                 produce.deferred(), produce.timestamp(), asString(key.value()),
                 partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,

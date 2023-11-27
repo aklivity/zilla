@@ -268,7 +268,7 @@ scope kafka
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // INIT only
+            KafkaHeader[] headers;      // INIT + FIN
         }
 
         union KafkaMergedFlushEx switch (uint8)
@@ -459,15 +459,9 @@ scope kafka
             KafkaTopicPartition[] partitions;
         }
 
-        struct KafkaOffsetFetchTopicOffsets
-        {
-            string16 topic;
-            KafkaTopicPartitionOffset[] partitions;
-        }
-
         struct KafkaOffsetFetchDataEx
         {
-            KafkaOffsetFetchTopicOffsets topic;
+            KafkaTopicPartitionOffset[] partitions;
         }
 
         struct KafkaOffsetCommitBeginEx

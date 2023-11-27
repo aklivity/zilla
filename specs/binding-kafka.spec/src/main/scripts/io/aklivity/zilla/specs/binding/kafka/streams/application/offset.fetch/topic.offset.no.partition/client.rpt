@@ -29,10 +29,9 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetFetch()
-                                    .partition(0, 2, 0, "test-meta")
-                                .build()
-                             .build()}
-read zilla:data.empty
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(3)
+                           .build()}
+write aborted
+read aborted

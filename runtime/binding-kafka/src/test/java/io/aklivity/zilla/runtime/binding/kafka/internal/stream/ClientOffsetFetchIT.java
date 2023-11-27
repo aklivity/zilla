@@ -57,4 +57,14 @@ public class ClientOffsetFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.offset.no.partition/client",
+        "${net}/topic.offset.no.partition/server"})
+    public void shouldRejectPartitionOffsetOnNoPartition() throws Exception
+    {
+        k3po.finish();
+    }
 }

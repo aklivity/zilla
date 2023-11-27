@@ -1149,7 +1149,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             MessageConsumer sender,
             long originId,
             long routedId,
-            long resolverId,
+            long resolvedId,
             long initialId,
             long affinity,
             long authorization,
@@ -1166,7 +1166,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.authorization = authorization;
             this.topic = topic;
             this.partitions = partitions;
-            this.offsetCommit = new KafkaOffsetCommitStream(this, originId, resolverId, authorization);
+            this.offsetCommit = new KafkaOffsetCommitStream(this, routedId, resolvedId, authorization);
         }
 
         private void onConsumerMessage(
