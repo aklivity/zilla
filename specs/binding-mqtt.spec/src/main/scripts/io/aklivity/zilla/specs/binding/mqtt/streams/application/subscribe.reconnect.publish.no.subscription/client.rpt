@@ -59,7 +59,7 @@ read notify RECEIVED_SESSION_STATE
 
 read ${mqtt:session()
            .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-           .subscription("sensor/two", 2, "AT_MOST_ONCE", "SEND_RETAINED")
+           .subscription("sensor/two", 2)
            .build()}
 read notify RECEIVED_NEW_SESSION_STATE
 

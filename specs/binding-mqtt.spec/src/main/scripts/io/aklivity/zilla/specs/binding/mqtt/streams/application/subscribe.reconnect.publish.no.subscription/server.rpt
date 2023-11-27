@@ -62,7 +62,7 @@ write flush
 
 write ${mqtt:session()
            .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-           .subscription("sensor/two", 2, "AT_MOST_ONCE", "SEND_RETAINED")
+           .subscription("sensor/two", 2)
            .build()}
 
 accepted
