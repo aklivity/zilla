@@ -85,7 +85,6 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message1"
 write flush
 
-read option zilla:ack 8
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
@@ -100,7 +99,6 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message2"
 write flush
 
-read option zilla:ack 16
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
@@ -118,8 +116,6 @@ write flush
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .packetId(1)
+                                     .packetId(2)
                                      .build()
                                  .build()}
-
-read option zilla:ack 24

@@ -91,5 +91,3 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .packetId(1)
                                      .build()
                                  .build()}
-
-read option zilla:ack 7

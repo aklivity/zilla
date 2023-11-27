@@ -376,6 +376,76 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${app}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2/client",
+        "${app}/subscribe.receive.message.qos2/server"})
+    public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${app}/subscribe.receive.message.qos1.published.qos2/server"})
+    public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.one.message/client",
+        "${app}/subscribe.receive.message.qos0.published.qos1/server"})
+    public void shouldReceiveMessageQoS0PublishedAsQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.one.message/client",
+        "${app}/subscribe.receive.message.qos0.published.qos2/server"})
+    public void shouldReceiveMessageQoS0PublishedAsQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.messages.mixture.qos/client",
+        "${app}/subscribe.receive.messages.mixture.qos/server"})
+    public void shouldReceiveMessagesMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
+    public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static int subscriptionId = 0;
     public static int supplySubscriptionId()
     {

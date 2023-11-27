@@ -77,27 +77,7 @@ write ${mqtt:session()
                .subscription("sensor/+/1", 2, "EXACTLY_ONCE", "SEND_RETAINED")
                .build()}
 write flush
-
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client")
-                                .filter("sensor/+/#", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                .build()
-                             .build()}
-
-connected
-
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .subscribe()
-                                     .filter("sensor/+/#", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                     .filter("sensor/+/1", 2, "AT_MOST_ONCE", "SEND_RETAINED")
-                                     .build()
-                                 .build()}
+write notify SENT_SESSION_STATE
 
 
 accepted
@@ -112,14 +92,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .subscribe()
-                                     .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
-                                     .filter("sensor/+/1", 2, "AT_LEAST_ONCE", "SEND_RETAINED")
-                                     .build()
-                                 .build()}
-
+write await SENT_SESSION_STATE
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
@@ -127,14 +100,12 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .packetId(1)
                                  .qos("EXACTLY_ONCE")
                                  .subscriptionId(1)
-                                 .subscriptionId(2)
                                  .format("TEXT")
                                  .build()
                              .build()}
 write "message"
 write flush
-
-read option zilla:ack 7
+write notify SENT_QOS1_DATA
 
 
 accepted
@@ -149,13 +120,13 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write await SENT_QOS1_DATA
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one/1")
                                  .packetId(1)
                                  .qos("EXACTLY_ONCE")
-                                 .subscriptionId(1)
                                  .subscriptionId(2)
                                  .format("TEXT")
                                  .build()
@@ -170,4 +141,3 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-read option zilla:ack 7

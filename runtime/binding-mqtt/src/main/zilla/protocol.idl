@@ -125,7 +125,7 @@
             octets payload;
         }
 
-        struct MqttPublish2 extends MqttPacketHeader
+        struct MqttPublishQos extends MqttPacketHeader
         {
             string16 topicName;
             uint16 packetId;

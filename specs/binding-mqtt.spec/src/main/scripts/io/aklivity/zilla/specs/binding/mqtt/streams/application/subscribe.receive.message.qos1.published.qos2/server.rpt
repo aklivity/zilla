@@ -85,4 +85,3 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 write "message"
 
-read option zilla:ack 7

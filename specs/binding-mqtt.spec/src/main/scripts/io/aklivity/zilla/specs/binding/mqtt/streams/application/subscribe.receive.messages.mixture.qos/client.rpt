@@ -112,7 +112,7 @@ read "message3"
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .packetId(1)
+                                     .packetId(2)
                                      .build()
                                  .build()}
 

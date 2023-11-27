@@ -70,4 +70,4 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                 .qos("EXACTLY_ONCE")
                                 .build()
                             .build()}
-read "message"
+read "message3"

@@ -1205,8 +1205,9 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSessionState()
     {
         final byte[] array = MqttFunctions.session()
-            .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
             .subscription("sensor/two", 1, 0)
+            .subscription("sensor/three", 1, "EXACTLY_ONCE", "SEND_RETAINED")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1216,7 +1217,7 @@ public class MqttFunctionsTest
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
-                    0 == f.qos() &&
+                    1 == f.qos() &&
                     0b0001 == f.flags()));
 
         assertNotNull(sessionState.subscriptions()
@@ -1226,6 +1227,13 @@ public class MqttFunctionsTest
                     0 == f.qos() &&
                     0 == f.reasonCode() &&
                     0b0000 == f.flags()));
+
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f ->
+                "sensor/three".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
+                    2 == f.qos() &&
+                    0b0001 == f.flags()));
     }
 
     @Test

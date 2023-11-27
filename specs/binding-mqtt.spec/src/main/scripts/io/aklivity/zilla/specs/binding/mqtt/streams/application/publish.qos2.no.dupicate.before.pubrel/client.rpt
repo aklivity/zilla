@@ -73,5 +73,5 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .qos("EXACTLY_ONCE")
                                 .build()
                             .build()}
-write "message"
+write "message3"
 write flush
