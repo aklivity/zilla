@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -157,6 +158,7 @@ public final class LoggableStream implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
+    private final boolean withPayload;
     private final LongPredicate nextTimestamp;
 
     private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
@@ -173,6 +175,7 @@ public final class LoggableStream implements AutoCloseable
         Logger logger,
         Predicate<String> hasFrameType,
         Predicate<String> hasExtensionType,
+        boolean withPayload,
         LongPredicate nextTimestamp)
     {
         this.index = index;
@@ -184,6 +187,7 @@ public final class LoggableStream implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.out = logger;
+        this.withPayload = withPayload;
         this.nextTimestamp = nextTimestamp;
 
         final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
@@ -386,6 +390,18 @@ public final class LoggableStream implements AutoCloseable
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
                     budgetId, length, reserved, flags, authorization));
+
+        if (withPayload)
+        {
+            final OctetsFW payload = data.payload();
+            if (payload != null)
+            {
+                byte[] bytes = new byte[data.length()];
+                payload.buffer().getBytes(0, bytes);
+                String hexData = BitUtil.toHex(bytes).replaceAll("(..)(?!$)", "$1:");
+                out.printf(verboseFormat, index, offset, timestamp, hexData);
+            }
+        }
 
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
         if (extension != null)
