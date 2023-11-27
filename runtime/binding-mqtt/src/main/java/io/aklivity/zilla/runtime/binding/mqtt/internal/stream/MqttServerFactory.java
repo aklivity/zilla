@@ -1582,8 +1582,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long sessionId;
         private int decodableRemainingBytes;
         //TODO: use packetId+qos hash instead of maintaining 2 maps?
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos1SubscribeStreams;
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos2SubscribeStreams;
+        private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
+        private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
 
         private MqttServer(
             Function<String, String> credentials,
@@ -1598,7 +1598,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             long affinity,
             long budgetId)
         {
-            Integer.toHexString()
             this.network = network;
             this.originId = originId;
             this.routedId = routedId;
@@ -1612,8 +1611,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
             this.unreleasedPacketIds = new IntArrayList();
-            this.qos1SubscribeStreams = new Int2ObjectHashMap<>();
-            this.qos2SubscribeStreams = new Int2ObjectHashMap<>();
+            this.qos1Subscribes = new Int2ObjectHashMap<>();
+            this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.guard = resolveGuard(options, resolveId);
             this.credentials = credentials;
             this.authField = authField;
@@ -2294,7 +2293,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = puback.packetId();
 
-            qos1SubscribeStreams.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            qos1Subscribes.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
 
             progress = puback.limit();
             return progress;
@@ -2310,7 +2309,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = pubrec.packetId();
 
-            qos2SubscribeStreams.get(packetId).doSubscribeFlush(traceId, 0, packetId);
+            qos2Subscribes.get(packetId).doSubscribeFlush(traceId, 0, packetId);
             doEncodePubrel(traceId, authorization, packetId);
 
             progress = pubrec.limit();
@@ -2344,7 +2343,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = pubcomp.packetId();
 
-            qos2SubscribeStreams.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            qos2Subscribes.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
 
             progress = pubcomp.limit();
             return progress;
@@ -4825,12 +4824,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     else if (qos == 1)
                     {
                         //Save packetId and subscribeStream, so we can ack in the correct stream.
-                        qos1SubscribeStreams.put(subscribeDataEx.subscribe().packetId(), this);
+                        qos1Subscribes.put(subscribeDataEx.subscribe().packetId(), this);
                     }
                     else if (qos == 2)
                     {
                         //Save packetId and subscribeStream, so we can ack in the correct stream.
-                        qos2SubscribeStreams.put(subscribeDataEx.subscribe().packetId(), this);
+                        qos2Subscribes.put(subscribeDataEx.subscribe().packetId(), this);
                     }
                 }
             }
