@@ -32,7 +32,7 @@ public class StringValidatorTest
     private static final int FLAGS_INIT = 0x02;
 
     @Test
-    public void shouldVerifyValidUTF8()
+    public void shouldVerifyValidUtf8()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_8")
@@ -47,7 +47,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyInvalidUTF8()
+    public void shouldVerifyInvalidUtf8()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_8")
@@ -62,7 +62,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidUTF16()
+    public void shouldVerifyValidUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -78,7 +78,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyIncompleteUTF16()
+    public void shouldVerifyIncompleteUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -93,7 +93,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyIncompleteSurrogatePairUTF16()
+    public void shouldVerifyIncompleteSurrogatePairUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -108,7 +108,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyInvalidSecondSurrogateUTF16()
+    public void shouldVerifyInvalidSecondSurrogateUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -123,7 +123,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyUnexpectedSecondSurrogateUTF16()
+    public void shouldVerifyUnexpectedSecondSurrogateUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -138,7 +138,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidMixedUTF16()
+    public void shouldVerifyValidMixedUtf16()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_16")
@@ -181,7 +181,7 @@ public class StringValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidFragmentUTF8()
+    public void shouldVerifyValidFragmentUtf8()
     {
         StringValidatorConfig config = StringValidatorConfig.builder()
                 .encoding("utf_8")

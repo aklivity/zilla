@@ -14,19 +14,16 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.io.ByteArrayOutputStream;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import java.io.IOException;
 import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.JsonEncoder;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.avro.specific.SpecificRecord;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -75,9 +72,6 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
     {
         int valLength = -1;
 
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(index, payloadBytes);
-
         int schemaId;
         int progress = 0;
         if (data.getByte(index) == MAGIC_BYTE)
@@ -86,22 +80,26 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             schemaId = data.getInt(index + progress);
             progress += BitUtil.SIZE_OF_INT;
         }
+        else if (catalog.id != NO_SCHEMA_ID)
+        {
+            schemaId = catalog.id;
+        }
         else
         {
-            schemaId = catalog != null ? catalog.id : 0;
+            schemaId = handler.resolve(subject, catalog.version);
         }
 
-        Schema schema = fetchSchema(schemaId);
-        if (schema != null)
+        reader = readers.computeIfAbsent(schemaId, this::supplyReader);
+        if (reader != null)
         {
-            if ("json".equals(format))
+            if (FORMAT_JSON.equals(format))
             {
-                byte[] record = deserializeAvroRecord(schema, payloadBytes, progress, length - progress);
+                byte[] record = deserializeRecord(schemaId, data, progress, length - progress);
                 valueRO.wrap(record);
                 next.accept(valueRO, 0, valLength);
                 valLength = record.length;
             }
-            else if (validate(schema, payloadBytes, progress, length - progress))
+            else if (validate(schemaId, data, progress, length - progress))
             {
                 next.accept(data, index, length);
                 valLength = length;
@@ -110,29 +108,29 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         return valLength;
     }
 
-    private byte[] deserializeAvroRecord(
-        Schema schema,
-        byte[] bytes,
-        int offset,
+    private byte[] deserializeRecord(
+        int schemaId,
+        DirectBuffer buffer,
+        int index,
         int length)
     {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        encoded.reset();
         try
         {
-            reader = new GenericDatumReader(schema);
-            GenericRecord record = reader.read(null,
-                decoder.binaryDecoder(bytes, offset, length, null));
-            JsonEncoder jsonEncoder = encoder.jsonEncoder(record.getSchema(), outputStream);
-            writer = record instanceof SpecificRecord ?
-                new SpecificDatumWriter<>(record.getSchema()) :
-                new GenericDatumWriter<>(record.getSchema());
-            writer.write(record, jsonEncoder);
-            jsonEncoder.flush();
-            outputStream.close();
+            record = records.computeIfAbsent(schemaId, this::supplyRecord);
+            in.wrap(buffer, index, length);
+            record = reader.read(record, decoderFactory.binaryDecoder(in, decoder));
+            Schema schema = record.getSchema();
+            JsonEncoder out = encoderFactory.jsonEncoder(schema, encoded);
+            writer = writers.computeIfAbsent(schemaId, this::supplyWriter);
+            writer.write(record, out);
+            out.flush();
+            encoded.close();
         }
-        catch (IOException e)
+        catch (IOException ex)
         {
+            ex.printStackTrace();
         }
-        return outputStream.toByteArray();
+        return encoded.toByteArray();
     }
 }

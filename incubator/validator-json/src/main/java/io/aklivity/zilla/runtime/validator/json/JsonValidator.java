@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import java.io.InputStream;
 import java.io.StringReader;
 import java.util.function.LongFunction;
 
+import jakarta.json.JsonReader;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -40,14 +40,17 @@ public abstract class JsonValidator
 {
     protected static final byte MAGIC_BYTE = 0x0;
 
-    protected final JsonProvider schemaProvider;
-    protected final JsonValidationService service;
-    protected final JsonParserFactory factory;
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
 
-    private final Int2ObjectCache<JsonSchema> cache;
+    private final Int2ObjectCache<JsonSchema> schemas;
+    private final Int2ObjectCache<JsonProvider> providers;
+    private final JsonProvider schemaProvider;
+    private final JsonValidationService service;
+    private final JsonParserFactory factory;
+    private JsonProvider provider;
+    private DirectBufferInputStream in;
 
     public JsonValidator(
         JsonValidatorConfig config,
@@ -62,40 +65,13 @@ public abstract class JsonValidator
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
-        this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
-    }
-
-    protected JsonSchema fetchSchema(
-        int schemaId)
-    {
-        JsonSchema schema = null;
-
-        if (schemaId == 0)
-        {
-            schemaId = handler.resolve(subject, catalog.version);
-        }
-
-        if (cache.containsKey(schemaId))
-        {
-            schema = cache.get(schemaId);
-        }
-        else
-        {
-            String schemaStr = handler.resolve(schemaId);
-            if (schemaStr != null)
-            {
-                JsonParser schemaParser = factory.createParser(new StringReader(schemaStr));
-                JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-                schema = reader.read();
-                cache.put(schemaId, schema);
-            }
-        }
-
-        return schema;
+        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.in = new DirectBufferInputStream();
     }
 
     protected boolean validate(
-        JsonSchema schema,
+        int schemaId,
         DirectBuffer buffer,
         int index,
         int length)
@@ -103,14 +79,44 @@ public abstract class JsonValidator
         boolean status = false;
         try
         {
-            JsonProvider provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
-            InputStream input = new DirectBufferInputStream(buffer, index, length);
-            provider.createReader(input).readObject();
+            provider = providers.computeIfAbsent(schemaId, this::supplyProvider);
+            in.wrap(buffer, index, length);
+            provider.createReader(in).readObject();
             status = true;
         }
-        catch (JsonValidatingException e)
+        catch (JsonValidatingException ex)
         {
+            ex.printStackTrace();
         }
         return status;
+    }
+
+    private JsonSchema resolveSchema(
+        int schemaId)
+    {
+        JsonSchema schema = null;
+
+        String schemaStr = handler.resolve(schemaId);
+        if (schemaStr != null)
+        {
+            JsonParser schemaParser = factory.createParser(new StringReader(schemaStr));
+            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+            schema = reader.read();
+            schemas.put(schemaId, schema);
+        }
+
+        return schema;
+    }
+
+    private JsonProvider supplyProvider(
+        int schemaId)
+    {
+        JsonSchema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
+        if (schema != null)
+        {
+            provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
+            providers.put(schemaId, provider);
+        }
+        return provider;
     }
 }

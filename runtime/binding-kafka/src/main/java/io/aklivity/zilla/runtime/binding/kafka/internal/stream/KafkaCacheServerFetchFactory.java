@@ -474,8 +474,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private ValueValidator validateKey;
-        private FragmentValidator validateValue;
+        private final ValueValidator validateKey;
+        private final FragmentValidator validateValue;
 
         private long leaderId;
         private long initialId;

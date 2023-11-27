@@ -72,9 +72,9 @@ public final class KafkaCacheCursorFactory
     public static final int INDEX_UNSET = -1;
 
     public KafkaCacheCursorFactory(
-        int writeCapacity)
+        MutableDirectBuffer writeBuffer)
     {
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(writeCapacity));
+        this.writeBuffer = writeBuffer;
         this.checksum = new CRC32C();
     }
 

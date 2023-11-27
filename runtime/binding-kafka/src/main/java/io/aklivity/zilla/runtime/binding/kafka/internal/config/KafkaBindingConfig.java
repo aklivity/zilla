@@ -61,7 +61,7 @@ public final class KafkaBindingConfig
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
-                    t -> (t.key != null)
+                    t -> t.key != null
                         ? context.createValueReader(t.key)
                         : ValueValidator.NONE))
                 : null;
@@ -69,7 +69,7 @@ public final class KafkaBindingConfig
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
-                    t -> (t.key != null)
+                    t -> t.key != null
                         ? context.createValueWriter(t.key)
                         : ValueValidator.NONE))
                 : null;
@@ -77,7 +77,7 @@ public final class KafkaBindingConfig
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
-                    t -> (t.value != null)
+                    t -> t.value != null
                         ? context.createFragmentReader(t.value)
                         : FragmentValidator.NONE))
                 : null;
@@ -85,7 +85,7 @@ public final class KafkaBindingConfig
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
-                    t -> (t.value != null)
+                    t -> t.value != null
                         ? context.createFragmentWriter(t.value)
                         : FragmentValidator.NONE))
                 : null;

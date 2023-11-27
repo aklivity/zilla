@@ -43,7 +43,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestReadValidator();
+        return createReader(config, supplyCatalog);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestWriteValidator();
+        return createWriter(config, supplyCatalog);
     }
 
     @Override
@@ -59,11 +59,25 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestReadValidator();
+        return createReader(config, supplyCatalog);
     }
 
     @Override
     public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createWriter(config, supplyCatalog);
+    }
+
+    private TestReadValidator createReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new TestReadValidator();
+    }
+
+    private TestWriteValidator createWriter(
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {

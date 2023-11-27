@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.function.LongFunction;
@@ -22,12 +21,8 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.DirectBufferInputStream;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -79,19 +74,16 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
     {
         int valLength = -1;
 
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(index, payloadBytes);
-
         int schemaId = catalog != null && catalog.id > 0
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
-        Schema schema = fetchSchema(schemaId);
+        reader = readers.computeIfAbsent(schemaId, this::supplyReader);
 
-        if (schema != null)
+        if (reader != null)
         {
-            if ("json".equals(format))
+            if (FORMAT_JSON.equals(format))
             {
-                byte[] record = serializeJsonRecord(schema, data, index, length);
+                byte[] record = serializeJsonRecord(schemaId, data, index, length);
 
                 int recordLength = record.length;
                 valLength = record.length + 5;
@@ -103,7 +95,7 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
                 valueRO.wrap(record);
                 next.accept(valueRO, 0, recordLength);
             }
-            else if (validate(schema, payloadBytes, 0, length))
+            else if (validate(schemaId, data, index, length))
             {
                 valLength = length + 5;
                 prefixRO.putByte(0, MAGIC_BYTE);
@@ -117,27 +109,28 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
     }
 
     private byte[] serializeJsonRecord(
-        Schema schema,
+        int schemaId,
         DirectBuffer buffer,
         int index,
         int length)
     {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        encoded.reset();
         try
         {
-            reader = new GenericDatumReader<>(schema);
-            GenericRecord genericRecord = new GenericData.Record(schema);
-            GenericRecord record = reader.read(genericRecord,
-                    decoder.jsonDecoder(schema, new DirectBufferInputStream(buffer, index, length)));
-            writer = new GenericDatumWriter<>(schema);
-            BinaryEncoder binaryEncoder = encoder.binaryEncoder(outputStream, null);
-            writer.write(record, binaryEncoder);
-            binaryEncoder.flush();
-            outputStream.close();
+            Schema schema = schemas.get(schemaId);
+            record = records.computeIfAbsent(schemaId, this::supplyRecord);
+            in.wrap(buffer, index, length);
+            record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
+            writer = writers.computeIfAbsent(schemaId, this::supplyWriter);
+            BinaryEncoder out = encoderFactory.binaryEncoder(encoded, null);
+            writer.write(record, out);
+            out.flush();
+            encoded.close();
         }
-        catch (IOException e)
+        catch (IOException ex)
         {
+            ex.printStackTrace();
         }
-        return outputStream.toByteArray();
+        return encoded.toByteArray();
     }
 }

@@ -74,9 +74,8 @@ public class JsonWriteValidator extends JsonValidator implements ValueValidator,
         int schemaId = catalog != null && catalog.id > 0
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
-        JsonSchema schema = fetchSchema(schemaId);
 
-        if (schema != null && validate(schema, data, index, length))
+        if (validate(schemaId, data, index, length))
         {
             valLength = length + 5;
             prefixRO.putByte(0, MAGIC_BYTE);

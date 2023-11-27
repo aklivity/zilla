@@ -192,7 +192,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.initialBudgetMax = bufferPool.slotCapacity();
         this.localIndex = context.index();
         this.cleanupDelay = config.cacheClientCleanupDelay();
-        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
+        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer());
         this.trailersSizeMax = config.cacheClientTrailersSizeMax();
         this.reconnectDelay = config.cacheServerReconnect();
     }
@@ -498,8 +498,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCacheClientBudget budget;
         private KafkaCacheRoute cacheRoute;
         private String topicName;
-        private ValueValidator validateKey;
-        private FragmentValidator validateValue;
+        private final ValueValidator validateKey;
+        private final FragmentValidator validateValue;
 
         private int state;
 

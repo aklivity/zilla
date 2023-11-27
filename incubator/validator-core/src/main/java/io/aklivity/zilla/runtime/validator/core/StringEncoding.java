@@ -26,27 +26,23 @@ public enum StringEncoding
             int index,
             int length)
         {
-            byte[] bytes = new byte[length];
-            data.getBytes(index, bytes);
-
             int bytesIndex = 0;
-            int bytesLength = bytes.length;
-            while (bytesIndex < bytesLength)
+            while (bytesIndex < length)
             {
                 int numBytes;
-                if ((bytes[bytesIndex] & 0b10000000) == 0b00000000)
+                if ((data.getByte(bytesIndex) & 0b10000000) == 0b00000000)
                 {
                     numBytes = 1;
                 }
-                else if ((bytes[bytesIndex] & 0b11100000) == 0b11000000)
+                else if ((data.getByte(bytesIndex) & 0b11100000) == 0b11000000)
                 {
                     numBytes = 2;
                 }
-                else if ((bytes[bytesIndex] & 0b11110000) == 0b11100000)
+                else if ((data.getByte(bytesIndex) & 0b11110000) == 0b11100000)
                 {
                     numBytes = 3;
                 }
-                else if ((bytes[bytesIndex] & 0b11111000) == 0b11110000)
+                else if ((data.getByte(bytesIndex) & 0b11111000) == 0b11110000)
                 {
                     numBytes = 4;
                 }
@@ -57,14 +53,14 @@ public enum StringEncoding
 
                 for (int j = 1; j < numBytes; j++)
                 {
-                    if (bytesIndex + j >= bytesLength || (bytes[bytesIndex + j] & 0b11000000) != 0b10000000)
+                    if (bytesIndex + j >= length || (data.getByte(bytesIndex + j) & 0b11000000) != 0b10000000)
                     {
                         break;
                     }
                 }
                 bytesIndex += numBytes;
             }
-            return bytesIndex == bytesLength;
+            return bytesIndex == length;
         }
     },
 
@@ -76,31 +72,27 @@ public enum StringEncoding
             int index,
             int length)
         {
-            byte[] bytes = new byte[length];
-            data.getBytes(index, bytes);
-
             int bytesIndex = 0;
-            int bytesLength = bytes.length;
 
-            while (bytesIndex < bytesLength)
+            while (bytesIndex < length)
             {
-                if (bytesIndex == bytesLength - 1)
+                if (bytesIndex == length - 1)
                 {
                     break;
                 }
 
-                int highByte = bytes[bytesIndex] & 0xFF;
-                int lowByte = bytes[bytesIndex + 1] & 0xFF;
+                int highByte = data.getByte(bytesIndex) & 0xFF;
+                int lowByte = data.getByte(bytesIndex + 1) & 0xFF;
                 int codeUnit = (highByte << 8) | lowByte;
 
                 if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
                 {
-                    if (bytesIndex + 3 >= bytesLength)
+                    if (bytesIndex + 3 >= length)
                     {
                         break;
                     }
-                    int secondHighByte = bytes[bytesIndex + 2] & 0xFF;
-                    int secondLowByte = bytes[bytesIndex + 3] & 0xFF;
+                    int secondHighByte = data.getByte(bytesIndex + 2) & 0xFF;
+                    int secondLowByte = data.getByte(bytesIndex + 3) & 0xFF;
                     int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
                     if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
                     {
@@ -117,7 +109,7 @@ public enum StringEncoding
                     bytesIndex += 2;
                 }
             }
-            return bytesIndex == bytesLength;
+            return bytesIndex == length;
         }
     },
 

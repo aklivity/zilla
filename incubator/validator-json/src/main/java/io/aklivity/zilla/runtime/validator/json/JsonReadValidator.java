@@ -27,6 +27,8 @@ import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 public class JsonReadValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
     public JsonReadValidator(
@@ -75,13 +77,16 @@ public class JsonReadValidator extends JsonValidator implements ValueValidator, 
             schemaId = data.getInt(index + progress);
             progress += BitUtil.SIZE_OF_INT;
         }
+        else if (catalog.id != NO_SCHEMA_ID)
+        {
+            schemaId = catalog.id;
+        }
         else
         {
-            schemaId = catalog != null ? catalog.id : 0;
+            schemaId = handler.resolve(subject, catalog.version);
         }
 
-        JsonSchema schema = fetchSchema(schemaId);
-        if (schema != null && validate(schema, data, progress, length - progress))
+        if (validate(schemaId, data, progress, length - progress))
         {
             next.accept(data, index, length);
             valLength = length;

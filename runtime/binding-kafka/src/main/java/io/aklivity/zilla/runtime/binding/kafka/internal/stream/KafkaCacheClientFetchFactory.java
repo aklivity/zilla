@@ -169,7 +169,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         this.supplyDebitor = supplyDebitor;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
-        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
+        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer());
     }
 
     @Override
