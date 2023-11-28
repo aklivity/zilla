@@ -86,10 +86,13 @@ public class JsonReadValidator extends JsonValidator implements ValueValidator, 
             schemaId = handler.resolve(subject, catalog.version);
         }
 
-        if (validate(schemaId, data, progress, length - progress))
+        int payloadLength = length - progress;
+        int payloadIndex = index + progress;
+
+        if (validate(schemaId, data, payloadIndex, payloadLength))
         {
-            next.accept(data, index, length);
-            valLength = length;
+            next.accept(data, payloadIndex, payloadLength);
+            valLength = payloadLength;
         }
         return valLength;
     }

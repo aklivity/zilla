@@ -92,17 +92,19 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         reader = readers.computeIfAbsent(schemaId, this::supplyReader);
         if (reader != null)
         {
+            int payloadLength = length - progress;
+            int payloadIndex = index + progress;
             if (FORMAT_JSON.equals(format))
             {
-                byte[] record = deserializeRecord(schemaId, data, progress, length - progress);
+                byte[] record = deserializeRecord(schemaId, data, payloadIndex, payloadLength);
                 valueRO.wrap(record);
-                next.accept(valueRO, 0, valLength);
                 valLength = record.length;
+                next.accept(valueRO, 0, valLength);
             }
-            else if (validate(schemaId, data, progress, length - progress))
+            else if (validate(schemaId, data, payloadIndex, payloadLength))
             {
-                next.accept(data, index, length);
-                valLength = length;
+                next.accept(data, payloadIndex, payloadLength);
+                valLength = payloadLength;
             }
         }
         return valLength;
