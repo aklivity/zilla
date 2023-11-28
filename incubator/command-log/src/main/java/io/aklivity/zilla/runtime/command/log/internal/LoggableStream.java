@@ -1183,8 +1183,6 @@ public final class LoggableStream implements AutoCloseable
             onKafkaMergedProduceDataEx(offset, timestamp, merged.produce());
             break;
         }
-
-
     }
 
     private void onKafkaMergedFetchDataEx(
@@ -1223,7 +1221,6 @@ public final class LoggableStream implements AutoCloseable
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s: %s", asString(h.name()), asString(h.value()))));
     }
-
 
     private void onKafkaMetaDataEx(
         int offset,

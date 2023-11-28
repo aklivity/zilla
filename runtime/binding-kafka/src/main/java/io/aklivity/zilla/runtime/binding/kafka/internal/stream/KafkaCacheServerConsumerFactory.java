@@ -839,8 +839,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             final OctetsFW extension = begin.extension();
 
             final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-            final KafkaBeginExFW groupBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
-            final KafkaGroupBeginExFW kafkaGroupBeginEx = groupBeginEx != null ? groupBeginEx.group() : null;
+            final KafkaBeginExFW kafkaBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
+            final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx != null ? kafkaBeginEx.group() : null;
 
             instanceId = kafkaGroupBeginEx.instanceId().asString();
 

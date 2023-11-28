@@ -595,7 +595,6 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                 traceId, authorization, initialBud, reserved, extension);
         }
 
-
         private void doConsumerFanInitialEndIfNecessary(
             long traceId)
         {

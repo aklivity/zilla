@@ -627,21 +627,20 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             progress = partition.limit();
 
             final short errorCode = partition.errorCode();
-            if (errorCode == ERROR_NONE)
+            switch (errorCode)
             {
+            case ERROR_NONE:
                 client.onDecodePartition(partition);
-
                 client.decoder = decodeOffsetFetchPartitions;
-            }
-            else if (errorCode == ERROR_UNAUTHORIZED_PARTITION ||
-                errorCode == ERROR_UNKNOWN_PARTITION)
-            {
+                break;
+            case ERROR_UNAUTHORIZED_PARTITION:
+            case ERROR_UNKNOWN_PARTITION:
                 client.decoder = decodeOffsetFetchPartitions;
-            }
-            else
-            {
+                break;
+            default:
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
+                break;
             }
 
             client.decodeableResponseBytes -= partition.sizeof();
