@@ -26,7 +26,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -531,7 +530,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final ObjectHashSet<KafkaCacheServerConsumerStream> streams;
+        private final ArrayList<KafkaCacheServerConsumerStream> streams;
         private final Object2ObjectHashMap<String, String> members;
         private final Object2ObjectHashMap<String, IntHashSet> partitionsByTopic;
         private final Object2ObjectHashMap<String, List<TopicPartition>> consumers;
@@ -574,7 +573,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.consumerId = consumerId;
             this.groupId = groupId;
             this.timeout = timeout;
-            this.streams = new ObjectHashSet<>();
+            this.streams = new ArrayList<>();
             this.members = new Object2ObjectHashMap<>();
             this.partitionsByTopic = new Object2ObjectHashMap<>();
             this.consumers = new Object2ObjectHashMap<>();
@@ -665,7 +664,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 doConsumerInitialFlush(traceId,
                     ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .group(g -> g.leaderId(leaderId)
+                        .group(g -> g
+                            .leaderId(leaderId)
                             .memberId(memberId)
                             .members(gm ->
                             {
