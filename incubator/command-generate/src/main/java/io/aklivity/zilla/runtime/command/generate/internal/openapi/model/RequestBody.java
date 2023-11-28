@@ -14,10 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
 
-import java.util.Map;
+import java.util.LinkedHashMap;
 
-public class Components
+public class RequestBody
 {
-    public Map<String, SecurityScheme> securitySchemes;
-    public Map<String, Schema> schemas;
+    public LinkedHashMap<String, MediaType> content;
 }
