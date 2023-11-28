@@ -1475,8 +1475,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             doConsumerReplyAbort(traceId);
 
             offsetCommit.cleanup(traceId);
-
-            fanout.streams.remove(this);
         }
     }
 
