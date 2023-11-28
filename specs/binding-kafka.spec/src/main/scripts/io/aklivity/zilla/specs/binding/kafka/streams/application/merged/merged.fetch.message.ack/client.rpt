@@ -56,6 +56,6 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "test-meta")
                                   .build()
                               .build()}

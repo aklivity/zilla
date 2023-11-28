@@ -63,6 +63,6 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "test-meta")
                                   .build()
                               .build()}

@@ -4882,12 +4882,24 @@ public final class KafkaFunctions
                 int partitionId,
                 long partitionOffset)
             {
+                partition(partitionId, partitionOffset, null);
+                return this;
+            }
+
+            public KafkaConsumerFlushExMatchBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                String metadata)
+            {
                 if (partitionRW == null)
                 {
                     this.partitionRW = new KafkaOffsetFW.Builder()
                         .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
-                this.partitionRW.partitionId(partitionId).partitionOffset(partitionOffset);
+                this.partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .metadata(metadata);
                 return this;
             }
 

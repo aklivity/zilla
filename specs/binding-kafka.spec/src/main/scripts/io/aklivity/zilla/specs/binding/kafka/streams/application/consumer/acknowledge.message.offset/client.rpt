@@ -59,6 +59,6 @@ write advise zilla:flush ${kafka:flushEx()
 read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
-                                 .partition(0, 2)
+                                 .partition(0, 2, "test-meta")
                                  .build()
                              .build()}

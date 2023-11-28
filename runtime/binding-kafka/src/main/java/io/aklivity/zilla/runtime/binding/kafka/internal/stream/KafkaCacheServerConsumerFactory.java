@@ -1454,20 +1454,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             }
         }
 
-        private void onOffsetCommitAck(
-            long traceId,
-            int partitionId,
-            long partitionOffset)
-        {
-            doConsumerReplyFlush(traceId,
-                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                    .typeId(kafkaTypeId)
-                    .consumer(c -> c
-                        .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset)))
-                    .build()
-                    .sizeof()));
-        }
-
         private void cleanup(
             long traceId)
         {
@@ -1757,7 +1743,17 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             if (!commitResponses.isEmpty())
             {
                 KafkaPartitionOffset commit = commitResponses.remove();
-                delegate.onOffsetCommitAck(traceId, commit.partitionId, commit.partitionOffset);
+                delegate.doConsumerReplyFlush(traceId,
+                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .consumer(c -> c
+                            .partition(p -> p
+                                .partitionId(commit.partitionId)
+                                .partitionOffset(commit.partitionOffset)
+                                .metadata(commit.metadata)
+                            ))
+                        .build()
+                        .sizeof()));
             }
         }
 
