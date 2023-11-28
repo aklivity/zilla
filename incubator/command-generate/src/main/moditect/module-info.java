@@ -29,7 +29,6 @@ module io.aklivity.zilla.runtime.command.generate
 
     requires com.fasterxml.jackson.dataformat.yaml;
     requires com.fasterxml.jackson.databind;
-    requires org.apache.commons.collections4;
 
     opens io.aklivity.zilla.runtime.command.generate.internal.airline
         to com.github.rvesse.airline;

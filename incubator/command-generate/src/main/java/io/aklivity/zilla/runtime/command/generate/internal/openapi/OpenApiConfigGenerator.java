@@ -23,8 +23,6 @@ import java.util.Map;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.apache.commons.collections4.MapUtils;
-
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -62,7 +60,7 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        if (openApi.components != null && MapUtils.isNotEmpty(openApi.components.schemas))
+        if (openApi.components != null && openApi.components.schemas != null && !openApi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()

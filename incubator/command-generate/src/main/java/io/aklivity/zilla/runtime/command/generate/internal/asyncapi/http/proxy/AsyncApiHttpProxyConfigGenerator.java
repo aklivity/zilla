@@ -32,8 +32,6 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.apache.commons.collections4.MapUtils;
-
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -333,7 +331,8 @@ public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
             ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
             String path = channel.address();
             Method method = Method.valueOf(operation.bindings.get("http").method);
-            if (MapUtils.isNotEmpty(channel.messages()) || MapUtils.isNotEmpty(channel.parameters()))
+            if (channel.messages() != null && !channel.messages().isEmpty() ||
+                channel.parameters() != null && !channel.parameters().isEmpty())
             {
                 options
                     .request()

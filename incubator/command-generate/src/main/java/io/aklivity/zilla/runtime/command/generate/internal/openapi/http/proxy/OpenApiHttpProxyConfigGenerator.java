@@ -32,9 +32,6 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -304,7 +301,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             for (String methodName : path.methods().keySet())
             {
                 Operation operation = path.methods().get(methodName);
-                if (operation.requestBody != null || CollectionUtils.isNotEmpty(operation.parameters))
+                if (operation.requestBody != null || operation.parameters != null && !operation.parameters.isEmpty())
                 {
                     options
                         .request()
@@ -323,7 +320,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         HttpRequestConfigBuilder<C> request,
         Operation operation)
     {
-        if (operation.requestBody != null && MapUtils.isNotEmpty(operation.requestBody.content))
+        if (operation.requestBody != null && operation.requestBody.content != null && !operation.requestBody.content.isEmpty())
         {
             SchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content);
             if (schema != null)

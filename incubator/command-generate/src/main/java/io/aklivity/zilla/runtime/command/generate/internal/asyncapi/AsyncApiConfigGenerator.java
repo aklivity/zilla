@@ -23,8 +23,6 @@ import java.util.Map;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.apache.commons.collections4.MapUtils;
-
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -45,7 +43,7 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
     protected boolean hasJsonContentType()
     {
         String contentType = null;
-        if (asyncApi.components != null && MapUtils.isNotEmpty(asyncApi.components.messages))
+        if (asyncApi.components != null && asyncApi.components.messages != null && !asyncApi.components.messages.isEmpty())
         {
             Message firstMessage = asyncApi.components.messages.entrySet().stream().findFirst().get().getValue();
             contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
@@ -56,7 +54,7 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
     protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
         NamespaceConfigBuilder<NamespaceConfig> namespace)
     {
-        if (asyncApi.components != null && MapUtils.isNotEmpty(asyncApi.components.schemas))
+        if (asyncApi.components != null && asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()
