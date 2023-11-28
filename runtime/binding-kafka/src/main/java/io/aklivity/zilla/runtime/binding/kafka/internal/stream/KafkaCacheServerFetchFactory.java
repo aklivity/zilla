@@ -39,6 +39,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -476,6 +477,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final List<KafkaCacheServerFetchStream> members;
         private final ValueValidator validateKey;
         private final FragmentValidator validateValue;
+        private final MutableInteger entryMark;
+        private final MutableInteger valueMark;
 
         private long leaderId;
         private long initialId;
@@ -524,6 +527,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.leaderId = leaderId;
             this.validateKey = validateKey;
             this.validateValue = validateValue;
+            this.entryMark = new MutableInteger(0);
+            this.valueMark = new MutableInteger(0);
         }
 
         private void onServerFanoutMemberOpening(
@@ -767,7 +772,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(partitionOffset, 0L, producerId,
+                partition.writeEntry(partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
                         entryFlags, KafkaDeltaType.NONE, validateKey, validateValue);
 
@@ -872,13 +877,13 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
-                partition.writeEntryStart(partitionOffset, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey);
+                partition.writeEntryStart(partitionOffset, entryMark, valueMark, timestamp, producerId,
+                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey, validateValue);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(flags, valueFragment, validateValue);
+                partition.writeEntryContinue(flags, entryMark, valueMark, valueFragment, validateValue);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)

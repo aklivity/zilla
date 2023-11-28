@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidatorFactory.SCHEMA_ID_PREFIX;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -56,7 +58,7 @@ public class TestReadValidator implements ValueValidator, FragmentValidator
         boolean valid = length == 18;
         if (valid)
         {
-            next.accept(data, index, length);
+            next.accept(data, index + SCHEMA_ID_PREFIX.capacity(), length - SCHEMA_ID_PREFIX.capacity());
         }
         return valid ? length : -1;
     }

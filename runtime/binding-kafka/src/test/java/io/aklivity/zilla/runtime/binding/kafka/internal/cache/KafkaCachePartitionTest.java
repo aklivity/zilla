@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
@@ -200,6 +201,9 @@ public class KafkaCachePartitionTest
 
             int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(slotCapacity * 2));
+            MutableInteger entryMark = new MutableInteger(0);
+            MutableInteger valueMark = new MutableInteger(0);
+            MutableInteger valueLimit = new MutableInteger(0);
 
             KafkaKeyFW key = new KafkaKeyFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity())
                 .length(4)
@@ -223,12 +227,14 @@ public class KafkaCachePartitionTest
             Node head10 = partition.append(10L);
             KafkaCacheSegment head10s = head10.segment();
 
-            partition.writeEntry(11L, 0L, -1L, key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(12L, 0L, -1L, key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
 
             Node head15 = partition.append(15L);
             KafkaCacheSegment head15s = head15.segment();
@@ -255,6 +261,9 @@ public class KafkaCachePartitionTest
             KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
 
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024));
+            MutableInteger entryMark = new MutableInteger(0);
+            MutableInteger valueMark = new MutableInteger(0);
+            MutableInteger valueLimit = new MutableInteger(0);
 
             KafkaKeyFW key = new KafkaKeyFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity())
                 .length(4)
@@ -274,12 +283,14 @@ public class KafkaCachePartitionTest
             KafkaCachePartition partition = new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
             Node head10 = partition.append(10L);
 
-            partition.writeEntry(11L, 0L, -1L, key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(12L, 0L, -1L, key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
 
             Node head15 = partition.append(15L);
             Node tail10 = head15.previous();

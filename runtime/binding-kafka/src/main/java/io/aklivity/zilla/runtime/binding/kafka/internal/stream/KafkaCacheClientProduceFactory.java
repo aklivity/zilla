@@ -192,7 +192,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.initialBudgetMax = bufferPool.slotCapacity();
         this.localIndex = context.index();
         this.cleanupDelay = config.cacheClientCleanupDelay();
-        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer());
+        this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
         this.trailersSizeMax = config.cacheClientTrailersSizeMax();
         this.reconnectDelay = config.cacheServerReconnect();
     }

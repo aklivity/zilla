@@ -15,8 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidatorFactory.SCHEMA_ID_PREFIX;
+
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
@@ -25,8 +26,6 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestWriteValidator implements ValueValidator, FragmentValidator
 {
-    private static final DirectBuffer SCHEMA_ID_PREFIX = new UnsafeBuffer(new byte[]{0, 0, 0, 0, 1});
-
     @Override
     public int validate(
         DirectBuffer data,

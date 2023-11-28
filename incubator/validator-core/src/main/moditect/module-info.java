@@ -20,11 +20,9 @@ module io.aklivity.zilla.runtime.validator.core
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.validator.core.config.StringValidatorConfigAdapter,
-            io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfigAdapter,
-            io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfigAdapter;
+            io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
         with io.aklivity.zilla.runtime.validator.core.StringValidatorFactory,
-            io.aklivity.zilla.runtime.validator.core.IntegerValidatorFactory,
-            io.aklivity.zilla.runtime.validator.core.LongValidatorFactory;
+            io.aklivity.zilla.runtime.validator.core.IntegerValidatorFactory;
 }

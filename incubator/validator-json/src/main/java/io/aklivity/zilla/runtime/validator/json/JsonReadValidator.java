@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
+import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.leadpony.justify.api.JsonSchema;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -26,8 +28,6 @@ import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
-
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 public class JsonReadValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
@@ -74,7 +74,7 @@ public class JsonReadValidator extends JsonValidator implements ValueValidator, 
         if (data.getByte(index) == MAGIC_BYTE)
         {
             progress += BitUtil.SIZE_OF_BYTE;
-            schemaId = data.getInt(index + progress);
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
             progress += BitUtil.SIZE_OF_INT;
         }
         else if (catalog.id != NO_SCHEMA_ID)

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.validator.json;
 import java.io.StringReader;
 import java.util.function.LongFunction;
 
-import jakarta.json.JsonReader;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;

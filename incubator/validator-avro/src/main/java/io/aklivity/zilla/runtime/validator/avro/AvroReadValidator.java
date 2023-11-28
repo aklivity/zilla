@@ -17,12 +17,12 @@ package io.aklivity.zilla.runtime.validator.avro;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.JsonEncoder;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -77,7 +77,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         if (data.getByte(index) == MAGIC_BYTE)
         {
             progress += BitUtil.SIZE_OF_BYTE;
-            schemaId = data.getInt(index + progress);
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
             progress += BitUtil.SIZE_OF_INT;
         }
         else if (catalog.id != NO_SCHEMA_ID)
