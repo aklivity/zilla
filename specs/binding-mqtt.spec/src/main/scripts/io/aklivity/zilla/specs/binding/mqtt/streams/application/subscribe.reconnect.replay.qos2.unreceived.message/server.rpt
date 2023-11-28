@@ -60,7 +60,6 @@ write ${mqtt:session()
 write flush
 
 read aborted
-write abort
 
 
 accepted
@@ -88,7 +87,6 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message"
 
 read aborted
-write abort
 
 
 accepted
@@ -149,4 +147,9 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-read option zilla:ack 7
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}

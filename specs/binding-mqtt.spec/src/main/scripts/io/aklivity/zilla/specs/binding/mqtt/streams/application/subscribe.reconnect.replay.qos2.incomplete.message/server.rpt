@@ -60,7 +60,6 @@ write ${mqtt:session()
 write flush
 
 read aborted
-write abort
 
 
 accepted
@@ -95,7 +94,6 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .build()}
 
 read aborted
-write abort
 
 
 accepted

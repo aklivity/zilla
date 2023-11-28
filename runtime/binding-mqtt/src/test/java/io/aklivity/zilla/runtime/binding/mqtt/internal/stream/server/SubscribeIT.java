@@ -446,6 +446,77 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.qos1.reject.subscription.ids.not.supported/client",
+        "${app}/subscribe.reject.subscription.ids.not.supported/server"})
+    public void shouldRejectQos1SubscriptionIdentifiersNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.qos2.reject.subscription.ids.not.supported/client",
+        "${app}/subscribe.reject.subscription.ids.not.supported/server"})
+    public void shouldRejectQos2SubscriptionIdentifiersNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replay.retained.message.qos1/client",
+        "${app}/subscribe.replay.retained.message.qos1/server"})
+    public void shouldReplayRetainedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replay.retained.message.qos2/client",
+        "${app}/subscribe.replay.retained.message.qos2/server"})
+    public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos1.unacked.message/client",
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message/server"})
+    public void shouldReplayUnackedQoS1MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos2.unreceived.message/client",
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldReplayUnreceivedQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos2.incomplete.message/client",
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldReplayIncompleteQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static int subscriptionId = 0;
     public static int supplySubscriptionId()
     {

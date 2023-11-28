@@ -91,3 +91,10 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .packetId(1)
                                      .build()
                                  .build()}
+
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}

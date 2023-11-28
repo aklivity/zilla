@@ -59,8 +59,7 @@ read ${mqtt:session()
 read notify RECEIVED_SESSION_STATE
 
 write abort
-read aborted
-read notify RECEIVED_SESSION_ABORT
+read notify SENT_SESSION_ABORT
 
 connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
@@ -90,10 +89,9 @@ read zilla:data.ext ${mqtt:matchDataEx()
 read "message"
 
 write abort
-read aborted
 
 
-connect await RECEIVED_SESSION_ABORT
+connect await SENT_SESSION_ABORT
          "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -151,6 +149,13 @@ read zilla:data.ext ${mqtt:matchDataEx()
 read "message"
 
 write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .packetId(1)

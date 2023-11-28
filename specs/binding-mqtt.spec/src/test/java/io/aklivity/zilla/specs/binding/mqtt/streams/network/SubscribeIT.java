@@ -356,7 +356,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    //TODO: use the same network script for subscribe.receive.message.qos1.published.qos2
     @Test
     @Specification({
         "${net}/subscribe.receive.message.qos1/client",
@@ -366,7 +365,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    //TODO: use the same network script for published.qos2
     @Test
     @Specification({
         "${net}/subscribe.receive.message.qos0.published.qos/client",
@@ -421,7 +419,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    //TODO: use the plain reject subscription id app script
     @Test
     @Specification({
         "${net}/subscribe.qos1.reject.subscription.ids.not.supported/client",
@@ -431,11 +428,10 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    //TODO: use the plain reject subscription id app script
     @Test
     @Specification({
         "${net}/subscribe.qos2.reject.subscription.ids.not.supported/client",
-        "${net}/subscribe.qos 2.reject.subscription.ids.not.supported/server"})
+        "${net}/subscribe.qos2.reject.subscription.ids.not.supported/server"})
     public void shouldRejectQos2SubscriptionIdentifiersNotSupported() throws Exception
     {
         k3po.finish();

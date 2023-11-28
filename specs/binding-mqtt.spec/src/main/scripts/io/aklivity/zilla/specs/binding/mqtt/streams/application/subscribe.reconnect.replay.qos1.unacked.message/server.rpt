@@ -60,7 +60,6 @@ write ${mqtt:session()
 write flush
 
 read aborted
-write abort
 
 
 accepted
@@ -88,7 +87,6 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message"
 
 read aborted
-write abort
 
 
 accepted
@@ -130,7 +128,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-#TODO: add new flag enum: DUP
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
@@ -142,5 +139,3 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 write "message"
-
-read option zilla:ack 7
