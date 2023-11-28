@@ -527,8 +527,13 @@ scope protocol
 
             struct OffsetFetchTopicRequest
             {
-                string16 topic;
+                string16 name;
                 int32 partitionsCount;
+            }
+
+            struct OffsetFetchTopicPartitionRequest
+            {
+                int32 partitionIndex;
             }
 
             struct OffsetFetchResponse
@@ -544,7 +549,7 @@ scope protocol
                 int32 partitionCount;
             }
 
-            struct OffsetFetchPartition
+            struct OffsetFetchPartitionResponse
             {
                 int32 partitionIndex;
                 int64 committedOffset;
@@ -553,7 +558,7 @@ scope protocol
                 int16 errorCode;
             }
 
-            struct OffsetFetchError
+            struct OffsetFetchErrorResponse
             {
                 int16 code;
             }

@@ -37,13 +37,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchErrorFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchPartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchErrorResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchPartitionResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicPartitionRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.rebalance.PartitionIndexFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -100,13 +100,15 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final OffsetFetchRequestFW.Builder offsetFetchRequestRW = new OffsetFetchRequestFW.Builder();
     private final OffsetFetchTopicRequestFW.Builder offsetFetchTopicRequestRW = new OffsetFetchTopicRequestFW.Builder();
-    private final PartitionIndexFW.Builder partitionIndexRW = new PartitionIndexFW.Builder();
+    private final OffsetFetchTopicPartitionRequestFW.Builder partitionIndexRW =
+        new OffsetFetchTopicPartitionRequestFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final OffsetFetchResponseFW offsetFetchResponseRO = new OffsetFetchResponseFW();
     private final OffsetFetchTopicResponseFW offsetFetchTopicResponseRO = new OffsetFetchTopicResponseFW();
-    private final OffsetFetchPartitionFW offsetFetchPartitionRO = new OffsetFetchPartitionFW();
-    private final OffsetFetchErrorFW offsetFetchErrorRO = new OffsetFetchErrorFW();
+    private final OffsetFetchPartitionResponseFW offsetFetchPartitionResponseRO =
+        new OffsetFetchPartitionResponseFW();
+    private final OffsetFetchErrorResponseFW offsetFetchErrorResponseRO = new OffsetFetchErrorResponseFW();
 
     private final KafkaOffsetFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaOffsetFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -616,7 +618,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         decode:
         if (length != 0)
         {
-            final OffsetFetchPartitionFW partition = offsetFetchPartitionRO.tryWrap(buffer, progress, limit);
+            final OffsetFetchPartitionResponseFW partition = offsetFetchPartitionResponseRO.tryWrap(buffer, progress, limit);
             if (partition == null)
             {
                 break decode;
@@ -668,7 +670,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         decode:
         if (length != 0)
         {
-            final OffsetFetchErrorFW error = offsetFetchErrorRO.tryWrap(buffer, progress, limit);
+            final OffsetFetchErrorResponseFW error = offsetFetchErrorResponseRO.tryWrap(buffer, progress, limit);
 
             if (error == null)
             {
@@ -1407,16 +1409,16 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             final OffsetFetchTopicRequestFW offsetFetchTopicRequest =
                 offsetFetchTopicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .topic(topic)
+                    .name(topic)
                     .partitionsCount(partitions.size())
                     .build();
             encodeProgress = offsetFetchTopicRequest.limit();
 
-            for (Integer partition : partitions)
+            for (int partition : partitions)
             {
-                final PartitionIndexFW partitionIndex =
+                final OffsetFetchTopicPartitionRequestFW partitionIndex =
                     partitionIndexRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .index(partition)
+                        .partitionIndex(partition)
                         .build();
                 encodeProgress = partitionIndex.limit();
             }
@@ -1657,7 +1659,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         }
 
         public void onDecodePartition(
-            OffsetFetchPartitionFW partition)
+            OffsetFetchPartitionResponseFW partition)
         {
             topicPartitions.add(new KafkaPartitionOffset(
                 partition.partitionIndex(),
