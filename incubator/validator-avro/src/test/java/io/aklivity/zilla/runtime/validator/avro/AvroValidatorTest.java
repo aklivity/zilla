@@ -79,7 +79,8 @@ public class AvroValidatorTest
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH,
+            validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -255,6 +256,7 @@ public class AvroValidatorTest
 
         assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
 
-        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH, validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH,
+            validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 }
