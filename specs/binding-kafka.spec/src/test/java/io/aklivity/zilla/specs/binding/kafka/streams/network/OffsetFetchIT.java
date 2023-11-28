@@ -49,7 +49,16 @@ public class OffsetFetchIT
     @Specification({
         "${net}/topic.offset.no.partition/client",
         "${net}/topic.offset.no.partition/server"})
-    public void shouldRejectPartitionOffsetOnNoPartition() throws Exception
+    public void shouldRejectTopicOffsetOnNoPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/topic.offset.info.incomplete/client",
+        "${net}/topic.offset.info.incomplete/server"})
+    public void shouldReceiveTopicOffsetInfoIncomplete() throws Exception
     {
         k3po.finish();
     }

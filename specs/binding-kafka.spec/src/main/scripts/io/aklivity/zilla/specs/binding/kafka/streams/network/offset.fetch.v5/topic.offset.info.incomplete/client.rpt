@@ -28,28 +28,15 @@ connect "zilla://streams/net0"
 
 connected
 
-write 84                                # size
-      8s                                # offset fetch
-      7s                                # 7
+write 38                                # size
+      9s                                # offset fetch
+      5s                                # v0
       ${newRequestId}
       -1s                               # no client id
       8s "client-1"                     # group id
-      0
-      10s "memberId-1"                  # consumer member group id
-      5s "zilla"                        # group instance id
       1                                 # topics
         4s "test"                       # "test" topic
         1                               # partitions
-          0                             # partition 0
-          2L                            # committed offset
-          0                             # committed leader epoch
-          9s "test-meta"                # no metadata
+            0                             # partition
 
-read 28                                 # size
-     (int:newRequestId)
-     0                                  # throttle time ms
-     1                                  # topics
-       4s "test"                          # "test" topic
-       1                                  # partitions
-         0                                   # partition index
-         0s                                  # unknown topic partition
+write abort

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,11 +29,12 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-public class ClientOffsetFetchIT
+public class ClientOffsetFetchSaslIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/offset.fetch.v5")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/offset.fetch.v5.sasl.handshake.v1")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/offset.fetch");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
@@ -49,32 +51,29 @@ public class ClientOffsetFetchIT
 
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.options.sasl.plain.yaml")
     @Specification({
         "${app}/topic.offset.info/client",
-        "${net}/topic.offset.info/server"})
-    public void shouldFetchPartitionLastCommittedOffset() throws Exception
+        "${net}/topic.offset.info.sasl.plain/server"})
+    public void shouldFetchPartitionLastCommittedOffsetWithSaslPlain() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.options.sasl.scram.yaml")
     @Specification({
-        "${app}/topic.offset.no.partition/client",
-        "${net}/topic.offset.no.partition/server"})
-    public void shouldRejectPartitionOffsetOnNoPartition() throws Exception
+        "${app}/topic.offset.info/client",
+        "${net}/topic.offset.info.sasl.scram/server"})
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+        value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientOffsetFetchSaslIT::supplyNonce")
+    public void shouldFetchPartitionLastCommittedOffsetWithSaslScram() throws Exception
     {
         k3po.finish();
     }
 
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/topic.offset.info.incomplete/client",
-        "${net}/topic.offset.info.incomplete/server"})
-    public void shouldReceiveTopicOffsetInfoIncomplete() throws Exception
+    public static String supplyNonce()
     {
-        k3po.finish();
+        return "fyko+d2lbbFgONRv9qkxdawL";
     }
 }

@@ -53,4 +53,13 @@ public class OffsetFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/topic.offset.info.incomplete/client",
+        "${app}/topic.offset.info.incomplete/server"})
+    public void shouldReceiveTopicOffsetInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
 }

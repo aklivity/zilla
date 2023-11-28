@@ -558,7 +558,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             progress = partition.limit();
 
-            if (partition.errorCode() == ERROR_NONE)
+            final short errorCode = partition.errorCode();
+            if (errorCode == ERROR_NONE)
             {
                 client.onDecodePartition(traceId);
 
@@ -566,6 +567,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
             else
             {
+                client.errorCode = errorCode;
                 client.decoder = decodeReject;
             }
 
@@ -586,7 +588,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         int progress,
         int limit)
     {
-        client.doNetworkResetIfNecessary(traceId);
+        client.cleanupNetwork(traceId);
         client.decoder = decodeIgnoreAll;
         return limit;
     }
@@ -916,7 +918,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     {
         private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
         private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
-        private final LongLongConsumer encodeOffsetCommitRequest = this::doEncodeOffsetCommitRequest;
+        private final LongLongConsumer encodeOffsetCommitRequest = this::doEncodeOffsetCommitRequestIfNecessary;
 
         private final String groupId;
         private final String topic;
@@ -948,6 +950,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         private int decodeSlotReserved;
 
         private int nextResponseId;
+        private short errorCode;
 
         private KafkaOffsetCommitClientDecoder decoder;
         private LongLongConsumer encoder;
@@ -1280,10 +1283,19 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             long traceId,
             long budgetId)
         {
-            if (encoder == encodeSaslHandshakeRequest ||
-                nextRequestId == nextResponseId && !commits.isEmpty())
+            if (nextRequestId == nextResponseId)
             {
                 encoder.accept(traceId, budgetId);
+            }
+        }
+
+        private void doEncodeOffsetCommitRequestIfNecessary(
+            long traceId,
+            long budgetId)
+        {
+            if (!commits.isEmpty())
+            {
+                doEncodeOffsetCommitRequest(traceId, budgetId);
             }
         }
 
@@ -1564,7 +1576,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             doNetworkResetIfNecessary(traceId);
             doNetworkAbortIfNecessary(traceId);
 
-            delegate.cleanupApplication(traceId, EMPTY_OCTETS);
+            delegate.cleanupApplication(traceId, errorCode);
         }
 
         private void cleanupDecodeSlotIfNecessary()

@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKaf
 
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -45,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.FlushFW
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseDataExFW;

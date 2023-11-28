@@ -706,7 +706,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         int progress,
         int limit)
     {
-        client.onDecodeOffsetResponseError(traceId);
+        client.cleanupNetwork(traceId);
         client.decoder = decodeIgnoreAll;
         return limit;
     }
@@ -1627,15 +1627,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        private void onDecodeOffsetResponseError(
-            long traceId)
-        {
-            doNetworkResetIfNecessary(traceId);
-            doNetworkAbortIfNecessary(traceId);
-
-            delegate.cleanupApplication(traceId, errorCode);
-        }
-
         private void onDecodeOffsetFetchResponse(
             long traceId)
         {
@@ -1682,7 +1673,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             doNetworkResetIfNecessary(traceId);
             doNetworkAbortIfNecessary(traceId);
 
-            delegate.cleanupApplication(traceId, EMPTY_OCTETS);
+            delegate.cleanupApplication(traceId, errorCode);
         }
 
         private void cleanupDecodeSlotIfNecessary()

@@ -502,6 +502,7 @@ scope protocol
 
             struct OffsetCommitResponse
             {
+                int32 correlationId;
                 int32 throttleTimeMs;
                 int32 topicCount;
             }
