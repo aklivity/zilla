@@ -81,14 +81,15 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write "message"
+write flush
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .build()
                             .build()}
-
 write "message2"
+write flush
 
 write notify PUBLISHED
 

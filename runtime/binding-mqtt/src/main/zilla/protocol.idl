@@ -22,34 +22,20 @@
         enum MqttPacketType
         {
             RESERVED,
-            CONNECTV4,
-            CONNECTV5,
-            CONNACKV4,
-            CONNACKV5,
-            PUBLISHV4,
-            PUBLISHV5,
-            PUBACKV4,
-            PUBACKV5,
-            PUBRECV4,
-            PUBRECV5,
-            PUBRELV4,
-            PUBRELV5,
-            PUBCOMPV4,
-            PUBCOMPV5,
-            SUBSCRIBEV4,
-            SUBSCRIBEV5,
-            SUBACKV4,
-            SUBACKV5,
-            UNSUBSCRIBEV4,
-            UNSUBSCRIBEV5,
-            UNSUBACK4,
-            UNSUBACKV5,
-            PINGREQ,
+            CONNECT,
+            CONNACK,
+            PUBLISH,
+            PUBACK,
+            PUBREC,
+            PUBREL,
+            PUBCOMP,
+            SUBSCRIBE,
+            SUBACK,
+            UNSUBSCRIBE,
+            UNSUBACK,
             PINGREQ,
             PINGRESP,
-            PINGRESP,
-            DISCONNECTV4,
-            DISCONNECTV5,
+            DISCONNECT,
             AUTH
         }
 
@@ -108,7 +94,7 @@
             case 0x2A: uint8 sharedSubscriptionAvailable;
         }
 
-        struct MqttConnectHeader extends MqttPacketHeader
+        struct MqttConnect extends MqttPacketHeader
         {
             string16 protocolName;
             uint8 protocolVersion;
@@ -116,12 +102,12 @@
             uint16 keepAlive;
         }
 
-        struct MqttConnectV4
+        struct MqttConnectV4 extends MqttConnect
         {
             string16 clientId;
         }
 
-        struct MqttConnectV5
+        struct MqttConnectV5 extends MqttConnect
         {
             MqttProperties properties;
             string16 clientId;

@@ -126,7 +126,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV5FW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectHeaderFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectV4FW;
@@ -269,7 +269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttWillMessageFW.Builder mqttWillMessageRW = new MqttWillMessageFW.Builder();
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
-    private final MqttConnectHeaderFW mqttConnectHeaderRO = new MqttConnectHeaderFW();
+    private final MqttConnectFW mqttConnectRO = new MqttConnectFW();
     private final MqttConnectV5FW mqttConnectV5RO = new MqttConnectV5FW();
     private final MqttConnectV4FW mqttConnectV4RO = new MqttConnectV4FW();
     private final MqttWillV5FW mqttWillV5RO = new MqttWillV5FW();
@@ -337,7 +337,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final MqttServerDecoder decodeUnknownType = this::decodeUnknownType;
 
-    private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
+    private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV4;
+    private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
     private final EngineContext context;
 
@@ -345,22 +346,32 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
-        decodersByPacketType.put(MqttPacketType.CONNECTV4, decodeConnectV4);
-        decodersByPacketType.put(MqttPacketType.CONNECTV5, decodeConnectV5);
-        decodersByPacketType.put(MqttPacketType.PUBLISHV4, decodePublishV4);
-        decodersByPacketType.put(MqttPacketType.PUBLISHV5, decodePublishV5);
+        decodersByPacketType.put(MqttPacketType.CONNECT, decodeConnectV4);
+        decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublishV4);
         // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
         // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
-        decodersByPacketType.put(MqttPacketType.SUBSCRIBEV4, decodeSubscribeV4);
-        decodersByPacketType.put(MqttPacketType.SUBSCRIBEV5, decodeSubscribeV5);
-        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBEV4, decodeUnsubscribeV4);
-        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBEV5, decodeUnsubscribeV5);
+        decodersByPacketType.put(MqttPacketType.SUBSCRIBE, decodeSubscribeV4);
+        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBE, decodeUnsubscribeV4);
         decodersByPacketType.put(MqttPacketType.PINGREQ, decodePingreq);
-        decodersByPacketType.put(MqttPacketType.DISCONNECTV4, decodeDisconnectV4);
-        decodersByPacketType.put(MqttPacketType.DISCONNECTV5, decodeDisconnectV5);
+        decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnectV4);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
-        this.decodersByPacketType = decodersByPacketType;
+        this.decodersByPacketTypeV4 = decodersByPacketType;
+    }
+
+    {
+        final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
+        decodersByPacketType.put(MqttPacketType.CONNECT, decodeConnectV5);
+        decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublishV5);
+        // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
+        // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
+        // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
+        decodersByPacketType.put(MqttPacketType.SUBSCRIBE, decodeSubscribeV5);
+        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBE, decodeUnsubscribeV5);
+        decodersByPacketType.put(MqttPacketType.PINGREQ, decodePingreq);
+        decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnectV5);
+        // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
+        this.decodersByPacketTypeV5 = decodersByPacketType;
     }
 
     private final MutableDirectBuffer writeBuffer;
@@ -764,9 +775,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            final MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
+            final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
 
-            if (packetType != MqttPacketType.CONNECTV5 && packetType != MqttPacketType.CONNECTV4)
+            if (packetType != MqttPacketType.CONNECT)
             {
                 server.doNetworkEnd(traceId, authorization);
                 server.decoder = decodeIgnoreAll;
@@ -794,21 +805,21 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
-            if (packetType == MqttPacketType.CONNECTV4 || packetType == MqttPacketType.CONNECTV5)
+            MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            if (packetType == MqttPacketType.CONNECT)
             {
                 // We must look ahead to get the version, so we can reject according to the spec
-                final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
-                if (mqttConnectHeader != null)
+                final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
+                if (mqttConnect != null)
                 {
-                    final int version = mqttConnectHeader.protocolVersion();
-                    server.version = version;
-                    server.typeOffset = version == MQTT_PROTOCOL_VERSION_4 ? -1 : 0;
-                    packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
+                    server.version = mqttConnect.protocolVersion();
+                    packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
                 }
             }
 
-            final MqttServerDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
+            final MqttServerDecoder decoder = server.version == MQTT_PROTOCOL_VERSION_4 ?
+                decodersByPacketTypeV4.getOrDefault(packetType, decodeUnknownType) :
+                decodersByPacketTypeV5.getOrDefault(packetType, decodeUnknownType);
 
             if (packet.sizeof() + length > maximumPacketSize)
             {
@@ -842,26 +853,26 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
+            final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
             int flags = 0;
             decode:
             {
-                if (mqttConnectHeader == null)
+                if (mqttConnect == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
-                server.decodableRemainingBytes = mqttConnectHeader.remainingLength();
-                flags = mqttConnectHeader.flags();
+                server.decodableRemainingBytes = mqttConnect.remainingLength();
+                flags = mqttConnect.flags();
 
-                reasonCode = decodeConnectType(mqttConnectHeader, flags);
+                reasonCode = decodeConnectType(mqttConnect, flags);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
                 }
 
-                reasonCode = decodeConnectProtocol(mqttConnectHeader);
+                reasonCode = decodeConnectProtocol(mqttConnect);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
@@ -869,7 +880,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (server.decodeablePacketBytes > maximumPacketSize)
                 {
-                    server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnectHeader.protocolVersion());
+                    server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnect.protocolVersion());
                     server.decoder = decodeIgnoreAll;
                 }
 
@@ -884,8 +895,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-
-                progress = mqttConnectHeader.limit();
 
                 final MqttConnectV4FW mqttConnectV4 = mqttConnectV4RO.tryWrap(buffer, progress, limit);
 
@@ -910,7 +919,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnectHeader, clientId);
+                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect, clientId);
 
                 final int decodedLength = progress - offset - mqttPacketHeaderRO.sizeof();
                 server.decodableRemainingBytes -= decodedLength;
@@ -918,7 +927,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode != SUCCESS)
             {
-                server.onDecodeError(traceId, authorization, reasonCode, mqttConnectHeader.protocolVersion());
+                server.onDecodeError(traceId, authorization, reasonCode, mqttConnect.protocolVersion());
                 server.decoder = decodeIgnoreAll;
             }
             else
@@ -947,26 +956,26 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
+            final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
             int flags = 0;
             decode:
             {
-                if (mqttConnectHeader == null)
+                if (mqttConnect == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
-                server.decodableRemainingBytes = mqttConnectHeader.remainingLength();
-                flags = mqttConnectHeader.flags();
+                server.decodableRemainingBytes = mqttConnect.remainingLength();
+                flags = mqttConnect.flags();
 
-                reasonCode = decodeConnectType(mqttConnectHeader, flags);
+                reasonCode = decodeConnectType(mqttConnect, flags);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
                 }
 
-                reasonCode = decodeConnectProtocol(mqttConnectHeader);
+                reasonCode = decodeConnectProtocol(mqttConnect);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
@@ -974,7 +983,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (server.decodeablePacketBytes > maximumPacketSize)
                 {
-                    server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnectHeader.protocolVersion());
+                    server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnect.protocolVersion());
                     server.decoder = decodeIgnoreAll;
                 }
 
@@ -989,8 +998,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-
-                progress = mqttConnectHeader.limit();
 
                 final MqttConnectV5FW mqttConnectV5 = mqttConnectV5RO.tryWrap(buffer, progress, limit);
 
@@ -1017,7 +1024,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnectHeader, clientId);
+                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnect, clientId);
 
                 final int decodedLength = progress - offset - mqttPacketHeaderRO.sizeof();
                 server.decodableRemainingBytes -= decodedLength;
@@ -1025,7 +1032,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode != SUCCESS)
             {
-                server.onDecodeError(traceId, authorization, reasonCode, mqttConnectHeader.protocolVersion());
+                server.onDecodeError(traceId, authorization, reasonCode, mqttConnect.protocolVersion());
                 server.decoder = decodeIgnoreAll;
             }
             else
@@ -1724,7 +1731,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
 
         private int version = MQTT_PROTOCOL_VERSION_5;
-        private int typeOffset = 0;
 
         private MqttServer(
             Function<String, String> credentials,
@@ -2090,7 +2096,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             DirectBuffer buffer,
             int progress,
             int limit,
-            MqttConnectHeaderFW connectHeader,
+            MqttConnectFW connect,
             String16FW clientIdentifier)
         {
             this.assignedClientId = false;
@@ -2107,11 +2113,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.clientId = new String16FW(clientIdentifier.asString());
             }
 
-            keepAlive = (short) Math.min(Math.max(connectHeader.keepAlive(), keepAliveMinimum), keepAliveMaximum);
-            serverDefinedKeepAlive = keepAlive != connectHeader.keepAlive();
+            keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
+            serverDefinedKeepAlive = keepAlive != connect.keepAlive();
             keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-            connectFlags = connectHeader.flags();
-            version = connectHeader.protocolVersion();
+            connectFlags = connect.flags();
+            version = connect.protocolVersion();
             doSignalKeepAliveTimeout(traceId);
             doCancelConnectTimeout();
 
@@ -5309,12 +5315,12 @@ public final class MqttServerFactory implements MqttStreamFactory
     }
 
     private static int decodeConnectType(
-        MqttConnectHeaderFW connectHeader,
+        MqttConnectFW connect,
         int flags)
     {
         int reasonCode = SUCCESS;
 
-        if ((connectHeader.typeAndFlags() & 0b1111_1111) != CONNECT_FIXED_HEADER || (flags & CONNECT_RESERVED_MASK) != 0)
+        if ((connect.typeAndFlags() & 0b1111_1111) != CONNECT_FIXED_HEADER || (flags & CONNECT_RESERVED_MASK) != 0)
         {
             reasonCode = MALFORMED_PACKET;
         }
@@ -5323,13 +5329,13 @@ public final class MqttServerFactory implements MqttStreamFactory
     }
 
     private static int decodeConnectProtocol(
-        MqttConnectHeaderFW connectHeader)
+        MqttConnectFW connect)
     {
         int reasonCode = SUCCESS;
 
-        if (!MQTT_PROTOCOL_NAME.equals(connectHeader.protocolName()) ||
-            connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_5 &&
-                connectHeader.protocolVersion() != MQTT_PROTOCOL_VERSION_4)
+        if (!MQTT_PROTOCOL_NAME.equals(connect.protocolName()) ||
+            connect.protocolVersion() != MQTT_PROTOCOL_VERSION_5 &&
+                connect.protocolVersion() != MQTT_PROTOCOL_VERSION_4)
         {
             reasonCode = UNSUPPORTED_PROTOCOL_VERSION;
         }

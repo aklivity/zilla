@@ -78,7 +78,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .publish()
                                 .build()
                             .build()}
-
 read "message"
 
 read zilla:data.ext ${mqtt:matchDataEx()
@@ -86,7 +85,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .publish()
                                 .build()
                             .build()}
-
 read "message2"
 
 accepted
