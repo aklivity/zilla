@@ -149,13 +149,13 @@ records:
   - delay: 78
     content: "\e[1A\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 3/3\e[0m\r\n \e[32m✔\e[0m Network zilla-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka                     \e[32mStarted\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container kafka-ui                  \e[32mStarted\e[0m                                                                                                                                                                                         \e[34m0.0s \e[0m\r\n\e[?25h"
   - delay: 500
-    content: "\r\n==== Kafka started at host.docker.internal:29092 ====\r\n"
+    content: "\r\n==== Kafka started at host.docker.internal:9092 ====\r\n"
   - delay: 500
     content: "\r\n==== Starting Zilla mqtt.kafka.broker with Compose. Use this script to teardown: /zilla-examples/mqtt.kafka.broker/compose/teardown.sh ====\r\n"
   - delay: 500
     content: "Warning: No resource found to remove for project \"zilla-mqtt-kafka-broker\".\r\n"
   - delay: 500
-    content: "\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\e[1mWelcome to the Bitnami kafka container\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubscribe to project updates by watching \e[1mhttps://github.com/bitnami/containers\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubmit issues and feature requests at \e[1mhttps://github.com/bitnami/containers/issues\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.60 \e[0m\r\n\r\nCreating topics for host.docker.internal:29092\r\n"
+    content: "\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0m\e[1mWelcome to the Bitnami kafka container\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubscribe to project updates by watching \e[1mhttps://github.com/bitnami/containers\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.59 \e[0mSubmit issues and feature requests at \e[1mhttps://github.com/bitnami/containers/issues\e[0m\r\n\e[38;5;6mkafka \e[38;5;5m19:36:21.60 \e[0m\r\n\r\nCreating topics for host.docker.internal:9092\r\n"
   - delay: 500
     content: "Created topic mqtt-sessions.\r\n"
   - delay: 500
@@ -185,7 +185,7 @@ records:
   - delay: 16
     content: "\e[1A\e[1A\e[1A\e[0G\e[?25l\e[34m[+] Running 2/2\e[0m\r\n \e[32m✔\e[0m Network zilla-mqtt-kafka-broker_default  \e[32mCreated\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n \e[32m✔\e[0m Container zilla                          \e[32mStarted\e[0m                                                                                                                                                                                    \e[34m0.0s \e[0m\r\n\e[?25h"
   - delay: 500
-    content: "\r\n\r\n==== Verify the Kafka topics created ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:29092 -L\r\n\r\n==== Start a topic consumer to listen for messages ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:29092 -C -f '%t [%p:%o] | %h | %k:%s\r\n' -t <topic_name>\r\n\r\n"
+    content: "\r\n\r\n==== Verify the Kafka topics created ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:9092 -L\r\n\r\n==== Start a topic consumer to listen for messages ====\r\ndocker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:9092 -C -f '%t [%p:%o] | %h | %k:%s\r\n' -t <topic_name>\r\n\r\n"
   - delay: 500
     content: "\r\n==== Check out the README to see how to use this example ==== \r\n/zilla-examples/mqtt.kafka.broker/README.md\r\n\r\nThis is the resource folder for the running the [MQTT Kafka broker guide](https://docs.aklivity.io/zilla/latest/how-tos/mqtt/mqtt.kafka.broker.html) found on our docs.\r\n\r\n==== Finished, use the teardown script(s) to clean up ==== \r\n/zilla-examples/mqtt.kafka.broker/compose/teardown.sh\r\n/zilla-examples/kafka.broker/compose/teardown.sh\r\n\e]7;file://zilla-examples\azilla-examples$ "
   - delay: 5000

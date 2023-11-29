@@ -2,8 +2,8 @@
 set -e
 
 if [[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]]; then
-  export KAFKA_HOST=host.docker.internal
-  export KAFKA_PORT=29092
+  export KAFKA_HOST=kafka.zilla-kafka-broker.svc.cluster.local
+  export KAFKA_PORT=9092
   echo "==== This example requires env vars KAFKA_HOST and KAFKA_PORT for a running kafka instance. Setting to the default ($KAFKA_HOST:$KAFKA_PORT) ===="
 fi
 

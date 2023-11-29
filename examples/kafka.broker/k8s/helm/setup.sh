@@ -15,6 +15,5 @@ eval "kubectl port-forward --namespace $NAMESPACE service/kafka-ui $SERVICE_PORT
 
 if [[ -x "$(command -v nc)" ]]; then
     until nc -z localhost 8080; do sleep 1; done
-    until nc -z localhost 9092; do sleep 1; done
     until nc -z localhost 29092; do sleep 1; done
 fi

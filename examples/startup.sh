@@ -112,13 +112,14 @@ elif [[ $START_KAFKA == true ]]; then
         fi
     fi
 
+    KAFKA_PORT=9092
     if [[ $USE_HELM == true ]]; then
         cd "$WORKDIR"/"$KAFKA_FOLDER"/"$HELM_FOLDER"
+        KAFKA_HOST="kafka.zilla-kafka-broker.svc.cluster.local"
     else
         cd "$WORKDIR"/"$KAFKA_FOLDER"/"$COMPOSE_FOLDER"
+        KAFKA_HOST="host.docker.internal"
     fi
-    KAFKA_HOST="host.docker.internal"
-    KAFKA_PORT=29092
     chmod u+x teardown.sh
     KAKFA_TEARDOWN_SCRIPT="$(pwd)/teardown.sh"
     printf "\n\n"
@@ -173,14 +174,14 @@ if [[ $USE_HELM == true ]]; then
     sh setup.sh
 fi
 
-if [[ -n "$KAFKA_HOST" && -n "$KAFKA_PORT" ]]; then
+if [[ $REMOTE_KAFKA == false ]]; then
     printf "\n\n"
     echo "==== Verify the Kafka topics created ===="
-    echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b $KAFKA_HOST:$KAFKA_PORT -L"
+    echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:9092 -L"
     printf "\n\n"
     echo "==== Start a topic consumer to listen for messages ===="
     KCAT_FORMAT="'%t [%p:%o] | %h | %k:%s\n'"
-    echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b $KAFKA_HOST:$KAFKA_PORT -C -f $KCAT_FORMAT -t <topic_name>"
+    echo "docker run --tty --rm confluentinc/cp-kafkacat:7.1.9 kafkacat -b host.docker.internal:9092 -C -f $KCAT_FORMAT -t <topic_name>"
 fi
 
 printf "\n\n"
