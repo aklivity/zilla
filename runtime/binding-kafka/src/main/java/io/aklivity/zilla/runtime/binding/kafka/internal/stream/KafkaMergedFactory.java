@@ -2100,7 +2100,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (!offsetsByPartitionId.isEmpty())
             {
                 KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get(partitionId);
-                partitionOffset = kafkaPartitionOffset.partitionOffset + 1;
+                partitionOffset = kafkaPartitionOffset.partitionOffset;
             }
             else
             {
