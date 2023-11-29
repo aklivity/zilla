@@ -2815,7 +2815,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     .consumer(c -> c
                         .partition(p -> p
                             .partitionId(offsetAck.partitionId())
-                            .partitionOffset(offsetAck.partitionOffset())
+                            .partitionOffset(offsetAck.partitionOffset() + 1)
                             .metadata(offsetAck.metadata()))
                         .leaderEpoch(partitionOffset.leaderEpoch))
                     .build();
