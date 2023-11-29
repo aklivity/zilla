@@ -112,13 +112,32 @@ read "message3"
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
+                                     .qos("AT_LEAST_ONCE")
+                                     .build()
+                                 .build()}
+
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("EXACTLY_ONCE")
                                      .packetId(2)
+                                     .state("INCOMPLETE")
                                      .build()
                                  .build()}
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
+                                     .qos("EXACTLY_ONCE")
+                                     .packetId(2)
+                                     .state("INCOMPLETE")
+                                     .build()
+                                 .build()}
+
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("EXACTLY_ONCE")
                                      .packetId(2)
                                      .build()
                                  .build()}

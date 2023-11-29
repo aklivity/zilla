@@ -174,6 +174,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -238,6 +239,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
     public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
+    public static final int QOS2_INCOMPLETE_OFFSET_STATE = MqttOffsetStateFlags.INCOMPLETE.value();
+    public static final int QOS2_COMPLETE_OFFSET_STATE = MqttOffsetStateFlags.COMPLETE.value();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -2304,12 +2307,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (unAckedDeliveredPacketIds.peekInt() == packetId)
             {
                 unAckedDeliveredPacketIds.pollInt();
-                qos1Subscribes.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-                acknowledgeDeliveredPackets(traceId, authorization);
+                MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
+                stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal());
+                acknowledgeDeliveredPackets(traceId);
             }
             else
             {
-                deferredAckedPacketIdsWithQos.put(packetId, 1);
+                deferredAckedPacketIdsWithQos.put(packetId, MqttQoS.AT_LEAST_ONCE.ordinal());
             }
 
             progress = puback.limit();
@@ -2328,12 +2333,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (unAckedDeliveredPacketIds.peekInt() == packetId)
             {
                 unAckedDeliveredPacketIds.pollInt();
-                qos2Subscribes.get(packetId).doSubscribeFlush(traceId, 0, packetId);
-                acknowledgeDeliveredPackets(traceId, authorization);
+                qos2Subscribes.get(packetId)
+                    .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+                acknowledgeDeliveredPackets(traceId);
             }
             else
             {
-                deferredAckedPacketIdsWithQos.put(packetId, 2);
+                deferredAckedPacketIdsWithQos.put(packetId, MqttQoS.EXACTLY_ONCE.ordinal());
             }
 
             progress = pubrec.limit();
@@ -2341,10 +2347,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private void acknowledgeDeliveredPackets(
-            long traceId,
-            long authorization)
+            long traceId)
         {
-
             while (!unAckedDeliveredPacketIds.isEmpty() &&
                 deferredAckedPacketIdsWithQos.containsKey(unAckedDeliveredPacketIds.peek()))
             {
@@ -2353,11 +2357,16 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (qos == 1)
                 {
-                    qos1Subscribes.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                    MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
+                    stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                    stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal());
                 }
                 else
                 {
-                    qos2Subscribes.get(packetId).doSubscribeFlush(traceId, 0, packetId);
+                    MqttSubscribeStream stream = qos2Subscribes.get(packetId);
+                    stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                    qos2Subscribes.get(packetId)
+                        .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
                 }
             }
         }
@@ -2388,8 +2397,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPubcompFW pubcomp)
         {
             final int packetId = pubcomp.packetId();
-
-            qos2Subscribes.remove(packetId).doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            MqttSubscribeStream stream = qos2Subscribes.remove(packetId);
+            stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
 
             progress = pubcomp.limit();
             return progress;
@@ -4753,13 +4763,32 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSubscribeFlush(
                 long traceId,
                 int reserved,
-                int packetId)
+                int qos)
             {
                 doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, sessionId, 0L, reserved,
                     ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
                         .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder -> subscribeBuilder.packetId(packetId))
+                        .subscribe(subscribeBuilder -> subscribeBuilder.qos(qos))
+                        .build()
+                        .sizeof()));
+
+                initialSeq += reserved;
+                assert initialSeq <= initialAck + initialMax;
+            }
+
+            private void doSubscribeFlush(
+                long traceId,
+                int reserved,
+                int qos,
+                int packetId,
+                int state)
+            {
+                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, sessionId, 0L, reserved,
+                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                        .typeId(mqttTypeId)
+                        .subscribe(subscribeBuilder -> subscribeBuilder.qos(qos).packetId(packetId).state(state))
                         .build()
                         .sizeof()));
 

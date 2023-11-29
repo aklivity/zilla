@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -674,6 +675,20 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeFlushExBuilder qos(
+                String qos)
+            {
+                subscribeFlushExRW.qos(MqttQoS.valueOf(qos).ordinal());
+                return this;
+            }
+
+            public MqttSubscribeFlushExBuilder state(
+                String state)
+            {
+                subscribeFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
+                return this;
+            }
+
             public MqttSubscribeFlushExBuilder filter(
                 String topic,
                 int id)
@@ -821,20 +836,18 @@ public final class MqttFunctions
         }
 
         public MqttOffsetMetadataBuilder metadata(
-            int packetId,
-            String state)
+            int packetId)
         {
-            offsetMetadataRW.metadataItem(f -> f.packetId(packetId)
-                .state(1 << MqttOffsetStateFlags.valueOf(state).value()));
+            offsetMetadataRW.metadataItem(f -> f.packetId(packetId));
             return this;
         }
 
-        public byte[] build()
+        public String build()
         {
             final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
             final byte[] array = new byte[offsetMetadata.sizeof()];
             offsetMetadata.buffer().getBytes(offsetMetadata.offset(), array);
-            return array;
+            return BitUtil.toHex(array);
         }
     }
 

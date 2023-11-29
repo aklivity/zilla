@@ -139,3 +139,10 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 write "message"
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("AT_LEAST_ONCE")
+                                     .build()
+                                 .build()}

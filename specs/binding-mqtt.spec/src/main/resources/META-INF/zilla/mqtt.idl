@@ -234,19 +234,21 @@ scope mqtt
 
         struct MqttSubscribeFlushEx
         {
+            uint8 qos = 0;
             uint16 packetId = 0;
+            uint8 state = 0;
             MqttTopicFilter[] filters;
         }
 
         enum MqttOffsetStateFlags (uint8)
         {
-            INCOMPLETE(0)
+            COMPLETE(0),
+            INCOMPLETE(1)
         }
 
         struct MqttOffsetState
         {
             uint16 packetId;
-            uint8 state;
         }
 
         struct MqttOffsetMetadata

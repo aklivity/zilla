@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
@@ -1162,13 +1163,14 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttSubscribeFlushEx()
+    public void shouldEncodeMqttSubscribeFlushExOffsetCommit()
     {
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
             .subscribe()
+                .qos("EXACTLY_ONCE")
                 .packetId(1)
-                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                .state("INCOMPLETE")
                 .build()
             .build();
 
@@ -1177,6 +1179,24 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttFlushEx.typeId());
         assertEquals(1, mqttFlushEx.subscribe().packetId());
+        assertEquals(2, mqttFlushEx.subscribe().qos());
+        assertEquals(1, mqttFlushEx.subscribe().state());
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeFlushExChangeFilter()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttFlushEx.typeId());
         assertNotNull(mqttFlushEx.subscribe().filters()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
@@ -1239,23 +1259,21 @@ public class MqttFunctionsTest
     @Test
     public void shouldEncodeMqttOffsetMetadata()
     {
-        final byte[] array = MqttFunctions.metadata()
-            .metadata(1, "INCOMPLETE")
-            .metadata(2, "INCOMPLETE")
+        final String state = MqttFunctions.metadata()
+            .metadata(1)
+            .metadata(2)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
         MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertNotNull(offsetMetadata.metadata()
             .matchFirst(m ->
-                    1 == m.packetId() &&
-                    0b0001 == m.state()));
+                    1 == m.packetId()));
 
         assertNotNull(offsetMetadata.metadata()
             .matchFirst(m ->
-                2 == m.packetId() &&
-                    0b0001 == m.state()));
+                2 == m.packetId()));
     }
 
     @Test
