@@ -65,3 +65,20 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                  .build()
                              .build()}
 read "Hi, world"
+read notify RECEIVED_DATA
+
+
+connect await RECEIVED_DATA
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client-1")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connect aborted

@@ -112,6 +112,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
+    private static final int GROUP_RECORD_FRAME_MAX_SIZE = 256;
     private static final short METADATA_LOWEST_VERSION = 0;
     private static final short ERROR_EXISTS = -1;
     private static final short ERROR_NONE = 0;
@@ -261,7 +262,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorIgnoreAll = this::decodeIgnoreAll;
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorReject = this::decodeCoordinatorReject;
 
-    private final Map<String, String> configs = new LinkedHashMap<>();
     private final int kafkaTypeId;
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -275,9 +275,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
+    private final Map<String, String> configs;
     private final String clientId;
     private final Duration rebalanceTimeout;
-
+    private final String groupMinSessionTimeoutDefault;
+    private final String groupMaxSessionTimeoutDefault;
 
     public KafkaClientGroupFactory(
         KafkaConfiguration config,
@@ -288,21 +290,24 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         BindingHandler streamFactory)
     {
         super(config, context);
+        this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
+        this.clientId = config.clientId();
+        this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.signaler = signaler;
-        this.streamFactory = streamFactory;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
-        this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
-        this.clientId = config.clientId();
-        this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.supplyDebitor = supplyDebitor;
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
+        this.configs = new LinkedHashMap<>();
+        this.groupMinSessionTimeoutDefault = String.valueOf(config.clientGroupMinSessionTimeoutDefault());
+        this.groupMaxSessionTimeoutDefault = String.valueOf(config.clientGroupMaxSessionTimeoutDefault());
     }
 
     @Override
@@ -1218,6 +1223,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final String groupId;
         private final String protocol;
         private final long resolvedId;
+        private final int encodeMaxBytes;
 
         private MessageConsumer sender;
         private String host;
@@ -1274,6 +1280,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.describeClient = new DescribeClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
             this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
+            this.encodeMaxBytes = encodePool.slotCapacity() - GROUP_RECORD_FRAME_MAX_SIZE;
         }
 
         private void onStream(
@@ -1343,16 +1350,38 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             clusterClient.doNetworkBeginIfNecessary(traceId, authorization, affinity);
 
-            doStreamWindow(traceId, 0L, 0, 0, 0);
+            doStreamWindow(traceId, 0, encodeMaxBytes);
         }
 
         private void onStreamData(
             DataFW data)
         {
-            final long traceId = data.traceId();
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long authorization = data.authorization();
             final long budgetId = data.budgetId();
+            final long traceId = data.traceId();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
 
-            coordinatorClient.doSyncGroupRequest(traceId, budgetId, data.payload());
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            if (initialSeq > initialAck + initialMax)
+            {
+                cleanupStream(traceId, ERROR_EXISTS);
+                coordinatorClient.cleanupNetwork(traceId, authorization);
+            }
+            else
+            {
+                coordinatorClient.doSyncGroupRequest(traceId, budgetId, payload);
+            }
+
+            doStreamWindow(traceId, 0, encodeMaxBytes);
         }
 
         private void onStreamEnd(
@@ -1490,6 +1519,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .group(g -> g
                         .groupId(groupId)
                         .protocol(protocol)
+                        .instanceId(groupMembership.instanceId)
                         .timeout(timeout))
                     .build();
 
@@ -1560,9 +1590,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private void doStreamWindow(
             long traceId,
-            long budgetId,
             int minInitialNoAck,
-            int minInitialPad,
             int minInitialMax)
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
@@ -1577,7 +1605,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 state = KafkaState.openedInitial(state);
 
                 doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, clusterClient.authorization, budgetId, minInitialPad);
+                    traceId, clusterClient.authorization, 0L, GROUP_RECORD_FRAME_MAX_SIZE);
             }
         }
 
@@ -3052,8 +3080,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            int timeoutMin = Integer.valueOf(newConfigs.get(GROUP_MIN_SESSION_TIMEOUT)).intValue();
-            int timeoutMax = Integer.valueOf(newConfigs.get(GROUP_MAX_SESSION_TIMEOUT)).intValue();
+            int timeoutMin =
+                Integer.valueOf(newConfigs.getOrDefault(GROUP_MIN_SESSION_TIMEOUT, groupMinSessionTimeoutDefault)).intValue();
+            int timeoutMax =
+                Integer.valueOf(newConfigs.getOrDefault(GROUP_MAX_SESSION_TIMEOUT, groupMaxSessionTimeoutDefault)).intValue();
             if (delegate.timeout < timeoutMin)
             {
                 delegate.timeout = timeoutMin;
@@ -4215,7 +4245,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             delegate.doStreamFlush(traceId, authorization,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
-                    .group(g -> g.leaderId(leaderId)
+                    .group(g -> g
+                        .generationId(generationId)
+                        .leaderId(leaderId)
                         .memberId(memberId)
                         .members(gm -> members.forEach(m ->
                         {

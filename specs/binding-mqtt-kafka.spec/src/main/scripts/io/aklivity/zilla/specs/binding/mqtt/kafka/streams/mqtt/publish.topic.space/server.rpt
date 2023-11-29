@@ -59,3 +59,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .build()}
 
 read "Hello, again"
+
+
+rejected

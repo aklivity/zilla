@@ -17,8 +17,15 @@ package io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.bind.annotation.JsonbProperty;
+
 public class Schema
 {
+    public String type;
+    public Schema items;
     public Map<String, Item> properties;
     public List<String> required;
+
+    @JsonbProperty("$ref")
+    public String ref;
 }

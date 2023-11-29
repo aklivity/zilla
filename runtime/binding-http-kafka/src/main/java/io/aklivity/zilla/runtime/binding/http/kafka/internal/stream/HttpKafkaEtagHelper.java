@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKaf
 public final class HttpKafkaEtagHelper
 {
     private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
-            new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+        new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[2048]), 0, 2048);
 
     private final HttpKafkaEtagFW.Builder etagRW =
