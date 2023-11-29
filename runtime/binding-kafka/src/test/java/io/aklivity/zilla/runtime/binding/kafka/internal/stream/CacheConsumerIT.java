@@ -52,8 +52,7 @@ public class CacheConsumerIT
     @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/partition.assignment/client",
-        "${net}/partition.assignment/server"
-        })
+        "${net}/partition.assignment/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldAssignPartition() throws Exception
     {
@@ -64,12 +63,20 @@ public class CacheConsumerIT
     @Configuration("cache.yaml")
     @Specification({
         "${app}/reassign.new.topic/client",
-        "${net}/reassign.new.topic/server"
-    })
+        "${net}/reassign.new.topic/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReassignOnUpdatedTopic() throws Exception
     {
         k3po.finish();
     }
 
+    @Test
+    @Configuration("cache.when.topic.yaml")
+    @Specification({
+        "${app}/acknowledge.message.offset/client",
+        "${app}/commit.acknowledge.message.offset/server"})
+    public void shouldCommitAcknowledgeMessageOffset() throws Exception
+    {
+        k3po.finish();
+    }
 }

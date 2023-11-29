@@ -32,8 +32,6 @@ import jakarta.json.JsonPatchBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.apache.commons.collections4.MapUtils;
-
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -42,7 +40,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.AsyncApiConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Item;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
@@ -64,7 +62,7 @@ import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
+public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
 {
     private final InputStream input;
 
@@ -333,7 +331,8 @@ public class AsyncApiHttpProxyConfigGenerator extends ConfigGenerator
             ChannelView channel = ChannelView.of(asyncApi.channels, operation.channel);
             String path = channel.address();
             Method method = Method.valueOf(operation.bindings.get("http").method);
-            if (MapUtils.isNotEmpty(channel.messages()) || MapUtils.isNotEmpty(channel.parameters()))
+            if (channel.messages() != null && !channel.messages().isEmpty() ||
+                channel.parameters() != null && !channel.parameters().isEmpty())
             {
                 options
                     .request()

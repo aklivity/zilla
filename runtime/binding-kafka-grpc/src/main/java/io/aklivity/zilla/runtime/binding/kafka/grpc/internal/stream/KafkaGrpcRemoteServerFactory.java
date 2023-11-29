@@ -987,11 +987,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             Flyweight tombstoneDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m
+                .merged(m -> m.produce(mp -> mp
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(k -> condition.key(delegate.correlationId, k))
-                    .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, h)))
+                    .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, h))))
                 .build();
 
             doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
@@ -1243,11 +1243,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 Flyweight tombstoneDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m
+                    .merged(m -> m.produce(mp -> mp
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(k -> condition.key(c, k))
-                        .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, h)))
+                        .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, h))))
                     .build();
                 doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
             });
@@ -1398,12 +1398,12 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 kafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m
+                    .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(k -> server.condition.key(correlationId, k))
-                        .headers(h -> server.condition.headers(correlationId, h)))
+                        .headers(h -> server.condition.headers(correlationId, h))))
                     .build();
             }
 

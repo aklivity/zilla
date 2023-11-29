@@ -35,6 +35,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensors/1")
