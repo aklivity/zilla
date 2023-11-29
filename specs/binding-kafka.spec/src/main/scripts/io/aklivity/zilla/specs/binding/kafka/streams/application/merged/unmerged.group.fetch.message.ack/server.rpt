@@ -252,7 +252,7 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2, "test-meta")
+                                 .partition(0, 3, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()

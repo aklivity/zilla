@@ -1568,6 +1568,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             delegate.doApplicationWindow(traceId);
 
             nextResponseId++;
+
+            doEncodeRequestIfNecessary(traceId, initialBudgetId);
         }
 
         private void cleanupNetwork(
