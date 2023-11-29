@@ -167,4 +167,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.unroutable/client",
+        "${net}/publish.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
 }

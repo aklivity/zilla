@@ -125,7 +125,7 @@ public class JsonValidator implements Validator
             JsonSchema jsonSchema = reader.read();
             JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
             InputStream input = new ByteArrayInputStream(payloadBytes);
-            provider.createReader(input).readObject();
+            provider.createReader(input).readValue();
             status = true;
         }
         catch (Exception e)

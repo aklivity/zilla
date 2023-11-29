@@ -164,7 +164,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.when.topic.with.messages.yaml")
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.topic.space/client",

@@ -64,8 +64,8 @@ public final class MqttConditionMatcher
     public boolean matchesSubscribe(
         String topic)
     {
-        boolean match = subscribeMatchers == null;
-        if (!match)
+        boolean match = false;
+        if (subscribeMatchers != null)
         {
             for (Matcher matcher : subscribeMatchers)
             {
@@ -82,8 +82,8 @@ public final class MqttConditionMatcher
     public boolean matchesPublish(
         String topic)
     {
-        boolean match = publishMatchers == null;
-        if (!match)
+        boolean match = false;
+        if (publishMatchers != null)
         {
             for (Matcher matcher : publishMatchers)
             {

@@ -220,6 +220,16 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.unroutable/client",
+        "${app}/publish.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Before
     public void setSubscriptionId()
     {

@@ -65,12 +65,14 @@ public final class LogCommand
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
         options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
+        options.addOption(builder("p").longOpt("payload").desc("include data payloads as hex").build());
 
         final CommandLine cmdline = parser.parse(options, args);
         final Logger out = System.out::printf;
 
         final boolean hasVersion = cmdline.hasOption("version");
         final boolean hasDirectory = cmdline.hasOption("directory");
+        final boolean hasPayload = cmdline.hasOption("payload");
         final boolean hasHelp = cmdline.hasOption("help");
 
         if (hasVersion)
@@ -120,7 +122,7 @@ public final class LogCommand
                     frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
 
                 command = new LogStreamsCommand(config, out, hasFrameTypes, hasExtensionType, verbose,
-                    continuous, affinity, position);
+                    continuous, hasPayload, affinity, position);
             }
             else if ("buffers".equals(type))
             {

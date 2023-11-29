@@ -34,6 +34,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .deferred(102400 - 8192 + padding)
                                  .partition(0, 1)
                                  .build()

@@ -35,6 +35,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
+                                .produce()
                                   .timestamp(newTimestamp)
                                   .partition(0, 1)
                                   .build()

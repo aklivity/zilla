@@ -34,8 +34,9 @@ module io.aklivity.zilla.runtime.command.generate
         to com.github.rvesse.airline;
 
     opens io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
-
+    opens io.aklivity.zilla.runtime.command.generate.internal.openapi.view;
     opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
+    opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view;
 
     provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
         with io.aklivity.zilla.runtime.command.generate.internal.ZillaConfigCommandSpi;

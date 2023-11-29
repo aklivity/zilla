@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -69,6 +68,8 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
@@ -96,6 +97,9 @@ public class KafkaConfiguration extends Configuration
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
             (c, v) -> Duration.parse(v), "PT4S");
+        KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT = config.property("client.group.min.session.timeout.default", 0);
+        KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
+            Integer.MAX_VALUE);
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -290,6 +294,16 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.get(this);
     }
 
+    public int clientGroupMinSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
+    public int clientGroupMaxSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
     private static Path cacheDirectory(
         Configuration config,
         String cacheDirectory)
@@ -367,42 +381,38 @@ public class KafkaConfiguration extends Configuration
 
     private static InstanceIdSupplier decodeInstanceId(
         Configuration config,
-        String value)
+        String fullyQualifiedMethodName)
     {
+        InstanceIdSupplier supplier = null;
+
         try
         {
-            String className = value.substring(0, value.indexOf("$$Lambda"));
-            Class<?> lambdaClass = Class.forName(className);
-
-            Method targetMethod = null;
-            for (Method method : lambdaClass.getDeclaredMethods())
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
             {
-                if (method.isSynthetic())
-                {
-                    targetMethod = method;
-                    break;
-                }
-            }
-
-            Method finalTargetMethod = targetMethod;
-            return () ->
-            {
+                String value = null;
                 try
                 {
-                    finalTargetMethod.setAccessible(true);
-                    return (String) finalTargetMethod.invoke(null);
+                    value = (String) method.invoke();
                 }
-                catch (Exception e)
+                catch (Throwable ex)
                 {
-                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                    LangUtil.rethrowUnchecked(ex);
                 }
+
+                return value;
             };
         }
         catch (Throwable ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
-        return null;
+
+        return supplier;
     }
 
     private static InstanceIdSupplier defaultInstanceId(

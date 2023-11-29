@@ -801,6 +801,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 error = ERROR_RECORD_LIST_TOO_LARGE;
             }
 
+            markEntryDirty(traceId, stream.partitionOffset);
+
             if (error != NO_ERROR)
             {
                 stream.cleanupClient(traceId, error);
@@ -1361,12 +1363,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
             if (reserved > 0)
             {
-                initialSeq = sequence + reserved;
-
-                assert initialAck <= initialSeq;
-
                 if (initialSeq > initialAck + initialMax)
                 {
                     doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS);
@@ -1377,9 +1379,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 {
                     fan.onClientInitialFlush(this, flush);
                 }
-                final int noAck = (int) (initialSeq - initialAck);
-                doClientInitialWindow(traceId, noAck, initialBudgetMax);
             }
+
+            final int noAck = (int) (initialSeq - initialAck);
+            doClientInitialWindow(traceId, noAck, initialBudgetMax);
         }
 
         private void onClientInitialEnd(

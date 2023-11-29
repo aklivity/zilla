@@ -234,6 +234,16 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.unroutable/client",
+        "${app}/subscribe.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Before
     public void setSubscriptionId()
     {

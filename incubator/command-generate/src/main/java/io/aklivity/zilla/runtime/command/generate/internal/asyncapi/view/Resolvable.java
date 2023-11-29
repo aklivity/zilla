@@ -21,25 +21,25 @@ import java.util.regex.Pattern;
 public abstract class Resolvable<T>
 {
     private final Map<String, T> map;
-    private final String regex;
+    private final Matcher matcher;
+
+    protected String key;
 
     public Resolvable(
         Map<String, T> map,
         String regex)
     {
         this.map = map;
-        this.regex = regex;
+        this.matcher = Pattern.compile(regex).matcher("");
     }
 
     protected T resolveRef(
         String ref)
     {
         T result = null;
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(ref);
-        if (matcher.matches())
+        if (matcher.reset(ref).matches())
         {
-            String key = matcher.group(1);
+            key = matcher.group(1);
             result = map.get(key);
         }
         return result;

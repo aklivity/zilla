@@ -22,6 +22,7 @@ public class Channel
 {
     public String address;
     public LinkedHashMap<String, Message> messages;
+    public LinkedHashMap<String, Parameter> parameters;
 
     @JsonbProperty("$ref")
     public String ref;

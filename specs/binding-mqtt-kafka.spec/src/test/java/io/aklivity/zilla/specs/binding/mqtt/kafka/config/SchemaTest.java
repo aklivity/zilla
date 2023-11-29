@@ -50,9 +50,17 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWhenTopicWithMessages()
+    public void shouldValidateProxyWhenPublishTopicWithMessages()
     {
-        JsonObject config = schema.validate("proxy.when.topic.with.messages.yaml");
+        JsonObject config = schema.validate("proxy.when.publish.topic.with.messages.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenSubscribeTopicWithMessages()
+    {
+        JsonObject config = schema.validate("proxy.when.subscribe.topic.with.messages.yaml");
 
         assertThat(config, not(nullValue()));
     }

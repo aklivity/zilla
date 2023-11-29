@@ -14,19 +14,8 @@ defaultContentType: application/json
 channels:
   items:
     address: /items
-    messages:
-      items:
-        $ref: '#/components/messages/item'
   itemsbyid:
     address: /items/{id}
-    parameters:
-      id:
-        description: Event ID.
-        schema:
-          type: string
-    messages:
-      items:
-        $ref: '#/components/messages/item'
 
 operations:
   postEvents:
@@ -55,29 +44,3 @@ components:
   correlationIds:
     itemsCorrelationId:
       location: '$message.header#/idempotency-key'
-  messages:
-    item:
-      name: event
-      title: An event
-      correlationId:
-        $ref: "#/components/correlationIds/itemsCorrelationId"
-      headers:
-        type: object
-        properties:
-          idempotency-key:
-            description: Unique identifier for a given event
-            type: string
-      contentType: application/json
-      payload:
-        type: object
-        properties:
-          item:
-            $ref: "#/components/schemas/item"
-  schemas:
-    item:
-      type: object
-      properties:
-        greeting:
-          type: string
-      required:
-        - greeting
