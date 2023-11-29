@@ -137,6 +137,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.message.value.convert/client",
+        "${app}/merged.fetch.message.value.convert/server"})
+    public void shouldFetchMergedMessageValueConvert() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.message.value.valid/client",
         "${app}/merged.fetch.message.value.valid/server"})
     public void shouldFetchMergedMessageValueValid() throws Exception
@@ -380,6 +389,15 @@ public class MergedIT
         "${app}/unmerged.fetch.filter.sync/client",
         "${app}/unmerged.fetch.filter.sync/server"})
     public void shouldFetchUnmergedFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.message.value.convert/client",
+        "${app}/unmerged.fetch.message.value.convert/server"})
+    public void shouldFetchUnmergedMessageValueConvert() throws Exception
     {
         k3po.finish();
     }

@@ -52,6 +52,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public String type()
+    {
+        return SCHEMA_REGISTRY;
+    }
+
+    @Override
     public int register(
         String subject,
         String type,

@@ -15,7 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
+import java.nio.ByteBuffer;
+
 import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -26,6 +29,10 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
     private static final String TEST = "test";
+    private static final String LENGTH = "length";
+    private static final String APPEND = "append";
+    private static final String ID = "id";
+    private static final String PADDING = "padding";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -43,9 +50,40 @@ public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, Js
     }
 
     @Override
-    public ValidatorConfig adaptFromJson(
+    public TestValidatorConfig adaptFromJson(
         JsonValue value)
     {
-        return TestValidatorConfig.builder().build();
+        JsonObject object = (JsonObject) value;
+
+        int length = object.containsKey(LENGTH)
+            ? object.getInt(LENGTH)
+            : 0;
+
+        int schemaId = object.containsKey(ID)
+            ? object.getInt(ID)
+            : 0;
+
+        boolean append = object.containsKey(APPEND)
+            ? object.getBoolean(APPEND)
+            : false;
+
+        int padding = object.containsKey(PADDING)
+            ? object.getInt(PADDING)
+            : 0;
+
+        byte[] prefix = new byte[0];
+
+        if (schemaId > 0 || padding > 0)
+        {
+            ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + padding);
+            for (int i = 0; i < padding; i++)
+            {
+                buffer.put((byte) 0);
+            }
+            buffer.putInt(schemaId);
+            prefix = buffer.array();
+        }
+
+        return new TestValidatorConfig(length, append, prefix);
     }
 }

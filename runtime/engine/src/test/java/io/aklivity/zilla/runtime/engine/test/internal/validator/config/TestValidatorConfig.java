@@ -21,9 +21,19 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class TestValidatorConfig extends ValidatorConfig
 {
-    public TestValidatorConfig()
+    public final int length;
+    public final byte[] prefix;
+    public final boolean append;
+
+    public TestValidatorConfig(
+        int length,
+        boolean append,
+        byte[] prefix)
     {
         super("test");
+        this.length = length;
+        this.append = append;
+        this.prefix = prefix;
     }
 
     public static <T> TestValidatorConfigBuilder<T> builder(

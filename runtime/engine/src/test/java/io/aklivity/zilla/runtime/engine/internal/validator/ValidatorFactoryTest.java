@@ -25,8 +25,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.TestReadValidator;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.TestWriteValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidator;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
@@ -39,15 +38,19 @@ public class ValidatorFactoryTest
     public void shouldCreateReadValidator()
     {
         // GIVEN
-        ValidatorConfig testValidator = new TestValidatorConfig();
+        ValidatorConfig config = TestValidatorConfig.builder()
+                .length(0)
+                .append(false)
+                .prefix(new byte[0])
+                .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        ValueValidator reader = factory.createValueReader(testValidator, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(config, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(TestReadValidator.class));
+        assertThat(reader, instanceOf(TestValidator.class));
     }
 
     @Test
@@ -55,15 +58,19 @@ public class ValidatorFactoryTest
     public void shouldCreateValueWriter()
     {
         // GIVEN
-        ValidatorConfig testValidator = new TestValidatorConfig();
+        ValidatorConfig config = TestValidatorConfig.builder()
+                .length(0)
+                .append(false)
+                .prefix(new byte[0])
+                .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        ValueValidator writer = factory.createValueWriter(testValidator, supplyCatalog);
+        ValueValidator writer = factory.createValueWriter(config, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(TestWriteValidator.class));
+        assertThat(writer, instanceOf(TestValidator.class));
     }
 
     @Test
@@ -71,15 +78,19 @@ public class ValidatorFactoryTest
     public void shouldCreateFragmentReader()
     {
         // GIVEN
-        ValidatorConfig testValidator = new TestValidatorConfig();
+        ValidatorConfig config = TestValidatorConfig.builder()
+                .length(0)
+                .append(false)
+                .prefix(new byte[0])
+                .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        FragmentValidator reader = factory.createFragmentReader(testValidator, supplyCatalog);
+        FragmentValidator reader = factory.createFragmentReader(config, supplyCatalog);
 
         // THEN
-        assertThat(reader, instanceOf(TestReadValidator.class));
+        assertThat(reader, instanceOf(TestValidator.class));
     }
 
     @Test
@@ -87,14 +98,18 @@ public class ValidatorFactoryTest
     public void shouldCreateFragmentWriter()
     {
         // GIVEN
-        ValidatorConfig testValidator = new TestValidatorConfig();
+        ValidatorConfig config = TestValidatorConfig.builder()
+                .length(0)
+                .append(false)
+                .prefix(new byte[0])
+                .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
-        FragmentValidator writer = factory.createFragmentWriter(testValidator, supplyCatalog);
+        FragmentValidator writer = factory.createFragmentWriter(config, supplyCatalog);
 
         // THEN
-        assertThat(writer, instanceOf(TestWriteValidator.class));
+        assertThat(writer, instanceOf(TestValidator.class));
     }
 }

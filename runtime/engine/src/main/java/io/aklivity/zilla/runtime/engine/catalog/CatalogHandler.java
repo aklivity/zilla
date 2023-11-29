@@ -18,6 +18,11 @@ package io.aklivity.zilla.runtime.engine.catalog;
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
+    String TEST = "test"; // Added for unit test & IT purpose
+    String SCHEMA_REGISTRY = "schema-registry";
+    String INLINE = "inline";
+
+    String type();
 
     int register(
         String subject,

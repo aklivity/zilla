@@ -39,6 +39,12 @@ public class InlineCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public String type()
+    {
+        return INLINE;
+    }
+
+    @Override
     public int register(
         String subject,
         String type,

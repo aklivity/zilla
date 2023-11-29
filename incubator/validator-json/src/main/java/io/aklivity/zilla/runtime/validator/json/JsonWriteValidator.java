@@ -76,11 +76,14 @@ public class JsonWriteValidator extends JsonValidator implements ValueValidator,
 
         if (validate(schemaId, data, index, length))
         {
-            valLength = length + 5;
-            prefixRO.putByte(0, MAGIC_BYTE);
-            prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-
-            next.accept(prefixRO, 0, 5);
+            valLength = length;
+            if (appendSchemaId)
+            {
+                valLength += 5;
+                prefixRO.putByte(0, MAGIC_BYTE);
+                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+                next.accept(prefixRO, 0, 5);
+            }
             next.accept(data, index, length);
         }
         return valLength;

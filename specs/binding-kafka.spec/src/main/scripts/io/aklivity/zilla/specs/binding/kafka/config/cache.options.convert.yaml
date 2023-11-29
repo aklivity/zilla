@@ -53,8 +53,9 @@ bindings:
           value:
             type: test
             length: 18
+            append: true
             id: 1
-            padding: 1
+            padding: 2
     routes:
       - exit: app1
         when:

@@ -3,5 +3,49 @@
         "op": "add",
         "path": "/$defs/validator/types/enum/-",
         "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    },
+                    "length":
+                    {
+                        "type": "integer"
+                    },
+                    "append":
+                    {
+                        "type": "boolean"
+                    },
+                    "id":
+                    {
+                        "type": "integer"
+                    },
+                    "padding":
+                    {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
     }
 ]

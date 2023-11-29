@@ -29,6 +29,12 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public String type()
+    {
+        return "test";
+    }
+
+    @Override
     public int register(
         String subject,
         String type,

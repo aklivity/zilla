@@ -18,19 +18,15 @@ package io.aklivity.zilla.runtime.engine.test.internal.validator;
 import java.net.URL;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public class TestValidatorFactory implements ValidatorFactorySpi
 {
-    public static final DirectBuffer SCHEMA_ID_PREFIX = new UnsafeBuffer(new byte[]{0, 0, 0, 0, 1});
-
     @Override
     public String type()
     {
@@ -48,7 +44,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return createReader(config, supplyCatalog);
+        return create(config, supplyCatalog);
     }
 
     @Override
@@ -56,7 +52,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return createWriter(config, supplyCatalog);
+        return create(config, supplyCatalog);
     }
 
     @Override
@@ -64,7 +60,7 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return createReader(config, supplyCatalog);
+        return create(config, supplyCatalog);
     }
 
     @Override
@@ -72,20 +68,13 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return createWriter(config, supplyCatalog);
+        return create(config, supplyCatalog);
     }
 
-    private TestReadValidator createReader(
+    private TestValidator create(
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestReadValidator();
-    }
-
-    private TestWriteValidator createWriter(
-        ValidatorConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return new TestWriteValidator();
+        return new TestValidator(TestValidatorConfig.class.cast(config));
     }
 }

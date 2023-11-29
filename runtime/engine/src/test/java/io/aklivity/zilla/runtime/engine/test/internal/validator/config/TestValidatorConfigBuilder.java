@@ -24,6 +24,10 @@ public class TestValidatorConfigBuilder<T> extends ConfigBuilder<T, TestValidato
 {
     private final Function<ValidatorConfig, T> mapper;
 
+    private int length;
+    private boolean append;
+    private byte[] prefix;
+
     TestValidatorConfigBuilder(
         Function<ValidatorConfig, T> mapper)
     {
@@ -37,9 +41,30 @@ public class TestValidatorConfigBuilder<T> extends ConfigBuilder<T, TestValidato
         return (Class<TestValidatorConfigBuilder<T>>) getClass();
     }
 
+    public TestValidatorConfigBuilder<T> length(
+        int length)
+    {
+        this.length = length;
+        return this;
+    }
+
+    public TestValidatorConfigBuilder<T> append(
+        boolean append)
+    {
+        this.append = append;
+        return this;
+    }
+
+    public TestValidatorConfigBuilder<T> prefix(
+        byte[] prefix)
+    {
+        this.prefix = prefix;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestValidatorConfig());
+        return mapper.apply(new TestValidatorConfig(length, append, prefix));
     }
 }

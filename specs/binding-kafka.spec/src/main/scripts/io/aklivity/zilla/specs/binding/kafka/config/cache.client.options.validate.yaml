@@ -45,6 +45,10 @@ bindings:
         - name: test
           value:
             type: test
+            length: 13
+            append: true
+            id: 1
+            padding: 1
     routes:
       - exit: cache0
         when:

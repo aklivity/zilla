@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.SCHEMA_REGISTRY;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.TEST;
+
 import java.io.StringReader;
 import java.util.function.LongFunction;
 
@@ -41,6 +44,7 @@ public abstract class JsonValidator
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
+    protected final boolean appendSchemaId;
     protected final String subject;
 
     private final Int2ObjectCache<JsonSchema> schemas;
@@ -67,6 +71,7 @@ public abstract class JsonValidator
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
+        this.appendSchemaId = SCHEMA_REGISTRY.equals(handler.type()) || TEST.equals(handler.type());
     }
 
     protected boolean validate(

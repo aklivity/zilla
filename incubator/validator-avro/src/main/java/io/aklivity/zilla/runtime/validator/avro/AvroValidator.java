@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.SCHEMA_REGISTRY;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.TEST;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -53,6 +56,7 @@ public abstract class AvroValidator
     protected final BinaryDecoder decoder;
     protected final String subject;
     protected final String format;
+    protected final boolean appendSchemaId;
     protected GenericDatumReader<GenericRecord> reader;
     protected GenericDatumWriter<GenericRecord> writer;
     protected GenericRecord record;
@@ -85,6 +89,7 @@ public abstract class AvroValidator
         this.valueRO = new UnsafeBuffer();
         this.encoded = new ByteArrayOutputStream();
         this.in = new DirectBufferInputStream();
+        this.appendSchemaId = SCHEMA_REGISTRY.equals(handler.type()) || TEST.equals(handler.type());
     }
 
     private Schema resolveSchema(

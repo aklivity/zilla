@@ -15,17 +15,31 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
-import static io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidatorFactory.SCHEMA_ID_PREFIX;
-
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-public class TestWriteValidator implements ValueValidator, FragmentValidator
+public class TestValidator implements ValueValidator, FragmentValidator
 {
+    private final int length;
+    private final byte[] prefix;
+    private final DirectBuffer prefixRO;
+    private final boolean appendPrefix;
+
+    public TestValidator(
+        TestValidatorConfig config)
+    {
+        this.length = config.length;
+        this.prefix = config.prefix;
+        this.prefixRO = new UnsafeBuffer();
+        this.appendPrefix = config.append;
+    }
+
     @Override
     public int validate(
         DirectBuffer data,
@@ -55,11 +69,19 @@ public class TestWriteValidator implements ValueValidator, FragmentValidator
         int length,
         ValueConsumer next)
     {
-        boolean valid = length == 13;
+        boolean valid = length == this.length;
         if (valid)
         {
-            next.accept(SCHEMA_ID_PREFIX, 0, 5);
-            next.accept(data, index, length);
+            if (appendPrefix)
+            {
+                prefixRO.wrap(prefix);
+                next.accept(prefixRO, 0, prefix.length);
+                next.accept(data, index, length);
+            }
+            else
+            {
+                next.accept(data, index + prefix.length, length - prefix.length);
+            }
         }
         return valid ? length : -1;
     }

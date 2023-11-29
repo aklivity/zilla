@@ -85,22 +85,27 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
                 byte[] record = serializeJsonRecord(schemaId, data, index, length);
 
                 int recordLength = record.length;
-                valLength = record.length + 5;
-
-                prefixRO.putByte(0, MAGIC_BYTE);
-                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-                next.accept(prefixRO, 0, 5);
-
+                valLength = record.length;
+                if (appendSchemaId)
+                {
+                    valLength += 5;
+                    prefixRO.putByte(0, MAGIC_BYTE);
+                    prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+                    next.accept(prefixRO, 0, 5);
+                }
                 valueRO.wrap(record);
                 next.accept(valueRO, 0, recordLength);
             }
             else if (validate(schemaId, data, index, length))
             {
-                valLength = length + 5;
-                prefixRO.putByte(0, MAGIC_BYTE);
-                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-
-                next.accept(prefixRO, 0, 5);
+                valLength = length;
+                if (appendSchemaId)
+                {
+                    valLength += 5;
+                    prefixRO.putByte(0, MAGIC_BYTE);
+                    prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+                    next.accept(prefixRO, 0, 5);
+                }
                 next.accept(data, index, length);
             }
         }

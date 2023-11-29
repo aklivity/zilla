@@ -3083,7 +3083,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final ValueValidator contentValueValidator = supplyValidator.apply(topic);
             return contentValueValidator == null ||
-                contentValueValidator.validate(payload.value(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
+                contentValueValidator.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
         }
 
         private final class Subscription
