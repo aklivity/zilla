@@ -15,18 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import java.util.List;
-
-public final class KafkaOffsetFetchTopic
+public final class KafkaPartitionOffset
 {
-    final String topic;
-    List<Integer> partitions;
+    public final int partitionId;
+    public final long partitionOffset;
+    public final int generationId;
+    public final int leaderEpoch;
+    public final String metadata;
 
-    KafkaOffsetFetchTopic(
-        String topic,
-        List<Integer> partitions)
+    public KafkaPartitionOffset(
+        int partitionId,
+        long partitionOffset,
+        int generationId,
+        int leaderEpoch,
+        String metadata)
     {
-        this.topic = topic;
-        this.partitions = partitions;
+        this.partitionId = partitionId;
+        this.partitionOffset = partitionOffset;
+        this.generationId = generationId;
+        this.leaderEpoch = leaderEpoch;
+        this.metadata = metadata;
     }
 }

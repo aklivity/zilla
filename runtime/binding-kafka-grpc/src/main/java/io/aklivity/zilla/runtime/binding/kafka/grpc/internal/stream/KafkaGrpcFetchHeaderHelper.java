@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedFetchDataExFW;
 
 public final class KafkaGrpcFetchHeaderHelper
 {
@@ -63,8 +63,8 @@ public final class KafkaGrpcFetchHeaderHelper
 
         if (dataEx != null)
         {
-            final KafkaMergedDataExFW kafkaMergedDataEx = dataEx.merged();
-            final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx.headers();
+            final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = dataEx.merged().fetch();
+            final Array32FW<KafkaHeaderFW> headers = kafkaMergedFetchDataEx.headers();
             headers.forEach(this::dispatch);
         }
     }

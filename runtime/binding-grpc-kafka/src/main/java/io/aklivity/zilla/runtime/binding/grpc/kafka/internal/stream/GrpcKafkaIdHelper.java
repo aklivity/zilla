@@ -54,8 +54,10 @@ public final class GrpcKafkaIdHelper
 
     private final Array32FW<KafkaOffsetFW> historical =
         new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new UnsafeBuffer(new byte[36]), 0, 36)
-                .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))
+                .wrap(new UnsafeBuffer(new byte[38]), 0, 38)
+                .item(o -> o
+                    .partitionId(-1)
+                    .partitionOffset(KafkaOffsetType.HISTORICAL.value()))
                 .build();
     private final MutableInteger offset = new MutableInteger();
 
@@ -70,13 +72,11 @@ public final class GrpcKafkaIdHelper
         MutableDirectBuffer buffer = messageFieldRW.buffer();
         offset.value = messageField.limit();
         progress.forEach(p ->
-        {
             offset.value = partitionV1RW.wrap(buffer, offset.value, buffer.capacity())
                 .partitionId(p.partitionId())
                 .partitionOffset(p.partitionOffset())
                 .build()
-                .limit();
-        });
+                .limit());
 
         OctetsFW encoded = lastMessageIdRW.set(buffer, 0, offset.value).build();
 

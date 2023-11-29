@@ -65,7 +65,7 @@ public final class SseKafkaIdHelper
 
     private final Array32FW<KafkaOffsetFW> historical =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new UnsafeBuffer(new byte[36]), 0, 36)
+                .wrap(new UnsafeBuffer(new byte[38]), 0, 38)
                 .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))
                 .build();
 

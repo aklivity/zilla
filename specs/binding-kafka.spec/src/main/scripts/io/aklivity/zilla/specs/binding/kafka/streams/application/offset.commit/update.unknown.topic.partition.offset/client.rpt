@@ -21,17 +21,29 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetCommit()
-                                   .groupId("client-1")
                                    .topic("test")
+                                   .groupId("client-1")
+                                   .memberId("memberId-1")
+                                   .instanceId("zilla")
                                    .build()
                                .build()}
 
 connected
 
-read zilla:data.ext ${kafka:dataEx()
+write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partitionId(0)
-                                 .partitionOffset(1)
+                                 .partition(0, 2, "test-meta")
+                                 .generationId(0)
+                                 .leaderEpoch(0)
                                  .build()
                              .build()}
+
+write zilla:data.empty
+write flush
+
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(3)
+                           .build()}
+write aborted

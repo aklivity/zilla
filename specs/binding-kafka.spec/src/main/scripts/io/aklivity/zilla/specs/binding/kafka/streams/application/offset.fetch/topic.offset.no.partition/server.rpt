@@ -24,20 +24,18 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .offsetCommit()
+                               .offsetFetch()
                                    .groupId("client-1")
                                    .topic("test")
+                                   .partition(0)
                                    .build()
                                .build()}
 
 connected
 
-
-write zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetCommit()
-                                 .partition(0)
-                                 .partition(1)
-                                 .build()
-                             .build()}
-write flush
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(3)
+                           .build()}
+read abort
+write abort

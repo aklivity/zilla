@@ -42,10 +42,27 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
+                                .fetch()
                                   .timestamp(newTimestamp)
-                                  .partition(0, 1, 2)
-                                  .progress(0, 2)
+                                  .partition(0, 2, 2)
+                                  .progress(0, 3)
                                   .build()
                               .build()}
 write "Hello, world #A1"
 write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .partition(0, 2, "test-meta")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .partition(0, 2, "test-meta")
+                                  .build()
+                              .build()}

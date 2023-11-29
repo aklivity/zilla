@@ -14,34 +14,29 @@
 # under the License.
 #
 
-property networkAcceptWindow 8192
+property networkConnectWindow 8192
 
-accept "zilla://streams/net0"
-  option zilla:window ${networkAcceptWindow}
+property newRequestId ${kafka:newRequestId()}
+property fetchWaitMax 500
+property fetchBytesMax 65535
+property partitionBytesMax 8192
+
+connect "zilla://streams/net0"
+  option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
-accepted
-
 connected
 
-read  38                                # size
+write 38                                # size
       9s                                # offset fetch
-      0s                                # v0
-      (int:newRequestId)
+      5s                                # v0
+      ${newRequestId}
       -1s                               # no client id
       8s "client-1"                     # group id
       1                                 # topics
         4s "test"                       # "test" topic
         1                               # partitions
-          0                             # partition
+            0                             # partition
 
-write 34                                 # size
-      ${newRequestId}
-      1                                  # topics
-        4s "test"                          # "test" topic
-        1                                  # partitions
-          0                                  # partition index
-          1L                                  # committed offset
-          -1s                                 # metadata
-          0s                                  # no error
+write abort
