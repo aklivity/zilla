@@ -163,6 +163,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
+    private static final int TYPE_OFFSET = 0;
     private static final int CONNACK_FIXED_HEADER = 0b0010_0000;
     private static final int SUBACK_FIXED_HEADER = 0b1001_0000;
     private static final int UNSUBACK_FIXED_HEADER = 0b1011_0000;
@@ -303,15 +304,15 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     {
         final Map<MqttPacketType, MqttClientDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
-        decodersByPacketType.put(MqttPacketType.CONNACK, decodeConnack);
-        decodersByPacketType.put(MqttPacketType.SUBACK, decodeSuback);
-        decodersByPacketType.put(MqttPacketType.UNSUBACK, decodeUnsuback);
-        decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
+        decodersByPacketType.put(MqttPacketType.CONNACKV5, decodeConnack);
+        decodersByPacketType.put(MqttPacketType.SUBACKV5, decodeSuback);
+        decodersByPacketType.put(MqttPacketType.UNSUBACKV5, decodeUnsuback);
+        decodersByPacketType.put(MqttPacketType.PUBLISHV5, decodePublish);
         // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
         // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
         decodersByPacketType.put(MqttPacketType.PINGRESP, decodePingresp);
-        decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnect);
+        decodersByPacketType.put(MqttPacketType.DISCONNECTV5, decodeDisconnect);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
         this.decodersByPacketType = decodersByPacketType;
     }
@@ -717,9 +718,9 @@ public final class MqttClientFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            final MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + TYPE_OFFSET);
 
-            if (packetType != MqttPacketType.CONNACK)
+            if (packetType != MqttPacketType.CONNACKV5)
             {
                 client.doNetworkEnd(traceId, authorization);
                 client.decoder = decodeIgnoreAll;
@@ -747,7 +748,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            final MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + TYPE_OFFSET);
             final MqttClientDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
 
             if (packet.sizeof() + length > maximumPacketSize)
@@ -2295,16 +2296,14 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .keepAlive((int) MILLISECONDS.toSeconds(keepAliveMillis))
                     .build();
 
-            doNetworkData(traceId, authorization, 0L, connectHeader);
-
             final MqttConnectV5FW connect =
-                mqttConnectV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                mqttConnectV5RW.wrap(writeBuffer, connectHeader.limit(), writeBuffer.capacity())
                     .properties(p -> p.length(propertiesSize0)
                         .value(propertyBuffer, 0, propertiesSize0))
                     .clientId(clientId)
                     .build();
 
-            doNetworkData(traceId, authorization, 0L, connect);
+            doNetworkData(traceId, authorization, 0L, writeBuffer, FIELD_OFFSET_PAYLOAD, connect.limit());
             if (will != null)
             {
                 doNetworkData(traceId, authorization, 0L, will);

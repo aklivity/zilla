@@ -36,6 +36,6 @@ write [0x20 0x02]                   # CONNACK
 read  [0x82 0x0a]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x00 0x05] "error"           # topic filter
-      [0x20]                        # options = at-most-once
+      [0x00]                        # options = at-most-once
 
 write close

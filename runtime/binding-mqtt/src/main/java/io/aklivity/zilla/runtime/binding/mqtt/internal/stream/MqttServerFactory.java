@@ -321,14 +321,19 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final MqttServerDecoder decodeInitialType = this::decodeInitialType;
     private final MqttServerDecoder decodePacketType = this::decodePacketType;
-    private final MqttServerDecoder decodeConnect = this::decodeConnect;
+    private final MqttServerDecoder decodeConnectV4 = this::decodeConnectV4;
+    private final MqttServerDecoder decodeConnectV5 = this::decodeConnectV5;
     private final MqttServerDecoder decodeConnectPayload = this::decodeConnectPayload;
     private final MqttServerDecoder decodeConnectWillMessage = this::decodeConnectWillMessage;
-    private final MqttServerDecoder decodePublish = this::decodePublish;
-    private final MqttServerDecoder decodeSubscribe = this::decodeSubscribe;
-    private final MqttServerDecoder decodeUnsubscribe = this::decodeUnsubscribe;
+    private final MqttServerDecoder decodePublishV4 = this::decodePublishV4;
+    private final MqttServerDecoder decodePublishV5 = this::decodePublishV5;
+    private final MqttServerDecoder decodeSubscribeV4 = this::decodeSubscribeV4;
+    private final MqttServerDecoder decodeSubscribeV5 = this::decodeSubscribeV5;
+    private final MqttServerDecoder decodeUnsubscribeV4 = this::decodeUnsubscribeV4;
+    private final MqttServerDecoder decodeUnsubscribeV5 = this::decodeUnsubscribeV5;
     private final MqttServerDecoder decodePingreq = this::decodePingreq;
-    private final MqttServerDecoder decodeDisconnect = this::decodeDisconnect;
+    private final MqttServerDecoder decodeDisconnectV4 = this::decodeDisconnectV4;
+    private final MqttServerDecoder decodeDisconnectV5 = this::decodeDisconnectV5;
     private final MqttServerDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final MqttServerDecoder decodeUnknownType = this::decodeUnknownType;
 
@@ -340,15 +345,20 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
-        decodersByPacketType.put(MqttPacketType.CONNECT, decodeConnect);
-        decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
+        decodersByPacketType.put(MqttPacketType.CONNECTV4, decodeConnectV4);
+        decodersByPacketType.put(MqttPacketType.CONNECTV5, decodeConnectV5);
+        decodersByPacketType.put(MqttPacketType.PUBLISHV4, decodePublishV4);
+        decodersByPacketType.put(MqttPacketType.PUBLISHV5, decodePublishV5);
         // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         // decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
         // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
-        decodersByPacketType.put(MqttPacketType.SUBSCRIBE, decodeSubscribe);
-        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBE, decodeUnsubscribe);
+        decodersByPacketType.put(MqttPacketType.SUBSCRIBEV4, decodeSubscribeV4);
+        decodersByPacketType.put(MqttPacketType.SUBSCRIBEV5, decodeSubscribeV5);
+        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBEV4, decodeUnsubscribeV4);
+        decodersByPacketType.put(MqttPacketType.UNSUBSCRIBEV5, decodeUnsubscribeV5);
         decodersByPacketType.put(MqttPacketType.PINGREQ, decodePingreq);
-        decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnect);
+        decodersByPacketType.put(MqttPacketType.DISCONNECTV4, decodeDisconnectV4);
+        decodersByPacketType.put(MqttPacketType.DISCONNECTV5, decodeDisconnectV5);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
         this.decodersByPacketType = decodersByPacketType;
     }
@@ -754,9 +764,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            final MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
 
-            if (packetType != MqttPacketType.CONNECT)
+            if (packetType != MqttPacketType.CONNECTV5 && packetType != MqttPacketType.CONNECTV4)
             {
                 server.doNetworkEnd(traceId, authorization);
                 server.decoder = decodeIgnoreAll;
@@ -784,17 +794,24 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (packet != null)
         {
             final int length = packet.remainingLength();
-            final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            MqttPacketType packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
+            if (packetType == MqttPacketType.CONNECTV4 || packetType == MqttPacketType.CONNECTV5)
+            {
+                // We must look ahead to get the version, so we can reject according to the spec
+                final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
+                if (mqttConnectHeader != null)
+                {
+                    final int version = mqttConnectHeader.protocolVersion();
+                    server.version = version;
+                    server.typeOffset = version == MQTT_PROTOCOL_VERSION_4 ? -1 : 0;
+                    packetType = MqttPacketType.valueOf((packet.typeAndFlags() >> 4) * 2 + server.typeOffset);
+                }
+            }
+
             final MqttServerDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
 
             if (packet.sizeof() + length > maximumPacketSize)
             {
-                if (packetType == MqttPacketType.CONNECT)
-                {
-                    // We must look ahead to get the version, so we can reject according to the spec
-                    final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
-                    server.version = mqttConnectHeader.protocolVersion();
-                }
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
@@ -808,7 +825,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         return offset;
     }
 
-    private int decodeConnect(
+    private int decodeConnectV4(
         MqttServer server,
         final long traceId,
         final long authorization,
@@ -870,49 +887,130 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 progress = mqttConnectHeader.limit();
 
-                String16FW clientId = null;
-                switch (mqttConnectHeader.protocolVersion())
+                final MqttConnectV4FW mqttConnectV4 = mqttConnectV4RO.tryWrap(buffer, progress, limit);
+
+                if (mqttConnectV4 == null)
                 {
-                case 4:
-                    final MqttConnectV4FW mqttConnectV4 = mqttConnectV4RO.tryWrap(buffer, progress, limit);
-
-                    if (mqttConnectV4 == null)
-                    {
-                        reasonCode = PROTOCOL_ERROR;
-                        break decode;
-                    }
-
-                    clientId = mqttConnectV4.clientId();
-
-                    if (clientId.length() == 0 && !isCleanStart(flags))
-                    {
-                        reasonCode = IDENTIFIER_REJECTED;
-                        break decode;
-                    }
-
-                    progress = mqttConnectV4.limit();
-                    break;
-                case 5:
-                    final MqttConnectV5FW mqttConnectV5 = mqttConnectV5RO.tryWrap(buffer, progress, limit);
-
-                    if (mqttConnectV5 == null)
-                    {
-                        reasonCode = PROTOCOL_ERROR;
-                        break decode;
-                    }
-
-                    final MqttPropertiesFW properties = mqttConnectV5.properties();
-
-                    reasonCode = server.decodeConnectProperties(properties);
-
-                    if (reasonCode != SUCCESS)
-                    {
-                        break decode;
-                    }
-                    clientId = mqttConnectV5.clientId();
-                    progress = mqttConnectV5.limit();
-                    break;
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
                 }
+
+                final String16FW clientId = mqttConnectV4.clientId();
+
+                if (clientId.length() == 0 && !isCleanStart(flags))
+                {
+                    reasonCode = IDENTIFIER_REJECTED;
+                    break decode;
+                }
+
+                progress = mqttConnectV4.limit();
+                if (clientId.length() > MAXIMUM_CLIENT_ID_LENGTH)
+                {
+                    reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
+                    break decode;
+                }
+
+                progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit, mqttConnectHeader, clientId);
+
+                final int decodedLength = progress - offset - mqttPacketHeaderRO.sizeof();
+                server.decodableRemainingBytes -= decodedLength;
+            }
+
+            if (reasonCode != SUCCESS)
+            {
+                server.onDecodeError(traceId, authorization, reasonCode, mqttConnectHeader.protocolVersion());
+                server.decoder = decodeIgnoreAll;
+            }
+            else
+            {
+                server.decoder = decodeConnectPayload;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeConnectV5(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBuffer buffer,
+        final int offset,
+        final int limit)
+    {
+        final int length = limit - offset;
+
+        int progress = offset;
+
+        if (length > 0)
+        {
+            int reasonCode = SUCCESS;
+
+            final MqttConnectHeaderFW mqttConnectHeader = mqttConnectHeaderRO.tryWrap(buffer, offset, limit);
+            int flags = 0;
+            decode:
+            {
+                if (mqttConnectHeader == null)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+
+                server.decodableRemainingBytes = mqttConnectHeader.remainingLength();
+                flags = mqttConnectHeader.flags();
+
+                reasonCode = decodeConnectType(mqttConnectHeader, flags);
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+
+                reasonCode = decodeConnectProtocol(mqttConnectHeader);
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+
+                if (server.decodeablePacketBytes > maximumPacketSize)
+                {
+                    server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE, mqttConnectHeader.protocolVersion());
+                    server.decoder = decodeIgnoreAll;
+                }
+
+                reasonCode = decodeConnectFlags(flags);
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+
+                if (server.connected)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+
+                progress = mqttConnectHeader.limit();
+
+                final MqttConnectV5FW mqttConnectV5 = mqttConnectV5RO.tryWrap(buffer, progress, limit);
+
+                if (mqttConnectV5 == null)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+
+                final MqttPropertiesFW properties = mqttConnectV5.properties();
+
+                reasonCode = server.decodeConnectProperties(properties);
+
+                if (reasonCode != SUCCESS)
+                {
+                    break decode;
+                }
+                final String16FW clientId = mqttConnectV5.clientId();
+                progress = mqttConnectV5.limit();
+
                 if (clientId == null || clientId.length() > MAXIMUM_CLIENT_ID_LENGTH)
                 {
                     reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
@@ -981,7 +1079,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         return progress;
     }
 
-    private int decodePublish(
+    private int decodePublishV4(
         MqttServer server,
         final long traceId,
         final long authorization,
@@ -999,47 +1097,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length >= server.decodeablePacketBytes)
         {
             final MqttPublishHeader mqttPublishHeader = mqttPublishHeaderRO.reset();
-            OctetsFW payload = null;
-            int publishLimit = 0;
-            switch (server.version)
+            final MqttPublishV4FW publishV4 = mqttPublishV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            if (publishV4 == null)
             {
-            case 4:
-                final MqttPublishV4FW publishV4 = mqttPublishV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (publishV4 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                    break decode;
-                }
-
-                reasonCode = mqttPublishHeader.decodeV4(server, publishV4.topicName(), publishV4.typeAndFlags());
-
-                payload = publishV4.payload();
-                publishLimit = publishV4.limit();
-                break;
-            case 5:
-                final MqttPublishV5FW publishV5 = mqttPublishV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (publishV5 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                    break decode;
-                }
-
-                reasonCode = mqttPublishHeader.decodeV5(server, publishV5.topicName(), publishV5.properties(),
-                    publishV5.typeAndFlags());
-
-                payload = publishV5.payload();
-
-                if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
-                {
-                    reasonCode = PAYLOAD_FORMAT_INVALID;
-                    server.onDecodeError(traceId, authorization, reasonCode);
-                    server.decoder = decodeIgnoreAll;
-                    break decode;
-                }
-
-                publishLimit = publishV5.limit();
-                break;
+                reasonCode = PROTOCOL_ERROR;
+                break decode;
             }
+
+            reasonCode = mqttPublishHeader.decodeV4(server, publishV4.topicName(), publishV4.typeAndFlags());
+
+            final OctetsFW payload = publishV4.payload();
 
             if (reasonCode == SUCCESS)
             {
@@ -1055,7 +1122,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         server.decodePublisherKey = 0;
                         server.decodeablePacketBytes = 0;
                         server.decoder = decodePacketType;
-                        progress = publishLimit;
+                        progress = publishV4.limit();
                         break decode;
                     }
                 }
@@ -1088,7 +1155,106 @@ public final class MqttServerFactory implements MqttStreamFactory
                     server.onDecodePublish(traceId, authorization, reserved, payload);
                     server.decodeablePacketBytes = 0;
                     server.decoder = decodePacketType;
-                    progress = publishLimit;
+                    progress = publishV4.limit();
+                }
+            }
+        }
+
+        if (reasonCode != SUCCESS)
+        {
+            server.onDecodeError(traceId, authorization, reasonCode);
+            server.decoder = decodeIgnoreAll;
+        }
+
+        return progress;
+    }
+
+    private int decodePublishV5(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBuffer buffer,
+        final int offset,
+        final int limit)
+    {
+        final int length = limit - offset;
+
+        int progress = offset;
+        int reasonCode = SUCCESS;
+
+        decode:
+        if (length >= server.decodeablePacketBytes)
+        {
+            final MqttPublishHeader mqttPublishHeader = mqttPublishHeaderRO.reset();
+            final MqttPublishV5FW publishV5 = mqttPublishV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            if (publishV5 == null)
+            {
+                reasonCode = PROTOCOL_ERROR;
+                break decode;
+            }
+
+            reasonCode = mqttPublishHeader.decodeV5(server, publishV5.topicName(), publishV5.properties(),
+                publishV5.typeAndFlags());
+
+            final OctetsFW payload = publishV5.payload();
+
+            if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
+            {
+                reasonCode = PAYLOAD_FORMAT_INVALID;
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+                break decode;
+            }
+
+            if (reasonCode == SUCCESS)
+            {
+                final String topic = mqttPublishHeader.topic;
+                final int topicKey = topicKey(topic);
+                MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
+
+                if (publisher == null)
+                {
+                    publisher = server.resolvePublishStream(traceId, authorization, topic);
+                    if (publisher == null)
+                    {
+                        server.decodePublisherKey = 0;
+                        server.decodeablePacketBytes = 0;
+                        server.decoder = decodePacketType;
+                        progress = publishV5.limit();
+                        break decode;
+                    }
+                }
+
+                server.decodePublisherKey = topicKey;
+
+                final int payloadSize = payload.sizeof();
+
+                if (validators != null && !validContent(mqttPublishHeader.topic, payload))
+                {
+                    reasonCode = PAYLOAD_FORMAT_INVALID;
+                    server.onDecodeError(traceId, authorization, reasonCode);
+                    server.decoder = decodeIgnoreAll;
+                    break decode;
+                }
+
+                boolean canPublish = MqttState.initialOpened(publisher.state);
+
+                int reserved = payloadSize + publisher.initialPad;
+                canPublish &= publisher.initialSeq + reserved <= publisher.initialAck + publisher.initialMax;
+
+                if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
+                {
+                    final int minimum = reserved; // TODO: fragmentation
+                    reserved = publisher.debitor.claim(publisher.debitorIndex, publisher.initialId, minimum, reserved);
+                }
+
+                if (canPublish && (reserved != 0 || payloadSize == 0))
+                {
+                    server.onDecodePublish(traceId, authorization, reserved, payload);
+                    server.decodeablePacketBytes = 0;
+                    server.decoder = decodePacketType;
+                    progress = publishV5.limit();
                 }
             }
         }
@@ -1130,7 +1296,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         return invalid;
     }
 
-    private int decodeSubscribe(
+    private int decodeSubscribeV4(
         MqttServer server,
         final long traceId,
         final long authorization,
@@ -1148,73 +1314,89 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            switch (server.version)
+            final MqttSubscribeV4FW subscribeV4 =
+                mqttSubscribeV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            if (subscribeV4 == null)
             {
-            case 4:
-                final MqttSubscribeV4FW subscribeV4 =
-                    mqttSubscribeV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (subscribeV4 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((subscribeV4.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((subscribeV4.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
 
-                if (reasonCode == 0)
+            if (reasonCode == 0)
+            {
+                if (!MqttState.replyOpened(server.session.state))
                 {
-                    if (!MqttState.replyOpened(server.session.state))
-                    {
-                        //We don't know the server capabilities yet
-                        break decode;
-                    }
-                    server.onDecodeSubscribeV4(traceId, authorization, subscribeV4);
-                    server.decoder = decodePacketType;
-                    progress = subscribeV4.limit();
+                    //We don't know the server capabilities yet
+                    break decode;
                 }
-                else
-                {
-                    server.onDecodeError(traceId, authorization, reasonCode);
-                    server.decoder = decodeIgnoreAll;
-                }
-                break;
-            case 5:
-                final MqttSubscribeV5FW subscribeV5 =
-                    mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-                if (subscribeV5 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((subscribeV5.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-
-                if (reasonCode == 0)
-                {
-                    if (!MqttState.replyOpened(server.session.state))
-                    {
-                        //We don't know the server capabilities yet
-                        break decode;
-                    }
-                    server.onDecodeSubscribeV5(traceId, authorization, subscribeV5);
-                    server.decoder = decodePacketType;
-                    progress = subscribeV5.limit();
-                }
-                else
-                {
-                    server.onDecodeError(traceId, authorization, reasonCode);
-                    server.decoder = decodeIgnoreAll;
-                }
-                break;
+                server.onDecodeSubscribeV4(traceId, authorization, subscribeV4);
+                server.decoder = decodePacketType;
+                progress = subscribeV4.limit();
+            }
+            else
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
             }
         }
 
         return progress;
     }
 
-    private int decodeUnsubscribe(
+    private int decodeSubscribeV5(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBuffer buffer,
+        final int offset,
+        final int limit)
+    {
+        final int length = limit - offset;
+
+        int progress = offset;
+
+        decode:
+        if (length > 0)
+        {
+            int reasonCode = SUCCESS;
+
+            final MqttSubscribeV5FW subscribeV5 =
+                mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
+            if (subscribeV5 == null)
+            {
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((subscribeV5.typeAndFlags() & 0b1111_1111) != SUBSCRIBE_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
+
+            if (reasonCode == 0)
+            {
+                if (!MqttState.replyOpened(server.session.state))
+                {
+                    //We don't know the server capabilities yet
+                    break decode;
+                }
+                server.onDecodeSubscribeV5(traceId, authorization, subscribeV5);
+                server.decoder = decodePacketType;
+                progress = subscribeV5.limit();
+            }
+            else
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeUnsubscribeV4(
         MqttServer server,
         final long traceId,
         final long authorization,
@@ -1230,56 +1412,69 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length > 0)
         {
             int reasonCode = SUCCESS;
-            int packetId = 0;
-            OctetsFW payload = null;
 
-            switch (server.version)
+            final MqttUnsubscribeV4FW unsubscribeV4 = mqttUnsubscribeV4RO.tryWrap(buffer, offset,
+                offset + server.decodeablePacketBytes);
+            if (unsubscribeV4 == null || unsubscribeV4.payload().sizeof() == 0 || unsubscribeV4.packetId() == 0)
             {
-            case 4:
-                final MqttUnsubscribeV4FW unsubscribeV4 = mqttUnsubscribeV4RO.tryWrap(buffer, offset,
-                    offset + server.decodeablePacketBytes);
-                if (unsubscribeV4 == null || unsubscribeV4.payload().sizeof() == 0 || unsubscribeV4.packetId() == 0)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((unsubscribeV4.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-
-                if (reasonCode == 0)
-                {
-                    packetId = unsubscribeV4.packetId();
-                    payload = unsubscribeV4.payload();
-                    progress = unsubscribeV4.limit();
-                }
-                break;
-            case 5:
-                final MqttUnsubscribeV5FW unsubscribeV5 = mqttUnsubscribeV5RO.tryWrap(buffer, offset,
-                    offset + server.decodeablePacketBytes);
-                if (unsubscribeV5 == null || unsubscribeV5.payload().sizeof() == 0 || unsubscribeV5.packetId() == 0)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((unsubscribeV5.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-
-                if (reasonCode == 0)
-                {
-                    packetId = unsubscribeV5.packetId();
-                    payload = unsubscribeV5.payload();
-                    progress = unsubscribeV5.limit();
-                }
-                break;
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((unsubscribeV4.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
             }
 
             if (reasonCode == 0)
             {
-                server.onDecodeUnsubscribe(traceId, authorization, packetId, payload);
+                server.onDecodeUnsubscribe(traceId, authorization, unsubscribeV4.packetId(), unsubscribeV4.payload());
                 server.decoder = decodePacketType;
+                progress = unsubscribeV4.limit();
             }
+            else
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeUnsubscribeV5(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBuffer buffer,
+        final int offset,
+        final int limit)
+    {
+        final int length = server.decodeablePacketBytes;
+
+        int progress = offset;
+
+        if (length > 0)
+        {
+            int reasonCode = SUCCESS;
+
+            final MqttUnsubscribeV5FW unsubscribeV5 = mqttUnsubscribeV5RO.tryWrap(buffer, offset,
+                offset + server.decodeablePacketBytes);
+            if (unsubscribeV5 == null || unsubscribeV5.payload().sizeof() == 0 || unsubscribeV5.packetId() == 0)
+            {
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((unsubscribeV5.typeAndFlags() & 0b1111_1111) != UNSUBSCRIBE_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
+
+            if (reasonCode == 0)
+            {
+                server.onDecodeUnsubscribe(traceId, authorization, unsubscribeV5.packetId(), unsubscribeV5.payload());
+                server.decoder = decodePacketType;
+                progress = unsubscribeV5.limit();
+            }
+
             else
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
@@ -1322,7 +1517,50 @@ public final class MqttServerFactory implements MqttStreamFactory
         return progress;
     }
 
-    private int decodeDisconnect(
+    private int decodeDisconnectV4(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBuffer buffer,
+        final int offset,
+        final int limit)
+    {
+        final int length = limit - offset;
+
+        int progress = offset;
+
+        if (length > 0)
+        {
+            int reasonCode = NORMAL_DISCONNECT;
+
+            final MqttDisconnectV4FW disconnectV4 = mqttDisconnectV4RO.tryWrap(buffer, offset, limit);
+            if (disconnectV4 == null)
+            {
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((disconnectV4.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
+
+            if (reasonCode == 0)
+            {
+                server.onDecodeDisconnectV4(traceId, authorization);
+                server.decoder = decodePacketType;
+                progress = disconnectV4.limit();
+            }
+            else
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeDisconnectV5(
         MqttServer server,
         final long traceId,
         final long authorization,
@@ -1340,55 +1578,31 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = NORMAL_DISCONNECT;
 
-            switch (server.version)
+            if (limit - offset == 2)
             {
-            case 4:
-                final MqttDisconnectV4FW disconnectV4 = mqttDisconnectV4RO.tryWrap(buffer, offset, limit);
-                if (disconnectV4 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((disconnectV4.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-
-                if (reasonCode == 0)
-                {
-                    server.onDecodeDisconnectV4(traceId, authorization);
-                    server.decoder = decodePacketType;
-                    progress = disconnectV4.limit();
-                }
-                break;
-            case 5:
-                if (limit - offset == 2)
-                {
-                    server.onDecodeDisconnectV5(traceId, authorization, null);
-                    progress = limit;
-                    server.decoder = decodePacketType;
-                    break decode;
-                }
-
-                final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
-                if (disconnectV5 == null)
-                {
-                    reasonCode = PROTOCOL_ERROR;
-                }
-                else if ((disconnectV5.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
-                {
-                    reasonCode = MALFORMED_PACKET;
-                }
-
-                if (reasonCode == 0)
-                {
-                    server.onDecodeDisconnectV5(traceId, authorization, disconnectV5);
-                    server.decoder = decodePacketType;
-                    progress = disconnectV5.limit();
-                }
-                break;
+                server.onDecodeDisconnectV5(traceId, authorization, null);
+                progress = limit;
+                server.decoder = decodePacketType;
+                break decode;
             }
 
-            if (reasonCode != 0)
+            final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
+            if (disconnectV5 == null)
+            {
+                reasonCode = PROTOCOL_ERROR;
+            }
+            else if ((disconnectV5.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
+
+            if (reasonCode == 0)
+            {
+                server.onDecodeDisconnectV5(traceId, authorization, disconnectV5);
+                server.decoder = decodePacketType;
+                progress = disconnectV5.limit();
+            }
+            else
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
@@ -1510,6 +1724,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
 
         private int version = MQTT_PROTOCOL_VERSION_5;
+        private int typeOffset = 0;
 
         private MqttServer(
             Function<String, String> credentials,
