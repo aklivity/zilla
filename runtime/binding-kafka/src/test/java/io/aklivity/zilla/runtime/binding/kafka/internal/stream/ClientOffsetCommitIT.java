@@ -61,6 +61,16 @@ public class ClientOffsetCommitIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/update.topic.partition.offsets/client",
+        "${net}/update.topic.partition.offsets/server"})
+    public void shouldUpdateTopicPartitionOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/update.unknown.topic.partition.offset/client",
         "${net}/update.unknown.topic.partition.offset/server"})
     public void shouldRejectUnknownTopicPartitionOffset() throws Exception
