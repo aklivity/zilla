@@ -24,6 +24,7 @@ read zilla:begin.ext ${kafka:beginEx()
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("requests")
+                                  .groupId("zilla-kafka-grpc")
                                   .partition(-1, -2)
                                   .filter()
                                     .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
@@ -82,7 +83,7 @@ write zilla:data.ext ${kafka:dataEx()
                             .merged()
                               .fetch()
                                 .timestamp(kafka:timestamp())
-                                .partition(0, 3, 2)
+                                .partition(0, 3, 3)
                                 .progress(0, 4)
                                 .progress(1, 1)
                                 .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
@@ -94,6 +95,31 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 2)
+                                  .build()
+                              .build()}
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .build()
+                              .build()}
+
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 4)
+                                  .build()
+                              .build()}
 
 accepted
 

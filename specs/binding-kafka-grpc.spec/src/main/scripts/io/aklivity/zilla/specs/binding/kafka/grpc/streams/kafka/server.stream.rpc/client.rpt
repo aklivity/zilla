@@ -22,6 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("requests")
+                                  .groupId("zilla-kafka-grpc")
                                   .partition(-1, -2)
                                   .filter()
                                     .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
@@ -57,7 +58,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                             .merged()
                               .fetch()
                                 .deferred(0)
-                                .partition(-1, -1)
+                                .partition(0, 2, 2)
                                 .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .header("zilla:identity", "test")
                                 .header("zilla:service", "example.EchoService")
@@ -67,6 +68,22 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .build()
                             .build()}
 read zilla:data.null
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 2)
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .build()
+                              .build()}
 
 write notify SENT_ASYNC_REQUEST
 
