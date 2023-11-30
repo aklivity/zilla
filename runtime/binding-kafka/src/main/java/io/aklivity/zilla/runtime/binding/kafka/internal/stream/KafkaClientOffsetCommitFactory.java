@@ -731,12 +731,12 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
                 final KafkaOffsetCommitDataExFW commitDataExFW = kafkaDataEx.offsetCommit();
-                final KafkaOffsetFW partition = commitDataExFW.partition();
+                final KafkaOffsetFW progress = commitDataExFW.progress();
                 final int generationId = commitDataExFW.generationId();
                 final int leaderEpoch = commitDataExFW.leaderEpoch();
 
-                client.onOffsetCommit(traceId, partition.partitionId(), partition.partitionOffset(),
-                    generationId, leaderEpoch, partition.metadata().asString());
+                client.onOffsetCommit(traceId, progress.partitionId(), progress.partitionOffset(),
+                    generationId, leaderEpoch, progress.metadata().asString());
             }
         }
 

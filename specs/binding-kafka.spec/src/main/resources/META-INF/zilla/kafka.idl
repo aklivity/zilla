@@ -279,7 +279,7 @@ scope kafka
 
         struct KafkaMergedConsumerFlushEx
         {
-            KafkaOffset partition;
+            KafkaOffset progress;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -442,7 +442,7 @@ scope kafka
 
         struct KafkaConsumerFlushEx
         {
-            KafkaOffset partition;
+            KafkaOffset progress;
             int32 leaderEpoch = -1;
         }
 
@@ -474,7 +474,7 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
-            KafkaOffset partition;
+            KafkaOffset progress;
             int32 generationId;
             int32 leaderEpoch;
         }

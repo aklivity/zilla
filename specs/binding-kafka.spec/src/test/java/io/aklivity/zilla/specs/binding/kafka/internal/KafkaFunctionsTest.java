@@ -1116,7 +1116,7 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged()
                 .consumer()
-                    .partition(1, 2)
+                    .progress(1, 2)
                     .build()
             .build();
 
@@ -1126,8 +1126,8 @@ public class KafkaFunctionsTest
 
         final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
 
-        assertEquals(mergedFlushEx.consumer().partition().partitionId(), 1);
-        assertEquals(mergedFlushEx.consumer().partition().partitionOffset(), 2);
+        assertEquals(mergedFlushEx.consumer().progress().partitionId(), 1);
+        assertEquals(mergedFlushEx.consumer().progress().partitionOffset(), 2);
     }
 
     @Test
@@ -2333,7 +2333,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.flushEx()
             .typeId(0x01)
             .consumer()
-                .partition(0, 1L, "test")
+                .progress(0, 1L, "test")
                 .leaderEpoch(0)
                 .build()
             .build();
@@ -2343,7 +2343,7 @@ public class KafkaFunctionsTest
         assertEquals(0x01, flushEx.typeId());
 
         final KafkaConsumerFlushExFW consumerFlushEx = flushEx.consumer();
-        KafkaOffsetFW partition = consumerFlushEx.partition();
+        KafkaOffsetFW partition = consumerFlushEx.progress();
         assertEquals(0, partition.partitionId());
         assertEquals(1L, partition.partitionOffset());
         assertEquals("test", partition.metadata().asString());
@@ -4342,7 +4342,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetCommit()
-                .partition(0, 2L, "test-meta")
+                .progress(0, 2L, "test-meta")
                 .generationId(0)
                 .leaderEpoch(0)
                 .build()
@@ -4354,8 +4354,8 @@ public class KafkaFunctionsTest
         assertEquals(KafkaApi.OFFSET_COMMIT.value(), dataEx.kind());
 
         final KafkaOffsetCommitDataExFW offsetCommitDataEx = dataEx.offsetCommit();
-        assertEquals(0, offsetCommitDataEx.partition().partitionId());
-        assertEquals(2L, offsetCommitDataEx.partition().partitionOffset());
+        assertEquals(0, offsetCommitDataEx.progress().partitionId());
+        assertEquals(2L, offsetCommitDataEx.progress().partitionOffset());
         assertEquals(0, offsetCommitDataEx.leaderEpoch());
         assertEquals(0, offsetCommitDataEx.generationId());
     }
@@ -4621,7 +4621,7 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged()
             .consumer()
-            .partition(1, 2L)
+            .progress(1, 2L)
             .build()
             .build();
 
@@ -4630,7 +4630,7 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .merged(f -> f
-                .consumer(m -> m.partition(p -> p.partitionId(1).partitionOffset(2L))))
+                .consumer(m -> m.progress(p -> p.partitionId(1).partitionOffset(2L))))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -4643,7 +4643,7 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged()
             .consumer()
-            .partition(1, 2L, "test-meta")
+            .progress(1, 2L, "test-meta")
             .build()
             .build();
 
@@ -4652,7 +4652,7 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .merged(f -> f
-                .consumer(m -> m.partition(p -> p
+                .consumer(m -> m.progress(p -> p
                     .partitionId(1)
                     .partitionOffset(2L)
                     .metadata("test-meta"))))
@@ -5081,7 +5081,7 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
             .typeId(0x01)
             .consumer()
-                .partition(0, 1L)
+                .progress(0, 1L)
                 .leaderEpoch(0)
                 .build()
             .build();
@@ -5091,7 +5091,7 @@ public class KafkaFunctionsTest
         new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .consumer(f -> f
-                .partition(p -> p.partitionId(0).partitionOffset(1L))
+                .progress(p -> p.partitionId(0).partitionOffset(1L))
                 .leaderEpoch(0))
             .build();
 
