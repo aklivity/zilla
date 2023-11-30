@@ -38,6 +38,27 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .fetch()
+                                    .timestamp(kafka:timestamp())
+                                    .filters(1)
+                                    .partition(0, 1, 2)
+                                    .progress(0, 2)
+                                    .progress(1, 1)
+                                    .key("sensor/one")
+                                    .header("zilla:filter", "sensor")
+                                    .header("zilla:filter", "one")
+                                    .header("zilla:local", "client")
+                                    .header("zilla:format", "TEXT")
+                                    .header("zilla:qos", "AT_MOST_ONCE")
+                                    .build()
+                                .build()
+                            .build()}
+write "message1"
+write flush
+
 
 accepted
 
@@ -60,6 +81,44 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .fetch()
+                                    .timestamp(kafka:timestamp())
+                                    .filters(1)
+                                    .partition(0, 2, 2)
+                                    .progress(0, 3)
+                                    .progress(1, 1)
+                                    .key("sensor/one")
+                                    .header("zilla:filter", "sensor")
+                                    .header("zilla:filter", "one")
+                                    .header("zilla:local", "client")
+                                    .header("zilla:format", "TEXT")
+                                    .header("zilla:qos", "AT_LEAST_ONCE")
+                                    .build()
+                                .build()
+                            .build()}
+write "message2"
+write flush
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .partition(0, 2)
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .partition(0, 2)
+                                  .correlationId(2)
+                                  .build()
+                              .build()}
 
 
 accepted
@@ -91,8 +150,8 @@ write zilla:data.ext ${kafka:dataEx()
                                 .fetch()
                                     .timestamp(kafka:timestamp())
                                     .filters(1)
-                                    .partition(0, 1, 2)
-                                    .progress(0, 2)
+                                    .partition(0, 3, 3)
+                                    .progress(0, 4)
                                     .progress(1, 1)
                                     .key("sensor/one")
                                     .header("zilla:filter", "sensor")
@@ -103,7 +162,7 @@ write zilla:data.ext ${kafka:dataEx()
                                     .build()
                                 .build()
                             .build()}
-write "message"
+write "message3"
 write flush
 
 read advised zilla:flush ${kafka:matchFlushEx()
@@ -112,9 +171,9 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                 .consumer()
                                   .partition(0, 2,
                                         ${mqtt:metadata()
-                                            .metadata(1)
+                                            .metadata(2)
                                             .build())
-                                  .correlationId(1)
+                                  .correlationId(2)
                                   .build()
                               .build()}
 
@@ -123,7 +182,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .partition(0, 2)
-                                  .correlationId(1)
+                                  .correlationId(2)
                                   .build()
                               .build()}
 

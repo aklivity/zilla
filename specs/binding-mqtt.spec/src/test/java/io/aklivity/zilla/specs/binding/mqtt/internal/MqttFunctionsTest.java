@@ -1228,7 +1228,7 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.session()
             .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
-            .subscription("sensor/two", 1, 0)
+            .subscriptionWithReasonCode("sensor/two", 1, 0)
             .subscription("sensor/three", 1, "EXACTLY_ONCE", "SEND_RETAINED")
             .build();
 

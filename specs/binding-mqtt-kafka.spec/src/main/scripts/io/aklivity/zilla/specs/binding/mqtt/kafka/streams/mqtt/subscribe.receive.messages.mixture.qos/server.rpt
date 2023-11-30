@@ -30,6 +30,18 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .qos("AT_MOST_ONCE")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+write "message1"
+write flush
+
 
 accepted
 
@@ -43,6 +55,26 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .build()}
 
 connected
+
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .packetId(1)
+                                 .qos("AT_LEAST_ONCE")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+write "message2"
+write flush
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("AT_LEAST_ONCE")
+                                     .build()
+                                 .build()}
 
 
 accepted
@@ -62,19 +94,20 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .packetId(1)
+                                 .packetId(2)
                                  .qos("EXACTLY_ONCE")
                                  .subscriptionId(1)
                                  .format("TEXT")
                                  .build()
                              .build()}
-write "message"
+write "message3"
+write flush
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
@@ -83,7 +116,7 @@ write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
@@ -92,6 +125,6 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .build()
                                  .build()}

@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/mqtt0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-write zilla:begin.ext ${mqtt:beginEx()
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
@@ -29,11 +31,9 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-connect "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
@@ -44,19 +44,19 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .subscribe()
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
                                  .topic("sensor/one")
                                  .packetId(1)
-                                 .qos("AT_LEAST_ONCE")
+                                 .qos("EXACTLY_ONCE")
                                  .subscriptionId(1)
                                  .format("TEXT")
                                  .build()
-                            .build()}
-read "message"
+                             .build()}
+write "message"
 
-write advise zilla:flush ${mqtt:flushEx()
+read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("AT_LEAST_ONCE")

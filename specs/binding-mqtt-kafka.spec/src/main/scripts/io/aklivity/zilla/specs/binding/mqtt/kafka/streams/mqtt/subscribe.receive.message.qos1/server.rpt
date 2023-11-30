@@ -23,6 +23,21 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
+                                 .qos("AT_MOST_ONCE")
+                                 .filter("sensor/one", 1, "AT_LEAST_ONCE")
+                                 .build()
+                             .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("AT_LEAST_ONCE")
                                  .filter("sensor/one", 1, "AT_LEAST_ONCE")
                                  .build()
                              .build()}
@@ -40,6 +55,10 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 write "message"
-write flush
 
-read option zilla:ack 7
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("AT_LEAST_ONCE")
+                                     .build()
+                                 .build()}

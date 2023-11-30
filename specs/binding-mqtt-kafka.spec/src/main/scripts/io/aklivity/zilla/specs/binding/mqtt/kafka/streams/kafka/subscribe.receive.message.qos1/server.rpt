@@ -24,6 +24,28 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .build()
+                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
+                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
                                 .groupId("client")
                                 .filter()
                                     .headers("zilla:filter")
@@ -31,7 +53,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                         .sequence("one")
                                         .build()
                                     .build()
-                                    .header("zilla:qos", "AT_LEAST_ONCE")
+                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
                                 .evaluation("EAGER")
                                 .build()
                             .build()}

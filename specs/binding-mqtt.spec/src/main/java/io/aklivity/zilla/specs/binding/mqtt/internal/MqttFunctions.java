@@ -800,7 +800,7 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttSessionStateBuilder subscription(
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
             String pattern,
             int id,
             int reasonCode)
