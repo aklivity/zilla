@@ -31,6 +31,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -221,6 +222,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private final KafkaGrpcConditionResult condition;
         private final KafkaErrorProducer errorProducer;
         private final Map<OctetsFW, GrpcClient> grpcClients;
+        private final Object2ObjectHashMap<OctetsFW, Kafka> messageOffsets;
         private final KafkaGrpcFetchHeaderHelper helper;
         private final long originId;
         private final long routedId;
@@ -440,7 +442,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 final KafkaMergedFetchDataExFW mergedFetchDataEx = kafkaDataEx.merged().fetch();
                 final KafkaOffsetFW partition = mergedFetchDataEx.partition();
 
-                doKafkaCommitOffset(traceId, authorization, partition);
+                //doKafkaCommitOffset(traceId, authorization, partition);
             }
 
             doKafkaWindow(traceId, authorization);
@@ -1705,34 +1707,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         }
     }
 
-    private void doBegin(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Flyweight extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
 
     private void doData(
         MessageConsumer receiver,
@@ -2009,7 +1983,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
                     .topic(condition.topic())
-                    .groupId("zilla-kafka-grpc")
+                    //.groupId("zilla-kafka-grpc")
                     .partitions(condition::partitions)
                     .filters(condition::filters))
                 .build();
@@ -2091,5 +2065,10 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private final class KafkaPartitionOffset
+    {
+        public final int partitionId;
     }
 }
