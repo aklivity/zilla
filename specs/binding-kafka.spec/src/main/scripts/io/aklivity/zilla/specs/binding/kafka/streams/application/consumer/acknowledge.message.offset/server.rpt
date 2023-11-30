@@ -56,7 +56,7 @@ write flush
 read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
-                                 .partition(0, 2, "test-meta")
+                                 .progress(0, 2, "test-meta")
                                  .leaderEpoch(0)
                                  .build()
                              .build()}
@@ -64,6 +64,6 @@ read advised zilla:flush ${kafka:flushEx()
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .consumer()
-                                 .partition(0, 2, "test-meta")
+                                 .progress(0, 2, "test-meta")
                                  .build()
                              .build()}
