@@ -1588,7 +1588,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (capabilities == FETCH_ONLY)
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, affinity, httpBeginExToKafka());
+                        traceId, authorization, affinity, beginExToKafka());
             }
             else
             {
@@ -1599,7 +1599,7 @@ public final class KafkaMergedFactory implements BindingHandler
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
         }
 
-        private Flyweight.Builder.Visitor httpBeginExToKafka()
+        private Flyweight.Builder.Visitor beginExToKafka()
         {
             return (buffer, offset, maxLimit) ->
                 kafkaBeginExRW.wrap(buffer, offset, maxLimit)
