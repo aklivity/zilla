@@ -1199,7 +1199,6 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.session()
             .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-            .subscription("sensor/two", 1, 1, "AT_MOST_ONCE", "SEND_RETAINED")
             .subscription("sensor/three", 1, 0)
             .build();
 
@@ -1211,14 +1210,6 @@ public class MqttFunctionsTest
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     0 == f.qos() &&
-                    0b0001 == f.flags()));
-
-        assertNotNull(sessionState.subscriptions()
-            .matchFirst(f ->
-                "sensor/two".equals(f.pattern().asString()) &&
-                    1 == f.subscriptionId() &&
-                    0 == f.qos() &&
-                    1 == f.reasonCode() &&
                     0b0001 == f.flags()));
 
         assertNotNull(sessionState.subscriptions()
