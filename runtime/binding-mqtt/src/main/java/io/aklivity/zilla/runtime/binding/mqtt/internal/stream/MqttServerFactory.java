@@ -853,26 +853,26 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectV4FW mqttConnectV4 = mqttConnectV4RO.tryWrap(buffer, progress, limit);
+            final MqttConnectV4FW mqttConnect = mqttConnectV4RO.tryWrap(buffer, progress, limit);
             int flags = 0;
             decode:
             {
-                if (mqttConnectV4 == null)
+                if (mqttConnect == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
-                server.decodableRemainingBytes = mqttConnectV4.remainingLength();
-                flags = mqttConnectV4.flags();
+                server.decodableRemainingBytes = mqttConnect.remainingLength();
+                flags = mqttConnect.flags();
 
-                reasonCode = decodeConnectType(mqttConnectV4.typeAndFlags(), flags);
+                reasonCode = decodeConnectType(mqttConnect.typeAndFlags(), flags);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
                 }
 
-                reasonCode = decodeConnectProtocolV4(mqttConnectV4.protocolName(), mqttConnectV4.protocolVersion());
+                reasonCode = decodeConnectProtocolV4(mqttConnect.protocolName(), mqttConnect.protocolVersion());
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
@@ -896,7 +896,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                final String16FW clientId = mqttConnectV4.clientId();
+                final String16FW clientId = mqttConnect.clientId();
 
                 if (clientId.length() == 0 && !isCleanStart(flags))
                 {
@@ -904,7 +904,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                progress = mqttConnectV4.limit();
+                progress = mqttConnect.limit();
                 if (clientId.length() > MAXIMUM_CLIENT_ID_LENGTH)
                 {
                     reasonCode = CLIENT_IDENTIFIER_NOT_VALID;
@@ -912,7 +912,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit,
-                    mqttConnectV4.keepAlive(), mqttConnectV4.flags(), mqttConnectV4.protocolVersion(), clientId);
+                    mqttConnect.keepAlive(), mqttConnect.flags(), mqttConnect.protocolVersion(), clientId);
 
                 final int decodedLength = progress - offset - mqttPacketHeaderRO.sizeof();
                 server.decodableRemainingBytes -= decodedLength;
@@ -949,26 +949,26 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectV5FW mqttConnectV5 = mqttConnectV5RO.tryWrap(buffer, progress, limit);
+            final MqttConnectV5FW mqttConnect = mqttConnectV5RO.tryWrap(buffer, progress, limit);
             int flags = 0;
             decode:
             {
-                if (mqttConnectV5 == null)
+                if (mqttConnect == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
 
-                server.decodableRemainingBytes = mqttConnectV5.remainingLength();
-                flags = mqttConnectV5.flags();
+                server.decodableRemainingBytes = mqttConnect.remainingLength();
+                flags = mqttConnect.flags();
 
-                reasonCode = decodeConnectType(mqttConnectV5.typeAndFlags(), flags);
+                reasonCode = decodeConnectType(mqttConnect.typeAndFlags(), flags);
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
                 }
 
-                reasonCode = decodeConnectProtocolV5(mqttConnectV5.protocolName(), mqttConnectV5.protocolVersion());
+                reasonCode = decodeConnectProtocolV5(mqttConnect.protocolName(), mqttConnect.protocolVersion());
                 if (reasonCode != SUCCESS)
                 {
                     break decode;
@@ -992,7 +992,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                final MqttPropertiesFW properties = mqttConnectV5.properties();
+                final MqttPropertiesFW properties = mqttConnect.properties();
 
                 reasonCode = server.decodeConnectProperties(properties);
 
@@ -1000,8 +1000,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     break decode;
                 }
-                final String16FW clientId = mqttConnectV5.clientId();
-                progress = mqttConnectV5.limit();
+                final String16FW clientId = mqttConnect.clientId();
+                progress = mqttConnect.limit();
 
                 if (clientId == null || clientId.length() > MAXIMUM_CLIENT_ID_LENGTH)
                 {
@@ -1010,7 +1010,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 progress = server.onDecodeConnect(traceId, authorization, buffer, progress, limit,
-                    mqttConnectV5.keepAlive(), mqttConnectV5.flags(), mqttConnectV5.protocolVersion(), clientId);
+                    mqttConnect.keepAlive(), mqttConnect.flags(), mqttConnect.protocolVersion(), clientId);
 
                 final int decodedLength = progress - offset - mqttPacketHeaderRO.sizeof();
                 server.decodableRemainingBytes -= decodedLength;
