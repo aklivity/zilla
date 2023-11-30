@@ -67,6 +67,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                              .build()}
 read "message2"
 
+write await SENT_QOS2_ACK
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
@@ -110,6 +111,7 @@ write advise zilla:flush ${mqtt:flushEx()
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
+write notify SENT_QOS2_ACK
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))

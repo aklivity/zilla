@@ -102,6 +102,7 @@ write zilla:data.ext ${kafka:dataEx()
                             .build()}
 write "message2"
 write flush
+write notify SENT_QOS1_MESSAGE
 
 read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
@@ -116,7 +117,6 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .partition(0, 2)
-                                  .correlationId(2)
                                   .build()
                               .build()}
 
@@ -143,7 +143,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-
+write await SENT_QOS1_MESSAGE
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -169,7 +169,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2,
+                                  .partition(0, 3,
                                         ${mqtt:metadata()
                                             .metadata(2)
                                             .build())
