@@ -435,7 +435,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 }
             }
 
-            if (kafkaDataEx != null)
+            if (kafkaDataEx != null && payload == null)
             {
                 final KafkaMergedFetchDataExFW mergedFetchDataEx = kafkaDataEx.merged().fetch();
                 final KafkaOffsetFW partition = mergedFetchDataEx.partition();
@@ -597,9 +597,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.consumer(mc -> mc
-                    .partition(p -> p
+                    .progress(p -> p
                         .partitionId(partition.partitionId())
-                        .partitionOffset(partition.partitionOffset()))))
+                        .partitionOffset(partition.partitionOffset() + 1L))))
                 .build();
 
             doKafkaFlush(traceId, authorization, 0, 0, commitFlushEx);
