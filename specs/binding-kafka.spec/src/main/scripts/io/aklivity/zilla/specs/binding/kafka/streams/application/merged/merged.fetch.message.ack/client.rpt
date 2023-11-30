@@ -49,6 +49,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .partition(0, 2, "test-meta")
+                                  .correlationId(1)
                                   .build()
                               .build()}
 
@@ -56,6 +57,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2, "test-meta")
+                                  .partition(0, 2)
+                                  .correlationId(1)
                                   .build()
                               .build()}

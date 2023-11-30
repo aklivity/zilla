@@ -280,6 +280,7 @@ scope kafka
         struct KafkaMergedConsumerFlushEx
         {
             KafkaOffset partition;
+            int64 correlationId = -1;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -444,6 +445,7 @@ scope kafka
         {
             KafkaOffset partition;
             int32 leaderEpoch = -1;
+            int64 correlationId = -1;
         }
 
         struct KafkaOffsetFetchTopic

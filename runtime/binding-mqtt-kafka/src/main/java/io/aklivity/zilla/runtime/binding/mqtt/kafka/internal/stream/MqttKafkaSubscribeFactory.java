@@ -2563,8 +2563,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String16FW topic,
         Array32FW<MqttTopicFilterFW> filters,
         int qos,
-        KafkaOffsetType offsetType) // TODO decide if live/historical based on qos level?
+        KafkaOffsetType offsetType)
     {
+        final KafkaOffsetType offset = qos > 0 ? KafkaOffsetType.HISTORICAL : offsetType;
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -2577,8 +2579,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         m.groupId(clientId);
                     }
                     m.partitionsItem(p ->
-                        p.partitionId(offsetType.value())
-                            .partitionOffset(offsetType.value()));
+                        p.partitionId(offset.value())
+                            .partitionOffset(offset.value()));
                     filters.forEach(filter ->
                         m.filtersItem(f ->
                         {

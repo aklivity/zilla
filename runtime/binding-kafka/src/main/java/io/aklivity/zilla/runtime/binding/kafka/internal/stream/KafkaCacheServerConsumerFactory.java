@@ -1296,8 +1296,9 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
             final KafkaOffsetFW partition = consumerFlushEx.partition();
             final int leaderEpoch = consumerFlushEx.leaderEpoch();
+            final long correlationId = consumerFlushEx.correlationId();
 
-            offsetCommit.onOffsetCommitRequest(traceId, authorization, partition, leaderEpoch);
+            offsetCommit.onOffsetCommitRequest(traceId, authorization, partition, leaderEpoch, correlationId);
         }
 
         private void onConsumerInitialAbort(
@@ -1723,7 +1724,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             long authorization,
             KafkaOffsetFW partition,
-            int leaderEpoch)
+            int leaderEpoch,
+            long correlationId)
         {
             doOffsetCommitInitialBegin(traceId, 0);
 
@@ -1732,7 +1734,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 partition.partitionOffset(),
                 delegate.fanout.generationId,
                 leaderEpoch,
-                partition.metadata().asString()));
+                partition.metadata().asString(),
+                correlationId));
 
             doOffsetCommit(traceId, authorization);
         }
@@ -1750,8 +1753,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                             .partition(p -> p
                                 .partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
-                                .metadata(commit.metadata)
-                            ))
+                            )
+                            .correlationId(commit.correlationId))
                         .build()
                         .sizeof()));
             }

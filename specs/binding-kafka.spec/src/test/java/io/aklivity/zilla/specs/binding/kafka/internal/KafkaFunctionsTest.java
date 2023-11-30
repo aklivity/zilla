@@ -2335,6 +2335,7 @@ public class KafkaFunctionsTest
             .consumer()
                 .partition(0, 1L, "test")
                 .leaderEpoch(0)
+                .correlationId(1)
                 .build()
             .build();
 
@@ -2348,6 +2349,7 @@ public class KafkaFunctionsTest
         assertEquals(1L, partition.partitionOffset());
         assertEquals("test", partition.metadata().asString());
         assertEquals(0, consumerFlushEx.leaderEpoch());
+        assertEquals(1, consumerFlushEx.correlationId());
     }
 
     @Test
