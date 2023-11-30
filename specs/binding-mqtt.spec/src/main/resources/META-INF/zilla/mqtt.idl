@@ -164,6 +164,7 @@ scope mqtt
         struct MqttSubscribeBeginEx
         {
             string16 clientId;
+            uint8 qos = 0;
             MqttTopicFilter[] filters;
         }
 

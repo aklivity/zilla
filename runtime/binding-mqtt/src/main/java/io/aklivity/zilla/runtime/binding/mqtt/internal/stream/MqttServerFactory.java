@@ -100,7 +100,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
-import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
@@ -1592,8 +1591,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final IntArrayList unreleasedPacketIds;
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos1PacketIds;
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos2PacketIds;
-        private final IntArrayQueue unAckedDeliveredPacketIds;
-        private final Int2IntHashMap deferredAckedPacketIdsWithQos;
 
 
         private MqttServer(
@@ -1624,8 +1621,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unreleasedPacketIds = new IntArrayList();
             this.unAckedReceivedQos1PacketIds = new LinkedHashMap<>();
             this.unAckedReceivedQos2PacketIds = new LinkedHashMap<>();
-            this.deferredAckedPacketIdsWithQos = new Int2IntHashMap(-1);
-            this.unAckedDeliveredPacketIds = new IntArrayQueue();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.guard = resolveGuard(options, resolveId);
@@ -2304,18 +2299,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = puback.packetId();
 
-            if (unAckedDeliveredPacketIds.peekInt() == packetId)
-            {
-                unAckedDeliveredPacketIds.pollInt();
-                MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
-                stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-                stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal());
-                acknowledgeDeliveredPackets(traceId);
-            }
-            else
-            {
-                deferredAckedPacketIdsWithQos.put(packetId, MqttQoS.AT_LEAST_ONCE.ordinal());
-            }
+            MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
+            stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal());
 
             progress = puback.limit();
             return progress;
@@ -2330,45 +2316,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = pubrec.packetId();
 
-            if (unAckedDeliveredPacketIds.peekInt() == packetId)
-            {
-                unAckedDeliveredPacketIds.pollInt();
-                qos2Subscribes.get(packetId)
-                    .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
-                acknowledgeDeliveredPackets(traceId);
-            }
-            else
-            {
-                deferredAckedPacketIdsWithQos.put(packetId, MqttQoS.EXACTLY_ONCE.ordinal());
-            }
+            qos2Subscribes.get(packetId)
+                .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
 
             progress = pubrec.limit();
             return progress;
-        }
-
-        private void acknowledgeDeliveredPackets(
-            long traceId)
-        {
-            while (!unAckedDeliveredPacketIds.isEmpty() &&
-                deferredAckedPacketIdsWithQos.containsKey(unAckedDeliveredPacketIds.peek()))
-            {
-                final int packetId = unAckedDeliveredPacketIds.pollInt();
-                final int qos = deferredAckedPacketIdsWithQos.remove(packetId);
-
-                if (qos == 1)
-                {
-                    MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
-                    stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-                    stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal());
-                }
-                else
-                {
-                    MqttSubscribeStream stream = qos2Subscribes.get(packetId);
-                    stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-                    qos2Subscribes.get(packetId)
-                        .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
-                }
-            }
         }
 
         private int onDecodePubrel(
@@ -2606,13 +2558,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 value.stream()
                     .collect(Collectors.groupingBy(Subscription::qos))
-                    .forEach((qos, subscriptionList) ->
+                    .forEach((maxQos, subscriptionList) ->
                     {
-                        MqttSubscribeStream stream = routeSubscribes.computeIfAbsent(qos,
-                            s -> new MqttSubscribeStream(routedId, key, implicitSubscribe, qos));
-                        stream.packetId = packetId;
-                        subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
-                        stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
+                        for (int level = 0; level <= maxQos; level++)
+                        {
+                            int qos = level;
+                            MqttSubscribeStream stream = routeSubscribes.computeIfAbsent(qos,
+                                s -> new MqttSubscribeStream(routedId, key, implicitSubscribe, qos));
+                            stream.packetId = packetId;
+                            subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
+                            stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
+                        }
                     });
             });
         }
@@ -3112,7 +3068,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .build();
 
                     doNetworkData(traceId, authorization, 0L, publish);
-                    unAckedDeliveredPacketIds.add(packetId);
                 }
             }
             else
@@ -4661,14 +4616,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final List<Subscription> subscriptions;
             private boolean acknowledged;
             private int packetId;
-            private final int maxQos;
+            private final int qos;
             private final boolean adminSubscribe;
 
             MqttSubscribeStream(
                 long originId,
                 long routedId,
                 boolean adminSubscribe,
-                int maxQos)
+                int qos)
             {
                 this.originId = originId;
                 this.routedId = routedId;
@@ -4676,7 +4631,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.subscriptions = new ArrayList<>();
                 this.adminSubscribe = adminSubscribe;
-                this.maxQos = maxQos;
+                this.qos = qos;
             }
 
             private Optional<Subscription> getSubscriptionByFilter(
@@ -4717,6 +4672,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .subscribe(subscribeBuilder ->
                     {
                         subscribeBuilder.clientId(clientId);
+                        subscribeBuilder.qos(qos);
                         subscriptions.forEach(subscription ->
                             subscribeBuilder.filtersItem(filterBuilder ->
                             {
@@ -4935,7 +4891,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 else
                 {
                     final MqttDataExFW subscribeDataEx = extension.get(mqttSubscribeDataExRO::tryWrap);
-                    final int qos = Math.min(maxQos, subscribeDataEx.subscribe().qos());
 
                     if (payload != null && !subscriptions.isEmpty() && payload.sizeof() <= maximumPacketSize)
                     {

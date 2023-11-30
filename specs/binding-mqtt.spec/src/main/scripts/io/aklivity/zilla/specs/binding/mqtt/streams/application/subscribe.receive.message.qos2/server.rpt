@@ -67,6 +67,35 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
+                                 .qos("AT_MOST_ONCE")
+                                 .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
+                                 .build()
+                             .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("AT_LEAST_ONCE")
+                                 .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
+                                 .build()
+                             .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("EXACTLY_ONCE")
                                  .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}

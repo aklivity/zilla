@@ -68,6 +68,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
+                                 .qos("AT_MOST_ONCE")
                                  .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
@@ -85,6 +86,23 @@ read zilla:data.ext ${mqtt:matchDataEx()
                              .build()}
 read "message1"
 
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("AT_LEAST_ONCE")
+                                 .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
+                                 .build()
+                             .build()}
+
+connected
+
 read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
@@ -97,6 +115,30 @@ read zilla:data.ext ${mqtt:matchDataEx()
                              .build()}
 read "message2"
 
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .qos("AT_LEAST_ONCE")
+                                     .build()
+                                 .build()}
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("EXACTLY_ONCE")
+                                 .filter("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
+                                 .build()
+                             .build()}
+
+connected
+
 read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
@@ -108,13 +150,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                  .build()
                              .build()}
 read "message3"
-
-write advise zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .subscribe()
-                                     .qos("AT_LEAST_ONCE")
-                                     .build()
-                                 .build()}
 
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))

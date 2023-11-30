@@ -128,6 +128,7 @@ public class MqttFunctionsTest
             .typeId(0)
                 .subscribe()
                 .clientId("client")
+                .qos("AT_LEAST_ONCE")
                 .filter("sensor/one", 0)
                 .build()
             .build();
@@ -137,6 +138,7 @@ public class MqttFunctionsTest
 
         assertEquals(1, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.subscribe().clientId().asString());
+        assertEquals(1, mqttBeginEx.subscribe().qos());
         assertNotNull(mqttBeginEx.subscribe().filters()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&

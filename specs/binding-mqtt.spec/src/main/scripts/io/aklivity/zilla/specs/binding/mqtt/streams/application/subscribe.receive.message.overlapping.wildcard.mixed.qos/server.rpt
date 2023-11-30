@@ -85,12 +85,43 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
-                                .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
-                                .build()
+                                 .clientId("client")
+                                 .qos("AT_MOST_ONCE")
+                                 .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                 .build()
                              .build()}
 
 connected
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/+/1", 2, "EXACTLY_ONCE", "SEND_RETAINED")
+                                     .build()
+                                 .build()}
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .clientId("client")
+                                 .qos("AT_LEAST_ONCE")
+                                 .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                 .build()
+                             .build()}
+
+connected
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .filter("sensor/+/#", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/+/1", 2, "EXACTLY_ONCE", "SEND_RETAINED")
+                                     .build()
+                                 .build()}
 
 write await SENT_SESSION_STATE
 write zilla:data.ext ${mqtt:dataEx()
@@ -121,7 +152,8 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                     .filter("sensor/+/1", 2, "EXACTLY_ONCE", "SEND_RETAINED")
+                                .qos("EXACTLY_ONCE")
+                                .filter("sensor/+/1", 2, "EXACTLY_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 
@@ -166,3 +198,4 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .packetId(1)
                                      .build()
                                  .build()}
+

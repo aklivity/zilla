@@ -289,6 +289,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExBuilder qos(
+                String qosName)
+            {
+                subscribeBeginExRW.qos(MqttQoS.valueOf(qosName).ordinal());
+                return this;
+            }
+
             public MqttSubscribeBeginExBuilder filter(
                 String pattern)
             {
@@ -1283,6 +1290,7 @@ public final class MqttFunctions
         public final class MqttSubscribeBeginExMatcherBuilder
         {
             private String16FW clientId;
+            private Integer qos;
             private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filters;
 
             private MqttSubscribeBeginExMatcherBuilder()
@@ -1292,6 +1300,13 @@ public final class MqttFunctions
                 String clientId)
             {
                 this.clientId = new String16FW(clientId);
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder qos(
+                String qosName)
+            {
+                this.qos = MqttQoS.valueOf(qosName).ordinal();
                 return this;
             }
 
@@ -1357,6 +1372,7 @@ public final class MqttFunctions
             {
                 final MqttSubscribeBeginExFW subscribeBeginEx = beginEx.subscribe();
                 return matchClientId(subscribeBeginEx) &&
+                    matchQos(subscribeBeginEx) &&
                     matchFilters(subscribeBeginEx);
             }
 
@@ -1364,6 +1380,12 @@ public final class MqttFunctions
                 final MqttSubscribeBeginExFW subscribeBeginEx)
             {
                 return clientId == null || clientId.equals(subscribeBeginEx.clientId());
+            }
+
+            private boolean matchQos(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return qos == null || qos.equals(subscribeBeginEx.qos());
             }
 
             private boolean matchFilters(
