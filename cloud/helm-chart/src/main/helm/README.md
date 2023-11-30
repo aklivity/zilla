@@ -1,8 +1,8 @@
 # Zilla packaged by Aklivity
 
-Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless
-and reliable way of interfacing edge clients (mobile apps, browsers, partner systems, etc.) to Apache Kafka-based
-microservices and data.
+Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices via declaratively defined OpenAPIs and AsyncAPIs.
+
+With no coding requirements or external dependencies, Zilla is the most advanced yet approachable Kafka integration solution. It natively supports the Kafka wire protocol and uses novel protocol mediation techniques to establish stateless API entry points into Kafka.
 
 [Zilla by Aklivity](https://www.aklivity.io/)
 
