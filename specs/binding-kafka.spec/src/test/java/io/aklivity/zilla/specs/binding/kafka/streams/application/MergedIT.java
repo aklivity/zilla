@@ -742,7 +742,7 @@ public class MergedIT
     @Specification({
         "${app}/unmerged.group.fetch.message.ack/client",
         "${app}/unmerged.group.fetch.message.ack/server"})
-    public void shouldProduceUnmergedMessageAck() throws Exception
+    public void shouldAckUnmergedFetchMessage() throws Exception
     {
         k3po.finish();
     }

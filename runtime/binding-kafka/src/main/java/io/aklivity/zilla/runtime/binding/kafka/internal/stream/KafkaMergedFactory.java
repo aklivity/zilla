@@ -1775,7 +1775,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.consumer(c -> c.partition(partition)))
+                .merged(mc -> mc.consumer(c -> c.progress(partition)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2100,7 +2100,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (!offsetsByPartitionId.isEmpty())
             {
                 KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get(partitionId);
-                partitionOffset = kafkaPartitionOffset.partitionOffset + 1;
+                partitionOffset = kafkaPartitionOffset.partitionOffset;
             }
             else
             {
@@ -2807,15 +2807,15 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
-                final KafkaOffsetFW offsetAck = consumer.partition();
+                final KafkaOffsetFW offsetAck = consumer.progress();
                 final KafkaPartitionOffset partitionOffset = merged.offsetsByPartitionId.get(offsetAck.partitionId());
 
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
                     .consumer(c -> c
-                        .partition(p -> p
+                        .progress(p -> p
                             .partitionId(offsetAck.partitionId())
-                            .partitionOffset(offsetAck.partitionOffset() + 1)
+                            .partitionOffset(offsetAck.partitionOffset())
                             .metadata(offsetAck.metadata()))
                         .leaderEpoch(partitionOffset.leaderEpoch))
                     .build();
@@ -2934,9 +2934,9 @@ public final class KafkaMergedFactory implements BindingHandler
                 kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
-            final KafkaOffsetFW partition = consumerFlushEx.partition();
+            final KafkaOffsetFW progress = consumerFlushEx.progress();
 
-            merged.doMergedConsumerReplyFlush(traceId, partition);
+            merged.doMergedConsumerReplyFlush(traceId, progress);
         }
 
         private void onConsumerReplyData(

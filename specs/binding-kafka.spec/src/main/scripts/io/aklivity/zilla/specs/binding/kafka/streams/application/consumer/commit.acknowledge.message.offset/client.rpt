@@ -138,7 +138,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2, "test-meta")
+                                 .progress(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()

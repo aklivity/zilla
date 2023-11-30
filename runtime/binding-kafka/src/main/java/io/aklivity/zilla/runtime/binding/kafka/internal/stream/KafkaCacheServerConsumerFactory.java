@@ -1294,10 +1294,10 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
-            final KafkaOffsetFW partition = consumerFlushEx.partition();
+            final KafkaOffsetFW progress = consumerFlushEx.progress();
             final int leaderEpoch = consumerFlushEx.leaderEpoch();
 
-            offsetCommit.onOffsetCommitRequest(traceId, authorization, partition, leaderEpoch);
+            offsetCommit.onOffsetCommitRequest(traceId, authorization, progress, leaderEpoch);
         }
 
         private void onConsumerInitialAbort(
@@ -1747,7 +1747,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .consumer(c -> c
-                            .partition(p -> p
+                            .progress(p -> p
                                 .partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
                                 .metadata(commit.metadata)
@@ -1772,7 +1772,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .offsetCommit(oc -> oc
-                            .partition(p -> p.partitionId(commit.partitionId)
+                            .progress(p -> p.partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
                                 .metadata(commit.metadata))
                             .generationId(delegate.fanout.generationId)
