@@ -102,7 +102,7 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .meta()
-                                  .partition(0, 1)
+                                  .partition(0, 2)
                                   .partition(1, 2)
                                   .build()
                               .build()}
