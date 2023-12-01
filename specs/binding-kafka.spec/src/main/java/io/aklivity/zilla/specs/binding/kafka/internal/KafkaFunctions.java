@@ -1094,10 +1094,22 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 mergedBeginExRW.partitionsItem(p -> p.partitionId(partitionId)
-                                                     .partitionOffset(offset)
-                                                     .stableOffset(stableOffset)
-                                                     .latestOffset(latestOffset));
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 
@@ -5540,6 +5552,17 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 if (partitionsRW == null)
                 {
                     this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(),
@@ -5549,7 +5572,8 @@ public final class KafkaFunctions
                     .partitionId(partitionId)
                     .partitionOffset(offset)
                     .stableOffset(stableOffset)
-                    .latestOffset(latestOffset));
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 

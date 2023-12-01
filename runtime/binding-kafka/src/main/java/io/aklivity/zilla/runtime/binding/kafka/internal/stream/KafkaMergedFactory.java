@@ -1623,7 +1623,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     metadataRW.setLength(0);
                     if (!offsetsByPartitionId.isEmpty())
                     {
-                        final KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get(k);
+                        final KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get((int) k);
                         partitionOffsetRW.value = kafkaPartitionOffset.partitionOffset;
                         metadataRW.append(kafkaPartitionOffset.metadata);
                     }
@@ -1964,7 +1964,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     p.partitionOffset(),
                     0,
                     p.leaderEpoch(),
-                    null)));
+                    p.metadata().asString())));
 
             doFetchPartitionsIfNecessary(traceId);
         }
