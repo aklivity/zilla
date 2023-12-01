@@ -32,6 +32,7 @@ public class MqttKafkaHeaderHelper
     private static final String KAFKA_REPLY_FILTER_HEADER_NAME = "zilla:reply-filter";
 
     private static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
+    private static final String KAFKA_QOS_HEADER_NAME = "zilla:qos";
 
     private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:timeout-ms";
 
@@ -47,6 +48,7 @@ public class MqttKafkaHeaderHelper
     public final OctetsFW kafkaFilterHeaderName;
     public final OctetsFW kafkaReplyFilterHeaderName;
     public final OctetsFW kafkaLocalHeaderName;
+    public final OctetsFW kafkaQosHeaderName;
     public final OctetsFW kafkaTimeoutHeaderName;
     public final OctetsFW kafkaContentTypeHeaderName;
     public final OctetsFW kafkaFormatHeaderName;
@@ -71,6 +73,7 @@ public class MqttKafkaHeaderHelper
         kafkaFilterHeaderName = stringToOctets(KAFKA_FILTER_HEADER_NAME);
         kafkaReplyFilterHeaderName = stringToOctets(KAFKA_REPLY_FILTER_HEADER_NAME);
         kafkaLocalHeaderName = stringToOctets(KAFKA_LOCAL_HEADER_NAME);
+        kafkaQosHeaderName = stringToOctets(KAFKA_QOS_HEADER_NAME);
         kafkaTimeoutHeaderName = stringToOctets(KAFKA_TIMEOUT_HEADER_NAME);
         kafkaContentTypeHeaderName = stringToOctets(KAFKA_CONTENT_TYPE_HEADER_NAME);
         kafkaFormatHeaderName = stringToOctets(KAFKA_FORMAT_HEADER_NAME);
@@ -82,6 +85,7 @@ public class MqttKafkaHeaderHelper
         visitors.put(kafkaFilterHeaderName, this::skip);
         visitors.put(kafkaReplyFilterHeaderName, this::skip);
         visitors.put(kafkaLocalHeaderName, this::skip);
+        visitors.put(kafkaQosHeaderName, this::skip);
         visitors.put(kafkaTimeoutHeaderName, this::visitTimeout);
         visitors.put(kafkaContentTypeHeaderName, this::visitContentType);
         visitors.put(kafkaFormatHeaderName, this::visitFormat);

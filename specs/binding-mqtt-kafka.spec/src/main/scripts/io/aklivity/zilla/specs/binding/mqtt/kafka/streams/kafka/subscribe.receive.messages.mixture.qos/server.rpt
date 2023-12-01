@@ -36,6 +36,15 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .build()
                             .build()}
 
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
+                                .build()
+                            .build()}
+
 connected
 
 write zilla:data.ext ${kafka:dataEx()
@@ -80,6 +89,15 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .build()
                             .build()}
 
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
+                                .build()
+                            .build()}
+
 connected
 
 write zilla:data.ext ${kafka:dataEx()
@@ -108,7 +126,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 3)
                                   .build()
                               .build()}
 
@@ -116,7 +134,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 3)
                                   .build()
                               .build()}
 
@@ -138,6 +156,15 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                     .headerNot("zilla:qos", "AT_MOST_ONCE")
                                     .headerNot("zilla:qos", "AT_LEAST_ONCE")
                                 .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
                                 .build()
                             .build()}
 
@@ -169,8 +196,8 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 3,
-                                        ${mqtt:metadata()
+                                  .partition(0, 4,
+                                        mqtt:metadata()
                                             .metadata(2)
                                             .build())
                                   .correlationId(2)
@@ -181,7 +208,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 4)
                                   .correlationId(2)
                                   .build()
                               .build()}
@@ -190,7 +217,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 4)
                                   .build()
                               .build()}
 
@@ -198,6 +225,6 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 4)
                                   .build()
                               .build()}

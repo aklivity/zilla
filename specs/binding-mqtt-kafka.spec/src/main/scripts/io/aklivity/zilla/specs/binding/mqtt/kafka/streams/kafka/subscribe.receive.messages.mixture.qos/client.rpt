@@ -34,6 +34,15 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
+                                .build()
+                            .build()}
+
 connected
 
 
@@ -59,6 +68,15 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
+                                .build()
+                            .build()}
+
 connected
 
 
@@ -81,6 +99,15 @@ write zilla:begin.ext ${kafka:beginEx()
                                     .headerNot("zilla:qos", "AT_MOST_ONCE")
                                     .headerNot("zilla:qos", "AT_LEAST_ONCE")
                                 .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2)
                                 .build()
                             .build()}
 
@@ -112,7 +139,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .partition(0, 2,
-                                        ${mqtt:metadata()
+                                        mqtt:metadata()
                                             .metadata(1)
                                             .build())
                                   .correlationId(1)

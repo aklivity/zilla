@@ -21,68 +21,6 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
-                             .session()
-                                .flags("CLEAN_START")
-                                .clientId("client")
-                                .build()
-                             .build()}
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("CLEAN_START")
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-write zilla:data.empty
-write flush
-
-read zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .kind("STATE")
-                                .build()
-                             .build()}
-
-read ${mqtt:session()
-               .subscription("sensor/+/#", 1, "AT_LEAST_ONCE")
-               .build()}
-
-write ${mqtt:session()
-               .subscription("sensor/+/#", 1, "AT_LEAST_ONCE")
-               .build()}
-write flush
-
-read zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .kind("STATE")
-                                .build()
-                             .build()}
-
-read ${mqtt:session()
-               .subscription("sensor/+/#", 1, "AT_LEAST_ONCE")
-               .subscription("sensor/+/1", 2, "EXACTLY_ONCE")
-               .build()}
-
-write ${mqtt:session()
-               .subscription("sensor/+/#", 1, "AT_LEAST_ONCE")
-               .subscription("sensor/+/1", 2, "EXACTLY_ONCE")
-               .build()}
-write flush
-write notify SENT_SESSION_STATE
-
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
@@ -122,7 +60,6 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-write await SENT_SESSION_STATE
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
@@ -163,7 +100,7 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one/1")
-                                 .packetId(1)
+                                 .packetId(2)
                                  .qos("EXACTLY_ONCE")
                                  .subscriptionId(2)
                                  .format("TEXT")
@@ -176,7 +113,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
@@ -185,7 +122,7 @@ write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
@@ -194,7 +131,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .build()
                                  .build()}
 

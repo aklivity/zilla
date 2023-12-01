@@ -28,12 +28,14 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -51,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -145,6 +148,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final int reconnectDelay;
     private final boolean bootstrapAvailable;
     private final List<KafkaMessagesBootstrap> bootstrapStreams;
+    private final AtomicInteger packetIdCounter;
+    private final Int2ObjectHashMap<String16FW> qosNames;
 
     private int reconnectAttempt;
 
@@ -170,6 +175,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.bootstrapAvailable = config.bootstrapAvailable();
         this.reconnectDelay = config.bootstrapStreamReconnectDelay();
         this.bootstrapStreams = new ArrayList<>();
+        this.packetIdCounter = new AtomicInteger(1);
+        this.qosNames = new Int2ObjectHashMap<>();
     }
 
     @Override
@@ -187,6 +194,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 stream.doKafkaBeginAt(currentTimeMillis());
             });
         }
+        this.qosNames.put(0, new String16FW(MqttQoS.AT_MOST_ONCE.name()));
+        this.qosNames.put(1, new String16FW(MqttQoS.AT_LEAST_ONCE.name()));
+        this.qosNames.put(2, new String16FW(MqttQoS.EXACTLY_ONCE.name()));
     }
 
     @Override
@@ -260,6 +270,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final Long2ObjectHashMap<Boolean> retainAsPublished;
         private final List<Subscription> retainedSubscriptions;
         private String16FW clientId;
+        private int qos;
         private boolean retainAvailable;
 
         private MqttSubscribeProxy(
@@ -347,6 +358,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
             final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
 
+            qos = mqttSubscribeBeginEx.qos();
             clientId = newString16FW(mqttSubscribeBeginEx.clientId());
 
             Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
@@ -1014,7 +1026,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 state = MqttKafkaState.openingInitial(state);
 
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, mqtt.clientId, topic, filterBuilder.build(), KafkaOffsetType.LIVE);
+                    traceId, authorization, affinity, mqtt.clientId, topic, filterBuilder.build(), mqtt.qos, KafkaOffsetType.LIVE);
             }
         }
 
@@ -1566,7 +1578,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             kafka =
                 newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, mqtt.clientId, topic, retainedFilters, KafkaOffsetType.HISTORICAL);
+                    traceId, authorization, affinity, mqtt.clientId, topic, retainedFilters, mqtt.qos, KafkaOffsetType.HISTORICAL);
         }
 
         private void doKafkaFlush(
@@ -2119,7 +2131,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String16FW clientId,
         String16FW topic,
         Array32FW<MqttTopicFilterFW> filters,
-        KafkaOffsetType offsetType)
+        int qos,
+        KafkaOffsetType offsetType) // TODO decide if live/historical based on qos level?
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -2128,6 +2141,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                     m.topic(topic);
+                    if (qos >= MqttQoS.AT_LEAST_ONCE.value())
+                    {
+                        m.groupId(clientId);
+                    }
                     m.partitionsItem(p ->
                         p.partitionId(offsetType.value())
                             .partitionOffset(offsetType.value()));
@@ -2144,6 +2161,35 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                         .name(helper.kafkaLocalHeaderName)
                                         .valueLen(valueBuffer.capacity())
                                         .value(valueBuffer, 0, valueBuffer.capacity())))));
+                            }
+
+                            final int maxQos = filter.qos();
+                            if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
+                            {
+                                for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
+                                {
+                                    if (level != qos)
+                                    {
+                                        final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                        f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                                            h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                                                .name(helper.kafkaQosHeaderName)
+                                                .valueLen(valueBuffer.capacity())
+                                                .value(valueBuffer, 0, valueBuffer.capacity())))));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for (int level = 0; level < maxQos; level++)
+                                {
+                                    final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                                        h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                                            .name(helper.kafkaQosHeaderName)
+                                            .valueLen(valueBuffer.capacity())
+                                            .value(valueBuffer, 0, valueBuffer.capacity())))));
+                                }
                             }
                         }));
                     m.evaluation(b -> b.set(KafkaEvaluation.EAGER));
