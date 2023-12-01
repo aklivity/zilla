@@ -44,7 +44,7 @@ write [0x90 0x03]                    # SUBACK
 
 read  [0x82 0x0f]                    # SUBSCRIBE
       [0x00 0x01]                    # packet id = 1
-      [0x00 0x0a] "sensor/one"       # topic filter
+      [0x00 0x0a] "sensor/two"       # topic filter
       [0x00]                         # options = at-most-once
 
 write [0x90 0x03]                    # SUBACK

@@ -83,6 +83,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.password.flag.no.username.flag/client",
+        "${net}/connect.reject.password.flag.no.username.flag/server"})
+    public void shouldRejectPasswordFlagNoUsernameFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.server.assigned.client.id/client",
         "${net}/connect.server.assigned.client.id/server"})
     public void shouldConnectWithServerAssignedClientId() throws Exception
@@ -113,15 +122,6 @@ public class ConnectionIT
         "${net}/disconnect/client",
         "${net}/disconnect/server"})
     public void shouldConnectThenDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect.invalid.protocol.version/client",
-        "${net}/connect.invalid.protocol.version/server"})
-    public void shouldRejectInvalidProtocolVersion() throws Exception
     {
         k3po.finish();
     }

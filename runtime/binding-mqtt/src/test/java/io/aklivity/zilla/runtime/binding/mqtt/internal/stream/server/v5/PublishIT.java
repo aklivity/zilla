@@ -59,8 +59,8 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.one.message/client",
-        "${app}/publish.one.message/server"})
+        "${net}/publish.one.message.properties/client",
+        "${app}/publish.one.message.properties/server"})
     public void shouldPublishOneMessage() throws Exception
     {
         k3po.finish();
@@ -132,7 +132,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.subscribe.batched/client",
         "${app}/publish.subscribe.batched/server"})
-    public void shouldPublishOneMessageSubscribeUnfragmented() throws Exception
+    public void shouldPublishSubscribeBatched() throws Exception
     {
         k3po.finish();
     }

@@ -22,13 +22,13 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x23]                       # CONNECT
+read  [0x10 0x22]                       # CONNECT
       [0x00 0x04] "MQTT"                # protocol name
       [0x04]                            # protocol version
       [0xc2]                            # flags = username, password, clean start
       [0x00 0x3c]                       # keep alive = 60s
       [0x00 0x06] "client"              # client id
-      [0x00 0x00] ""                    # username
+      [0x00 0x00]                       # username
       [0x00 0x0c] "Bearer TOKEN"        # password
 
 write [0x20 0x02]                       # CONNACK

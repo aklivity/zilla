@@ -108,6 +108,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV5FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttDisconnectV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPacketHeaderFW;
@@ -162,6 +163,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
+    private static final int TYPE_OFFSET = 0;
     private static final int CONNACK_FIXED_HEADER = 0b0010_0000;
     private static final int SUBACK_FIXED_HEADER = 0b1001_0000;
     private static final int UNSUBACK_FIXED_HEADER = 0b1011_0000;
@@ -274,6 +276,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttPublishHeader mqttPublishHeaderRO = new MqttPublishHeader();
 
     private final MqttConnectV5FW.Builder mqttConnectV5RW = new MqttConnectV5FW.Builder();
+    private final MqttConnectFW.Builder mqttConnectRW = new MqttConnectFW.Builder();
     private final MqttSubscribeV5FW.Builder mqttSubscribeV5RW = new MqttSubscribeV5FW.Builder();
     private final MqttUnsubscribeV5FW.Builder mqttUnsubscribeV5RW = new MqttUnsubscribeV5FW.Builder();
     private final MqttPublishV5FW.Builder mqttPublishV5RW = new MqttPublishV5FW.Builder();
@@ -2282,6 +2285,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int propertiesSize0 = propertiesSize;
             final int willSize = will != null ? will.sizeof() : 0;
             flags |= will != null ? (WILL_FLAG_MASK | ((willMessage.flags() & RETAIN_MASK) != 0 ? WILL_RETAIN_MASK : 0)) : 0;
+
             final MqttConnectV5FW connect =
                 mqttConnectV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x10)

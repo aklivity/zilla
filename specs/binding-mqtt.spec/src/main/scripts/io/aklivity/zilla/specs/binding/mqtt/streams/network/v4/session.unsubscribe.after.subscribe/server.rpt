@@ -33,9 +33,9 @@ write [0x20 0x02]                   # CONNACK
       [0x00]                        # flags = none
       [0x00]                        # reason code
 
-read  [0x82 0x0a]                   # SUBSCRIBE
+read  [0x82 0x0f]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
-      [0x00 0x05] "reply"           # topic filter
+      [0x00 0x0a] "sensor/one"      # topic filter
       [0x00]                        # options = at-most-once
 
 write [0x90 0x03]                   # SUBACK

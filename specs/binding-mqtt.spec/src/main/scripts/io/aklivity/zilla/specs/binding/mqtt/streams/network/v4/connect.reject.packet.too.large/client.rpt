@@ -21,14 +21,14 @@ connect "zilla://streams/net0"
 
 connected
 
-write [0x10 0xff 0x7b]                                 # CONNECT, remaining length = 16383
+write [0x10 0xff 0x2f]                                 # CONNECT, remaining length = 6143
       [0x00 0x04] "MQTT"                               # protocol name
       [0x04]                                           # protocol version
       [0x06]                                           # flags = will flag, clean start
       [0x00 0x0a]                                      # keep alive = 10s
       [0x00 0x03] "one"                                # client id
       [0x00 0x09] "wills/one"                          # will topic
-      [0xdf 0x3f] ${mqtt:randomBytes(16351)}           # will payload
+      [0xdf 0x3f] ${mqtt:randomBytes(6143)}            # will payload
 
 read closed
 write close

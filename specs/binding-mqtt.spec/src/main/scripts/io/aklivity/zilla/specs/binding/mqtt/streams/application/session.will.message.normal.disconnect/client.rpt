@@ -48,7 +48,6 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write ${mqtt:will()
                .topic("wills/one")
-               .format("TEXT")
                .payload("client one session expired")
                .build()}
 write flush

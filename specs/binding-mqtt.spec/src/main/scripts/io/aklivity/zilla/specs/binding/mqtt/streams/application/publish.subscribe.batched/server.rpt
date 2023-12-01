@@ -52,11 +52,11 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/two", 1)
+               .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/two", 1)
+               .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -76,29 +76,15 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .qos("AT_MOST_ONCE")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
                                 .build()
                             .build()}
-
 read "message"
 
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
-                                .qos("AT_MOST_ONCE")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
                                 .build()
                             .build()}
-
 read "message2"
 
 accepted
@@ -107,7 +93,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/two", 1)
+                                 .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
 

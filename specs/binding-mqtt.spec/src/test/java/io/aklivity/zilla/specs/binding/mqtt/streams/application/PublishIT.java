@@ -38,8 +38,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message/client",
-        "${app}/publish.one.message/server"})
+        "${app}/publish.one.message.properties/client",
+        "${app}/publish.one.message.properties/server"})
     public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
@@ -49,7 +49,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.subscribe.batched/client",
         "${app}/publish.subscribe.batched/server"})
-    public void shouldSendOneMessageSubscribeUnfragmented() throws Exception
+    public void shouldSendOneMessageSubscribeBatched() throws Exception
     {
         k3po.finish();
     }

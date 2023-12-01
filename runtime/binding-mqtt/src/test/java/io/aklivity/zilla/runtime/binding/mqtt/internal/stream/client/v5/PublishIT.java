@@ -86,8 +86,8 @@ public class PublishIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${net}/publish.one.message/server",
-        "${app}/publish.one.message/client"})
+        "${net}/publish.one.message.properties/server",
+        "${app}/publish.one.message.properties/client"})
     public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();

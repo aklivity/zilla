@@ -52,11 +52,11 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/one", 1)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 1)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -68,13 +68,13 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .subscription("device/#", 2)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("device/#", 2, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .subscription("device/#", 2)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("device/#", 2, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -85,7 +85,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 
@@ -94,7 +94,7 @@ connected
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 1)
-                                     .filter("device/#", 2)
+                                     .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .filter("device/#", 2, "AT_MOST_ONCE", "SEND_RETAINED")
                                      .build()
                                  .build()}

@@ -40,7 +40,7 @@ write [0x82 0x0d]                   # SUBSCRIBE
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x00 0x05] "error"           # topic filter
-      [0x20]                        # options = at-most-once
+      [0x00]                        # options = at-most-once
 
 read  [0xe0 0x02]                   # disconnect header
       [0x83]                        # reason = implementation specific error
