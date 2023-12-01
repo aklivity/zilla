@@ -443,7 +443,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                     writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
                     writePcapOutput(writer, payload.buffer(), payload.offset(), sizeof);*/
 
-                    encodePcapHeader(buffer, ETHER_HEADER_SIZE + 2 * Integer.BYTES + data.sizeof(), timestamp);
+                    encodePcapHeader(buffer, ETHER_HEADER_SIZE + Integer.BYTES + data.sizeof(), timestamp);
                     writePcapOutput(writer, buffer, 0, PCAP_HEADER_LIMIT);
 
                     encodeEtherHeader(buffer);
@@ -455,8 +455,8 @@ public final class ZillaDumpCommand extends ZillaCommand
                     int dataFrameSize = data.sizeof() - payload.sizeof();
                     writePcapOutput(writer, data.buffer(), data.offset(), dataFrameSize);
 
-                    buffer.putInt(PCAP_HEADER_LIMIT + ETHER_HEADER_SIZE + Integer.BYTES, streamTypeId);
-                    writePcapOutput(writer, buffer, PCAP_HEADER_LIMIT + ETHER_HEADER_SIZE + Integer.BYTES, Integer.BYTES);
+                    ////buffer.putInt(PCAP_HEADER_LIMIT + ETHER_HEADER_SIZE + Integer.BYTES, streamTypeId);
+                    ////writePcapOutput(writer, buffer, PCAP_HEADER_LIMIT + ETHER_HEADER_SIZE + Integer.BYTES, Integer.BYTES);
 
                     writePcapOutput(writer, payload.buffer(), payload.offset(), payload.sizeof());
                 }

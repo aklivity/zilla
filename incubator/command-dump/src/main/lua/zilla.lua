@@ -35,7 +35,6 @@ local fields = {
     budget_id = ProtoField.uint64("zilla.budget_id", "budgetId", base.HEX),
     reserved = ProtoField.int32("zilla.reserved", "reserved", base.DEC),
     length = ProtoField.int32("zilla.length", "length", base.DEC),
-    stream_type_id = ProtoField.int32("zilla.stream_type_id", "streamTypeId", base.DEC),
     offset = ProtoField.int64("zilla.offset", "offset", base.DEC), -- TODO: name?
     offset_maximum = ProtoField.string("zilla.offset_maximum", "offset/maximum", base.NONE), -- TODO: name?
     payload = ProtoField.protocol("zilla.payload", "payload", base.HEX),
@@ -125,13 +124,11 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         slices.budget_id = buffer(73, 8)
         slices.reserved = buffer(81, 4)
         slices.length = buffer(85, 4)
-        slices.stream_type_id = buffer(89, 4)
 
         subtree:add_le(fields.flags, slices.flags)
         subtree:add_le(fields.budget_id, slices.budget_id)
         subtree:add_le(fields.reserved, slices.reserved)
         subtree:add_le(fields.length, slices.length)
-        subtree:add_le(fields.stream_type_id, slices.stream_type_id)
 
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
@@ -144,35 +141,65 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         --pinfo.cols.info:set(offset_maximum)
 
         local length = slices.length:le_int()
-        --subtree:add(fields.payload, buffer(89, length))
-        subtree:add(fields.payload, buffer(93, length))
+        subtree:add(fields.payload, buffer(89, length))
 
         local oid = string.format("%016x", tostring(slices.origin_id:le_uint64()))
         local rid = string.format("%016x", tostring(slices.routed_id:le_uint64()))
-        -- print(string.format("%016x %016x", tostring(oid), tostring(rid)))
-        --print(ridh)
-        --if oid == 0x0000000a0000000e or rid == 0x0000000a0000000e then
-        --if rid == 0x0000000a0000000e then
-        --if oid == "0000000a0000000e" or rid == "0000000a0000000e" then
-        -- if oid == "0000000100000005" or rid == "0000000100000005" then
+        print(oid)
+        print(rid)
 
-        local stream_type_id = slices.stream_type_id:le_int()
-        print(stream_type_id)
+        local stream_type
+        -- http.echo.ati
+--         if oid == "0000000a0000000d" and rid == "0000000a0000000e" then
+--             stream_type = "http"
+--         end
+
+        -- http.echo
+--         if oid == "000000090000000b" and rid == "000000090000000c" then
+--             stream_type = "http"
+--         elseif oid == "000000090000000d" and rid == "000000090000000c" then
+--             stream_type = "http"
+--         end
+
+        -- http.kafka.sync
+--         if rid == "0000000900000017" then
+--             stream_type = "http"
+--         elseif oid == "000000090000001b" then
+--             stream_type = "kafka"
+--         end
+
+        -- grpc.kafka.proxy
+        if rid == "000000090000000c" then
+            stream_type = "tls"
+        elseif rid == "000000090000000d" then
+            stream_type = "http"
+        elseif rid == "000000090000000e" then
+            stream_type = "grpc"
+        elseif oid == "0000000900000012" then
+            stream_type = "kafka"
+        elseif oid == "0000000900000016" then
+            stream_type = "http"
+        elseif oid == "0000000900000015" then
+             stream_type = "grpc"
+        end
+
+        -- mqtt.kafka.broker
+--         if rid == "000000090000000c" then
+--             stream_type = "http"
+--         elseif rid == "000000090000000e" then
+--             stream_type = "mqtt"
+--         end
+
         local dissector
-            if stream_type_id == 4 then dissector = Dissector.get("http")
-        elseif stream_type_id == 5 then dissector = Dissector.get("kafka")
-        --elseif stream_type_id == 6 then dissector = Dissector.get("http")
-        elseif stream_type_id == 6 then dissector = Dissector.get("kafka")
-        elseif stream_type_id == 7 then dissector = Dissector.get("mqtt")
+            if stream_type == "http"  then dissector = Dissector.get("http2")
+        elseif stream_type == "tls"   then dissector = Dissector.get("tls")
+        elseif stream_type == "kafka" then dissector = Dissector.get("kafka")
+        elseif stream_type == "mqtt"  then dissector = Dissector.get("mqtt")
+        elseif stream_type == "grpc"  then dissector = Dissector.get("grpc")
         end
 
         if dissector then
-          --local dissector = Dissector.get("http2")
-          --local dissector = Dissector.get("mqtt")
-          --local dissector = Dissector.get("http")
-          --print("hello")
-          --dissector:call(buffer(89, len):tvb(), pinfo, tree)
-          dissector:call(buffer(93, len):tvb(), pinfo, tree)
+            dissector:call(buffer(89, len):tvb(), pinfo, tree)
         end
     end
 
