@@ -1634,7 +1634,7 @@ public final class KafkaMergedFactory implements BindingHandler
                             .partitionOffset(partitionOffsetRW.value)
                             .stableOffset(stableOffsetByPartitionId.get(k))
                             .latestOffset(v)
-                            .metadata(metadataRW.toString()));
+                            .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
                 });
             };
         }
