@@ -590,6 +590,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             int partitionId,
             long partitionOffset)
         {
+            final long nextPartitionOffset = partitionOffset + 1L;
 
             Flyweight commitFlushEx = kafkaFlushExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -597,7 +598,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .merged(m -> m.consumer(mc -> mc
                     .progress(p -> p
                         .partitionId(partitionId)
-                        .partitionOffset(partitionOffset + 1L))))
+                        .partitionOffset(nextPartitionOffset))))
                 .build();
 
             doKafkaFlush(traceId, authorization, 0, 0, commitFlushEx);
