@@ -558,4 +558,26 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.replay.retained.message.qos1/client",
+        "${kafka}/subscribe.replay.retained.message.qos1/server"})
+    public void shouldReplayRetainedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.replay.retained.message.qos2/client",
+        "${kafka}/subscribe.replay.retained.message.qos2/server"})
+    public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -806,7 +806,6 @@ public class KafkaIT
         "${kafka}/publish.qos1/server"})
     public void shouldPublishQoS1Message() throws Exception
     {
-        k3po.start();
         k3po.finish();
     }
 
@@ -816,7 +815,6 @@ public class KafkaIT
         "${kafka}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
     {
-        k3po.start();
         k3po.finish();
     }
 

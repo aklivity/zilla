@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -398,12 +399,14 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
+    private final ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId;
 
     private Map<String, Validator> validators;
 
     public MqttServerFactory(
         MqttConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId)
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -444,6 +447,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplySubscriptionId = config.subscriptionId();
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
+        this.unreleasedPacketIdsByClientId = unreleasedPacketIdsByClientId;
     }
 
     @Override
@@ -1588,10 +1592,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
-        private final IntArrayList unreleasedPacketIds;
+        //TODO: store this by clientId in the binding, in a concurrentMap, and store it here when the client connects (computeIfAbsent).
+        // So it doesn't matter if we'd reconnect to a different core
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos1PacketIds;
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos2PacketIds;
 
+        private IntArrayList unreleasedPacketIds;
 
         private MqttServer(
             Function<String, String> credentials,
@@ -1618,7 +1624,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
-            this.unreleasedPacketIds = new IntArrayList();
             this.unAckedReceivedQos1PacketIds = new LinkedHashMap<>();
             this.unAckedReceivedQos2PacketIds = new LinkedHashMap<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
@@ -1979,6 +1984,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.clientId = new String16FW(clientIdentifier.asString());
             }
 
+            unreleasedPacketIds = unreleasedPacketIdsByClientId.computeIfAbsent(clientId.asString(), c -> new IntArrayList());
+
             keepAlive = (short) Math.min(Math.max(connect.keepAlive(), keepAliveMinimum), keepAliveMaximum);
             serverDefinedKeepAlive = keepAlive != connect.keepAlive();
             keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
@@ -2333,7 +2340,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final int packetId = pubrel.packetId();
 
-            unreleasedPacketIds.remove(Integer.valueOf(packetId));
+            unreleasedPacketIds.removeInt(packetId);
             doEncodePubcomp(traceId, authorization, packetId);
 
             progress = pubrel.limit();

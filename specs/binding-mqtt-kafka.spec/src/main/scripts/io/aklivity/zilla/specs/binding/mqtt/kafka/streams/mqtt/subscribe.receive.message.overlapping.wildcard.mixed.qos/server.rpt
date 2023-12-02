@@ -78,6 +78,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("AT_LEAST_ONCE")
+                                     .packetId(1)
                                      .build()
                                  .build()}
 
@@ -121,9 +122,7 @@ read advised zilla:flush ${mqtt:flushEx()
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .qos("EXACTLY_ONCE")
                                      .packetId(2)
-                                     .state("INCOMPLETE")
                                      .build()
                                  .build()}
 

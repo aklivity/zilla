@@ -27,8 +27,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
-                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
+                                    .headerNot("zilla:qos", "1")
+                                    .headerNot("zilla:qos", "2")
                                     .build()
                                 .evaluation("EAGER")
                                 .build()
@@ -63,8 +63,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
-                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "2")
                                     .build()
                                 .evaluation("EAGER")
                                 .build()
@@ -99,134 +99,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
-                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, 1)
-                                .build()
-                            .build()}
-
-connected
-
-
-read zilla:data.ext ${kafka:matchDataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .fetch()
-                                    .filters(1)
-                                    .partition(0, 1, 2)
-                                    .progress(0, 2)
-                                    .progress(1, 1)
-                                    .key("sensor/one")
-                                    .header("zilla:filter", "sensor")
-                                    .header("zilla:filter", "one")
-                                    .header("zilla:local", "client")
-                                    .header("zilla:format", "TEXT")
-                                    .header("zilla:qos", "EXACTLY_ONCE")
-                                    .build()
-                                .build()}
-read "message"
-
-write abort
-write notify SENT_SUBSCRIBE_ABORT
-
-
-connect await SENT_SUBSCRIBE_ABORT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .filter()
-                                    .headers("zilla:filter")
-                                        .sequence("sensor")
-                                        .sequence("one")
-                                        .build()
-                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
-                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, 1)
-                                .build()
-                            .build()}
-
-connected
-
-
-connect await SENT_SUBSCRIBE_ABORT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .groupId("client")
-                                .filter()
-                                    .headers("zilla:filter")
-                                        .sequence("sensor")
-                                        .sequence("one")
-                                        .build()
-                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
-                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
-                                    .build()
-                                .evaluation("EAGER")
-                                .build()
-                            .build()}
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, 1)
-                                .build()
-                            .build()}
-
-connected
-
-
-connect await SENT_SUBSCRIBE_ABORT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-messages")
-                                .groupId("client")
-                                .filter()
-                                    .headers("zilla:filter")
-                                        .sequence("sensor")
-                                        .sequence("one")
-                                        .build()
-                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
-                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "1")
                                     .build()
                                 .evaluation("EAGER")
                                 .build()
@@ -268,20 +142,122 @@ write advise zilla:flush ${kafka:flushEx()
                                 .consumer()
                                   .partition(0, 2,
                                         mqtt:metadata()
-                                            .metadata(2)
+                                            .metadata(1)
                                             .build())
-                                  .correlationId(2)
+                                  .correlationId(1)
                                   .build()
                               .build()}
 
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .partition(0, 2)
-                                  .correlationId(2)
-                                  .build()
-                              .build()}
+write abort
+write notify SENT_SUBSCRIBE_ABORT
+
+
+connect await SENT_SUBSCRIBE_ABORT
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "1")
+                                    .headerNot("zilla:qos", "2")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 1)
+                                .build()
+                            .build()}
+
+connected
+
+
+connect await SENT_SUBSCRIBE_ABORT
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("client")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "2")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 1)
+                                .build()
+                            .build()}
+
+connected
+
+
+connect await SENT_SUBSCRIBE_ABORT
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("client")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "1")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2, 2, 2, mqtt:metadata()
+                                                     .metadata(1)
+                                                     .build())
+                                .build()
+                            .build()}
+
+connected
+
+read advised zilla:flush
 
 write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))

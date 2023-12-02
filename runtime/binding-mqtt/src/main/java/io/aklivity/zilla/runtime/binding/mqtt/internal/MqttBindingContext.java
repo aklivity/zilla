@@ -20,6 +20,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttClientFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttServerFactory;
@@ -30,16 +32,20 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
+import org.agrona.collections.IntArrayList;
+
 final class MqttBindingContext implements BindingContext
 {
     private final Map<KindConfig, MqttStreamFactory> factories;
 
+
     MqttBindingContext(
         MqttConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId)
     {
         final EnumMap<KindConfig, MqttStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new MqttServerFactory(config, context));
+        factories.put(SERVER, new MqttServerFactory(config, context, unreleasedPacketIdsByClientId));
         factories.put(CLIENT, new MqttClientFactory(config, context));
         this.factories = factories;
     }

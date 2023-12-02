@@ -21,50 +21,6 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
-                             .session()
-                                .flags("CLEAN_START")
-                                .clientId("client")
-                                .build()
-                             .build()}
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("CLEAN_START")
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-write zilla:data.empty
-write flush
-
-read zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .kind("STATE")
-                                .build()
-                             .build()}
-read ${mqtt:session()
-               .subscription("sensor/one", 1, "EXACTLY_ONCE")
-               .build()}
-
-write ${mqtt:session()
-               .subscription("sensor/one", 1, "EXACTLY_ONCE")
-               .build()}
-write flush
-
-read aborted
-
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
@@ -134,33 +90,6 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
-                             .session()
-                                .clientId("client")
-                                .build()
-                             .build()}
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-write ${mqtt:session()
-               .subscription("sensor/one", 1, "EXACTLY_ONCE")
-               .build()}
-write flush
-
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
@@ -201,9 +130,7 @@ connected
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .qos("EXACTLY_ONCE")
                                      .packetId(1)
-                                     .state("INCOMPLETE")
                                      .build()
                                  .build()}
 

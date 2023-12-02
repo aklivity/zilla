@@ -283,4 +283,25 @@ public class MqttKafkaPublishProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1/client",
+        "${kafka}/publish.qos1/server"})
+    public void shouldSendMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2/client",
+        "${kafka}/publish.qos2/server"})
+    public void shouldSendMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
 }

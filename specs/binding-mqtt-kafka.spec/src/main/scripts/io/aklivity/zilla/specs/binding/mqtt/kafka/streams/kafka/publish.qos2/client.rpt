@@ -32,12 +32,14 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                            .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
                                .header("zilla:filter", "sensor")
                                .header("zilla:filter", "one")
-                               .header("zilla:qos", "EXACTLY_ONCE")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
                                .build()
                            .build()}
 write "message"
