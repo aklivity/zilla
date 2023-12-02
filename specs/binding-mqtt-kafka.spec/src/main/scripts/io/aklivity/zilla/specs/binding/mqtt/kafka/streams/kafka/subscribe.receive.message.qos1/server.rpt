@@ -41,7 +41,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, 2)
+                                .partition(0, 1)
                                 .build()
                             .build()}
 
@@ -72,7 +72,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, 2)
+                                .partition(0, 1)
                                 .build()
                             .build()}
 
@@ -94,8 +94,7 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:format", "TEXT")
                                     .header("zilla:qos", "AT_LEAST_ONCE")
                                     .build()
-                                .build()
-                            .build()}
+                                .build()}
 write "message"
 write flush
 
@@ -103,7 +102,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "")
                                   .build()
                               .build()}
 

@@ -63,6 +63,7 @@ public class MqttKafkaHeaderHelper
     public int timeout;
     public OctetsFW contentType;
     public String format;
+    public String qos;
     public OctetsFW replyTo;
     public OctetsFW replyKey;
     public OctetsFW correlation;
@@ -85,7 +86,7 @@ public class MqttKafkaHeaderHelper
         visitors.put(kafkaFilterHeaderName, this::skip);
         visitors.put(kafkaReplyFilterHeaderName, this::skip);
         visitors.put(kafkaLocalHeaderName, this::skip);
-        visitors.put(kafkaQosHeaderName, this::skip);
+        visitors.put(kafkaQosHeaderName, this::visitQos);
         visitors.put(kafkaTimeoutHeaderName, this::visitTimeout);
         visitors.put(kafkaContentTypeHeaderName, this::visitContentType);
         visitors.put(kafkaFormatHeaderName, this::visitFormat);
@@ -139,6 +140,12 @@ public class MqttKafkaHeaderHelper
         OctetsFW value)
     {
         format = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+    }
+
+    private void visitQos(
+        OctetsFW value)
+    {
+        qos = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
     }
 
     private void visitReplyTo(

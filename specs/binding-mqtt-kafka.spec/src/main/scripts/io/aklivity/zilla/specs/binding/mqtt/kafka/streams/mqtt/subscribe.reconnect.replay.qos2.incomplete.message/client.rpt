@@ -18,55 +18,6 @@ connect "zilla://streams/mqtt0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                              .flags("CLEAN_START")
-                              .clientId("client")
-                              .build()
-                            .build()}
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("CLEAN_START")
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-read zilla:data.empty
-
-write zilla:data.ext ${mqtt:dataEx()
-                           .typeId(zilla:id("mqtt"))
-                           .session()
-                              .kind("STATE")
-                              .build()
-                           .build()}
-
-write ${mqtt:session()
-            .subscription("sensor/one", 1, "EXACTLY_ONCE")
-            .build()}
-write flush
-
-read ${mqtt:session()
-           .subscription("sensor/one", 1, "EXACTLY_ONCE")
-           .build()}
-read notify RECEIVED_SESSION_STATE
-
-write abort
-write notify SENT_SESSION_ABORT
-
-
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
@@ -80,8 +31,7 @@ connected
 write abort
 
 
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
+connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -99,8 +49,7 @@ connected
 write abort
 
 
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
+connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -137,39 +86,10 @@ write advise zilla:flush ${mqtt:flushEx()
                                  .build()}
 
 write abort
+write notify SENT_SUBSCRIBE_ABORT
 
 
-connect await SENT_SESSION_ABORT
-         "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                              .clientId("client")
-                              .build()
-                            .build()}
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-read ${mqtt:session()
-           .subscription("sensor/one", 1, "EXACTLY_ONCE")
-           .build()}
-read notify RECEIVED_SESSION_STATE2
-
-
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -186,7 +106,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -203,7 +123,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"

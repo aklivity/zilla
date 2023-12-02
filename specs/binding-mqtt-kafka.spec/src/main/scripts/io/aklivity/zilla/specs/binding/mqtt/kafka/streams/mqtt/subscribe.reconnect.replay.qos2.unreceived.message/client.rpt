@@ -18,55 +18,6 @@ connect "zilla://streams/mqtt0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                              .flags("CLEAN_START")
-                              .clientId("client")
-                              .build()
-                            .build()}
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("CLEAN_START")
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-read zilla:data.empty
-
-write zilla:data.ext ${mqtt:dataEx()
-                           .typeId(zilla:id("mqtt"))
-                           .session()
-                              .kind("STATE")
-                              .build()
-                           .build()}
-
-write ${mqtt:session()
-            .subscription("sensor/one", 1, "EXACTLY_ONCE")
-            .build()}
-write flush
-
-read ${mqtt:session()
-           .subscription("sensor/one", 1, "EXACTLY_ONCE")
-           .build()}
-read notify RECEIVED_SESSION_STATE
-
-write abort
-read notify SENT_SESSION_ABORT
-
-
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
@@ -80,8 +31,7 @@ connected
 write abort
 
 
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
+connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -99,8 +49,7 @@ connected
 write abort
 
 
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/mqtt0"
+connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -128,39 +77,10 @@ read zilla:data.ext ${mqtt:matchDataEx()
 read "message"
 
 write abort
+write notify SENT_SUBSCRIBE_ABORT
 
 
-connect await SENT_SESSION_ABORT
-         "zilla://streams/mqtt0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                              .clientId("client")
-                              .build()
-                            .build()}
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .qosMax(2)
-                                .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
-                                .build()
-                              .build()}
-
-connected
-
-read ${mqtt:session()
-           .subscription("sensor/one", 1, "EXACTLY_ONCE")
-           .build()}
-read notify RECEIVED_SESSION_STATE2
-
-
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -177,7 +97,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -194,7 +114,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-connect await RECEIVED_SESSION_STATE2
+connect await SENT_SUBSCRIBE_ABORT
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -214,7 +134,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                  .topic("sensor/one")
-                                 .packetId(1)
+                                 .packetId(2)
                                  .qos("EXACTLY_ONCE")
                                  .subscriptionId(1)
                                  .format("TEXT")
@@ -226,7 +146,7 @@ write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .state("INCOMPLETE")
                                      .build()
                                  .build()}
@@ -234,9 +154,7 @@ write advise zilla:flush ${mqtt:flushEx()
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .qos("EXACTLY_ONCE")
-                                     .packetId(1)
-                                     .state("INCOMPLETE")
+                                     .packetId(2)
                                      .build()
                                  .build()}
 
@@ -244,6 +162,6 @@ write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
-                                     .packetId(1)
+                                     .packetId(2)
                                      .build()
                                  .build()}

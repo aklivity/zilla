@@ -45,8 +45,100 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+write abort
+
 
 connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("client")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "AT_MOST_ONCE")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 1)
+                                .build()
+                            .build()}
+
+connected
+
+
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .fetch()
+                                    .filters(1)
+                                    .partition(0, 1, 2)
+                                    .progress(0, 2)
+                                    .progress(1, 1)
+                                    .key("sensor/one")
+                                    .header("zilla:filter", "sensor")
+                                    .header("zilla:filter", "one")
+                                    .header("zilla:local", "client")
+                                    .header("zilla:format", "TEXT")
+                                    .header("zilla:qos", "AT_LEAST_ONCE")
+                                    .build()
+                                .build()}
+read "message"
+
+write abort
+write notify SENT_SUBSCRIBE_ABORT
+
+
+connect await SENT_SUBSCRIBE_ABORT
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "AT_LEAST_ONCE")
+                                    .headerNot("zilla:qos", "EXACTLY_ONCE")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 1)
+                                .build()
+                            .build()}
+
+connected
+
+
+connect await SENT_SUBSCRIBE_ABORT
+        "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -112,3 +204,4 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                   .partition(0, 2)
                                   .build()
                               .build()}
+

@@ -2301,7 +2301,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
             stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-            stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal());
+            stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId);
 
             progress = puback.limit();
             return progress;
@@ -4719,13 +4719,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSubscribeFlush(
                 long traceId,
                 int reserved,
-                int qos)
+                int qos,
+                int packetId)
             {
                 doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, sessionId, 0L, reserved,
                     ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
                         .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder -> subscribeBuilder.qos(qos))
+                        .subscribe(subscribeBuilder -> subscribeBuilder.qos(qos).packetId(packetId))
                         .build()
                         .sizeof()));
 

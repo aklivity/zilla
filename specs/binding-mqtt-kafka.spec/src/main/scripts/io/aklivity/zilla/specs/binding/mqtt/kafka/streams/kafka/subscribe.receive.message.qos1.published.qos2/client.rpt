@@ -27,9 +27,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .build()
                                     .headerNot("zilla:qos", "AT_LEAST_ONCE")
                                     .headerNot("zilla:qos", "EXACTLY_ONCE")
+                                    .build()
                                 .evaluation("EAGER")
                                 .build()
                             .build()}
@@ -39,7 +39,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, 2)
+                                .partition(0, 1)
                                 .build()
                             .build()}
 
@@ -61,8 +61,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .build()
                                     .headerNot("zilla:qos", "AT_MOST_ONCE")
+                                    .build()
                                 .evaluation("EAGER")
                                 .build()
                             .build()}
@@ -72,7 +72,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, 2)
+                                .partition(0, 1)
                                 .build()
                             .build()}
 
@@ -95,15 +95,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                                     .header("zilla:format", "TEXT")
                                     .header("zilla:qos", "EXACTLY_ONCE")
                                     .build()
-                                .build()
-                            .build()}
+                                .build()}
 read "message"
 
 write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .partition(0, 2, "")
                                   .build()
                               .build()}
 
