@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeader
 import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeaderFW.STATUS_PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeaderFW.STATUS_UNEXPECTED_CONDITION;
 import static io.aklivity.zilla.runtime.binding.ws.internal.util.WsMaskUtil.xor;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
@@ -73,6 +75,8 @@ public final class WsServerFactory implements WsStreamFactory
     private static final String WEBSOCKET_UPGRADE = "websocket";
     private static final String WEBSOCKET_VERSION_13 = "13";
     private static final int MAXIMUM_HEADER_SIZE = 14;
+
+    private static final int PONG_SIGNAL_ID = 1;
 
     private static final DirectBuffer CLOSE_PAYLOAD = new UnsafeBuffer(new byte[0]);
 
@@ -116,6 +120,7 @@ public final class WsServerFactory implements WsStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final Signaler signaler;
 
     private final Long2ObjectHashMap<WsBindingConfig> bindings;
     private final int wsTypeId;
@@ -130,6 +135,7 @@ public final class WsServerFactory implements WsStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
+        this.signaler = context.signaler();
         this.wsTypeId = context.supplyTypeId(WsBinding.NAME);
         this.httpTypeId = context.supplyTypeId("http");
     }
@@ -283,6 +289,8 @@ public final class WsServerFactory implements WsStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private long pongId = NO_CANCEL_ID;
 
         private WsServer(
             MessageConsumer receiver,
@@ -747,6 +755,9 @@ public final class WsServerFactory implements WsStreamFactory
                 case 0x08:
                     this.decodeState = this::decodeClose;
                     break;
+                case 0x09:
+                    this.decodeState = this::decodePing;
+                    break;
                 case 0x0a:
                     this.decodeState = this::decodePong;
                     break;
@@ -898,6 +909,40 @@ public final class WsServerFactory implements WsStreamFactory
                 if (payloadProgress == payloadLength)
                 {
                     this.decodeState = this::decodeHeader;
+                }
+
+                return decodeBytes;
+            }
+        }
+
+        private int decodePing(
+            final DirectBuffer buffer,
+            final int offset,
+            final int length)
+        {
+            if (payloadLength > MAXIMUM_CONTROL_FRAME_PAYLOAD_SIZE)
+            {
+                doNetReset(decodeTraceId, decodeAuthorization);
+                stream.doAppAbort(decodeTraceId, decodeAuthorization, STATUS_PROTOCOL_ERROR);
+                return length;
+            }
+            else
+            {
+                final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+
+                payloadRO.wrap(buffer, offset, offset + decodeBytes);
+
+                payloadProgress += decodeBytes;
+                maskingKey = rotateMaskingKey(maskingKey, decodeBytes);
+
+                if (payloadProgress == payloadLength)
+                {
+                    this.decodeState = this::decodeHeader;
+                }
+
+                if (pongId != NO_CANCEL_ID)
+                {
+                    signaler.signalNow(originId, routedId, initialId, decodeTraceId, PONG_SIGNAL_ID, 0);
                 }
 
                 return decodeBytes;

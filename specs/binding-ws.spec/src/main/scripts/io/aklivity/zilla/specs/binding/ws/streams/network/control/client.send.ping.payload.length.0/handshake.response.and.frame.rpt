@@ -14,24 +14,36 @@
 # under the License.
 #
 
-accept "http://localhost:8080/echo"
+property writeMask ${http:randomBytes(4)}
+
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "half-duplex"
 accepted
+
+read zilla:begin.ext ${zilla:id("http")}
+                       [0xb4 0x00 0x00 0x00]
+                       [0x08 0x00 0x00 0x00]
+                       [0x07] ":method" [0x03 0x00] "GET"
+                       [0x07] ":scheme" [0x04 0x00] "http"
+                       [0x0a] ":authority" [0x0e 0x00] "localhost:8080"
+                       [0x05] ":path" [0x05 0x00] "/echo"
+                       [0x07] "upgrade" [0x09 0x00] "websocket"
+                       [0x0a] "connection" [0x07 0x00] "upgrade"
+                       [0x11] "sec-websocket-key" [0x18 0x00] /(?<key>[a-zA-Z0-9+\/=]{24})/
+                       [0x15] "sec-websocket-version" [0x02 0x00] "13"
+
 connected
 
-read http:method "GET"
-read http:version "HTTP/1.1"
-read http:header "Host" "localhost:8080"
-read http:header "Upgrade" /(?i:websocket)/
-read http:header "Connection" /(?i:Upgrade)/
-read http:header "Sec-WebSocket-Key" /(?<key>[a-zA-Z0-9+\/=]{24})/
-read http:header "Sec-WebSocket-Version" "13"
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "101")
+                              .header("upgrade", "websocket")
+                              .header("connection", "upgrade")
+                              .header("sec-websocket-accept", ws:handshakeHash(key))
+                              .build()}
+write flush
 
-write http:status "101" "Switching Protocols"
-write http:version "HTTP/1.1"
-write http:header "Upgrade" "websocket"
-write http:header "Connection" "Upgrade"
-write http:header "Sec-WebSocket-Accept" ${ws:handshakeHash(key)}
+read [0x8a 0x80] [0..4]
 
-read [0x89 0x80] [0..4]
-
-write [0x8a 0x00]
+write [0x89 0x80]
