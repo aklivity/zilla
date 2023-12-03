@@ -84,7 +84,7 @@ write [0x20 0x08]                    # CONNACK
       [0x05]                         # properties = none
       [0x27] 66560                   # maximum packet size = 66560
 
-write [0x60 0x04]                    # PUBREL
+write [0x62 0x04]                    # PUBREL
       [0x00 0x01]                    # packet id = 1
       [0x00]                         # reason code
       [0x00]                         # properties

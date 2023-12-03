@@ -127,6 +127,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttAckHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectFW;
@@ -174,6 +175,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
@@ -191,7 +193,6 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -207,7 +208,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
     private static final int PUBACK_FIXED_HEADER = 0b0100_0000;
     private static final int PUBREC_FIXED_HEADER = 0b0101_0000;
-    private static final int PUBREL_FIXED_HEADER = 0b0110_0000;
+    private static final int PUBREL_FIXED_HEADER = 0b0110_0010;
     private static final int PUBCOMP_FIXED_HEADER = 0b0111_0000;
 
     private static final int CONNECT_RESERVED_MASK = 0b0000_0001;
@@ -293,6 +294,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnectFW mqttConnectRO = new MqttConnectFW();
+    private final MqttAckHeaderFW mqttAckHeaderRO = new MqttAckHeaderFW();
     private final MqttPubackV4FW mqttPubackV4RO = new MqttPubackV4FW();
     private final MqttPubackV5FW mqttPubackV5RO = new MqttPubackV5FW();
     private final MqttPubrecV4FW mqttPubrecV4RO = new MqttPubrecV4FW();
@@ -1492,22 +1494,34 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubackV5FW puback = mqttPubackV5RO.tryWrap(buffer, offset, limit);
             decode:
             {
-                if (puback == null)
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
+                if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-                else if ((puback.typeAndFlags() & 0b1111_1111) != PUBACK_FIXED_HEADER)
+                int pubackLimit = ackHeader.limit();
+                if (ackHeader.remainingLength() > 2)
+                {
+                    final MqttPubackV5FW puback = mqttPubackV5RO.tryWrap(buffer, offset, limit);
+                    if (puback == null)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    pubackLimit = puback.limit();
+                }
+
+                if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBACK_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                     break decode;
                 }
 
-                server.onDecodePuback(traceId, authorization, buffer, progress, limit, puback.packetId());
-                progress = puback.limit();
+                server.onDecodePuback(traceId, authorization, buffer, progress, limit, ackHeader.packetId());
+                progress = pubackLimit;
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
 
@@ -1584,22 +1598,34 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubrecV5FW pubrec = mqttPubrecV5RO.tryWrap(buffer, offset, limit);
             decode:
             {
-                if (pubrec == null)
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
+                if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-                else if ((pubrec.typeAndFlags() & 0b1111_1111) != PUBREC_FIXED_HEADER)
+                int pubrecLimit = ackHeader.limit();
+                if (ackHeader.remainingLength() > 2)
+                {
+                    final MqttPubrecV5FW pubrec = mqttPubrecV5RO.tryWrap(buffer, offset, limit);
+                    if (pubrec == null)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    pubrecLimit = pubrec.limit();
+                }
+
+                if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBREC_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                     break decode;
                 }
 
-                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, pubrec.packetId());
-                progress = pubrec.limit();
+                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, ackHeader.packetId());
+                progress = pubrecLimit;
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
 
@@ -1676,22 +1702,34 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubrelV5FW pubrel = mqttPubrelV5RO.tryWrap(buffer, offset, limit);
             decode:
             {
-                if (pubrel == null)
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
+                if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-                else if ((pubrel.typeAndFlags() & 0b1111_1111) != PUBREL_FIXED_HEADER)
+                int pubrelLimit = ackHeader.limit();
+                if (ackHeader.remainingLength() > 2)
+                {
+                    final MqttPubrelV5FW pubrel = mqttPubrelV5RO.tryWrap(buffer, offset, limit);
+                    if (pubrel == null)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    pubrelLimit = pubrel.limit();
+                }
+
+                if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBREL_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                     break decode;
                 }
 
-                server.onDecodePubrel(traceId, authorization, buffer, progress, limit, pubrel.packetId());
-                progress = pubrel.limit();
+                server.onDecodePubrel(traceId, authorization, buffer, progress, limit, ackHeader.packetId());
+                progress = pubrelLimit;
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
 
@@ -1768,22 +1806,34 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubcompV5FW pubcomp = mqttPubcompV5RO.tryWrap(buffer, offset, limit);
             decode:
             {
-                if (pubcomp == null)
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
+                if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-                else if ((pubcomp.typeAndFlags() & 0b1111_1111) != PUBCOMP_FIXED_HEADER)
+                int pubcompLimit = ackHeader.limit();
+                if (ackHeader.remainingLength() > 2)
+                {
+                    final MqttPubcompV5FW pubrec = mqttPubcompV5RO.tryWrap(buffer, offset, limit);
+                    if (pubrec == null)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    pubcompLimit = pubrec.limit();
+                }
+
+                if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBCOMP_FIXED_HEADER)
                 {
                     reasonCode = MALFORMED_PACKET;
                     break decode;
                 }
 
-                server.onDecodePubcomp(traceId, authorization, buffer, progress, limit, pubcomp.packetId());
-                progress = pubcomp.limit();
+                server.onDecodePubcomp(traceId, authorization, buffer, progress, limit, ackHeader.packetId());
+                progress = pubcompLimit;
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
 
@@ -3961,9 +4011,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubackV4FW puback = mqttPubackV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBACK_FIXED_HEADER)
-                .remainingLength(3)
+                .remainingLength(2)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, puback);
@@ -3992,9 +4041,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubrecV4FW pubrec = mqttPubrecV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREC_FIXED_HEADER)
-                .remainingLength(3)
+                .remainingLength(2)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubrec);
@@ -4023,9 +4071,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubrelV4FW pubrel = mqttPubrelV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREL_FIXED_HEADER)
-                .remainingLength(3)
+                .remainingLength(2)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubrel);
@@ -4054,9 +4101,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubcompV4FW pubcomp = mqttPubcompV4RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBCOMP_FIXED_HEADER)
-                .remainingLength(3)
+                .remainingLength(2)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubcomp);
@@ -5974,19 +6020,22 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 assert replyAck <= replySeq;
 
-                final MqttFlushExFW subscribeFlushEx = extension.get(mqttSubscribeFlushExRO::tryWrap);
-                final int packetId = subscribeFlushEx.subscribe().packetId();
-
-                switch (version)
+                if (extension.sizeof() > 0)
                 {
-                case 4:
-                    doEncodePubrelV4(traceId, authorization, packetId);
-                    break;
-                case 5:
-                    doEncodePubrelV5(traceId, authorization, packetId);
-                    break;
+                    final MqttFlushExFW subscribeFlushEx = extension.get(mqttSubscribeFlushExRO::tryWrap);
+                    final int packetId = subscribeFlushEx.subscribe().packetId();
+
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubrelV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrelV5(traceId, authorization, packetId);
+                        break;
+                    }
+                    qos2Subscribes.put(packetId, this);
                 }
-                qos2Subscribes.put(packetId, this);
             }
 
 

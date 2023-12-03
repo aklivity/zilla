@@ -37,15 +37,14 @@ write [0x32 0x15]                    # PUBLISH, qos = 1
       [0x00 0x01]                    # packet id = 1
       "message"                      # payload
 
-read  [0x40 0x03]                    # PUBACK
+read  [0x40 0x02]                    # PUBACK
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
 
 write [0x3a 0x15]                    # PUBLISH, dup, qos = 1
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00 0x01]                    # packet id = 1
       "message"                      # payload
 
-read  [0x40 0x03]                    # PUBACK
+read  [0x40 0x02]                    # PUBACK
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
+

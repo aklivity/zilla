@@ -55,18 +55,14 @@ read  [0x34 0x16]                    # PUBLISH, qos = 2
       [0x00 0x02]                    # packet id = 2
       "message3"                     # payload
 
-write [0x50 0x03]                    # PUBREC
+write [0x50 0x02]                    # PUBREC
       [0x00 0x02]                    # packet id = 2
-      [0x00]                         # reason code
 
-write [0x40 0x03]                    # PUBACK
+write [0x40 0x02]                    # PUBACK
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
 
-read  [0x60 0x03]                    # PUBREL
+read  [0x62 0x02]                    # PUBREL
       [0x00 0x02]                    # packet id = 2
-      [0x00]                         # reason code
 
-write [0x70 0x03]                    # PUBCOMP
+write [0x70 0x02]                    # PUBCOMP
       [0x00 0x02]                    # packet id = 2
-      [0x00]                         # reason code

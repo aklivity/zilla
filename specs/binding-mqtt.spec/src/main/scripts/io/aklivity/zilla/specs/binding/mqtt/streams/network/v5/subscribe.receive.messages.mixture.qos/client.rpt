@@ -81,7 +81,7 @@ write [0x40 0x04]                    # PUBACK
       [0x00]                         # reason code
       [0x00]                         # properties
 
-read  [0x60 0x04]                    # PUBREL
+read  [0x62 0x04]                    # PUBREL
       [0x00 0x02]                    # packet id = 2
       [0x00]                         # reason code
       [0x00]                         # properties

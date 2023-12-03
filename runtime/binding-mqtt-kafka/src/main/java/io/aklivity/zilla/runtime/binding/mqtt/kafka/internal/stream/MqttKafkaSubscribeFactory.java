@@ -41,6 +41,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
@@ -76,9 +77,12 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaF
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetMetadataFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
@@ -88,8 +92,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 
 public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 {
@@ -168,7 +170,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     //TODO: rename
     private final Int2ObjectHashMap<PartitionOffset> offsetsPerPacketId;
     private final Long2ObjectHashMap<OffsetHighWaterMark> highWaterMarks;
-
+    private final Object2IntHashMap<String> qosLevels;
     private int reconnectAttempt;
 
     public MqttKafkaSubscribeFactory(
@@ -198,6 +200,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.qosNames = new Int2ObjectHashMap<>();
         this.offsetsPerPacketId = new Int2ObjectHashMap<>();
         this.highWaterMarks = new Long2ObjectHashMap<>();
+        this.qosLevels = new Object2IntHashMap<>(-1);
+        this.qosLevels.put("0", 0);
+        this.qosLevels.put("1", 1);
+        this.qosLevels.put("2", 2);
     }
 
     @Override
@@ -1455,7 +1461,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             b.topic(topicName);
                             if (helper.qos != null)
                             {
-                                final int qos = MqttQoS.valueOf(helper.qos).value();
+                                final int qos = qosLevels.get(helper.qos);
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
@@ -1626,9 +1632,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
 
             assert replyAck <= replySeq;
-            final KafkaMergedConsumerFlushExFW kafkaConsumerFlushEx =
-                kafkaFlushEx != null && kafkaFlushEx.kind() == KafkaDataExFW.KIND_MERGED ?
-                    kafkaFlushEx.merged().consumer() : null;
+            final KafkaMergedConsumerFlushExFW kafkaConsumerFlushEx = kafkaFlushEx != null &&
+                kafkaFlushEx.kind() == KafkaFlushExFW.KIND_MERGED &&
+                kafkaFlushEx.merged().kind() == KafkaMergedFlushExFW.KIND_CONSUMER ? kafkaFlushEx.merged().consumer() : null;
             if (kafkaConsumerFlushEx != null)
             {
                 final long correlationId = kafkaConsumerFlushEx.correlationId();
@@ -2154,7 +2160,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                             if (helper.qos != null)
                             {
-                                final int qos = MqttQoS.valueOf(helper.qos).value();
+                                final int qos = qosLevels.get(helper.qos);
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
@@ -2268,9 +2274,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            final KafkaMergedConsumerFlushExFW kafkaConsumerFlushEx =
-                kafkaFlushEx != null && kafkaFlushEx.kind() == KafkaDataExFW.KIND_MERGED ?
-                    kafkaFlushEx.merged().consumer() : null;
+            final KafkaMergedConsumerFlushExFW kafkaConsumerFlushEx = kafkaFlushEx != null &&
+                kafkaFlushEx.kind() == KafkaFlushExFW.KIND_MERGED &&
+                kafkaFlushEx.merged().kind() == KafkaMergedFlushExFW.KIND_CONSUMER ? kafkaFlushEx.merged().consumer() : null;
             if (kafkaConsumerFlushEx != null)
             {
                 final long correlationId = kafkaConsumerFlushEx.correlationId();
@@ -2565,8 +2571,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         int qos,
         KafkaOffsetType offsetType)
     {
-        final KafkaOffsetType offset = qos > 0 ? KafkaOffsetType.HISTORICAL : offsetType;
-
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -2579,8 +2583,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         m.groupId(clientId);
                     }
                     m.partitionsItem(p ->
-                        p.partitionId(offset.value())
-                            .partitionOffset(offset.value()));
+                        p.partitionId(offsetType.value())
+                            .partitionOffset(offsetType.value()));
                     filters.forEach(filter ->
                         m.filtersItem(f ->
                         {

@@ -70,14 +70,11 @@ write [0x34 0x15]                    # PUBLISH, qos = 2
       [0x00 0x01]                    # packet id = 1
       "message"                      # payload
 
-read  [0x50 0x03]                    # PUBREC
+read  [0x50 0x02]                    # PUBREC
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
 
-write [0x60 0x03]                    # PUBREL
+write [0x62 0x02]                    # PUBREL
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
 
-read  [0x70 0x03]                    # PUBCOMP
+read  [0x70 0x02]                    # PUBCOMP
       [0x00 0x01]                    # packet id = 1
-      [0x00]                         # reason code
