@@ -431,13 +431,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             kafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m
+                .merged(m -> m.produce(mp -> mp
                     .deferred(deferred)
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.set(key))
                     .hashKey(this::setHashKey)
-                    .headers(kafkaHeadersRW.build()))
+                    .headers(kafkaHeadersRW.build())))
                 .build();
 
             messages.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);

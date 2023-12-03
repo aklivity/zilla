@@ -43,6 +43,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
@@ -166,8 +167,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final Int2ObjectHashMap<String16FW> qosNames;
     //TODO: rename
     private final Int2ObjectHashMap<PartitionOffset> offsetsPerPacketId;
-
     private final Long2ObjectHashMap<OffsetHighWaterMark> highWaterMarks;
+
     private int reconnectAttempt;
 
     public MqttKafkaSubscribeFactory(
@@ -1110,7 +1111,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         public boolean matchesTopicFilter(
             String topicFilter)
         {
-            return routeConfig.matches(topicFilter);
+            return routeConfig.matches(topicFilter, MqttKafkaConditionKind.SUBSCRIBE);
         }
 
         private void doKafkaBegin(
@@ -1270,7 +1271,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                         }
                                     }
                                 });
-
                             }
                         });
                     }))

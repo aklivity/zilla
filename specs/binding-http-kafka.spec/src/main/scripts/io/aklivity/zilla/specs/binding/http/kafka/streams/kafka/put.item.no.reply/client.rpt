@@ -32,6 +32,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .produce()
                                 .deferred(20)
                                 .partition(-1, -1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")

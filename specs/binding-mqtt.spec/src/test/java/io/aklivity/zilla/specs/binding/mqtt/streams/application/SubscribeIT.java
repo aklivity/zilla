@@ -263,6 +263,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.unroutable/client",
+        "${app}/subscribe.unroutable/server"})
+    public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.qos1/client",
         "${app}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception

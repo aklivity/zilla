@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
@@ -76,7 +77,7 @@ public class MqttKafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .filter(r -> r.authorized(authorization) && r.matches(topic, MqttKafkaConditionKind.PUBLISH))
             .findFirst()
             .orElse(null);
     }
@@ -87,7 +88,7 @@ public class MqttKafkaBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization) &&
-                filters.anyMatch(f -> r.matches(f.pattern().asString())))
+                filters.anyMatch(f -> r.matches(f.pattern().asString(), MqttKafkaConditionKind.SUBSCRIBE)))
             .collect(Collectors.toList());
     }
 

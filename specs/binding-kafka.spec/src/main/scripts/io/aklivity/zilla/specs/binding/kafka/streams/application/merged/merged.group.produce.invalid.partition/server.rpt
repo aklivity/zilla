@@ -39,6 +39,7 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
+                                .produce()
                                   .timestamp(newTimestamp)
                                   .key("message-key!")
                                   .build()

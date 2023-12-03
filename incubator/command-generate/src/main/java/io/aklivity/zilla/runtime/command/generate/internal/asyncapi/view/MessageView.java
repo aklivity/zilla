@@ -31,6 +31,11 @@ public final class MessageView extends Resolvable<Message>
         this.message = message.ref == null ? message : resolveRef(message.ref);
     }
 
+    public String refKey()
+    {
+        return key;
+    }
+
     public Schema headers()
     {
         return message.headers;

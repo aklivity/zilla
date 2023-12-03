@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -92,7 +93,9 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupBeg
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceBeginExFW;
@@ -157,6 +160,7 @@ public final class LoggableStream implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
+    private final boolean withPayload;
     private final LongPredicate nextTimestamp;
 
     private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
@@ -173,6 +177,7 @@ public final class LoggableStream implements AutoCloseable
         Logger logger,
         Predicate<String> hasFrameType,
         Predicate<String> hasExtensionType,
+        boolean withPayload,
         LongPredicate nextTimestamp)
     {
         this.index = index;
@@ -184,6 +189,7 @@ public final class LoggableStream implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.out = logger;
+        this.withPayload = withPayload;
         this.nextTimestamp = nextTimestamp;
 
         final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
@@ -386,6 +392,18 @@ public final class LoggableStream implements AutoCloseable
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
                     budgetId, length, reserved, flags, authorization));
+
+        if (withPayload)
+        {
+            final OctetsFW payload = data.payload();
+            if (payload != null)
+            {
+                byte[] bytes = new byte[data.length()];
+                payload.buffer().getBytes(0, bytes);
+                String hexData = BitUtil.toHex(bytes).replaceAll("(..)(?!$)", "$1:");
+                out.printf(verboseFormat, index, offset, timestamp, hexData);
+            }
+        }
 
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -1172,19 +1190,52 @@ public final class LoggableStream implements AutoCloseable
         long timestamp,
         KafkaMergedDataExFW merged)
     {
-        final KafkaKeyFW key = merged.key();
-        final ArrayFW<KafkaHeaderFW> headers = merged.headers();
-        final KafkaOffsetFW partition = merged.partition();
-        final ArrayFW<KafkaOffsetFW> progress = merged.progress();
+        switch (merged.kind())
+        {
+        case KafkaMergedDataExFW.KIND_FETCH:
+            onKafkaMergedFetchDataEx(offset, timestamp, merged.fetch());
+            break;
+        case KafkaMergedDataExFW.KIND_PRODUCE:
+            onKafkaMergedProduceDataEx(offset, timestamp, merged.produce());
+            break;
+        }
+    }
+
+    private void onKafkaMergedFetchDataEx(
+        int offset,
+        long timestamp,
+        KafkaMergedFetchDataExFW fetch)
+    {
+        final KafkaKeyFW key = fetch.key();
+        final ArrayFW<KafkaHeaderFW> headers = fetch.headers();
+        final KafkaOffsetFW partition = fetch.partition();
+        final ArrayFW<KafkaOffsetFW> progress = fetch.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[merged] (%d) %d %s %d %d %d",
-                           merged.deferred(), merged.timestamp(), asString(key.value()),
-                           partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+            format("[merged] [fetch] (%d) %d %s %d %d %d",
+                fetch.deferred(), fetch.timestamp(), asString(key.value()),
+                partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                        format("%s: %s", asString(h.name()), asString(h.value()))));
+            format("%s: %s", asString(h.name()), asString(h.value()))));
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+            format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+    }
+
+    private void onKafkaMergedProduceDataEx(
+        int offset,
+        long timestamp,
+        KafkaMergedProduceDataExFW produce)
+    {
+        final KafkaKeyFW key = produce.key();
+        final ArrayFW<KafkaHeaderFW> headers = produce.headers();
+        final KafkaOffsetFW partition = produce.partition();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[merged] [produce] (%d) %d %s %d %d %d",
+                produce.deferred(), produce.timestamp(), asString(key.value()),
+                partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+        headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+            format("%s: %s", asString(h.name()), asString(h.value()))));
     }
 
     private void onKafkaMetaDataEx(

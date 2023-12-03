@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
@@ -53,15 +55,18 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
-    private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final int FLAGS_INIT_FIN = 3;
 
+    private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final FlushFW flushRO = new FlushFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
@@ -73,6 +78,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
@@ -84,7 +90,6 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
-    private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -104,7 +109,6 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
-        this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -242,7 +246,42 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
-    private void doDataNull(
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        OctetsFW payload,
+        Flyweight extension)
+    {
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(payload)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doFlush(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -256,21 +295,21 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         int reserved,
         Flyweight extension)
     {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
 
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doEnd(
@@ -395,6 +434,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private final IntHashSet partitions;
         private final IntHashSet assignedPartitions;
         private final Object2ObjectHashMap<String, IntHashSet> assignments;
+        private final ArrayDeque<KafkaCacheClientConsumerStream> commits;
 
         private long initialId;
         private long replyId;
@@ -405,6 +445,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
+        private long initialBud;
 
         private long replySeq;
         private long replyAck;
@@ -434,6 +476,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             this.members = new ArrayList<>();
             this.assignedPartitions = new IntHashSet();
             this.assignments = new Object2ObjectHashMap<>();
+            this.commits = new ArrayDeque<>();
         }
 
         private void onConsumerFanMemberOpening(
@@ -448,7 +491,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             if (KafkaState.initialOpened(state))
             {
-                member.doConsumerInitialWindow(traceId, 0L, 0, 0, 0);
+                member.doConsumerInitialWindow(authorization, traceId, 0, initialPad);
             }
 
             if (KafkaState.replyOpened(state))
@@ -539,6 +582,19 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             state = KafkaState.openingInitial(state);
         }
 
+        private void doConsumerInitialFlush(
+            KafkaCacheClientConsumerStream stream,
+            long traceId,
+            OctetsFW extension)
+        {
+            commits.add(stream);
+
+            final int reserved = initialPad;
+
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, initialBud, reserved, extension);
+        }
+
         private void doConsumerFanInitialEndIfNecessary(
             long traceId)
         {
@@ -596,15 +652,28 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void onConsumerFanInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
-            {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
 
-                final long traceId = window.traceId();
+            assert acknowledge <= sequence;
+            assert acknowledge >= this.initialAck;
+            assert maximum >= this.initialMax;
 
-                state = KafkaState.openedInitial(state);
+            initialAck = acknowledge;
+            initialMax = maximum;
+            initialBud = budgetId;
+            initialPad = padding;
+            state = KafkaState.openedInitial(state);
 
-                members.forEach(s -> s.doConsumerInitialWindow(traceId, 0L, 0, 0, 0));
-            }
+            assert initialAck <= initialSeq;
+
+            members.forEach(s -> s.doConsumerInitialWindow(authorization, traceId, 0, initialPad));
         }
 
         private void onConsumerFanMessage(
@@ -622,6 +691,10 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onConsumerFanReplyData(data);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onConsumerFanReplyFlush(flush);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
@@ -698,6 +771,25 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             }
 
             doConsumerFanReplyWindow(traceId, 0, replyMax);
+        }
+
+        private void onConsumerFanReplyFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final OctetsFW extension = flush.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+
+            assert replyAck <= replySeq;
+
+            KafkaCacheClientConsumerStream stream = commits.remove();
+            stream.doConsumerReplyFlush(traceId, extension);
         }
 
         private void onConsumerFanReplyEnd(
@@ -823,6 +915,10 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onConsumerInitialBegin(begin);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onConsumerInitialFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onConsumerInitialEnd(end);
@@ -852,6 +948,15 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             state = KafkaState.openingInitial(state);
 
             fan.onConsumerFanMemberOpening(traceId, this);
+        }
+
+        private void onConsumerInitialFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final OctetsFW extension = flush.extension();
+
+            fan.doConsumerInitialFlush(this, traceId, extension);
         }
 
         private void onConsumerInitialEnd(
@@ -899,26 +1004,13 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         }
 
         private void doConsumerInitialWindow(
+            long authorization,
             long traceId,
             long budgetId,
-            int minInitialNoAck,
-            int minInitialPad,
-            int minInitialMax)
+            int padding)
         {
-            final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
-
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
-            {
-                initialAck = newInitialAck;
-                assert initialAck <= initialSeq;
-
-                initialMax = minInitialMax;
-
-                state = KafkaState.openedInitial(state);
-
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, budgetId, minInitialPad);
-            }
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, fan.initialMax,
+                traceId, authorization, budgetId, padding);
         }
 
         private void doConsumerReplyBeginIfNecessary(
@@ -955,10 +1047,20 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final int reserved = replyPad;
 
-            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, extension);
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0, FLAGS_INIT_FIN, reserved, EMPTY_OCTETS, extension);
 
             replySeq += reserved;
+        }
+
+        private void doConsumerReplyFlush(
+            long traceId,
+            Flyweight extension)
+        {
+            final int reserved = replyPad;
+
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, replyBudgetId, reserved, extension);
         }
 
         private void doConsumerReplyEndIfNecessary(
