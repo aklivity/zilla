@@ -145,6 +145,13 @@
             octets payload;
         }
 
+        struct MqttPublishQosV4 extends MqttPacketHeader
+        {
+            string16 topicName;
+            uint16 packetId;
+            octets payload;
+        }
+
         struct MqttPublishV5 extends MqttPacketHeader
         {
             string16 topicName;
@@ -152,7 +159,7 @@
             octets payload;
         }
 
-        struct MqttPublishQos extends MqttPacketHeader
+        struct MqttPublishQosV5 extends MqttPacketHeader
         {
             string16 topicName;
             uint16 packetId;

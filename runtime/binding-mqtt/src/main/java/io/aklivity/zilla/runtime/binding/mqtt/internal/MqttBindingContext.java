@@ -20,8 +20,9 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttClientFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttServerFactory;
@@ -31,8 +32,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-
-import org.agrona.collections.IntArrayList;
 
 final class MqttBindingContext implements BindingContext
 {

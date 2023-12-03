@@ -362,6 +362,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.replay.retained.message.qos1.v4/client",
+        "${app}/subscribe.replay.retained.message.qos1.v4/server"})
+    public void shouldReplayRetainedQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replay.retained.message.qos2.v4/client",
+        "${app}/subscribe.replay.retained.message.qos2.v4/server"})
+    public void shouldReplayRetainedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
     public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception

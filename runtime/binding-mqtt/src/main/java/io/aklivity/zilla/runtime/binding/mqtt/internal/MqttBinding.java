@@ -19,10 +19,10 @@ import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.agrona.collections.IntArrayList;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-
-import org.agrona.collections.IntArrayList;
 
 public final class MqttBinding implements Binding
 {
