@@ -1821,7 +1821,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long replyId;
         private final MqttSubscribeProxy mqtt;
         private final Int2ObjectHashMap<IntArrayList> incompletePacketIds;
-        private final IntArrayList unAckedPacketIds;
 
         private int state;
 
@@ -1833,6 +1832,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private int unAckedPackets;
 
         private KafkaRetainedProxy(
             long originId,
@@ -1848,7 +1849,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.incompletePacketIds = new Int2ObjectHashMap<>();
-            this.unAckedPacketIds = new IntArrayList();
+            this.unAckedPackets = 0;
         }
 
         private void doKafkaBegin(
@@ -1917,14 +1918,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
             }
 
-            unAckedPacketIds.removeInt(packetId);
-
             if (state == MqttOffsetStateFlags.INCOMPLETE)
             {
                 incompletePacketIds.computeIfAbsent(offset.partitionId, c -> new IntArrayList()).add(packetId);
             }
 
-            if (unAckedPacketIds.isEmpty() && incompletePacketIds.isEmpty())
+            if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
             {
                 shouldClose = true;
             }
@@ -2178,7 +2177,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                     final int packetId = packetIdCounter.getAndIncrement();
                                     offsetsPerPacketId.put(packetId,
                                         new PartitionOffset(topicKey, partition.partitionId(), partition.partitionOffset()));
-                                    unAckedPacketIds.add(packetId);
+                                    unAckedPackets++;
                                     b.packetId(packetId);
                                     b.qos(qos);
                                 }
@@ -2300,6 +2299,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         .subscribe(b -> b.packetId((int) correlationId)).build();
                     mqtt.doMqttFlush(traceId, authorization, budgetId, reserved, mqttSubscribeFlushEx);
                 }
+                unAckedPackets--;
             }
             else
             {
@@ -2313,10 +2313,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     }));
             }
 
-            if (unAckedPacketIds.isEmpty() && incompletePacketIds.isEmpty())
+            if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
             {
                 mqtt.retainedSubscriptionIds.clear();
-                doKafkaEnd(traceId, authorization);
+                doKafkiaEnd(traceId, authorization);
             }
         }
 
