@@ -173,7 +173,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
