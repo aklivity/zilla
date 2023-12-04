@@ -2288,12 +2288,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     mqtt.doMqttFlush(traceId, authorization, budgetId, reserved, mqttSubscribeFlushEx);
                 }
             }
-            if (offsetsPerPacketId.isEmpty())
+            if (incompletePacketIds.isEmpty())
             {
                 mqtt.retainedSubscriptionIds.clear();
                 doKafkaEnd(traceId, authorization);
             }
-            else if (!incompletePacketIds.isEmpty())
+            else
             {
                 incompletePacketIds.forEach((partitionId, metadata) ->
                     metadata.forEach(packetId ->
