@@ -37,6 +37,7 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
+import org.agrona.collections.MutableLong;
 import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -158,6 +159,8 @@ public final class KafkaMergedFactory implements BindingHandler
     private final MutableInteger initialNoAckRW = new MutableInteger();
     private final MutableInteger initialPadRW = new MutableInteger();
     private final MutableInteger initialMaxRW = new MutableInteger();
+    private final MutableLong partitionOffsetRW = new MutableLong();
+    private final StringBuilder metadataRW = new StringBuilder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -1614,12 +1617,25 @@ public final class KafkaMergedFactory implements BindingHandler
             return builder ->
             {
                 builder.capabilities(c -> c.set(FETCH_ONLY)).topic(topic);
-                latestOffsetByPartitionId.longForEach((k, v) -> builder
-                    .partitionsItem(i -> i
-                        .partitionId((int) k)
-                        .partitionOffset(0L)
-                        .stableOffset(stableOffsetByPartitionId.get(k))
-                        .latestOffset(v)));
+                latestOffsetByPartitionId.longForEach((k, v) ->
+                {
+                    partitionOffsetRW.value = 0;
+                    metadataRW.setLength(0);
+                    if (!offsetsByPartitionId.isEmpty())
+                    {
+                        final KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get((int) k);
+                        partitionOffsetRW.value = kafkaPartitionOffset.partitionOffset;
+                        metadataRW.append(kafkaPartitionOffset.metadata);
+                    }
+
+                    builder
+                        .partitionsItem(i -> i
+                            .partitionId((int) k)
+                            .partitionOffset(partitionOffsetRW.value)
+                            .stableOffset(stableOffsetByPartitionId.get(k))
+                            .latestOffset(v)
+                            .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
+                });
             };
         }
 
@@ -1948,7 +1964,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     p.partitionOffset(),
                     0,
                     p.leaderEpoch(),
-                    null)));
+                    p.metadata().asString())));
 
             doFetchPartitionsIfNecessary(traceId);
         }
