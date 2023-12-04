@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -382,42 +381,38 @@ public class KafkaConfiguration extends Configuration
 
     private static InstanceIdSupplier decodeInstanceId(
         Configuration config,
-        String value)
+        String fullyQualifiedMethodName)
     {
+        InstanceIdSupplier supplier = null;
+
         try
         {
-            String className = value.substring(0, value.indexOf("$$Lambda"));
-            Class<?> lambdaClass = Class.forName(className);
-
-            Method targetMethod = null;
-            for (Method method : lambdaClass.getDeclaredMethods())
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
             {
-                if (method.isSynthetic())
-                {
-                    targetMethod = method;
-                    break;
-                }
-            }
-
-            Method finalTargetMethod = targetMethod;
-            return () ->
-            {
+                String value = null;
                 try
                 {
-                    finalTargetMethod.setAccessible(true);
-                    return (String) finalTargetMethod.invoke(null);
+                    value = (String) method.invoke();
                 }
-                catch (Exception e)
+                catch (Throwable ex)
                 {
-                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                    LangUtil.rethrowUnchecked(ex);
                 }
+
+                return value;
             };
         }
         catch (Throwable ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
-        return null;
+
+        return supplier;
     }
 
     private static InstanceIdSupplier defaultInstanceId(

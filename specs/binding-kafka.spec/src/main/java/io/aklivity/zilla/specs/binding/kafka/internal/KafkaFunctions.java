@@ -25,7 +25,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -69,6 +68,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstra
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
@@ -84,8 +84,10 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTop
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
@@ -1092,10 +1094,22 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 mergedBeginExRW.partitionsItem(p -> p.partitionId(partitionId)
-                                                     .partitionOffset(offset)
-                                                     .stableOffset(stableOffset)
-                                                     .latestOffset(latestOffset));
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 
@@ -1396,6 +1410,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExBuilder instanceId(
+                String instanceId)
+            {
+                groupBeginExRW.instanceId(instanceId);
+                return this;
+            }
+
             public KafkaGroupBeginExBuilder timeout(
                 int timeout)
             {
@@ -1494,12 +1515,16 @@ public final class KafkaFunctions
             }
 
             public KafkaOffsetFetchBeginExBuilder topic(
-                String topic,
+                String topic)
+            {
+                offsetFetchBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder partition(
                 int partitionId)
             {
-                offsetFetchBeginExRW.topics(t -> t.item(i ->
-                    i.topic(topic)
-                        .partitions(p -> p.item(a -> a.partitionId(partitionId)))));
+                offsetFetchBeginExRW.partitionsItem(p -> p.partitionId(partitionId));
                 return this;
             }
 
@@ -1521,6 +1546,13 @@ public final class KafkaFunctions
                 offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
+            public KafkaOffsetCommitBeginExBuilder topic(
+                String topic)
+            {
+                offsetCommitBeginExRW.topic(topic);
+                return this;
+            }
+
             public KafkaOffsetCommitBeginExBuilder groupId(
                 String groupId)
             {
@@ -1528,10 +1560,17 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaOffsetCommitBeginExBuilder topic(
-                String topic)
+            public KafkaOffsetCommitBeginExBuilder memberId(
+                String memberId)
             {
-                offsetCommitBeginExRW.topic(topic);
+                offsetCommitBeginExRW.memberId(memberId);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder instanceId(
+                String instanceId)
+            {
+                offsetCommitBeginExRW.instanceId(instanceId);
                 return this;
             }
 
@@ -1760,11 +1799,6 @@ public final class KafkaFunctions
 
         public final class KafkaMergedDataExBuilder
         {
-            private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
-
             private final KafkaMergedDataExFW.Builder mergedDataExRW = new KafkaMergedDataExFW.Builder();
 
             private KafkaMergedDataExBuilder()
@@ -1772,226 +1806,446 @@ public final class KafkaFunctions
                 mergedDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
-            public KafkaMergedDataExBuilder deferred(
-                int deferred)
+            public KafkaMergedFetchDataExBuilder fetch()
             {
-                mergedDataExRW.deferred(deferred);
-                return this;
+                mergedDataExRW.kind(KafkaApi.FETCH.value());
+
+                return new KafkaMergedFetchDataExBuilder();
             }
 
-            public KafkaMergedDataExBuilder timestamp(
-                long timestamp)
+            public KafkaMergedProduceDataExBuilder produce()
             {
-                mergedDataExRW.timestamp(timestamp);
-                return this;
+                mergedDataExRW.kind(KafkaApi.PRODUCE.value());
+
+                return new KafkaMergedProduceDataExBuilder();
             }
 
-            public KafkaMergedDataExBuilder filters(
-                long filters)
+            public final class KafkaMergedFetchDataExBuilder
             {
-                mergedDataExRW.filters(filters);
-                return this;
-            }
+                private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
 
-            public KafkaMergedDataExBuilder partition(
-                int partitionId,
-                long partitionOffset)
-            {
-                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
+                private final KafkaMergedFetchDataExFW.Builder mergedFetchDataExRW = new KafkaMergedFetchDataExFW.Builder();
 
-            public KafkaMergedDataExBuilder partition(
-                int partitionId,
-                long partitionOffset,
-                long latestOffset)
-            {
-                mergedDataExRW.partition(p -> p
-                    .partitionId(partitionId)
-                    .partitionOffset(partitionOffset)
-                    .latestOffset(latestOffset));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder progress(
-                int partitionId,
-                long partitionOffset)
-            {
-                progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder progress(
-                int partitionId,
-                long partitionOffset,
-                long latestOffset)
-            {
-                mergedDataExRW.progressItem(p -> p
-                    .partitionId(partitionId)
-                    .partitionOffset(partitionOffset)
-                    .latestOffset(latestOffset));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder key(
-                String key)
-            {
-                if (key == null)
+                private KafkaMergedFetchDataExBuilder()
                 {
-                    mergedDataExRW.key(m -> m.length(-1)
-                                            .value((OctetsFW) null));
+                    mergedFetchDataExRW.wrap(
+                        writeBuffer,
+                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_FETCH,
+                        writeBuffer.capacity());
                 }
-                else
-                {
-                    keyRO.wrap(key.getBytes(UTF_8));
-                    mergedDataExRW.key(k -> k.length(keyRO.capacity())
-                                            .value(keyRO, 0, keyRO.capacity()));
-                }
-                return this;
-            }
 
-            public KafkaMergedDataExBuilder hashKey(
-                String hashKey)
-            {
-                if (hashKey == null)
+                public KafkaMergedFetchDataExBuilder deferred(
+                    int deferred)
                 {
-                    mergedDataExRW.hashKey(m -> m.length(-1)
+                    mergedFetchDataExRW.deferred(deferred);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder timestamp(
+                    long timestamp)
+                {
+                    mergedFetchDataExRW.timestamp(timestamp);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder filters(
+                    long filters)
+                {
+                    mergedFetchDataExRW.filters(filters);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder partition(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedFetchDataExRW.partition(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder progress(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder progress(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedFetchDataExRW.progressItem(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder key(
+                    String key)
+                {
+                    if (key == null)
+                    {
+                        mergedFetchDataExRW.key(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        mergedFetchDataExRW.key(k -> k.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder delta(
+                    String deltaType,
+                    long ancestorOffset)
+                {
+                    mergedFetchDataExRW.delta(d -> d.type(t -> t.set(KafkaDeltaType.valueOf(deltaType)))
+                        .ancestorOffset(ancestorOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder header(
+                    String name,
+                    String value)
+                {
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value.getBytes(UTF_8));
+                        mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExBuilder headerNull(
+                    String name)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(-1)
                         .value((OctetsFW) null));
+                    return this;
                 }
-                else
-                {
-                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
-                    mergedDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
-                        .value(hashKeyRO, 0, hashKeyRO.capacity()));
-                }
-                return this;
-            }
 
-            public KafkaMergedDataExBuilder delta(
-                String deltaType,
-                long ancestorOffset)
-            {
-                mergedDataExRW.delta(d -> d.type(t -> t.set(KafkaDeltaType.valueOf(deltaType)))
-                                           .ancestorOffset(ancestorOffset));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder header(
-                String name,
-                String value)
-            {
-                if (value == null)
+                public KafkaMergedFetchDataExBuilder headerByte(
+                    String name,
+                    byte value)
                 {
                     nameRO.wrap(name.getBytes(UTF_8));
-                    mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                    .name(nameRO, 0, nameRO.capacity())
-                                                    .valueLen(-1)
-                                                    .value((OctetsFW) null));
+                    valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
+                    mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
                 }
-                else
+
+                public KafkaMergedFetchDataExBuilder headerShort(
+                    String name,
+                    short value)
                 {
                     nameRO.wrap(name.getBytes(UTF_8));
-                    valueRO.wrap(value.getBytes(UTF_8));
-                    mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                    .name(nameRO, 0, nameRO.capacity())
-                                                    .valueLen(valueRO.capacity())
-                                                    .value(valueRO, 0, valueRO.capacity()));
+                    valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
+                    mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
                 }
-                return this;
-            }
 
-            public KafkaMergedDataExBuilder headerNull(
-                String name)
-            {
-                nameRO.wrap(name.getBytes(UTF_8));
-                mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                .name(nameRO, 0, nameRO.capacity())
-                                                .valueLen(-1)
-                                                .value((OctetsFW) null));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder headerByte(
-                String name,
-                byte value)
-            {
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
-                mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                .name(nameRO, 0, nameRO.capacity())
-                                                .valueLen(valueRO.capacity())
-                                                .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder headerShort(
-                String name,
-                short value)
-            {
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
-                mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                .name(nameRO, 0, nameRO.capacity())
-                                                .valueLen(valueRO.capacity())
-                                                .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder headerInt(
-                String name,
-                int value)
-            {
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
-                mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                .name(nameRO, 0, nameRO.capacity())
-                                                .valueLen(valueRO.capacity())
-                                                .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder headerLong(
-                String name,
-                long value)
-            {
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
-                mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                .name(nameRO, 0, nameRO.capacity())
-                                                .valueLen(valueRO.capacity())
-                                                .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExBuilder headerBytes(
-                String name,
-                byte[] value)
-            {
-                if (value == null)
+                public KafkaMergedFetchDataExBuilder headerInt(
+                    String name,
+                    int value)
                 {
                     nameRO.wrap(name.getBytes(UTF_8));
-                    mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                     .name(nameRO, 0, nameRO.capacity())
-                                                     .valueLen(-1)
-                                                     .value((OctetsFW) null));
+                    valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
+                    mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
                 }
-                else
+
+                public KafkaMergedFetchDataExBuilder headerLong(
+                    String name,
+                    long value)
                 {
                     nameRO.wrap(name.getBytes(UTF_8));
-                    valueRO.wrap(value);
-                    mergedDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
-                                                     .name(nameRO, 0, nameRO.capacity())
-                                                     .valueLen(valueRO.capacity())
-                                                     .value(valueRO, 0, valueRO.capacity()));
+                    valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
+                    mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
                 }
-                return this;
+
+                public KafkaMergedFetchDataExBuilder headerBytes(
+                    String name,
+                    byte[] value)
+                {
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value);
+                        mergedFetchDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaDataExBuilder build()
+                {
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx = mergedFetchDataExRW.build();
+                    dataExRO.wrap(writeBuffer, 0, mergedFetchDataEx.limit());
+                    return KafkaDataExBuilder.this;
+                }
             }
 
-            public KafkaDataExBuilder build()
+            public final class KafkaMergedProduceDataExBuilder
             {
-                final KafkaMergedDataExFW mergedDataEx = mergedDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, mergedDataEx.limit());
-                return KafkaDataExBuilder.this;
+                private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+
+                private final KafkaMergedProduceDataExFW.Builder mergedProduceDataExRW =
+                    new KafkaMergedProduceDataExFW.Builder();
+
+                private KafkaMergedProduceDataExBuilder()
+                {
+                    mergedProduceDataExRW.wrap(
+                        writeBuffer,
+                        KafkaDataExFW.FIELD_OFFSET_MERGED + KafkaMergedDataExFW.FIELD_OFFSET_PRODUCE,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedProduceDataExBuilder deferred(
+                    int deferred)
+                {
+                    mergedProduceDataExRW.deferred(deferred);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder timestamp(
+                    long timestamp)
+                {
+                    mergedProduceDataExRW.timestamp(timestamp);
+                    return this;
+                }
+
+
+                public KafkaMergedProduceDataExBuilder partition(
+                    int partitionId,
+                    long partitionOffset)
+                {
+                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset)
+                {
+                    mergedProduceDataExRW.partition(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder key(
+                    String key)
+                {
+                    if (key == null)
+                    {
+                        mergedProduceDataExRW.key(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        mergedProduceDataExRW.key(k -> k.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder hashKey(
+                    String hashKey)
+                {
+                    if (hashKey == null)
+                    {
+                        mergedProduceDataExRW.hashKey(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                        mergedProduceDataExRW.hashKey(k -> k.length(hashKeyRO.capacity())
+                            .value(hashKeyRO, 0, hashKeyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder header(
+                    String name,
+                    String value)
+                {
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value.getBytes(UTF_8));
+                        mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerNull(
+                    String name)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(-1)
+                        .value((OctetsFW) null));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerByte(
+                    String name,
+                    byte value)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
+                    mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerShort(
+                    String name,
+                    short value)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
+                    mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerInt(
+                    String name,
+                    int value)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
+                    mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerLong(
+                    String name,
+                    long value)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
+                    mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder headerBytes(
+                    String name,
+                    byte[] value)
+                {
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value);
+                        mergedProduceDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaDataExBuilder build()
+                {
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx = mergedProduceDataExRW.build();
+                    dataExRO.wrap(writeBuffer, 0, mergedProduceDataEx.limit());
+                    return KafkaDataExBuilder.this;
+                }
             }
         }
 
@@ -2151,46 +2405,46 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaConsumerBuilder consumer()
+            public KafkaConsumerAssignmentBuilder assignments()
             {
-                KafkaConsumerBuilder kafkaConsumerBuilder = new KafkaConsumerBuilder();
-                return kafkaConsumerBuilder;
+                KafkaConsumerAssignmentBuilder kafkaConsumerAssignmentBuilder = new KafkaConsumerAssignmentBuilder();
+                return kafkaConsumerAssignmentBuilder;
             }
 
             public KafkaDataExBuilder build()
             {
-                final KafkaConsumerDataExFW consumerDataEx = consumerDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
+                final KafkaConsumerDataExFW groupDataEx = consumerDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
                 return KafkaDataExBuilder.this;
             }
 
-            class KafkaConsumerBuilder
+            class KafkaConsumerAssignmentBuilder
             {
-                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-                private final KafkaConsumerAssignmentFW.Builder consumerRW = new KafkaConsumerAssignmentFW.Builder();
+                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
 
-                KafkaConsumerBuilder()
+                KafkaConsumerAssignmentBuilder()
                 {
-                    consumerRW.wrap(consumerBuffer, 0, consumerBuffer.capacity());
+                    assignmentRW.wrap(assignmentBuffer, 0, assignmentBuffer.capacity());
                 }
 
-                public KafkaConsumerBuilder id(
+                public KafkaConsumerAssignmentBuilder id(
                     String id)
                 {
-                    consumerRW.consumerId(id);
+                    assignmentRW.consumerId(id);
                     return this;
                 }
 
-                public KafkaConsumerBuilder partition(
+                public KafkaConsumerAssignmentBuilder partition(
                     int partitionId)
                 {
-                    consumerRW.partitionsItem(p -> p.partitionId(partitionId));
+                    assignmentRW.partitionsItem(p -> p.partitionId(partitionId));
                     return this;
                 }
 
                 public KafkaConsumerDataExBuilder build()
                 {
-                    KafkaConsumerAssignmentFW consumer = consumerRW.build();
+                    KafkaConsumerAssignmentFW consumer = assignmentRW.build();
                     consumerDataExRW.assignmentsItem(a -> a
                         .consumerId(consumer.consumerId())
                         .partitions(consumer.partitions()));
@@ -2209,14 +2463,17 @@ public final class KafkaFunctions
                 offsetFetchDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
 
-            public KafkaOffsetFetchDataExBuilder topic(
-                String topic,
+            public KafkaOffsetFetchDataExBuilder partition(
                 int partitionId,
-                long offset)
+                long partitionOffset,
+                int leaderEpoch,
+                String metadata)
             {
-                offsetFetchDataExRW.topic(t ->
-                    t.topic(topic).offsets(o -> o.item(i ->
-                        i.partitionId(partitionId).partitionOffset(offset))));
+                offsetFetchDataExRW.partitionsItem(o -> o
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .leaderEpoch(leaderEpoch)
+                    .metadata(metadata));
                 return this;
             }
 
@@ -2237,17 +2494,29 @@ public final class KafkaFunctions
                 offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
-            public KafkaOffsetCommitDataExBuilder partitionId(
-                int partitionId)
+            public KafkaOffsetCommitDataExBuilder progress(
+                int partitionId,
+                long partitionOffset,
+                String metadata)
             {
-                offsetCommitDataExRW.partitionId(partitionId);
+                offsetCommitDataExRW.progress(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .metadata(metadata));
                 return this;
             }
 
-            public KafkaOffsetCommitDataExBuilder partitionOffset(
-                long partitionId)
+            public KafkaOffsetCommitDataExBuilder generationId(
+                int generationId)
             {
-                offsetCommitDataExRW.partitionOffset(partitionId);
+                offsetCommitDataExRW.generationId(generationId);
+                return this;
+            }
+
+            public KafkaOffsetCommitDataExBuilder leaderEpoch(
+                int leaderEpoch)
+            {
+                offsetCommitDataExRW.leaderEpoch(leaderEpoch);
                 return this;
             }
 
@@ -2307,6 +2576,13 @@ public final class KafkaFunctions
             flushExRW.kind(KafkaApi.GROUP.value());
 
             return new KafkaGroupFlushExBuilder();
+        }
+
+        public KafkaConsumerFlushExBuilder consumer()
+        {
+            flushExRW.kind(KafkaApi.CONSUMER.value());
+
+            return new KafkaConsumerFlushExBuilder();
         }
 
         public byte[] build()
@@ -2456,7 +2732,7 @@ public final class KafkaFunctions
                 public KafkaFlushExBuilder build()
                 {
                     final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
-                    flushExRO.wrap(writeBuffer, 0, mergedFetchFlushExRW.limit());
+                    flushExRO.wrap(writeBuffer, 0, mergedFetchFlushEx.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -2473,30 +2749,41 @@ public final class KafkaFunctions
                         writeBuffer.capacity());
                 }
 
-                public KafkaMergedConsumerFlushExBuilder partition(
+                public KafkaMergedConsumerFlushExBuilder progress(
                     int partitionId,
                     long partitionOffset)
                 {
-                    partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET, null);
                     return this;
                 }
 
-                public KafkaMergedConsumerFlushExBuilder partition(
+                public KafkaMergedConsumerFlushExBuilder progress(
                     int partitionId,
                     long partitionOffset,
-                    long latestOffset)
+                    String metadata)
                 {
-                    mergedConsumerFlushExRW.partition(p -> p
+                    progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET, metadata);
+                    return this;
+                }
+
+                public KafkaMergedConsumerFlushExBuilder progress(
+                    int partitionId,
+                    long partitionOffset,
+                    long latestOffset,
+                    String metadata)
+                {
+                    mergedConsumerFlushExRW.progress(p -> p
                         .partitionId(partitionId)
                         .partitionOffset(partitionOffset)
-                        .latestOffset(latestOffset));
+                        .latestOffset(latestOffset)
+                        .metadata(metadata));
                     return this;
                 }
 
                 public KafkaFlushExBuilder build()
                 {
                     final KafkaMergedConsumerFlushExFW mergedConsumerFlushEx = mergedConsumerFlushExRW.build();
-                    flushExRO.wrap(writeBuffer, 0, mergedConsumerFlushExRW.limit());
+                    flushExRO.wrap(writeBuffer, 0, mergedConsumerFlushEx.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -2641,6 +2928,13 @@ public final class KafkaFunctions
                 memberRW.wrap(memberBuffer, 0, memberBuffer.capacity());
             }
 
+            public KafkaGroupFlushExBuilder generationId(
+                int generationId)
+            {
+                flushGroupExRW.generationId(generationId);
+                return this;
+            }
+
             public KafkaGroupFlushExBuilder leaderId(
                 String leaderId)
             {
@@ -2677,6 +2971,52 @@ public final class KafkaFunctions
                 flushGroupExRW.members(memberRW.build());
                 final KafkaGroupFlushExFW groupFlushEx = flushGroupExRW.build();
                 flushExRO.wrap(writeBuffer, 0, groupFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
+        }
+
+        public final class KafkaConsumerFlushExBuilder
+        {
+            private final KafkaConsumerFlushExFW.Builder flushConsumerExRW = new KafkaConsumerFlushExFW.Builder();
+
+            private KafkaConsumerFlushExBuilder()
+            {
+                flushConsumerExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+            }
+
+            public KafkaConsumerFlushExBuilder progress(
+                int partitionId,
+                long partitionOffset)
+            {
+                flushConsumerExRW.progress(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset));
+                return this;
+            }
+
+            public KafkaConsumerFlushExBuilder progress(
+                int partitionId,
+                long partitionOffset,
+                String metadata)
+            {
+                flushConsumerExRW.progress(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .metadata(metadata));
+                return this;
+            }
+
+            public KafkaConsumerFlushExBuilder leaderEpoch(
+                int leaderEpoch)
+            {
+                flushConsumerExRW.leaderEpoch(leaderEpoch);
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                KafkaConsumerFlushExFW consumerFlushEx = flushConsumerExRW.build();
+                flushExRO.wrap(writeBuffer, 0, consumerFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
         }
@@ -2745,7 +3085,6 @@ public final class KafkaFunctions
             final KafkaMergedDataExMatcherBuilder matcherBuilder = new KafkaMergedDataExMatcherBuilder();
 
             this.kind = KafkaApi.MERGED.value();
-            this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
 
@@ -3180,286 +3519,8 @@ public final class KafkaFunctions
 
         public final class KafkaMergedDataExMatcherBuilder
         {
-            private Integer deferred;
-            private Long timestamp;
-            private Long filters;
-            private KafkaOffsetFW.Builder partitionRW;
-            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
-            private KafkaDeltaFW.Builder deltaRW;
-            private KafkaKeyFW.Builder keyRW;
-            private KafkaKeyFW.Builder hashKeyRW;
-            private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
-
             private KafkaMergedDataExMatcherBuilder()
             {
-            }
-
-            public KafkaMergedDataExMatcherBuilder deferred(
-                int deferred)
-            {
-                this.deferred = deferred;
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder timestamp(
-                long timestamp)
-            {
-                this.timestamp = timestamp;
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder filters(
-                long filters)
-            {
-                this.filters = filters;
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder partition(
-                int partitionId,
-                long offset)
-            {
-                partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder partition(
-                int partitionId,
-                long offset,
-                long latestOffset)
-            {
-                assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
-
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder progress(
-                int partitionId,
-                long offset)
-            {
-                progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder progress(
-                int partitionId,
-                long offset,
-                long latestOffset)
-            {
-                if (progressRW == null)
-                {
-                    this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                                                 .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder key(
-                String key)
-            {
-                assert keyRW == null;
-                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                if (key == null)
-                {
-                    keyRW.length(-1)
-                         .value((OctetsFW) null);
-                }
-                else
-                {
-                    keyRO.wrap(key.getBytes(UTF_8));
-                    keyRW.length(keyRO.capacity())
-                         .value(keyRO, 0, keyRO.capacity());
-                }
-
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder hashKey(
-                String hashKey)
-            {
-                assert hashKeyRW == null;
-                hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                if (hashKey == null)
-                {
-                    hashKeyRW.length(-1)
-                        .value((OctetsFW) null);
-                }
-                else
-                {
-                    hashKeyRO.wrap(hashKey.getBytes(UTF_8));
-                    hashKeyRW.length(hashKeyRO.capacity())
-                        .value(hashKeyRO, 0, hashKeyRO.capacity());
-                }
-
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder delta(
-                String delta,
-                long ancestorOffset)
-            {
-                assert deltaRW == null;
-                deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-                deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
-
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder header(
-                String name,
-                String value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-
-                if (value == null)
-                {
-                    nameRO.wrap(name.getBytes(UTF_8));
-                    headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                         .name(nameRO, 0, nameRO.capacity())
-                                         .valueLen(-1)
-                                         .value((OctetsFW) null));
-                }
-                else
-                {
-                    nameRO.wrap(name.getBytes(UTF_8));
-                    valueRO.wrap(value.getBytes(UTF_8));
-                    headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                         .name(nameRO, 0, nameRO.capacity())
-                                         .valueLen(valueRO.capacity())
-                                         .value(valueRO, 0, valueRO.capacity()));
-                }
-
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerNull(
-                String name)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                nameRO.wrap(name.getBytes(UTF_8));
-                headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                     .name(nameRO, 0, nameRO.capacity())
-                                     .valueLen(-1)
-                                     .value((OctetsFW) null));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerByte(
-                String name,
-                byte value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
-                headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                     .name(nameRO, 0, nameRO.capacity())
-                                     .valueLen(valueRO.capacity())
-                                     .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerShort(
-                String name,
-                short value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
-                headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                     .name(nameRO, 0, nameRO.capacity())
-                                     .valueLen(valueRO.capacity())
-                                     .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerInt(
-                String name,
-                int value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
-                headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                     .name(nameRO, 0, nameRO.capacity())
-                                     .valueLen(valueRO.capacity())
-                                     .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerLong(
-                String name,
-                long value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-                nameRO.wrap(name.getBytes(UTF_8));
-                valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
-                headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                     .name(nameRO, 0, nameRO.capacity())
-                                     .valueLen(valueRO.capacity())
-                                     .value(valueRO, 0, valueRO.capacity()));
-                return this;
-            }
-
-            public KafkaMergedDataExMatcherBuilder headerBytes(
-                String name,
-                byte[] value)
-            {
-                if (headersRW == null)
-                {
-                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-                }
-
-                if (value == null)
-                {
-                    nameRO.wrap(name.getBytes(UTF_8));
-                    headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                         .name(nameRO, 0, nameRO.capacity())
-                                         .valueLen(-1)
-                                         .value((OctetsFW) null));
-                }
-                else
-                {
-                    nameRO.wrap(name.getBytes(UTF_8));
-                    valueRO.wrap(value);
-                    headersRW.item(i -> i.nameLen(nameRO.capacity())
-                                         .name(nameRO, 0, nameRO.capacity())
-                                         .valueLen(valueRO.capacity())
-                                         .value(valueRO, 0, valueRO.capacity()));
-                }
-
-                return this;
             }
 
             public KafkaDataExMatcherBuilder build()
@@ -3467,73 +3528,689 @@ public final class KafkaFunctions
                 return KafkaDataExMatcherBuilder.this;
             }
 
-            private boolean match(
-                KafkaDataExFW dataEx)
+            public KafkaMergedFetchDataExMatcherBuilder fetch()
             {
-                final KafkaMergedDataExFW mergedDataEx = dataEx.merged();
-                return matchPartition(mergedDataEx) &&
-                    matchProgress(mergedDataEx) &&
-                    matchDeferred(mergedDataEx) &&
-                    matchTimestamp(mergedDataEx) &&
-                    matchKey(mergedDataEx) &&
-                    matchHashKey(mergedDataEx) &&
-                    matchDelta(mergedDataEx) &&
-                    matchHeaders(mergedDataEx) &&
-                    matchFilters(mergedDataEx);
+                KafkaMergedFetchDataExMatcherBuilder fetchMatcher = new KafkaMergedFetchDataExMatcherBuilder();
+                KafkaDataExMatcherBuilder.this.caseMatcher = fetchMatcher::match;
+                return fetchMatcher;
             }
 
-            private boolean matchPartition(
-                final KafkaMergedDataExFW mergedDataEx)
+            public KafkaMergedProduceDataExMatcherBuilder produce()
             {
-                return partitionRW == null || partitionRW.build().equals(mergedDataEx.partition());
+                KafkaMergedProduceDataExMatcherBuilder produceMatcher = new KafkaMergedProduceDataExMatcherBuilder();
+                KafkaDataExMatcherBuilder.this.caseMatcher = produceMatcher::match;
+                return produceMatcher;
             }
 
-            private boolean matchProgress(
-                final KafkaMergedDataExFW mergedDataEx)
+            public final class KafkaMergedFetchDataExMatcherBuilder
             {
-                return progressRW == null || progressRW.build().equals(mergedDataEx.progress());
+                private Integer deferred;
+                private Long timestamp;
+                private Long filters;
+                private KafkaOffsetFW.Builder partitionRW;
+                private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
+                private KafkaDeltaFW.Builder deltaRW;
+                private KafkaKeyFW.Builder keyRW;
+                private KafkaKeyFW.Builder hashKeyRW;
+                private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
+
+                private KafkaMergedFetchDataExMatcherBuilder()
+                {
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder deferred(
+                    int deferred)
+                {
+                    this.deferred = deferred;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder timestamp(
+                    long timestamp)
+                {
+                    this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder filters(
+                    long filters)
+                {
+                    this.filters = filters;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder partition(
+                    int partitionId,
+                    long offset)
+                {
+                    partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder partition(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
+
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder progress(
+                    int partitionId,
+                    long offset)
+                {
+                    progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder progress(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    if (progressRW == null)
+                    {
+                        this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder key(
+                    String key)
+                {
+                    assert keyRW == null;
+                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    if (key == null)
+                    {
+                        keyRW.length(-1)
+                            .value((OctetsFW) null);
+                    }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        keyRW.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity());
+                    }
+
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder delta(
+                    String delta,
+                    long ancestorOffset)
+                {
+                    assert deltaRW == null;
+                    deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
+
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder header(
+                    String name,
+                    String value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerNull(
+                    String name)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(-1)
+                        .value((OctetsFW) null));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerByte(
+                    String name,
+                    byte value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerShort(
+                    String name,
+                    short value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerInt(
+                    String name,
+                    int value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerLong(
+                    String name,
+                    long value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder headerBytes(
+                    String name,
+                    byte[] value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value);
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+
+                    return this;
+                }
+
+                public KafkaDataExMatcherBuilder build()
+                {
+                    return KafkaDataExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaDataExFW dataEx)
+                {
+                    KafkaMergedFetchDataExFW fetch = dataEx.merged().fetch();
+                    return matchPartition(fetch) &&
+                        matchProgress(fetch) &&
+                        matchDeferred(fetch) &&
+                        matchTimestamp(fetch) &&
+                        matchKey(fetch) &&
+                        matchDelta(fetch) &&
+                        matchHeaders(fetch) &&
+                        matchFilters(fetch);
+                }
+
+                private boolean matchPartition(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return partitionRW == null || partitionRW.build().equals(mergedFetchDataEx.partition());
+                }
+
+                private boolean matchProgress(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return progressRW == null || progressRW.build().equals(mergedFetchDataEx.progress());
+                }
+
+                private boolean matchDeferred(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return deferred == null || deferred == mergedFetchDataEx.deferred();
+                }
+
+                private boolean matchTimestamp(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return timestamp == null || timestamp == mergedFetchDataEx.timestamp();
+                }
+
+                private boolean matchKey(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return keyRW == null || keyRW.build().equals(mergedFetchDataEx.key());
+                }
+
+
+                private boolean matchDelta(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return deltaRW == null || deltaRW.build().equals(mergedFetchDataEx.delta());
+                }
+
+                private boolean matchHeaders(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return headersRW == null || headersRW.build().equals(mergedFetchDataEx.headers());
+                }
+
+                private boolean matchFilters(
+                    final KafkaMergedFetchDataExFW mergedFetchDataEx)
+                {
+                    return filters == null || filters == mergedFetchDataEx.filters();
+                }
             }
 
-            private boolean matchDeferred(
-                final KafkaMergedDataExFW mergedDataEx)
+            public final class KafkaMergedProduceDataExMatcherBuilder
             {
-                return deferred == null || deferred == mergedDataEx.deferred();
-            }
+                private Integer deferred;
+                private Long timestamp;
+                private Long filters;
+                private KafkaOffsetFW.Builder partitionRW;
+                private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
+                private KafkaDeltaFW.Builder deltaRW;
+                private KafkaKeyFW.Builder keyRW;
+                private KafkaKeyFW.Builder hashKeyRW;
+                private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
 
-            private boolean matchTimestamp(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return timestamp == null || timestamp == mergedDataEx.timestamp();
-            }
+                private KafkaMergedProduceDataExMatcherBuilder()
+                {
+                }
 
-            private boolean matchKey(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return keyRW == null || keyRW.build().equals(mergedDataEx.key());
-            }
+                public KafkaMergedProduceDataExMatcherBuilder deferred(
+                    int deferred)
+                {
+                    this.deferred = deferred;
+                    return this;
+                }
 
-            private boolean matchHashKey(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return hashKeyRW == null || hashKeyRW.build().equals(mergedDataEx.hashKey());
-            }
+                public KafkaMergedProduceDataExMatcherBuilder timestamp(
+                    long timestamp)
+                {
+                    this.timestamp = timestamp;
+                    return this;
+                }
 
-            private boolean matchDelta(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return deltaRW == null || deltaRW.build().equals(mergedDataEx.delta());
-            }
+                public KafkaMergedProduceDataExMatcherBuilder filters(
+                    long filters)
+                {
+                    this.filters = filters;
+                    return this;
+                }
 
-            private boolean matchHeaders(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return headersRW == null || headersRW.build().equals(mergedDataEx.headers());
-            }
+                public KafkaMergedProduceDataExMatcherBuilder partition(
+                    int partitionId,
+                    long offset)
+                {
+                    partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
 
-            private boolean matchFilters(
-                final KafkaMergedDataExFW mergedDataEx)
-            {
-                return filters == null || filters == mergedDataEx.filters();
+                public KafkaMergedProduceDataExMatcherBuilder partition(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder progress(
+                    int partitionId,
+                    long offset)
+                {
+                    progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder progress(
+                    int partitionId,
+                    long offset,
+                    long latestOffset)
+                {
+                    if (progressRW == null)
+                    {
+                        this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder key(
+                    String key)
+                {
+                    assert keyRW == null;
+                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    if (key == null)
+                    {
+                        keyRW.length(-1)
+                            .value((OctetsFW) null);
+                    }
+                    else
+                    {
+                        keyRO.wrap(key.getBytes(UTF_8));
+                        keyRW.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity());
+                    }
+
+                    return this;
+                }
+
+
+                public KafkaMergedProduceDataExMatcherBuilder hashKey(
+                    String hashKey)
+                {
+                    assert hashKeyRW == null;
+                    hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    if (hashKey == null)
+                    {
+                        hashKeyRW.length(-1)
+                            .value((OctetsFW) null);
+                    }
+                    else
+                    {
+                        hashKeyRO.wrap(hashKey.getBytes(UTF_8));
+                        hashKeyRW.length(hashKeyRO.capacity())
+                            .value(hashKeyRO, 0, hashKeyRO.capacity());
+                    }
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder delta(
+                    String delta,
+                    long ancestorOffset)
+                {
+                    assert deltaRW == null;
+                    deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder header(
+                    String name,
+                    String value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerNull(
+                    String name)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(-1)
+                        .value((OctetsFW) null));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerByte(
+                    String name,
+                    byte value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerShort(
+                    String name,
+                    short value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerInt(
+                    String name,
+                    int value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerLong(
+                    String name,
+                    long value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                        .name(nameRO, 0, nameRO.capacity())
+                        .valueLen(valueRO.capacity())
+                        .value(valueRO, 0, valueRO.capacity()));
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder headerBytes(
+                    String name,
+                    byte[] value)
+                {
+                    if (headersRW == null)
+                    {
+                        this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    if (value == null)
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        nameRO.wrap(name.getBytes(UTF_8));
+                        valueRO.wrap(value);
+                        headersRW.item(i -> i.nameLen(nameRO.capacity())
+                            .name(nameRO, 0, nameRO.capacity())
+                            .valueLen(valueRO.capacity())
+                            .value(valueRO, 0, valueRO.capacity()));
+                    }
+
+                    return this;
+                }
+
+                public KafkaDataExMatcherBuilder build()
+                {
+                    return KafkaDataExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaDataExFW dataEx)
+                {
+                    KafkaMergedProduceDataExFW produce = dataEx.merged().produce();
+                    return matchPartition(produce) &&
+                        matchDeferred(produce) &&
+                        matchTimestamp(produce) &&
+                        matchKey(produce) &&
+                        matchHashKey(produce) &&
+                        matchHeaders(produce);
+                }
+
+                private boolean matchPartition(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return partitionRW == null || partitionRW.build().equals(mergedProduceDataEx.partition());
+                }
+
+                private boolean matchDeferred(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return deferred == null || deferred == mergedProduceDataEx.deferred();
+                }
+
+                private boolean matchTimestamp(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return timestamp == null || timestamp == mergedProduceDataEx.timestamp();
+                }
+
+                private boolean matchKey(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return keyRW == null || keyRW.build().equals(mergedProduceDataEx.key());
+                }
+
+                private boolean matchHashKey(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return hashKeyRW == null || hashKeyRW.build().equals(mergedProduceDataEx.hashKey());
+                }
+
+                private boolean matchHeaders(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return headersRW == null || headersRW.build().equals(mergedProduceDataEx.headers());
+                }
             }
         }
     }
@@ -3581,6 +4258,15 @@ public final class KafkaFunctions
             final KafkaGroupFlushExMatchBuilder matcherBuilder = new KafkaGroupFlushExMatchBuilder();
 
             this.kind = KafkaApi.GROUP.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaConsumerFlushExMatchBuilder consumer()
+        {
+            final KafkaConsumerFlushExMatchBuilder matcherBuilder = new KafkaConsumerFlushExMatchBuilder();
+
+            this.kind = KafkaApi.CONSUMER.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -3754,6 +4440,7 @@ public final class KafkaFunctions
         public final class KafkaMergedFlushExMatcherBuilder
         {
             KafkaMergedFetchFlushEx mergedFetchFlush;
+            KafkaMergedConsumerFlushEx mergedConsumerFlush;
 
             private KafkaMergedFlushExMatcherBuilder()
             {
@@ -3767,6 +4454,11 @@ public final class KafkaFunctions
                 {
                     matched = fetch().match(kafkaFlushEx);
                 }
+                else if (kafkaFlushEx.merged().kind() == KafkaApi.CONSUMER.value())
+                {
+                    matched = consumer().match(kafkaFlushEx);
+                }
+
                 return matched;
             }
 
@@ -3777,6 +4469,15 @@ public final class KafkaFunctions
                     mergedFetchFlush = new KafkaMergedFetchFlushEx();
                 }
                 return mergedFetchFlush;
+            }
+
+            public KafkaMergedConsumerFlushEx consumer()
+            {
+                if (mergedConsumerFlush == null)
+                {
+                    mergedConsumerFlush = new KafkaMergedConsumerFlushEx();
+                }
+                return mergedConsumerFlush;
             }
 
             public final class KafkaMergedFetchFlushEx
@@ -3951,6 +4652,58 @@ public final class KafkaFunctions
                     return filtersRW == null || filtersRW.build().equals(mergedFlush.filters());
                 }
             }
+
+            public final class KafkaMergedConsumerFlushEx
+            {
+                private KafkaOffsetFW.Builder partitionRW;
+
+                private KafkaMergedConsumerFlushEx()
+                {
+                }
+
+                public KafkaMergedConsumerFlushEx progress(
+                    int partitionId,
+                    long offset,
+                    String metadata)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset).metadata(metadata);
+
+                    return this;
+                }
+
+                public KafkaMergedConsumerFlushEx progress(
+                    int partitionId,
+                    long offset)
+                {
+                    assert partitionRW == null;
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                    partitionRW.partitionId(partitionId).partitionOffset(offset);
+
+                    return this;
+                }
+
+                public KafkaFlushExMatcherBuilder build()
+                {
+                    return KafkaFlushExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaFlushExFW flushEx)
+                {
+                    final KafkaMergedConsumerFlushExFW mergedFlushEx = flushEx.merged().consumer();
+                    return matchProgress(mergedFlushEx);
+                }
+
+                private boolean matchProgress(
+                    final KafkaMergedConsumerFlushExFW mergedFlush)
+                {
+                    return partitionRW == null || partitionRW.build().equals(mergedFlush.progress());
+                }
+            }
         }
 
         public final class KafkaProduceFlushExMatcherBuilder
@@ -4032,12 +4785,20 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExMatchBuilder
         {
+            private Integer generationId;
             private String16FW leaderId;
             private String16FW memberId;
             private Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> membersRW;
 
             private KafkaGroupFlushExMatchBuilder()
             {
+            }
+
+            public KafkaGroupFlushExMatchBuilder generationId(
+                int generationId)
+            {
+                this.generationId = Integer.valueOf(generationId);
+                return this;
             }
 
             public KafkaGroupFlushExMatchBuilder leaderId(
@@ -4089,9 +4850,16 @@ public final class KafkaFunctions
                 KafkaFlushExFW flushEx)
             {
                 final KafkaGroupFlushExFW groupFlushEx = flushEx.group();
-                return matchLeaderId(groupFlushEx) &&
+                return matchGenerationId(groupFlushEx) &&
+                    matchLeaderId(groupFlushEx) &&
                     matchMemberId(groupFlushEx) &&
                     matchMembers(groupFlushEx);
+            }
+
+            private boolean matchGenerationId(
+                final KafkaGroupFlushExFW groupFLushEx)
+            {
+                return generationId == null || generationId.intValue() == groupFLushEx.generationId();
             }
 
             private boolean matchLeaderId(
@@ -4110,6 +4878,73 @@ public final class KafkaFunctions
                 final KafkaGroupFlushExFW groupFLushEx)
             {
                 return membersRW == null || membersRW.build().equals(groupFLushEx.members());
+            }
+        }
+
+        public final class KafkaConsumerFlushExMatchBuilder
+        {
+            private Integer leaderEpoch;
+            private KafkaOffsetFW.Builder partitionRW;
+
+            private KafkaConsumerFlushExMatchBuilder()
+            {
+            }
+
+            public KafkaConsumerFlushExMatchBuilder progress(
+                int partitionId,
+                long partitionOffset)
+            {
+                progress(partitionId, partitionOffset, null);
+                return this;
+            }
+
+            public KafkaConsumerFlushExMatchBuilder progress(
+                int partitionId,
+                long partitionOffset,
+                String metadata)
+            {
+                if (partitionRW == null)
+                {
+                    this.partitionRW = new KafkaOffsetFW.Builder()
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                this.partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .metadata(metadata);
+                return this;
+            }
+
+            public KafkaConsumerFlushExMatchBuilder leaderEpoch(
+                int leaderEpoch)
+            {
+                this.leaderEpoch = Integer.valueOf(leaderEpoch);
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                KafkaConsumerFlushExFW consumerFlushEx = flushEx.consumer();
+                return matchProgress(consumerFlushEx) &&
+                    matchLeaderEpoch(consumerFlushEx);
+            }
+
+            private boolean matchProgress(
+                final KafkaConsumerFlushExFW consumerFLushEx)
+            {
+                return partitionRW == null || partitionRW.build().equals(consumerFLushEx.progress());
+            }
+
+            private boolean matchLeaderEpoch(
+                final KafkaConsumerFlushExFW consumerFLushEx)
+            {
+                return leaderEpoch == null || leaderEpoch.intValue() == consumerFLushEx.leaderEpoch();
             }
         }
     }
@@ -4492,6 +5327,7 @@ public final class KafkaFunctions
         {
             private String16FW groupId;
             private String16FW protocol;
+            private String16FW instanceId;
             private Integer timeout;
 
             private byte[] metadata;
@@ -4521,6 +5357,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder instanceId(
+                String instanceId)
+            {
+                this.instanceId = new String16FW(instanceId);
+                return this;
+            }
+
             public KafkaGroupBeginExMatcherBuilder metadata(
                 byte[] metadata)
             {
@@ -4538,9 +5381,9 @@ public final class KafkaFunctions
             {
                 final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
                 return matchGroupId(groupBeginEx) &&
-                    matchGroupId(groupBeginEx) &&
                     matchProtocol(groupBeginEx) &&
                     matchTimeout(groupBeginEx) &&
+                    matchInstanceId(groupBeginEx) &&
                     matchMetadata(groupBeginEx);
             }
 
@@ -4560,6 +5403,12 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 return timeout == null || timeout == groupBeginExFW.timeout();
+            }
+
+            private boolean matchInstanceId(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return instanceId == null || instanceId.equals(groupBeginExFW.instanceId());
             }
 
             private boolean matchMetadata(
@@ -4703,16 +5552,28 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 if (partitionsRW == null)
                 {
-                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                                                 .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(),
+                        new KafkaOffsetFW()).wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
                 partitionsRW.item(i -> i
                     .partitionId(partitionId)
                     .partitionOffset(offset)
                     .stableOffset(stableOffset)
-                    .latestOffset(latestOffset));
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 

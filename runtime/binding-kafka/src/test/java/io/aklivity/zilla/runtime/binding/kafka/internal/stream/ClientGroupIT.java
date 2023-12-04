@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest
     .KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_INSTANCE_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,6 +44,8 @@ public class ClientGroupIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(KAFKA_CLIENT_INSTANCE_ID_NAME,
+            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupIT::supplyInstanceId")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -191,5 +194,10 @@ public class ClientGroupIT
     public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String supplyInstanceId()
+    {
+        return "zilla";
     }
 }

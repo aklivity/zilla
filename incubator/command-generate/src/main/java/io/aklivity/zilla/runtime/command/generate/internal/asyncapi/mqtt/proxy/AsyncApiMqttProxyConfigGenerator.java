@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.AsyncApiConfigGenerator;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.AsyncApi;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Channel;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Message;
@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public class AsyncApiMqttProxyConfigGenerator extends ConfigGenerator
+public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
 {
     private final InputStream input;
 

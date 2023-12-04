@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.FlushFW
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseDataExFW;
@@ -657,9 +658,12 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
-                    key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key().value() : null;
-                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ? kafkaMergedDataEx.headers() : null;
+                    KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaMergedDataEx.fetch();
+                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ?
+                        kafkaMergedFetchDataEx.progress() : null;
+                    key = kafkaMergedDataEx != null ? kafkaMergedFetchDataEx.key().value() : null;
+                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx != null ?
+                        kafkaMergedFetchDataEx.headers() : null;
                     final KafkaHeaderFW etag = headers.matchFirst(h -> HEADER_NAME_ETAG.value().equals(h.name().value()));
 
                     switch (delegate.resolved.eventId())
