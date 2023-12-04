@@ -652,7 +652,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .typeId(kafkaTypeId)
                         .group(g ->
                             g.groupId(groupId)
-                            .protocol("highlander")
+                            .protocol("rebalance")
                             .timeout(timeout)
                             .metadataLen(metadata.sizeof())
                             .metadata(metadata.buffer(), 0, metadata.sizeof()))
