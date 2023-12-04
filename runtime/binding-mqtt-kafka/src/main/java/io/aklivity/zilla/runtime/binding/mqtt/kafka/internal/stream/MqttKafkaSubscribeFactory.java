@@ -2316,7 +2316,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
             {
                 mqtt.retainedSubscriptionIds.clear();
-                doKafkiaEnd(traceId, authorization);
+                doKafkaEnd(traceId, authorization);
             }
         }
 
