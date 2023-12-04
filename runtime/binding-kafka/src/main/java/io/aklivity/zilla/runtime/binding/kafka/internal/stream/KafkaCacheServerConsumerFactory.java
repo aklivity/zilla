@@ -1753,6 +1753,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                             .progress(p -> p
                                 .partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
+                                .metadata(commit.metadata)
                             )
                             .correlationId(commit.correlationId))
                         .build()

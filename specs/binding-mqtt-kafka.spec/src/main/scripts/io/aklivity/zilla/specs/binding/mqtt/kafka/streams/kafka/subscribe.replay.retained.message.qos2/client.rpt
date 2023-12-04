@@ -216,7 +216,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2,
+                                  .progress(0, 2,
                                         mqtt:metadata()
                                             .metadata(1)
                                             .build())
@@ -228,7 +228,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .progress(0, 2)
                                   .correlationId(1)
                                   .build()
                               .build()}
@@ -237,7 +237,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2, "")
+                                  .progress(0, 2, "")
                                   .build()
                               .build()}
 
@@ -245,7 +245,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .consumer()
-                                  .partition(0, 2)
+                                  .progress(0, 2)
                                   .build()
                               .build()}
 

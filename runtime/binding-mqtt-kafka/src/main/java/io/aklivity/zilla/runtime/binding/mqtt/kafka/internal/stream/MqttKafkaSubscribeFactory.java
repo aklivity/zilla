@@ -1186,7 +1186,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.consumer(f ->
                     {
-                        f.partition(p ->
+                        f.progress(p ->
                         {
                             p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
                             final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
@@ -1927,7 +1927,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.consumer(f ->
                     {
-                        f.partition(p ->
+                        f.progress(p ->
                         {
                             p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
                             final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
