@@ -225,4 +225,94 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${net}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos0.published.qos/client",
+        "${net}/subscribe.receive.message.qos0.published.qos/server"})
+    public void shouldReceiveMessageQoS0PublishedAsQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos2/client",
+        "${net}/subscribe.receive.message.qos2/server"})
+    public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.messages.mixture.qos/client",
+        "${net}/subscribe.receive.messages.mixture.qos/server"})
+    public void shouldReceiveMessagesMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos1.unacked.message/client",
+        "${net}/subscribe.reconnect.replay.qos1.unacked.message/server"})
+    public void shouldReplayUnackedQoS1MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos2.unreceived.message/client",
+        "${net}/subscribe.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldReplayUnreceivedQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.replay.qos2.incomplete.message/client",
+        "${net}/subscribe.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldReplayIncompleteQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replay.retained.message.qos1/client",
+        "${net}/subscribe.replay.retained.message.qos1/server"})
+    public void shouldReplayRetainedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replay.retained.message.qos2/client",
+        "${net}/subscribe.replay.retained.message.qos2/server"})
+    public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
+        "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
+    public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -16,6 +16,10 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -26,10 +30,13 @@ public final class MqttBinding implements Binding
 
     private final MqttConfiguration config;
 
+    private final ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId;
+
     MqttBinding(
         MqttConfiguration config)
     {
         this.config = config;
+        this.unreleasedPacketIdsByClientId = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -48,6 +55,6 @@ public final class MqttBinding implements Binding
     public MqttBindingContext supply(
         EngineContext context)
     {
-        return new MqttBindingContext(config, context);
+        return new MqttBindingContext(config, context, unreleasedPacketIdsByClientId);
     }
 }

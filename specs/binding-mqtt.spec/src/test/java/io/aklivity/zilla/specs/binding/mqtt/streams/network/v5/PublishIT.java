@@ -336,4 +336,22 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.dup.after.puback/client",
+        "${net}/publish.qos1.dup.after.puback/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.no.dupicate.before.pubrel/client",
+        "${net}/publish.qos2.no.dupicate.before.pubrel/server"})
+    public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
+    {
+        k3po.finish();
+    }
 }

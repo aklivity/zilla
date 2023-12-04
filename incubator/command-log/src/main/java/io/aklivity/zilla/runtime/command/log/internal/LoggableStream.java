@@ -1455,6 +1455,7 @@ public final class LoggableStream implements AutoCloseable
     {
         final int deferred = subscribe.deferred();
         final String topic = subscribe.topic().asString();
+        final int packetId = subscribe.packetId();
         final int flags = subscribe.flags();
         final Array32FW<Varuint32FW> subscriptionIds = subscribe.subscriptionIds();
         final int expiryInterval = subscribe.expiryInterval();
@@ -1465,8 +1466,8 @@ public final class LoggableStream implements AutoCloseable
         final Array32FW<MqttUserPropertyFW> properties = subscribe.properties();
 
         out.printf(verboseFormat, index, offset, timestamp,
-            format("[subscribe] (%d) %s %d %d %s %s %s %s",
-                deferred, topic, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
+            format("[subscribe] (%d) %s %d %d %d %s %s %s %s",
+                deferred, topic, packetId, flags, expiryInterval, contentType, format.name(), responseTopic, correlation));
         subscriptionIds.forEach(s -> out.printf(verboseFormat, index, offset, timestamp,
             format("Subscription ID: %d ", s.value())));
         properties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,

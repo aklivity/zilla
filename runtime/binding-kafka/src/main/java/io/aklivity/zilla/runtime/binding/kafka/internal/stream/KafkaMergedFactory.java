@@ -2833,7 +2833,8 @@ public final class KafkaMergedFactory implements BindingHandler
                             .partitionId(offsetAck.partitionId())
                             .partitionOffset(offsetAck.partitionOffset())
                             .metadata(offsetAck.metadata()))
-                        .leaderEpoch(partitionOffset.leaderEpoch))
+                        .leaderEpoch(partitionOffset.leaderEpoch)
+                        .correlationId(consumer.correlationId()))
                     .build();
 
                 final int reserved = initialPad;

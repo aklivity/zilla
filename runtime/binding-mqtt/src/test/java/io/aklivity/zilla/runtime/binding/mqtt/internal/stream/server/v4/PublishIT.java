@@ -230,6 +230,26 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.dup.after.puback/client",
+        "${app}/publish.qos1.dup.after.puback/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.no.dupicate.before.pubrel/client",
+        "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
+    public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Before
     public void setSubscriptionId()
     {
