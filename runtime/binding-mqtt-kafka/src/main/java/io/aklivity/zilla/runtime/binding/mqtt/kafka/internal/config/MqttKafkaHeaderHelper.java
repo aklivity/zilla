@@ -123,7 +123,12 @@ public class MqttKafkaHeaderHelper
         {
             userPropertiesOffsets.add(header.offset());
         }
-        return timeout != -1 && contentType != null && format != null && replyTo != null && correlation != null;
+        return timeout != -1 &&
+            contentType != null &&
+            format != null &&
+            replyTo != null &&
+            correlation != null &&
+            qos != null;
     }
 
     private void skip(
