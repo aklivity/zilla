@@ -45,6 +45,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "sensors")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-1")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 read "Hello, world"
@@ -78,6 +79,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "device")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-2")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
