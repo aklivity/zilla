@@ -132,6 +132,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
+    public static final String GROUPID_SESSION_SUFFIX = "session";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -3825,10 +3826,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         final int timeout = sessionExpiryMs == 0 ? Integer.MAX_VALUE : sessionExpiryMs;
 
+        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .group(g -> g.groupId(clientId).protocol(GROUP_PROTOCOL).timeout(timeout))
+                .group(g -> g.groupId(groupId).protocol(GROUP_PROTOCOL).timeout(timeout))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

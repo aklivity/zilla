@@ -1387,9 +1387,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 kafkaMergedBeginEx.partitions().forEach(p ->
                 {
                     final String16FW metadata = p.metadata();
-                    if (metadata != null && metadata.length() > 0)
+                    if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
                     {
-                        incompletePacketIds.put(p.partitionId(), stringToOffsetMetadataList(metadata));
+                        final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
+                        incompletePacketIds.put(p.partitionId(), packetIds);
+                        packetIds.forEach(id -> offsetsPerPacketId.put(id,
+                            new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     highWaterMarks.put(topicPartitionKey(topicKey, p.partitionId()),
                         new OffsetHighWaterMark(p.stableOffset() + 1));
@@ -1811,6 +1814,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         private final String16FW topic;
         private final long topicKey;
+        private final int qos;
         private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
@@ -1846,6 +1850,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.incompletePacketIds = new Int2ObjectHashMap<>();
             this.unAckedPacketIds = new IntArrayList();
+            this.qos = mqtt.qos;
         }
 
         private void doKafkaBegin(
@@ -2103,9 +2108,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 kafkaMergedBeginEx.partitions().forEach(p ->
                 {
                     final String16FW metadata = p.metadata();
-                    if (metadata != null && metadata.length() > 0)
+                    if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
                     {
-                        incompletePacketIds.put(p.partitionId(), stringToOffsetMetadataList(metadata));
+                        final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
+                        incompletePacketIds.put(p.partitionId(), packetIds);
+                        packetIds.forEach(id -> offsetsPerPacketId.put(id,
+                            new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     highWaterMarks.put(topicPartitionKey(topicKey, p.partitionId()),
                         new OffsetHighWaterMark(p.stableOffset() + 1));

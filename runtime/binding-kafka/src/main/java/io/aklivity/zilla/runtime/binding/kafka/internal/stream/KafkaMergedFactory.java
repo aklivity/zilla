@@ -1787,11 +1787,12 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void doMergedConsumerReplyFlush(
             long traceId,
+            long correlationId,
             KafkaOffsetFW partition)
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.consumer(c -> c.progress(partition)))
+                .merged(mc -> mc.consumer(c -> c.progress(partition).correlationId(correlationId)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2952,8 +2953,9 @@ public final class KafkaMergedFactory implements BindingHandler
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
             final KafkaOffsetFW progress = consumerFlushEx.progress();
+            final long correlationId = consumerFlushEx.correlationId();
 
-            merged.doMergedConsumerReplyFlush(traceId, progress);
+            merged.doMergedConsumerReplyFlush(traceId, correlationId, progress);
         }
 
         private void onConsumerReplyData(
