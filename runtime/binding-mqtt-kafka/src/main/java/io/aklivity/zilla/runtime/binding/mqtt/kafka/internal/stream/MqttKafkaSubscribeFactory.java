@@ -2301,11 +2301,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     mqtt.doMqttFlush(traceId, authorization, budgetId, reserved, mqttSubscribeFlushEx);
                 }
             }
-            if (unAckedPacketIds.isEmpty() && incompletePacketIds.isEmpty())
-            {
-                mqtt.retainedSubscriptionIds.clear();
-                doKafkaEnd(traceId, authorization);
-            }
             else
             {
                 incompletePacketIds.forEach((partitionId, metadata) ->
@@ -2316,6 +2311,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             .subscribe(b -> b.packetId(packetId)).build();
                         mqtt.doMqttFlush(traceId, authorization, 0, 0, mqttSubscribeFlushEx);
                     }));
+            }
+
+            if (unAckedPacketIds.isEmpty() && incompletePacketIds.isEmpty())
+            {
+                mqtt.retainedSubscriptionIds.clear();
+                doKafkaEnd(traceId, authorization);
             }
         }
 
