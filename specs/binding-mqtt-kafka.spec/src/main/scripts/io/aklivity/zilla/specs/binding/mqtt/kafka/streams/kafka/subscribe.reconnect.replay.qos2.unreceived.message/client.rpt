@@ -131,7 +131,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                     .header("zilla:filter", "one")
                                     .header("zilla:local", "client")
                                     .header("zilla:format", "TEXT")
-                                    .header("zilla:qos", "EXACTLY_ONCE")
+                                    .header("zilla:qos", "2")
                                     .build()
                                 .build()}
 read "message"
@@ -257,7 +257,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                     .header("zilla:filter", "one")
                                     .header("zilla:local", "client")
                                     .header("zilla:format", "TEXT")
-                                    .header("zilla:qos", "EXACTLY_ONCE")
+                                    .header("zilla:qos", "2")
                                     .build()
                                 .build()}
 read "message"

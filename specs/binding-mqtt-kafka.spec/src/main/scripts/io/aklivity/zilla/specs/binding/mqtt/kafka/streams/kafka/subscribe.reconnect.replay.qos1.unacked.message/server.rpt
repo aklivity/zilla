@@ -94,7 +94,7 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:filter", "one")
                                     .header("zilla:local", "client")
                                     .header("zilla:format", "TEXT")
-                                    .header("zilla:qos", "AT_LEAST_ONCE")
+                                    .header("zilla:qos", "1")
                                     .build()
                                 .build()}
 write "message"
@@ -178,7 +178,7 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:filter", "one")
                                     .header("zilla:local", "client")
                                     .header("zilla:format", "TEXT")
-                                    .header("zilla:qos", "AT_LEAST_ONCE")
+                                    .header("zilla:qos", "1")
                                     .build()
                                 .build()}
 write "message"
