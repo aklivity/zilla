@@ -103,6 +103,7 @@ public class MqttKafkaHeaderHelper
         this.format = null;
         this.replyTo = null;
         this.correlation = null;
+        this.qos = null;
         this.userPropertiesOffsets = new IntArrayList();
         if (dataEx != null)
         {
