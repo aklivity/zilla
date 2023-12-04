@@ -197,6 +197,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         BindingConfig binding)
     {
         TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
+        assert tlsBinding.options != null;
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
 
