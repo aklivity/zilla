@@ -14,11 +14,15 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetCommit()
                                    .topic("test")
@@ -30,14 +34,24 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .offsetCommit()
-                                 .progress(0, 2, "test-meta")
-                                 .generationId(0)
-                                 .leaderEpoch(0)
-                                 .build()
-                             .build()}
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .progress(0, 2, "test-meta")
+                                  .generationId(0)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
 
-write zilla:data.empty
-write flush
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .progress(0, 3, "test-meta")
+                                  .generationId(0)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+
+read zilla:data.empty
