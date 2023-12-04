@@ -36,6 +36,8 @@ public final class MqttReasonCodes
     public static final byte UNSPECIFIED_ERROR = (byte) 0x80;
     public static final byte MALFORMED_PACKET = (byte) 0x81;
     public static final byte PROTOCOL_ERROR = (byte) 0x82;
+    public static final byte IDENTIFIER_REJECTED = (byte) 0x02;
+    public static final byte SUBACK_FAILURE_CODE_V4 = (byte) 0x80;
     public static final byte PACKET_TOO_LARGE = (byte) 0x95;
     public static final byte WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = (byte) 0xa2;
     public static final byte SHARED_SUBSCRIPTION_NOT_SUPPORTED = (byte) 0x9e;

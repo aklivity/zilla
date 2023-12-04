@@ -25,6 +25,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -106,6 +107,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
+    private final Int2ObjectHashMap<String16FW> qosLevels;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -123,6 +125,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
+        this.qosLevels = new Int2ObjectHashMap<>();
+        this.qosLevels.put(0, new String16FW("0"));
+        this.qosLevels.put(1, new String16FW("1"));
+        this.qosLevels.put(2, new String16FW("2"));
     }
 
     @Override
@@ -413,8 +419,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 addHeader(helper.kafkaCorrelationHeaderName, mqttPublishDataEx.correlation().bytes());
             }
 
+
             mqttPublishDataEx.properties().forEach(property ->
                 addHeader(property.key(), property.value()));
+
+            addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
 
             final int deferred = mqttPublishDataEx.deferred();
             kafkaDataEx = kafkaDataExRW
@@ -720,7 +729,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         });
     }
 
-    private void addHeader(String16FW key, String16FW value)
+    private void addHeader(
+        String16FW key,
+        String16FW value)
     {
         DirectBuffer keyBuffer = key.value();
         DirectBuffer valueBuffer = value.value();

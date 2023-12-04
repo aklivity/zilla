@@ -51,11 +51,11 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("error", 1)
+               .subscription("error", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("error", 1)
+               .subscription("error", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 

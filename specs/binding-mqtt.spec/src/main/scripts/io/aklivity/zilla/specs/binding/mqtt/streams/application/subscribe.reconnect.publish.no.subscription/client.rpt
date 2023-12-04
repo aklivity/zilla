@@ -48,17 +48,17 @@ write zilla:data.ext ${mqtt:dataEx()
                               .build()
                            .build()}
 write ${mqtt:session()
-            .subscription("sensor/one", 1)
+            .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
             .build()}
 write flush
 
 read ${mqtt:session()
-           .subscription("sensor/one", 1)
+           .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
            .build()}
 read notify RECEIVED_SESSION_STATE
 
 read ${mqtt:session()
-           .subscription("sensor/one", 1)
+           .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
            .subscription("sensor/two", 2)
            .build()}
 read notify RECEIVED_NEW_SESSION_STATE
@@ -73,7 +73,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/one", 1, "AT_MOST_ONCE")
+                                 .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                  .build()
                               .build()}
 
@@ -93,7 +93,7 @@ write await RECEIVED_NEW_SESSION_STATE
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 1)
+                                     .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                      .filter("sensor/two", 2)
                                      .build()
                                  .build()}
