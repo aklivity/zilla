@@ -41,6 +41,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:local", "755452d5-e2ef-4113-b9c6-2f53de96fd76")
                                .header("zilla:format", "TEXT")
                                .header("row", "1")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
