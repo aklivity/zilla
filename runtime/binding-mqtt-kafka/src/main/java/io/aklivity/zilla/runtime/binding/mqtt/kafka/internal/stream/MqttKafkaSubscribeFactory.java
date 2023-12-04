@@ -29,7 +29,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -41,6 +40,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -165,7 +165,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final int reconnectDelay;
     private final boolean bootstrapAvailable;
     private final List<KafkaMessagesBootstrap> bootstrapStreams;
-    private final AtomicInteger packetIdCounter;
+    private final MutableInteger packetIdCounter;
     private final Int2ObjectHashMap<String16FW> qosNames;
     //TODO: rename
     private final Int2ObjectHashMap<PartitionOffset> offsetsPerPacketId;
@@ -196,7 +196,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.bootstrapAvailable = config.bootstrapAvailable();
         this.reconnectDelay = config.bootstrapStreamReconnectDelay();
         this.bootstrapStreams = new ArrayList<>();
-        this.packetIdCounter = new AtomicInteger(1);
+        this.packetIdCounter = new MutableInteger(1);
         this.qosNames = new Int2ObjectHashMap<>();
         this.offsetsPerPacketId = new Int2ObjectHashMap<>();
         this.highWaterMarks = new Long2ObjectHashMap<>();
@@ -1461,7 +1461,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             b.topic(topicName);
                             if (helper.qos != null)
                             {
-                                final int qos = qosLevels.get(helper.qos);
+                                final int qos = qosLevels.getValue(helper.qos);
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
@@ -2160,7 +2160,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                             if (helper.qos != null)
                             {
-                                final int qos = qosLevels.get(helper.qos);
+                                final int qos = qosLevels.getValue(helper.qos);
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
