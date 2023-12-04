@@ -99,7 +99,7 @@ read zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .meta()
-                                 .partition(0, 1)
+                                 .partition(0, 2)
                                  .partition(1, 2)
                                  .build()
                              .build()}
@@ -203,7 +203,7 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetFetch()
-                                    .partition(0, 1, 0, "test-meta")
+                                    .partition(0, 2, 0, "test-meta")
                                 .build()
                              .build()}
 read zilla:data.empty
@@ -263,7 +263,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
-                                 .partition(0, 2, "test-meta")
+                                 .progress(0, 3, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)
                                  .build()

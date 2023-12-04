@@ -41,3 +41,15 @@ write zilla:data.ext ${kafka:dataEx()
 
 write zilla:data.empty
 write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .offsetCommit()
+                                 .progress(0, 3, "test-meta")
+                                 .generationId(0)
+                                 .leaderEpoch(0)
+                                 .build()
+                             .build()}
+
+write zilla:data.empty
+write flush

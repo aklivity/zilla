@@ -37,6 +37,7 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
+import org.agrona.collections.MutableLong;
 import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -158,6 +159,8 @@ public final class KafkaMergedFactory implements BindingHandler
     private final MutableInteger initialNoAckRW = new MutableInteger();
     private final MutableInteger initialPadRW = new MutableInteger();
     private final MutableInteger initialMaxRW = new MutableInteger();
+    private final MutableLong partitionOffsetRW = new MutableLong();
+    private final StringBuilder metadataRW = new StringBuilder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -1614,12 +1617,25 @@ public final class KafkaMergedFactory implements BindingHandler
             return builder ->
             {
                 builder.capabilities(c -> c.set(FETCH_ONLY)).topic(topic);
-                latestOffsetByPartitionId.longForEach((k, v) -> builder
-                    .partitionsItem(i -> i
-                        .partitionId((int) k)
-                        .partitionOffset(0L)
-                        .stableOffset(stableOffsetByPartitionId.get(k))
-                        .latestOffset(v)));
+                latestOffsetByPartitionId.longForEach((k, v) ->
+                {
+                    partitionOffsetRW.value = 0;
+                    metadataRW.setLength(0);
+                    if (!offsetsByPartitionId.isEmpty())
+                    {
+                        final KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get((int) k);
+                        partitionOffsetRW.value = kafkaPartitionOffset.partitionOffset;
+                        metadataRW.append(kafkaPartitionOffset.metadata);
+                    }
+
+                    builder
+                        .partitionsItem(i -> i
+                            .partitionId((int) k)
+                            .partitionOffset(partitionOffsetRW.value)
+                            .stableOffset(stableOffsetByPartitionId.get(k))
+                            .latestOffset(v)
+                            .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
+                });
             };
         }
 
@@ -1775,7 +1791,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.consumer(c -> c.partition(partition)))
+                .merged(mc -> mc.consumer(c -> c.progress(partition)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1948,7 +1964,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     p.partitionOffset(),
                     0,
                     p.leaderEpoch(),
-                    null)));
+                    p.metadata().asString())));
 
             doFetchPartitionsIfNecessary(traceId);
         }
@@ -2100,7 +2116,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (!offsetsByPartitionId.isEmpty())
             {
                 KafkaPartitionOffset kafkaPartitionOffset = offsetsByPartitionId.get(partitionId);
-                partitionOffset = kafkaPartitionOffset.partitionOffset + 1;
+                partitionOffset = kafkaPartitionOffset.partitionOffset;
             }
             else
             {
@@ -2807,13 +2823,13 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
-                final KafkaOffsetFW offsetAck = consumer.partition();
+                final KafkaOffsetFW offsetAck = consumer.progress();
                 final KafkaPartitionOffset partitionOffset = merged.offsetsByPartitionId.get(offsetAck.partitionId());
 
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
                     .consumer(c -> c
-                        .partition(p -> p
+                        .progress(p -> p
                             .partitionId(offsetAck.partitionId())
                             .partitionOffset(offsetAck.partitionOffset())
                             .metadata(offsetAck.metadata()))
@@ -2935,9 +2951,9 @@ public final class KafkaMergedFactory implements BindingHandler
                 kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
-            final KafkaOffsetFW partition = consumerFlushEx.partition();
+            final KafkaOffsetFW progress = consumerFlushEx.progress();
 
-            merged.doMergedConsumerReplyFlush(traceId, partition);
+            merged.doMergedConsumerReplyFlush(traceId, progress);
         }
 
         private void onConsumerReplyData(
