@@ -1814,7 +1814,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         private final String16FW topic;
         private final long topicKey;
-        private final int qos;
         private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
@@ -1850,7 +1849,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.incompletePacketIds = new Int2ObjectHashMap<>();
             this.unAckedPacketIds = new IntArrayList();
-            this.qos = mqtt.qos;
         }
 
         private void doKafkaBegin(
