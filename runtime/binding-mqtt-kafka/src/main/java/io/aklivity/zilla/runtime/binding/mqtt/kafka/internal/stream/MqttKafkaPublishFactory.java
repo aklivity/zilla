@@ -126,6 +126,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
         this.qosLevels = new Int2ObjectHashMap<>();
+        this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
         this.qosLevels.put(2, new String16FW("2"));
     }
@@ -418,13 +419,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 addHeader(helper.kafkaCorrelationHeaderName, mqttPublishDataEx.correlation().bytes());
             }
 
-            if (mqttPublishDataEx.qos() != 0)
-            {
-                addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
-            }
 
             mqttPublishDataEx.properties().forEach(property ->
                 addHeader(property.key(), property.value()));
+
+            addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
 
             final int deferred = mqttPublishDataEx.deferred();
             kafkaDataEx = kafkaDataExRW

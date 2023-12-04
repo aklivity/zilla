@@ -1392,7 +1392,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         incompletePacketIds.put(p.partitionId(), stringToOffsetMetadataList(metadata));
                     }
                     highWaterMarks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark(p.partitionOffset()));
+                        new OffsetHighWaterMark(p.stableOffset() + 1));
                 });
             }
 
@@ -2102,7 +2102,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         incompletePacketIds.put(p.partitionId(), stringToOffsetMetadataList(metadata));
                     }
                     highWaterMarks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark(p.partitionOffset()));
+                        new OffsetHighWaterMark(p.stableOffset() + 1));
                 });
             }
 
