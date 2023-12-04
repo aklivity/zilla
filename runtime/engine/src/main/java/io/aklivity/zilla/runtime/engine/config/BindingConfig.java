@@ -25,6 +25,10 @@ public class BindingConfig
 {
     public transient long id;
     public transient long entryId;
+    public transient long typeId;
+    public transient long kindId;
+    public transient long originTypeId;
+    public transient long routedTypeId;
     public transient ToLongFunction<String> resolveId;
 
     public transient long vaultId;

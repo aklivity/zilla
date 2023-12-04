@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
@@ -66,6 +67,7 @@ import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
+import io.aklivity.zilla.runtime.engine.internal.Bindings;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
@@ -188,6 +190,8 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
+        final Map<String, Binding> bindingsByType = bindings.stream()
+            .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
@@ -207,8 +211,8 @@ public final class Engine implements Collector, AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, this::readURL);
+        this.configurationManager = new ConfigurationManager(schemaTypes, bindingsByType::get, guardsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions, this::readURL);
 
         this.namespaces = new HashMap<>();
 
@@ -299,7 +303,16 @@ public final class Engine implements Collector, AutoCloseable
         URL configURL,
         String configText)
     {
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
+        Bindings bindings = Bindings.builder().directory(config.directory()).build();
+        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText, bindings::writeBindingInfo);
+        try
+        {
+            bindings.close();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
         if (newNamespace != null)
         {
             NamespaceConfig oldNamespace = namespaces.get(configURL);
