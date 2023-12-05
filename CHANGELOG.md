@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.9.60](https://github.com/aklivity/zilla/tree/0.9.60) (2023-12-05)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.59...0.9.60)
+
+**Implemented enhancements:**
+
+- MQTT publish QoS 1 as Kafka produce with acks in\_sync\_replicas [\#604](https://github.com/aklivity/zilla/issues/604)
+- MQTT subscribe QoS 2 as stateful Kafka fetch with `consumerId` for message delivery retry [\#603](https://github.com/aklivity/zilla/issues/603)
+- MQTT subscribe QoS 1 as stateful Kafka fetch with `consumerId` for message delivery retry [\#602](https://github.com/aklivity/zilla/issues/602)
+- Include metadata in merge reply begin ex [\#601](https://github.com/aklivity/zilla/issues/601)
+- Consumer group message acknowledgement support [\#588](https://github.com/aklivity/zilla/issues/588)
+- Support mqtt protocol v3.1.1 [\#541](https://github.com/aklivity/zilla/issues/541)
+- Generate `http` server request `validators` from `OpenAPI` specification [\#459](https://github.com/aklivity/zilla/issues/459)
+- MQTT 3.1.1 implementation [\#582](https://github.com/aklivity/zilla/pull/582) ([bmaidics](https://github.com/bmaidics))
+
+**Fixed bugs:**
+
+- the `tls` binding throws NPE if there are no `options` defined [\#612](https://github.com/aklivity/zilla/issues/612)
+- Offset commit request should have next offset instead of consumer message offset [\#592](https://github.com/aklivity/zilla/issues/592)
+- `group.min.session.timeout.ms` is null using zilla in front of redpanda [\#581](https://github.com/aklivity/zilla/issues/581)
+- java.lang.IllegalStateException: missing file for budgets : /var/run/zilla/budgets127 [\#578](https://github.com/aklivity/zilla/issues/578)
+
+**Closed issues:**
+
+- `prometheus` schema Port and `tcp` schema Port have different validation [\#569](https://github.com/aklivity/zilla/issues/569)
+- zilla:correlation-id header sort [\#508](https://github.com/aklivity/zilla/issues/508)
+
+**Merged pull requests:**
+
+- Fix typo [\#616](https://github.com/aklivity/zilla/pull/616) ([bmaidics](https://github.com/bmaidics))
+- Wait for replyFlush at commit before closing retained stream [\#615](https://github.com/aklivity/zilla/pull/615) ([bmaidics](https://github.com/bmaidics))
+- Fix qos12 [\#614](https://github.com/aklivity/zilla/pull/614) ([bmaidics](https://github.com/bmaidics))
+- Start from historical messages if no consumer offsets were committed [\#613](https://github.com/aklivity/zilla/pull/613) ([akrambek](https://github.com/akrambek))
+- Tls binding options not required [\#611](https://github.com/aklivity/zilla/pull/611) ([jfallows](https://github.com/jfallows))
+- Fix not closing retained stream [\#610](https://github.com/aklivity/zilla/pull/610) ([bmaidics](https://github.com/bmaidics))
+- Fix mqtt-kakfa qos1,2 issues [\#609](https://github.com/aklivity/zilla/pull/609) ([bmaidics](https://github.com/bmaidics))
+- Bump alpine from 3.18.4 to 3.18.5 in /cloud/docker-image/src/main/docker/release [\#600](https://github.com/aklivity/zilla/pull/600) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Include metadata and partitionOffset into merge reply begin [\#599](https://github.com/aklivity/zilla/pull/599) ([akrambek](https://github.com/akrambek))
+- Update Helm chart Zilla description [\#595](https://github.com/aklivity/zilla/pull/595) ([vordimous](https://github.com/vordimous))
+- Bump actions/setup-java from 3 to 4 [\#594](https://github.com/aklivity/zilla/pull/594) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Offset commit fixes [\#593](https://github.com/aklivity/zilla/pull/593) ([akrambek](https://github.com/akrambek))
+- Implement QoS 1 and QoS 2 [\#589](https://github.com/aklivity/zilla/pull/589) ([bmaidics](https://github.com/bmaidics))
+- Fix prometheus exporter schema [\#587](https://github.com/aklivity/zilla/pull/587) ([attilakreiner](https://github.com/attilakreiner))
+- Include validation in the `openapi.http.proxy` generator [\#586](https://github.com/aklivity/zilla/pull/586) ([attilakreiner](https://github.com/attilakreiner))
+- Fix mergedReplyBudgetId [\#579](https://github.com/aklivity/zilla/pull/579) ([attilakreiner](https://github.com/attilakreiner))
+- MQTT 3.1.1 support - specs [\#570](https://github.com/aklivity/zilla/pull/570) ([bmaidics](https://github.com/bmaidics))
+- Consumer group message acknowledgement support [\#538](https://github.com/aklivity/zilla/pull/538) ([akrambek](https://github.com/akrambek))
+- Include data payload as hex in the output of log command [\#523](https://github.com/aklivity/zilla/pull/523) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.59](https://github.com/aklivity/zilla/tree/0.9.59) (2023-11-21)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.58...0.9.59)
