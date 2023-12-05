@@ -48,11 +48,11 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 1)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/one", 1)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write abort
@@ -68,7 +68,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 connected
@@ -104,7 +104,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read ${mqtt:session()
-               .subscription("sensor/one", 1)
+               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write notify SESSION_READY2
@@ -118,7 +118,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 connected

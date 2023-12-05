@@ -34,6 +34,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("/clients/client-2/sensors/one")
@@ -44,6 +45,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "sensors")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-1")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 read "Hello, world"
@@ -66,6 +68,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("/clients/client-1/device/one")
@@ -76,6 +79,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "device")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-2")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

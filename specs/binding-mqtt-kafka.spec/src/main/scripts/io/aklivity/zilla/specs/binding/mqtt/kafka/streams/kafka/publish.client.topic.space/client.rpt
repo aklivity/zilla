@@ -33,6 +33,7 @@ write notify PRODUCE_CONNECTED
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .produce()
                                 .deferred(0)
                                 .partition(-1, -1)
                                 .key("/clients/client-2/sensors/one")
@@ -43,6 +44,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:filter", "sensors")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client-1")
+                                .header("zilla:qos", "0")
                                 .build()
                             .build()}
 write "Hello, world"
@@ -69,6 +71,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .produce()
                                 .deferred(0)
                                 .partition(-1, -1)
                                 .key("/clients/client-1/device/one")
@@ -79,6 +82,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:filter", "device")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client-2")
+                                .header("zilla:qos", "0")
                                 .build()
                             .build()}
 write "Hello, again"

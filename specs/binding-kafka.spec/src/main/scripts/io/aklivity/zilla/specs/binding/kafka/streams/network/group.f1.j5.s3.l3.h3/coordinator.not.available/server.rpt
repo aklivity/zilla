@@ -14,7 +14,7 @@
 # under the License.
 #
 
-property instanceId ${kafka:randomBytes(42)}
+
 
 accept "zilla://streams/net0"
   option zilla:window 8192
@@ -95,7 +95,7 @@ accepted
 
 connected
 
-read  119                               # size
+read  82                               # size
       11s                               # join group
       5s                                # v5
       (int:newRequestId)
@@ -104,7 +104,7 @@ read  119                               # size
       30000                             # session timeout
       4000                              # rebalance timeout
       0s                                # consumer group member
-      42s [0..42]                       # group instance id
+      5s "zilla"                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                     # protocol name
@@ -122,7 +122,7 @@ write 34                                                # size
       10s "memberId-1"                                  # consumer member group id
       0                                                 # members
 
-read  129                               # size
+read  92                               # size
       11s                               # join group
       5s                                # v5
       (int:newRequestId)
@@ -131,39 +131,39 @@ read  129                               # size
       30000                             # session timeout
       4000                              # rebalance timeout
       10s "memberId-1"                  # consumer group member
-      42s [0..42]                       # group instance id
+      5s "zilla"                       # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         10s "highlander"                    # protocol name
         14                                   # metadata size
         [0..14]                              # metadata
 
-write 128                                               # size
+write 91                                               # size
       ${newRequestId}
       0                                                 # throttle time
       0s                                                # no error
-      3                                                 # generated id
+      0                                                 # generated id
       10s "highlander"                                  # protocol name
       10s "memberId-1"                                  # leader id
       10s "memberId-1"                                  # consumer member group id
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
-         42s ${instanceId}                                 # group instance id
+         5s "zilla"                                 # group instance id
          14                                                # metadata size
          2s                                                # version
          0                                                 # topics
          0                                                 # userdata
          0                                                 # partitions
 
-read 101                                            # size
+read 64                                            # size
      14s                                           # sync group
      3s                                            # v3
      (int:newRequestId)
      5s "zilla"                                    # no client id
      4s "test"                                     # consumer group
-     3                                             # generation id
+     0                                             # generation id
      10s "memberId-1"                              # consumer member group id
-     42s [0..42]                                   # group instance id
+     5s "zilla"                                   # group instance id
      1                                             # assignments
        10s "memberId-1"                             # consumer member group id
        0                                            # metadata

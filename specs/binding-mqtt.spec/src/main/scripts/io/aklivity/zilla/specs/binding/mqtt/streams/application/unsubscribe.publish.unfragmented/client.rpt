@@ -49,14 +49,14 @@ write zilla:data.ext ${mqtt:dataEx()
                            .build()}
 
 write ${mqtt:session()
-           .subscription("sensor/one", 1)
-           .subscription("sensor/two", 1)
+           .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+           .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
            .build()}
 write flush
 
 read ${mqtt:session()
-           .subscription("sensor/one", 1)
-           .subscription("sensor/two", 1)
+           .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+           .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
            .build()}
 read notify RECEIVED_SESSION_STATE
 
@@ -68,12 +68,12 @@ write zilla:data.ext ${mqtt:dataEx()
                            .build()}
 
 write ${mqtt:session()
-            .subscription("sensor/two", 1)
+            .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
             .build()}
 write flush
 
 read ${mqtt:session()
-           .subscription("sensor/two", 1)
+           .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
            .build()}
 
 
@@ -86,8 +86,8 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
-                                .filter("sensor/two", 1)
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                              .build()}
 
@@ -96,7 +96,7 @@ connected
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                    .filter("sensor/two", 1)
+                                    .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                     .build()
                                  .build()}
 

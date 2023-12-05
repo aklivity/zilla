@@ -22,26 +22,6 @@ bindings:
       - headers:
           :path: /items
           :method: GET
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items
-          :method: POST
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: GET
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: PUT
-    - exit: http_client0
-      when:
-      - headers:
-          :path: /items/*
-          :method: DELETE
   http_client0:
     type: http
     kind: client
@@ -52,3 +32,44 @@ bindings:
     options:
       host: "${{env.TCP_CLIENT_HOST}}"
       port: ${{env.TCP_CLIENT_PORT}}
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        Item:
+          schema: |
+            type: object
+            properties:
+              greeting:
+                type: string
+              tag:
+                type: string
+            required:
+            - greeting
+          version: latest
+        Error:
+          schema: |
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+            required:
+            - code
+            - message
+          version: latest
+        Items:
+          schema: |
+            type: array
+            items:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                tag:
+                  type: string
+              required:
+              - greeting
+          version: latest

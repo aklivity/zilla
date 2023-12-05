@@ -34,6 +34,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .deferred(28)
                                  .partition(-1, -1)
                                  .build()
@@ -51,6 +52,7 @@ read "Last fragment"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}

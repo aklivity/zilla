@@ -33,6 +33,7 @@ scope kafka
         int64 partitionOffset = -1;
         int64 stableOffset = -1;
         int64 latestOffset = -1;
+        string16 metadata = null;
     }
 
     enum KafkaTransactionResult
@@ -206,6 +207,7 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 252: kafka::stream::KafkaConsumerFlushEx consumer;
             case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
@@ -241,7 +243,23 @@ scope kafka
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
         }
 
-        struct KafkaMergedDataEx
+        union KafkaMergedDataEx switch (uint8)
+        {
+            case 1: kafka::stream::KafkaMergedFetchDataEx fetch;
+            case 0: kafka::stream::KafkaMergedProduceDataEx produce;
+        }
+
+        struct KafkaMergedProduceDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaKey key;               // INIT only
+            KafkaKey hashKey;           // INIT only
+            KafkaHeader[] headers;      // INIT + FIN
+        }
+
+        struct KafkaMergedFetchDataEx
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
@@ -249,15 +267,20 @@ scope kafka
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
-            KafkaKey hashKey;           // INIT only
             KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+            KafkaHeader[] headers;      // INIT + FIN
         }
 
         union KafkaMergedFlushEx switch (uint8)
         {
             case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
+        }
+
+        struct KafkaMergedConsumerFlushEx
+        {
+            KafkaOffset progress;
+            int64 correlationId = -1;
         }
 
         struct KafkaMergedFetchFlushEx
@@ -267,11 +290,6 @@ scope kafka
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
             KafkaKey key;
-        }
-
-        struct KafkaMergedConsumerFlushEx
-        {
-            KafkaOffset partition;
         }
 
         struct KafkaMetaBeginEx
@@ -357,6 +375,14 @@ scope kafka
             int32 partitionId;
         }
 
+        struct KafkaTopicPartitionOffset
+        {
+            int32 partitionId = -1;
+            int64 partitionOffset = -1;
+            int32 leaderEpoch;
+            string16 metadata;
+        }
+
         struct KafkaGroupTopicMetadata
         {
             string16 topic;
@@ -373,6 +399,7 @@ scope kafka
         {
             string16 groupId;
             string16 protocol;
+            string16 instanceId = null;
             int32 timeout;
             varint32 metadataLen;
             octets[metadataLen] metadata = null;
@@ -387,6 +414,7 @@ scope kafka
 
         struct KafkaGroupFlushEx
         {
+            int32 generationId = -1;
             string16 leaderId;
             string16 memberId;
             KafkaGroupMember[] members;
@@ -413,6 +441,13 @@ scope kafka
             KafkaConsumerAssignment[] assignments;
         }
 
+        struct KafkaConsumerFlushEx
+        {
+            KafkaOffset progress;
+            int32 leaderEpoch = -1;
+            int64 correlationId = -1;
+        }
+
         struct KafkaOffsetFetchTopic
         {
             string16 topic;
@@ -422,30 +457,28 @@ scope kafka
         struct KafkaOffsetFetchBeginEx
         {
             string16 groupId;
-            KafkaOffsetFetchTopic[] topics;
-        }
-
-        struct KafkaOffsetFetchTopicOffsets
-        {
             string16 topic;
-            KafkaOffset[] offsets;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaOffsetFetchDataEx
         {
-            KafkaOffsetFetchTopicOffsets topic;
+            KafkaTopicPartitionOffset[] partitions;
         }
 
         struct KafkaOffsetCommitBeginEx
         {
-            string16 groupId;
             string16 topic;
+            string16 groupId;
+            string16 memberId;
+            string16 instanceId;
         }
 
         struct KafkaOffsetCommitDataEx
         {
-            int32 partitionId;
-            int64 partitionOffset;
+            KafkaOffset progress;
+            int32 generationId;
+            int32 leaderEpoch;
         }
     }
 

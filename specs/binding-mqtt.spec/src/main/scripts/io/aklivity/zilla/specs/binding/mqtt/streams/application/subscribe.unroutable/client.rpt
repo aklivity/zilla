@@ -48,12 +48,12 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write ${mqtt:session()
-               .subscription("error", 1)
+               .subscription("error", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
 read ${mqtt:session()
-               .subscription("error", 1)
+               .subscription("error", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write abort

@@ -56,10 +56,10 @@ public class CacheOffsetFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/partition.offset/client",
-        "${app}/partition.offset/server"})
+        "${app}/topic.offset.info/client",
+        "${app}/topic.offset.info/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldFetchPartitionOffset() throws Exception
+    public void shouldFetchPartitionOffsetInfo() throws Exception
     {
         k3po.finish();
     }
