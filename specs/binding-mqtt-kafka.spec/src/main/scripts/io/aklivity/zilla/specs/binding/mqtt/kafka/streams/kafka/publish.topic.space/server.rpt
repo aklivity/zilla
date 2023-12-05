@@ -43,6 +43,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-1")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
@@ -75,6 +76,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client-1")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

@@ -57,8 +57,8 @@ read ${mqtt:session()
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 1)
-               .subscription("sensor/two", 1, 135)
+               .subscriptionWithReasonCode("sensor/one", 1, 0)
+               .subscriptionWithReasonCode("sensor/two", 1, 135)
                .build()}
 write flush
 

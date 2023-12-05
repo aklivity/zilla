@@ -2749,6 +2749,13 @@ public final class KafkaFunctions
                         writeBuffer.capacity());
                 }
 
+                public KafkaMergedConsumerFlushExBuilder correlationId(
+                    long correlationId)
+                {
+                    mergedConsumerFlushExRW.correlationId(correlationId);
+                    return this;
+                }
+
                 public KafkaMergedConsumerFlushExBuilder progress(
                     int partitionId,
                     long partitionOffset)
@@ -2982,6 +2989,13 @@ public final class KafkaFunctions
             private KafkaConsumerFlushExBuilder()
             {
                 flushConsumerExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+            }
+
+            public KafkaConsumerFlushExBuilder correlationId(
+                long correlationId)
+            {
+                flushConsumerExRW.correlationId(correlationId);
+                return this;
             }
 
             public KafkaConsumerFlushExBuilder progress(
@@ -4656,9 +4670,17 @@ public final class KafkaFunctions
             public final class KafkaMergedConsumerFlushEx
             {
                 private KafkaOffsetFW.Builder partitionRW;
+                private Long correlationId;
 
                 private KafkaMergedConsumerFlushEx()
                 {
+                }
+
+                public KafkaMergedConsumerFlushEx correlationId(
+                    long correlationId)
+                {
+                    this.correlationId = correlationId;
+                    return this;
                 }
 
                 public KafkaMergedConsumerFlushEx progress(
@@ -4695,13 +4717,20 @@ public final class KafkaFunctions
                     KafkaFlushExFW flushEx)
                 {
                     final KafkaMergedConsumerFlushExFW mergedFlushEx = flushEx.merged().consumer();
-                    return matchProgress(mergedFlushEx);
+                    return matchProgress(mergedFlushEx) &&
+                        matchCorrelationId(mergedFlushEx);
                 }
 
                 private boolean matchProgress(
                     final KafkaMergedConsumerFlushExFW mergedFlush)
                 {
                     return partitionRW == null || partitionRW.build().equals(mergedFlush.progress());
+                }
+
+                private boolean matchCorrelationId(
+                    final KafkaMergedConsumerFlushExFW mergedFlush)
+                {
+                    return correlationId == null || correlationId.equals(mergedFlush.correlationId());
                 }
             }
         }

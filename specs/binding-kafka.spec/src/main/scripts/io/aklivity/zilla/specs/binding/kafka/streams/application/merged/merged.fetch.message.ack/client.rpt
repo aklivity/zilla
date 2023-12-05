@@ -58,6 +58,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .progress(0, 3, "test-meta")
+                                  .correlationId(1)
                                   .build()
                               .build()}
 
@@ -66,5 +67,6 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .merged()
                                 .consumer()
                                   .progress(0, 3, "test-meta")
+                                  .correlationId(1)
                                   .build()
                               .build()}
