@@ -10,10 +10,20 @@ WINDOW_ID = 0x40000002
 SIGNAL_ID = 0x40000003
 CHALLENGE_ID = 0x40000004
 
+AMQP_ID = 0x112dc182
+GRPC_ID = 0xf9c7583a
+HTTP_ID = 0x8ab62046
+KAFKA_ID = 0x084b20e1
+MQTT_ID = 0xd0d41a76
+PROXY_ID = 0x8dcea850
+TLS_ID = 0x99f321bc
+
 local fields = {
     -- all frames
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "frameTypeId", base.HEX),
     frame_type_name = ProtoField.string("zilla.frame_type_name", "frameTypeName", base.NONE),
+    stream_type_id = ProtoField.uint32("zilla.stream_type_id", "streamTypeId", base.HEX),
+    stream_type_name = ProtoField.string("zilla.stream_type_name", "streamTypeName", base.NONE),
     origin_id = ProtoField.uint64("zilla.origin_id", "originId", base.HEX),
     routed_id = ProtoField.uint64("zilla.routed_id", "routedId", base.HEX),
     stream_id = ProtoField.uint64("zilla.stream_id", "streamId", base.HEX),
@@ -56,19 +66,20 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     local slices = {
         frame_type_id = buffer(0, 4),
-        origin_id = buffer(4, 8),
-        routed_id = buffer(12, 8),
-        stream_id = buffer(20, 8),
-        sequence = buffer(28, 8),
-        acknowledge = buffer(36, 8),
-        maximum = buffer(44, 4),
-        timestamp = buffer(48, 8),
-        trace_id = buffer(56, 8),
-        authorization = buffer(64, 8)
+        stream_type_id = buffer(4, 4),
+        origin_id = buffer(8, 8),
+        routed_id = buffer(16, 8),
+        stream_id = buffer(24, 8),
+        sequence = buffer(32, 8),
+        acknowledge = buffer(40, 8),
+        maximum = buffer(48, 4),
+        timestamp = buffer(52, 8),
+        trace_id = buffer(60, 8),
+        authorization = buffer(68, 8)
     }
 
-    local frame_type_id = slices.frame_type_id:le_int()
-    local frame_type_name = "UNKNOWN"
+    local frame_type_id = slices.frame_type_id:le_uint()
+    local frame_type_name = ""
         if frame_type_id == BEGIN_ID then frame_type_name = "BEGIN"
     elseif frame_type_id == DATA_ID then frame_type_name = "DATA"
     elseif frame_type_id == END_ID then frame_type_name = "END"
@@ -80,8 +91,21 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     elseif frame_type_id == CHALLENGE_ID then frame_type_name = "CHALLENGE"
     end
 
+    local stream_type_id = slices.stream_type_id:le_uint()
+    local stream_type_name = ""
+        if stream_type_id == AMQP_ID then stream_type_name = "amqp"
+    elseif stream_type_id == GRPC_ID then stream_type_name = "grpc"
+    elseif stream_type_id == HTTP_ID then stream_type_name = "http"
+    elseif stream_type_id == KAFKA_ID then stream_type_name = "kafka"
+    elseif stream_type_id == MQTT_ID then stream_type_name = "mqtt"
+    elseif stream_type_id == PROXY_ID then stream_type_name = "proxy"
+    elseif stream_type_id == TLS_ID then stream_type_name = "tls"
+    end
+
     subtree:add_le(fields.frame_type_id, slices.frame_type_id)
-    subtree:add_le(fields.frame_type_name, frame_type_name)
+    subtree:add(fields.frame_type_name, frame_type_name)
+    subtree:add_le(fields.stream_type_id, slices.stream_type_id)
+    subtree:add(fields.stream_type_name, stream_type_name)
     subtree:add_le(fields.origin_id, slices.origin_id)
     subtree:add_le(fields.routed_id, slices.routed_id)
     subtree:add_le(fields.stream_id, slices.stream_id)
@@ -109,26 +133,29 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- begin
     if frame_type_id == BEGIN_ID then
-        slices.affinity = buffer(72, 8)
+        slices.affinity = buffer(76, 8)
         subtree:add_le(fields.affinity, slices.affinity)
 
-        if buffer:len() > 80 then
-            slices.extension = buffer(80)
+        if buffer:len() > 84 then
+            slices.extension = buffer(84)
             subtree:add(fields.extension, slices.extension)
         end
     end
 
     -- data
     if frame_type_id == DATA_ID then
-        slices.flags = buffer(72, 1)
-        slices.budget_id = buffer(73, 8)
-        slices.reserved = buffer(81, 4)
-        slices.length = buffer(85, 4)
+        slices.flags = buffer(76, 1)
+        slices.budget_id = buffer(77, 8)
+        slices.reserved = buffer(85, 4)
+        slices.length = buffer(89, 4)
+        local length = slices.length:le_int()
+        slices.payload = buffer(93, length)
 
         subtree:add_le(fields.flags, slices.flags)
         subtree:add_le(fields.budget_id, slices.budget_id)
         subtree:add_le(fields.reserved, slices.reserved)
         subtree:add_le(fields.length, slices.length)
+        subtree:add(fields.payload, slices.payload)
 
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
@@ -138,77 +165,27 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local offset_maximum = offset .. "/" .. maximum
         subtree:add(fields.offset, offset)
         subtree:add(fields.offset_maximum, offset_maximum)
-        --pinfo.cols.info:set(offset_maximum)
-
-        local length = slices.length:le_int()
-        subtree:add(fields.payload, buffer(89, length))
-
-        local oid = string.format("%016x", tostring(slices.origin_id:le_uint64()))
-        local rid = string.format("%016x", tostring(slices.routed_id:le_uint64()))
-        print(oid)
-        print(rid)
-
-        local stream_type
-        -- http.echo.ati
---         if oid == "0000000a0000000d" and rid == "0000000a0000000e" then
---             stream_type = "http"
---         end
-
-        -- http.echo
---         if oid == "000000090000000b" and rid == "000000090000000c" then
---             stream_type = "http"
---         elseif oid == "000000090000000d" and rid == "000000090000000c" then
---             stream_type = "http"
---         end
-
-        -- http.kafka.sync
---         if rid == "0000000900000017" then
---             stream_type = "http"
---         elseif oid == "000000090000001b" then
---             stream_type = "kafka"
---         end
-
-        -- grpc.kafka.proxy
-        if rid == "000000090000000c" then
-            stream_type = "tls"
-        elseif rid == "000000090000000d" then
-            stream_type = "http"
-        elseif rid == "000000090000000e" then
-            stream_type = "grpc"
-        elseif oid == "0000000900000012" then
-            stream_type = "kafka"
-        elseif oid == "0000000900000016" then
-            stream_type = "http"
-        elseif oid == "0000000900000015" then
-             stream_type = "grpc"
-        end
-
-        -- mqtt.kafka.broker
---         if rid == "000000090000000c" then
---             stream_type = "http"
---         elseif rid == "000000090000000e" then
---             stream_type = "mqtt"
---         end
 
         local dissector
-            if stream_type == "http"  then dissector = Dissector.get("http2")
-        elseif stream_type == "tls"   then dissector = Dissector.get("tls")
-        elseif stream_type == "kafka" then dissector = Dissector.get("kafka")
-        elseif stream_type == "mqtt"  then dissector = Dissector.get("mqtt")
-        elseif stream_type == "grpc"  then dissector = Dissector.get("grpc")
+            if stream_type_name == "amqp"  then dissector = Dissector.get("amqp")
+        elseif stream_type_name == "grpc"  then dissector = Dissector.get("grpc")
+        elseif stream_type_name == "http"  then dissector = resolve_http_dissector(slices.payload:tvb())
+        elseif stream_type_name == "kafka" then dissector = Dissector.get("kafka")
+        elseif stream_type_name == "mqtt"  then dissector = Dissector.get("mqtt")
+        elseif stream_type_name == "tls"   then dissector = Dissector.get("tls")
         end
 
         if dissector then
-            dissector:call(buffer(89, len):tvb(), pinfo, tree)
+            dissector:call(slices.payload:tvb(), pinfo, tree)
         end
     end
 
     -- window
     if frame_type_id == WINDOW_ID then
-        slices.budget_id = buffer(72, 8)
-        slices.padding = buffer(80, 4)
-        slices.minimum = buffer(84, 4)
-        slices.capabilities = buffer(88, 1)
+        slices.budget_id = buffer(76, 8)
+        slices.padding = buffer(84, 4)
+        slices.minimum = buffer(88, 4)
+        slices.capabilities = buffer(92, 1)
 
         subtree:add_le(fields.budget_id, slices.budget_id)
         subtree:add_le(fields.padding, slices.padding)
@@ -225,63 +202,35 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
         pinfo.cols.info:set("[" .. offset_maximum .. "]")
     end
-
-
-  -- local http_dissector = Dissector.get("http")
-  -- http_dissector:call(buffer(89, len):tvb(), pinfo, tree)
-
-  -- local status, err = pcall(http2_dissector.call, http2_dissector, buffer(89, len):tvb(), pinfo, tree)
-  -- print(status)
-  -- print(err)
-  
-  -- local pld = buffer(89, len):tvb()
-  -- local protocol = determine_subprotocol(pld)
-  -- if protocol ~= "unknown" then
-  --   print(protocol)
-  --   local dissector = Dissector.get(protocol)
-  --   print(dissector)
-  --   dissector:call(pld, pinfo, tree)
-  -- end
 end
 
--- local tcp_port = DissectorTable.get("tcp.port")
--- tcp_port:add(59274, zilla_protocol)
+function resolve_http_dissector(payload)
+    if payload:range(0, 3):int() + 9 == payload:len() then
+        return Dissector.get("http2")
+    elseif payload:range(0, 3):string() == "PRI" then
+        return Dissector.get("http2")
+    elseif payload:range(0, 4):string() == "HTTP" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "GET" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "POST" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "PUT" then
+        return Dissector.get("http")
+    elseif payload:range(0, 6):string() == "DELETE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "HEAD" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "OPTIONS" then
+        return Dissector.get("http")
+    elseif payload:range(0, 5):string() == "TRACE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "CONNECT" then
+        return Dissector.get("http")
+    else
+        return nil
+    end
+end
+
 local data_dissector = DissectorTable.get("ethertype")
-data_dissector:add(0x4242, zilla_protocol)
-
--- DissectorTable.new("zilla.routed_id", "Zilla routedId", ftypes.uint64, base.HEX)
-
--- print(data_dissector)
-
--- function determine_subprotocol(payload)
---     if payload:range(0, 4):string() == "HTTP" then
---         return "http"
---     elseif payload:range(0, 3):string() == "PRI" then
---         return "http2"
---     elseif payload:range(0, 3):int() + 9 == payload:len() then
---         return "http2"
---     else
---         return "unknown"
---     end
--- end
-
-
--- local function dump(o)
---    if type(o) == 'table' then
---       local s = '{ '
---       for k,v in pairs(o) do
---          if type(k) ~= 'number' then k = '"'..k..'"' end
---          s = s .. '['..k..'] = ' .. dump(v) .. ',' .. "\n"
---       end
---       return s .. '} '
---    else
---       return tostring(o)
---    end
--- end
-
-local function hello()
-  -- print(DissectorTable.get("tcp.port"))
-  -- print(dump(DissectorTable.list()))
-  print("Hello Ati!")
-end
-register_menu("Test/Hello", hello, MENU_TOOLS_UNSORTED)
+data_dissector:add(0x5a41, zilla_protocol)
