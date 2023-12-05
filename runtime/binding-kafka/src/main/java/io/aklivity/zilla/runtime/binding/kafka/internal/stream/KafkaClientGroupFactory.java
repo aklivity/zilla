@@ -60,6 +60,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.Descr
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentTopicUserdataFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentTopicsUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerMetadataTopicFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerPartitionFW;
@@ -195,6 +197,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         new ConsumerSubscriptionUserdataFW.Builder();
     private final ConsumerAssignmentUserdataFW.Builder assignmentUserdataRW =
         new ConsumerAssignmentUserdataFW.Builder();
+
+    private final ConsumerAssignmentTopicsUserdataFW.Builder assignmentTopicsUserdataRW =
+        new ConsumerAssignmentTopicsUserdataFW.Builder();
     private final Array32FW<MemberAssignmentFW> memberAssignmentRO =
         new Array32FW<>(new MemberAssignmentFW());
 
@@ -219,6 +224,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final ConsumerTopicPartitionFW topicPartitionRO = new ConsumerTopicPartitionFW();
     private final ConsumerPartitionFW partitionRO = new ConsumerPartitionFW();
     private final Array32FW<ConsumerAssignmentFW> assignmentConsumersRO = new Array32FW<>(new ConsumerAssignmentFW());
+    private final ConsumerAssignmentTopicsUserdataFW assignmentTopicsUserdataRO =
+        new ConsumerAssignmentTopicsUserdataFW();
     private final KafkaGroupMemberMetadataFW kafkaMemberMetadataRO = new KafkaGroupMemberMetadataFW();
 
     private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
@@ -266,6 +273,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
@@ -297,6 +305,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.userdataBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -3708,6 +3717,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private int doGenerateAssignmentMetadata(
             Array32FW<TopicAssignmentFW> topicPartitions,
+            ConsumerAssignmentTopicsUserdataFW.Builder assignmentTopicsUserdataRW,
             int progressOffset)
         {
             final MutableDirectBuffer encodeBuffer = extBuffer;
@@ -3744,14 +3754,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 });
 
                 Array32FW<ConsumerAssignmentFW> assignmentUserdata = t.userdata();
-                final ConsumerAssignmentUserdataFW userdata = assignmentUserdataRW
-                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
-                    .userdata(assignmentUserdata.buffer(), assignmentUserdata.offset(), assignmentUserdata.sizeof())
-                    .build();
-
-                encodeProgress.set(userdata.limit());
-
+                assignmentTopicsUserdataRW.topicsUserdataItem(u -> u
+                    .topic(t.topic())
+                    .userdata(assignmentUserdata.buffer(), assignmentUserdata.offset(), assignmentUserdata.sizeof()));
             });
+
+            ConsumerAssignmentTopicsUserdataFW topicUserdata = assignmentTopicsUserdataRW.build();
+            final ConsumerAssignmentUserdataFW userdata = assignmentUserdataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .userdata(topicUserdata.buffer(), topicUserdata.offset(), topicUserdata.sizeof())
+                .build();
+
+            encodeProgress.set(userdata.limit());
 
             return encodeProgress.get();
         }
@@ -3799,7 +3813,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     Array32FW<TopicAssignmentFW> topicPartitions = a.assignments();
 
-                    int newProgressOffset = doGenerateAssignmentMetadata(topicPartitions, progressOffset.get());
+                    assignmentTopicsUserdataRW.wrap(userdataBuffer, assignmentTopicsUserdataRW.limit(),
+                        userdataBuffer.capacity());
+
+                    int newProgressOffset = doGenerateAssignmentMetadata(topicPartitions, assignmentTopicsUserdataRW,
+                        progressOffset.get());
                     final AssignmentFW memberAssignment =
                         assignmentRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
                             .memberId(a.memberId())
@@ -4314,9 +4332,37 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final int limit = newAssignment.sizeof();
 
                 MutableInteger progress = new MutableInteger();
+                MutableInteger userdataProgress = new MutableInteger();
 
                 final ConsumerAssignmentMetadataFW assignment = assignmentMetadataRO.wrap(buffer, progress.get(), limit);
                 progress.set(assignment.limit());
+                userdataProgress.set(assignment.limit());
+
+                for (int i = 0; i < assignment.metadataTopicCount(); i++)
+                {
+                    ConsumerTopicPartitionFW topicPartition = topicPartitionRO
+                        .wrap(buffer, userdataProgress.get(), limit);
+
+                    userdataProgress.set(topicPartition.limit());
+
+                    topicAssignmentBuilder.item(ta ->
+                    {
+                        ta.topic(topicPartition.topic());
+                        int partitionCount = topicPartition.partitionCount();
+                        for (int t = 0; t < partitionCount; t++)
+                        {
+                            ConsumerPartitionFW partition = partitionRO.wrap(buffer, userdataProgress.get(), limit);
+                            userdataProgress.set(partition.limit());
+                        }
+                    });
+                }
+
+                ConsumerAssignmentUserdataFW memberUserdata =
+                    assignmentUserdataRO.wrap(buffer, userdataProgress.get(), limit);
+
+                final OctetsFW memberUserdataValue = memberUserdata.userdata();
+                ConsumerAssignmentTopicsUserdataFW assignmentUserdata =
+                    assignmentTopicsUserdataRO.wrap(memberUserdataValue.value(), 0, limit);
 
                 for (int i = 0; i < assignment.metadataTopicCount(); i++)
                 {
@@ -4327,7 +4373,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                     topicAssignmentBuilder.item(ta ->
                     {
-                        ta.topic(topicPartition.topic());
+                        final String16FW topic = topicPartition.topic();
+                        ta.topic(topic);
                         int partitionCount = topicPartition.partitionCount();
                         for (int t = 0; t < partitionCount; t++)
                         {
@@ -4337,16 +4384,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             ta.partitionsItem(p -> p.partitionId(partition.partitionId()));
                         }
 
-                        ConsumerAssignmentUserdataFW assignmentUserdata =
-                            assignmentUserdataRO.wrap(buffer, progress.get(), limit);
-                        OctetsFW userdata = assignmentUserdata.userdata();
+                        ConsumerAssignmentTopicUserdataFW consumerAssignmentTopicUserdata =
+                            assignmentUserdata.topicsUserdata().matchFirst(tu -> tu.topic().equals(topic));
 
-                        progress.set(assignmentUserdata.limit());
-
+                        final OctetsFW userdata = consumerAssignmentTopicUserdata.userdata();
                         assignmentConsumersRO.wrap(userdata.value(), 0, userdata.sizeof());
                         ta.userdata(assignmentConsumersRO);
                     });
-
                 }
 
                 Array32FW<TopicAssignmentFW> topicAssignment = topicAssignmentBuilder.build();
