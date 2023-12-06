@@ -148,7 +148,7 @@ write 229                               # size
       30000                             # session timeout
       4000                              # rebalance timeout
       10s "memberId-1"                  # consumer group member
-      5s "zilla"                       # group instance id
+      5s "zilla"                        # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         9s "rebalance"                    # protocol name
@@ -193,7 +193,7 @@ read 228                                               # size
          5s "zilla"                                        # group instance id
          152                                               # metadata size
          0s                                                # lowest version
-          2                                               # topic count
+          2                                                # topic count
              5s "test1"                                    # test name
              5s "test2"                                    # test name
              58                                            # userdata length
@@ -261,11 +261,11 @@ read 148                                               # size
         0s                                              # lowest version
         2                                               # topic count
            5s "test1"                                    # test name
-               1                                             # partition count
-               0                                             # partition id
+               1                                         # partition count
+               0                                         # partition id
            5s "test2"                                    # test name
-               1                                             # partition count
-               0                                             # partition id
+               1                                         # partition count
+               0                                         # partition id
            94                                            # userdata
            [0x5a 0x00 0x00 0x00 0x02 0x00 0x00 0x00]
            [0x00 0x05 0x74 0x65 0x73 0x74 0x31 0x00]

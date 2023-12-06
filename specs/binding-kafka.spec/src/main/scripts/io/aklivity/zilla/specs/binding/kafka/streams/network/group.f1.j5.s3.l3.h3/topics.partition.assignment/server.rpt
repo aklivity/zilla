@@ -39,8 +39,8 @@ write 35                                 # size
       0s                                 # no error
       4s "none"                          # error message none
       0                                  # coordinator node
-      9s "localhost"                  # host
-      9092                            # port
+      9s "localhost"                     # host
+      9092                               # port
 
 read 82                                                 # size
      32s                                                # describe configs
@@ -54,7 +54,7 @@ read 82                                                 # size
          28s "group.min.session.timeout.ms"             # name
          28s "group.max.session.timeout.ms"             # name
 
-write 103                                                # size
+write 103                                               # size
       ${requestId}
       0
       1                                                  # resources
@@ -68,8 +68,8 @@ write 103                                                # size
           [0x00]                                          # not read only
           [0x00]                                          # not default
           [0x00]                                          # not sensitive
-          28s "group.max.session.timeout.ms"             # name
-          5s "30000"                                     # value
+          28s "group.max.session.timeout.ms"              # name
+          5s "30000"                                      # value
           [0x00]                                          # not read only
           [0x00]                                          # not default
           [0x00]                                          # not sensitive
@@ -139,7 +139,7 @@ read  229                               # size
       30000                             # session timeout
       4000                              # rebalance timeout
       10s "memberId-1"                  # consumer group member
-      5s "zilla"                       # group instance id
+      5s "zilla"                        # group instance id
       8s "consumer"                     # protocol type
       1                                 # group protocol
         9s "rebalance"                    # protocol name
@@ -184,7 +184,7 @@ write 228                                               # size
          5s "zilla"                                        # group instance id
          152                                               # metadata size
          0s                                                # lowest version
-          2                                               # topic count
+          2                                                # topic count
              5s "test1"                                    # test name
              5s "test2"                                    # test name
              58                                            # userdata length
@@ -254,11 +254,11 @@ write 148                                               # size
         0s                                              # lowest version
         2                                               # topic count
            5s "test1"                                    # test name
-               1                                             # partition count
-               0                                             # partition id
+               1                                         # partition count
+               0                                         # partition id
            5s "test2"                                    # test name
-               1                                             # partition count
-               0                                             # partition id
+               1                                         # partition count
+               0                                         # partition id
            94                                            # userdata
            [0x5a 0x00 0x00 0x00 0x02 0x00 0x00 0x00]
            [0x00 0x05 0x74 0x65 0x73 0x74 0x31 0x00]
