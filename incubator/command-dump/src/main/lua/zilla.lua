@@ -33,10 +33,10 @@ local fields = {
     -- labels
     labels_length = ProtoField.uint32("zilla.labels_length", "labelsLength", base.DEC),
     labels = ProtoField.bytes("zilla.labels", "labels", base.NONE),
-    origin_namespace = ProtoField.string("zilla.origin_namespace", "originNamespace", base.NONE),
-    origin_binding = ProtoField.string("zilla.origin_binding", "originBinding", base.NONE),
-    routed_namespace = ProtoField.string("zilla.routed_namespace", "routedNamespace", base.NONE),
-    routed_binding = ProtoField.string("zilla.routed_binding", "routedBinding", base.NONE),
+    origin_namespace = ProtoField.string("zilla.origin_namespace", "originNamespace", base.STRING),
+    origin_binding = ProtoField.string("zilla.origin_binding", "originBinding", base.STRING),
+    routed_namespace = ProtoField.string("zilla.routed_namespace", "routedNamespace", base.STRING),
+    routed_binding = ProtoField.string("zilla.routed_binding", "routedBinding", base.STRING),
 
     -- all frames
     origin_id = ProtoField.uint64("zilla.origin_id", "originId", base.HEX),
@@ -110,27 +110,27 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local label_offset = LABELS_OFFSET + 4;
     local origin_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    local origin_namespace = buffer(label_offset, origin_namespace_length):string()
+    slices.origin_namespace = buffer(label_offset, origin_namespace_length)
     label_offset = label_offset + origin_namespace_length
-    labelsSubtree:add(fields.origin_namespace, origin_namespace)
+    labelsSubtree:add(fields.origin_namespace, slices.origin_namespace)
 
     local origin_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    local origin_binding = buffer(label_offset, origin_binding_length):string()
+    slices.origin_binding = buffer(label_offset, origin_binding_length)
     label_offset = label_offset + origin_binding_length
-    labelsSubtree:add(fields.origin_binding, origin_binding)
+    labelsSubtree:add(fields.origin_binding, slices.origin_binding)
 
     local routed_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    local routed_namespace = buffer(label_offset, routed_namespace_length):string()
+    slices.routed_namespace = buffer(label_offset, routed_namespace_length)
     label_offset = label_offset + routed_namespace_length
-    labelsSubtree:add(fields.routed_namespace, routed_namespace)
+    labelsSubtree:add(fields.routed_namespace, slices.routed_namespace)
 
     local routed_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    local routed_binding = buffer(label_offset, routed_binding_length):string()
+    slices.routed_binding = buffer(label_offset, routed_binding_length)
     label_offset = label_offset + routed_binding_length
-    labelsSubtree:add(fields.routed_binding, routed_binding)
+    labelsSubtree:add(fields.routed_binding, slices.routed_binding)
 
     -- frame
     local frame_offset = LABELS_OFFSET + labels_length
