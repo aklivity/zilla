@@ -276,7 +276,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final Long2ObjectHashMap<GroupMembership> instanceIds;
     private final Object2ObjectHashMap<String, KafkaGroupStream> groupStreams;
     private final Map<String, String> configs;
-    private final String clientId;
     private final Duration rebalanceTimeout;
     private final String groupMinSessionTimeoutDefault;
     private final String groupMaxSessionTimeoutDefault;
@@ -291,7 +290,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     {
         super(config, context);
         this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
-        this.clientId = config.clientId();
         this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
@@ -2123,7 +2121,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -2823,7 +2821,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(DESCRIBE_CONFIGS_API_KEY)
                 .apiVersion(DESCRIBE_CONFIGS_API_VERSION)
                 .correlationId(0)
-                .clientId((String) null)
+                .clientId(clientId)
                 .build();
 
             encodeProgress = requestHeader.limit();
@@ -2860,7 +2858,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -3627,7 +3625,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -3833,7 +3831,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress.get());
@@ -3881,7 +3879,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -3934,7 +3932,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);

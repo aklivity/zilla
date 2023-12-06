@@ -27,11 +27,11 @@ accepted
 
 connected
 
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:metadataId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -73,11 +73,11 @@ read zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-read 41                                 # size
+read 46                                 # size
      2s                                 # list offsets
      2s                                 # v2
      (int:offsetsId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0x00]
      1
@@ -97,11 +97,11 @@ write 44
       ${newTimestamp}                   # timestamp
       1L                                # offset (latest actual)
 
-read 65
+read 70
      1s
      5s
      (int:fetchId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0..4]
      1

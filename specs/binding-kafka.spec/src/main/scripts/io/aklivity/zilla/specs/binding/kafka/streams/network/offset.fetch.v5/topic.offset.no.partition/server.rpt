@@ -25,11 +25,11 @@ accepted
 
 connected
 
-read  38                                # size
+read  43                                # size
       9s                                # offset fetch
       5s                                # v0
       (int:newRequestId)
-      -1s                               # no client id
+      5s "zilla"                        # client id
       8s "client-1"                     # group id
       1                                 # topics
         4s "test"                       # "test" topic

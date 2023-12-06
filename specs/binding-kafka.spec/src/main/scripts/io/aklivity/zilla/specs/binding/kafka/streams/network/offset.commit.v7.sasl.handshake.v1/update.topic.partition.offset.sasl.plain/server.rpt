@@ -25,11 +25,11 @@ accepted
 
 connected
 
-read 17                                 # size
+read 22                                 # size
      17s                                # sasl.handshake
      1s                                 # v1
      (int:requestId)
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 write 17                                # size
@@ -38,11 +38,11 @@ write 17                                # size
       1                                 # mechanisms
         5s "PLAIN"                        # PLAIN
 
-read 32                                 # size
+read 37                                 # size
      36s                                # sasl.authenticate
      1s                                 # v1
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      18
      [0x00] "username"                  # authentication bytes
      [0x00] "password"
@@ -54,11 +54,11 @@ write 20                                # size
       -1s                               # authentication bytes
       0L                                # session lifetime
 
-read 84                                # size
+read 89                                # size
       8s                                # offset fetch
       7s                                # 7
       (int:newRequestId)
-      -1s                               # no client id
+      5s "zilla"                         # client id
       8s "client-1"                     # group id
       0
       10s "memberId-1"                  # consumer member group id

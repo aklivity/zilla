@@ -2606,7 +2606,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(OFFSETS_API_KEY)
                         .apiVersion(OFFSETS_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2645,7 +2645,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
@@ -2673,7 +2673,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(FETCH_API_KEY)
                         .apiVersion(FETCH_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2712,7 +2712,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
