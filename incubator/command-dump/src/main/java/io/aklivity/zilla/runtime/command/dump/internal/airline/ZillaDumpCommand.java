@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
@@ -316,7 +317,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final WritableByteChannel writer;
         private final IntFunction<String> lookupLabel;
         private final Function<Long, long[]> getBindingInfo;
-        private final CRC32C crc;
+        private final CRC32C crc = new CRC32C();
+        private final ExtensionFW extensionRO = new ExtensionFW();
 
         private long nextTimestamp = Long.MAX_VALUE;
 
@@ -330,7 +332,6 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.lookupLabel = lookupLabel;
             this.getBindingInfo = getBindingInfo;
             this.writer = writer;
-            this.crc = new CRC32C();
         }
 
         private boolean nextTimestamp(
@@ -403,6 +404,15 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = begin.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(begin.originId(), begin.routedId());
 
+                final MutableDirectBuffer begin2buffer = new UnsafeBuffer(ByteBuffer.allocate(begin.sizeof()));
+                final BeginFW begin2 = new BeginFW.Builder().wrap(begin2buffer, 0, begin.sizeof()).set(begin).build();
+                final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+                if (extension != null)
+                {
+                    int streamTypeId = calculateLabelCrc(extension.typeId());
+                    begin2buffer.putInt(BeginFW.FIELD_OFFSET_EXTENSION, streamTypeId);
+                }
+
                 encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + begin.sizeof(), timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
@@ -412,7 +422,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 encodeZillaHeader(buffer, BeginFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
 
-                writePcapOutput(writer, begin.buffer(), begin.offset(), begin.sizeof());
+                writePcapOutput(writer, begin2.buffer(), begin2.offset(), begin2.sizeof());
             }
         }
 
@@ -566,10 +576,10 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             long[] origin = getBindingInfo.apply(originId);
             long[] routed = getBindingInfo.apply(routedId);
-            System.out.printf("origin id=%016x t=%016x k=%016x ot=%016x rt=%016x%n", originId,
+            /*System.out.printf("origin id=%016x t=%016x k=%016x ot=%016x rt=%016x%n", originId,
                 origin[0], origin[1], origin[2], origin[3]);
             System.out.printf("routed id=%016x t=%016x k=%016x ot=%016x rt=%016x%n", routedId,
-                routed[0], routed[1], routed[2], routed[3]);
+                routed[0], routed[1], routed[2], routed[3]);*/
 
             long protocolTypeLabelId = 0;
             String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
@@ -583,19 +593,24 @@ public final class ZillaDumpCommand extends ZillaCommand
                 protocolTypeLabelId = origin[ORIGIN_TYPE_ID_INDEX];
             }
 
-            int protocolTypeCrc = 0;
-            if (protocolTypeLabelId != 0)
+            return calculateLabelCrc(localId(protocolTypeLabelId));
+        }
+
+        private int calculateLabelCrc(
+            int labelId)
+        {
+            int result = 0;
+            if (labelId != 0)
             {
-                String protocolType = lookupLabel.apply(localId(protocolTypeLabelId));
-                if (!UNKNOWN_LABEL.equals(protocolType))
+                String label = lookupLabel.apply(labelId);
+                if (!UNKNOWN_LABEL.equals(label))
                 {
                     crc.reset();
-                    crc.update(protocolType.getBytes(StandardCharsets.UTF_8));
-                    protocolTypeCrc = (int) crc.getValue();
+                    crc.update(label.getBytes(StandardCharsets.UTF_8));
+                    result = (int) crc.getValue();
                 }
-                System.out.printf("ptlid = %016x; pt = %s; crc = %08x%n%n", protocolTypeLabelId, protocolType, protocolTypeCrc);
             }
-            return protocolTypeCrc;
+            return result;
         }
     }
 }
