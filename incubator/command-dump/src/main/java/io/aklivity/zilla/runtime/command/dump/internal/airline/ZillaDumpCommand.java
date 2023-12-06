@@ -384,18 +384,13 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(bindingId))
             {
                 final MutableDirectBuffer buffer = writeBuffer;
-                final MutableDirectBuffer labelsBuffer = this.labelsBuffer;
                 final long timestamp = begin.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(begin.originId(), begin.routedId());
 
                 final MutableDirectBuffer begin2buffer = new UnsafeBuffer(ByteBuffer.allocate(begin.sizeof()));
                 final BeginFW begin2 = new BeginFW.Builder().wrap(begin2buffer, 0, begin.sizeof()).set(begin).build();
                 final ExtensionFW extension = begin2.extension().get(extensionRO::tryWrap);
-                if (extension != null)
-                {
-                    int streamTypeId = calculateLabelCrc(extension.typeId());
-                    begin2buffer.putInt(BeginFW.FIELD_OFFSET_EXTENSION, streamTypeId);
-                }
+                patchExtension(begin2buffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
                 int labelsLength = encodeZillaLabels(labelsBuffer, begin2.originId(), begin2.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + begin2.sizeof();
@@ -425,6 +420,11 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = data.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(data.originId(), data.routedId());
 
+                final MutableDirectBuffer data2buffer = new UnsafeBuffer(ByteBuffer.allocate(data.sizeof()));
+                final DataFW data2 = new DataFW.Builder().wrap(data2buffer, 0, data.sizeof()).set(data).build();
+                final ExtensionFW extension = data2.extension().get(extensionRO::tryWrap);
+                patchExtension(data2buffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
+
                 int labelsLength = encodeZillaLabels(labelsBuffer, data.originId(), data.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + data.sizeof();
                 encodePcapHeader(buffer, pcapLength, timestamp);
@@ -452,6 +452,11 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final MutableDirectBuffer buffer = writeBuffer;
                 final long timestamp = end.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(end.originId(), end.routedId());
+
+                final MutableDirectBuffer end2buffer = new UnsafeBuffer(ByteBuffer.allocate(end.sizeof()));
+                final EndFW end2 = new EndFW.Builder().wrap(end2buffer, 0, end.sizeof()).set(end).build();
+                final ExtensionFW extension = end2.extension().get(extensionRO::tryWrap);
+                patchExtension(end2buffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
                 int labelsLength = encodeZillaLabels(labelsBuffer, end.originId(), end.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + end.sizeof();
@@ -481,6 +486,11 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = abort.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(abort.originId(), abort.routedId());
 
+                final MutableDirectBuffer abort2buffer = new UnsafeBuffer(ByteBuffer.allocate(abort.sizeof()));
+                final AbortFW abort2 = new AbortFW.Builder().wrap(abort2buffer, 0, abort.sizeof()).set(abort).build();
+                final ExtensionFW extension = abort2.extension().get(extensionRO::tryWrap);
+                patchExtension(abort2buffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
+
                 int labelsLength = encodeZillaLabels(labelsBuffer, abort.originId(), abort.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + abort.sizeof();
                 encodePcapHeader(buffer, pcapLength, timestamp);
@@ -509,6 +519,11 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = flush.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(flush.originId(), flush.routedId());
 
+                final MutableDirectBuffer flush2buffer = new UnsafeBuffer(ByteBuffer.allocate(flush.sizeof()));
+                final FlushFW flush2 = new FlushFW.Builder().wrap(flush2buffer, 0, flush.sizeof()).set(flush).build();
+                final ExtensionFW extension = flush2.extension().get(extensionRO::tryWrap);
+                patchExtension(flush2buffer, extension, FlushFW.FIELD_OFFSET_EXTENSION);
+
                 int labelsLength = encodeZillaLabels(labelsBuffer, flush.originId(), flush.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + flush.sizeof();
                 encodePcapHeader(buffer, pcapLength, timestamp);
@@ -536,6 +551,11 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final MutableDirectBuffer buffer = writeBuffer;
                 final long timestamp = reset.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(reset.originId(), reset.routedId());
+
+                final MutableDirectBuffer reset2buffer = new UnsafeBuffer(ByteBuffer.allocate(reset.sizeof()));
+                final ResetFW reset2 = new ResetFW.Builder().wrap(reset2buffer, 0, reset.sizeof()).set(reset).build();
+                final ExtensionFW extension = reset2.extension().get(extensionRO::tryWrap);
+                patchExtension(reset2buffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
                 int labelsLength = encodeZillaLabels(labelsBuffer, reset.originId(), reset.routedId());
                 int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + reset.sizeof();
@@ -580,16 +600,24 @@ public final class ZillaDumpCommand extends ZillaCommand
             }
         }
 
+        private void patchExtension(
+            MutableDirectBuffer buffer,
+            ExtensionFW extension,
+            int offset)
+        {
+            if (extension != null)
+            {
+                int streamTypeId = calculateLabelCrc(extension.typeId());
+                buffer.putInt(offset, streamTypeId);
+            }
+        }
+
         private int resolveProtocolTypeId(
             long originId,
             long routedId)
         {
             long[] origin = getBindingInfo.apply(originId);
             long[] routed = getBindingInfo.apply(routedId);
-            /*System.out.printf("origin id=%016x t=%016x k=%016x ot=%016x rt=%016x%n", originId,
-                origin[0], origin[1], origin[2], origin[3]);
-            System.out.printf("routed id=%016x t=%016x k=%016x ot=%016x rt=%016x%n", routedId,
-                routed[0], routed[1], routed[2], routed[3]);*/
 
             long protocolTypeLabelId = 0;
             String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
