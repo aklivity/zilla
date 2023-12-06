@@ -165,13 +165,17 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     subtree:add_le(fields.authorization, slices.authorization)
 
     pinfo.cols.protocol = zilla_protocol.name
-    pinfo.cols.info:set('todo ...')
+    local info = "ZILLA " .. frame_type .. " " .. stream_dir
+    if protocol_type ~= "" then
+        info = info .. " p=" .. protocol_type
+    end
+    pinfo.cols.info:set(info)
 
     -- begin
     if frame_type_id == BEGIN_ID then
         slices.affinity = buffer(frame_offset + 72, 8)
         subtree:add_le(fields.affinity, slices.affinity)
-        handle_extension(buffer, slices, subtree, frame_offset + 80)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 80)
     end
 
     -- data
@@ -188,7 +192,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         slices.payload = buffer(frame_offset + 89, length)
         subtree:add_le(fields.length, slices.length)
         subtree:add(fields.payload, slices.payload)
-        handle_extension(buffer, slices, subtree, frame_offset + 89 + length)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 89 + length)
 
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
@@ -207,12 +211,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- end
     if frame_type_id == END_ID then
-        handle_extension(buffer, slices, subtree, frame_offset + 72)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- abort
     if frame_type_id == ABORT_ID then
-        handle_extension(buffer, slices, subtree, frame_offset + 72)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- flush
@@ -221,12 +225,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add_le(fields.budget_id, slices.budget_id)
         slices.reserved = buffer(frame_offset + 80, 4)
         subtree:add_le(fields.reserved, slices.reserved)
-        handle_extension(buffer, slices, subtree, frame_offset + 84)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 84)
     end
 
     -- reset
     if frame_type_id == RESET_ID then
-        handle_extension(buffer, slices, subtree, frame_offset + 72)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- window
@@ -248,7 +252,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add(fields.offset, offset)
         subtree:add(fields.offset_maximum, offset_maximum)
 
-        pinfo.cols.info:set("[" .. offset_maximum .. "]")
+        pinfo.cols.info:set(info .. " [" .. offset_maximum .. "]")
     end
 
     -- signal
@@ -269,7 +273,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- challenge
     if frame_type_id == CHALLENGE_ID then
-        handle_extension(buffer, slices, subtree, frame_offset + 72)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
     end
 end
 
@@ -288,7 +292,7 @@ function resolve_frame_type(frame_type_id)
     return frame_type
 end
 
-function handle_extension(buffer, slices, subtree, offset)
+function handle_extension(buffer, slices, subtree, pinfo, info, offset)
     if buffer:len() > offset then
         slices.stream_type_id = buffer(offset, 4)
         subtree:add(fields.stream_type_id, slices.stream_type_id)
@@ -299,6 +303,8 @@ function handle_extension(buffer, slices, subtree, offset)
 
         slices.extension = buffer(offset)
         subtree:add(fields.extension, slices.extension)
+
+        pinfo.cols.info:set(info .. " s=" .. stream_type)
     end
 end
 
