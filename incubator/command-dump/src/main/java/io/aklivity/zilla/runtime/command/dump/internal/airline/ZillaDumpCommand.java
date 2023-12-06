@@ -406,7 +406,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 final MutableDirectBuffer begin2buffer = new UnsafeBuffer(ByteBuffer.allocate(begin.sizeof()));
                 final BeginFW begin2 = new BeginFW.Builder().wrap(begin2buffer, 0, begin.sizeof()).set(begin).build();
-                final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+                final ExtensionFW extension = begin2.extension().get(extensionRO::tryWrap);
                 if (extension != null)
                 {
                     int streamTypeId = calculateLabelCrc(extension.typeId());

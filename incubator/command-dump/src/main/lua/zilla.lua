@@ -1,5 +1,9 @@
 zilla_protocol = Proto("Zilla", "Zilla Frames")
 
+HEADER_OFFSET = 0
+FRAME_OFFSET = 4
+BEGIN_EXTENSION_OFFSET = FRAME_OFFSET + 80
+
 BEGIN_ID = 0x00000001
 DATA_ID = 0x00000002
 END_ID = 0x00000003
@@ -67,17 +71,19 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local subtree = tree:add(zilla_protocol, buffer(), "Zilla Frame")
 
     local slices = {
-        frame_type_id = buffer(0, 4),
-        protocol_type_id = buffer(4, 4),
-        origin_id = buffer(8, 8),
-        routed_id = buffer(16, 8),
-        stream_id = buffer(24, 8),
-        sequence = buffer(32, 8),
-        acknowledge = buffer(40, 8),
-        maximum = buffer(48, 4),
-        timestamp = buffer(52, 8),
-        trace_id = buffer(60, 8),
-        authorization = buffer(68, 8)
+        -- header
+        frame_type_id = buffer(HEADER_OFFSET + 0, 4),
+        protocol_type_id = buffer(HEADER_OFFSET + 4, 4),
+        -- frame
+        origin_id = buffer(FRAME_OFFSET + 4, 8),
+        routed_id = buffer(FRAME_OFFSET + 12, 8),
+        stream_id = buffer(FRAME_OFFSET + 20, 8),
+        sequence = buffer(FRAME_OFFSET + 28, 8),
+        acknowledge = buffer(FRAME_OFFSET + 36, 8),
+        maximum = buffer(FRAME_OFFSET + 44, 4),
+        timestamp = buffer(FRAME_OFFSET + 48, 8),
+        trace_id = buffer(FRAME_OFFSET + 56, 8),
+        authorization = buffer(FRAME_OFFSET + 64, 8)
     }
 
     local frame_type_id = slices.frame_type_id:le_uint()
@@ -117,29 +123,29 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- begin
     if frame_type_id == BEGIN_ID then
-        slices.affinity = buffer(76, 8)
+        slices.affinity = buffer(FRAME_OFFSET + 72, 8)
         subtree:add_le(fields.affinity, slices.affinity)
 
-        if buffer:len() > 84 then
-            slices.stream_type_id = buffer(84, 4)
+        if buffer:len() > BEGIN_EXTENSION_OFFSET then
+            slices.stream_type_id = buffer(BEGIN_EXTENSION_OFFSET, 4)
             subtree:add(fields.stream_type_id, slices.stream_type_id)
             local stream_type_id = slices.stream_type_id:le_uint();
             local stream_type_name = resolve_type_name(stream_type_id)
             subtree:add(fields.stream_type_name, stream_type_name)
 
-            slices.extension = buffer(84)
+            slices.extension = buffer(BEGIN_EXTENSION_OFFSET)
             subtree:add(fields.extension, slices.extension)
         end
     end
 
     -- data
     if frame_type_id == DATA_ID then
-        slices.flags = buffer(76, 1)
-        slices.budget_id = buffer(77, 8)
-        slices.reserved = buffer(85, 4)
-        slices.length = buffer(89, 4)
+        slices.flags = buffer(FRAME_OFFSET + 72, 1)
+        slices.budget_id = buffer(FRAME_OFFSET + 73, 8)
+        slices.reserved = buffer(FRAME_OFFSET + 81, 4)
+        slices.length = buffer(FRAME_OFFSET + 85, 4)
         local length = slices.length:le_int()
-        slices.payload = buffer(93, length)
+        slices.payload = buffer(FRAME_OFFSET + 89, length)
 
         subtree:add_le(fields.flags, slices.flags)
         subtree:add_le(fields.budget_id, slices.budget_id)
@@ -164,10 +170,10 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- window
     if frame_type_id == WINDOW_ID then
-        slices.budget_id = buffer(76, 8)
-        slices.padding = buffer(84, 4)
-        slices.minimum = buffer(88, 4)
-        slices.capabilities = buffer(92, 1)
+        slices.budget_id = buffer(FRAME_OFFSET + 72, 8)
+        slices.padding = buffer(FRAME_OFFSET + 80, 4)
+        slices.minimum = buffer(FRAME_OFFSET + 84, 4)
+        slices.capabilities = buffer(FRAME_OFFSET + 88, 1)
 
         subtree:add_le(fields.budget_id, slices.budget_id)
         subtree:add_le(fields.padding, slices.padding)
@@ -188,14 +194,14 @@ end
 
 function resolve_frame_type_name(frame_type_id)
     local frame_type_name = ""
-        if frame_type_id == BEGIN_ID then frame_type_name = "BEGIN"
-    elseif frame_type_id == DATA_ID then frame_type_name = "DATA"
-    elseif frame_type_id == END_ID then frame_type_name = "END"
-    elseif frame_type_id == ABORT_ID then frame_type_name = "ABORT"
-    elseif frame_type_id == FLUSH_ID then frame_type_name = "FLUSH"
-    elseif frame_type_id == RESET_ID then frame_type_name = "RESET"
-    elseif frame_type_id == WINDOW_ID then frame_type_name = "WINDOW"
-    elseif frame_type_id == SIGNAL_ID then frame_type_name = "SIGNAL"
+        if frame_type_id == BEGIN_ID     then frame_type_name = "BEGIN"
+    elseif frame_type_id == DATA_ID      then frame_type_name = "DATA"
+    elseif frame_type_id == END_ID       then frame_type_name = "END"
+    elseif frame_type_id == ABORT_ID     then frame_type_name = "ABORT"
+    elseif frame_type_id == FLUSH_ID     then frame_type_name = "FLUSH"
+    elseif frame_type_id == RESET_ID     then frame_type_name = "RESET"
+    elseif frame_type_id == WINDOW_ID    then frame_type_name = "WINDOW"
+    elseif frame_type_id == SIGNAL_ID    then frame_type_name = "SIGNAL"
     elseif frame_type_id == CHALLENGE_ID then frame_type_name = "CHALLENGE"
     end
     return frame_type_name
