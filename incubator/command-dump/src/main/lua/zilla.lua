@@ -24,11 +24,11 @@ TLS_ID = 0x99f321bc
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "frameTypeId", base.HEX),
-    frame_type_name = ProtoField.string("zilla.frame_type_name", "frameTypeName", base.NONE),
+    frame_type = ProtoField.string("zilla.frame_type", "frameType", base.NONE),
     protocol_type_id = ProtoField.uint32("zilla.protocol_type_id", "protocolTypeId", base.HEX),
-    protocol_type_name = ProtoField.string("zilla.protocol_type_name", "protocolTypeName", base.NONE),
+    protocol_type = ProtoField.string("zilla.protocol_type", "protocolType", base.NONE),
     stream_type_id = ProtoField.uint32("zilla.stream_type_id", "streamTypeId", base.HEX),
-    stream_type_name = ProtoField.string("zilla.stream_type_name", "streamTypeName", base.NONE),
+    stream_type = ProtoField.string("zilla.stream_type", "streamType", base.NONE),
 
     -- labels
     labels_length = ProtoField.uint32("zilla.labels_length", "labelsLength", base.DEC),
@@ -83,15 +83,15 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     -- header
     slices.frame_type_id = buffer(HEADER_OFFSET, 4)
     local frame_type_id = slices.frame_type_id:le_uint()
-    local frame_type_name = resolve_frame_type_name(frame_type_id)
+    local frame_type = resolve_frame_type(frame_type_id)
     subtree:add_le(fields.frame_type_id, slices.frame_type_id)
-    subtree:add(fields.frame_type_name, frame_type_name)
+    subtree:add(fields.frame_type, frame_type)
 
     slices.protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
     local protocol_type_id = slices.protocol_type_id:le_uint()
-    local protocol_type_name = resolve_type_name(protocol_type_id)
+    local protocol_type = resolve_type(protocol_type_id)
     subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
-    subtree:add(fields.protocol_type_name, protocol_type_name)
+    subtree:add(fields.protocol_type, protocol_type)
 
     -- labels
     slices.labels_length = buffer(LABELS_OFFSET, 4)
@@ -172,8 +172,8 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
             slices.stream_type_id = buffer(begin_extension_offset, 4)
             subtree:add(fields.stream_type_id, slices.stream_type_id)
             local stream_type_id = slices.stream_type_id:le_uint();
-            local stream_type_name = resolve_type_name(stream_type_id)
-            subtree:add(fields.stream_type_name, stream_type_name)
+            local stream_type = resolve_type(stream_type_id)
+            subtree:add(fields.stream_type, stream_type)
 
             slices.extension = buffer(begin_extension_offset)
             subtree:add(fields.extension, slices.extension)
@@ -204,7 +204,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add(fields.offset, offset)
         subtree:add(fields.offset_maximum, offset_maximum)
 
-        local dissector = resolve_dissector(protocol_type_name, slices.payload:tvb())
+        local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
         if dissector then
             dissector:call(slices.payload:tvb(), pinfo, tree)
         end
@@ -234,42 +234,42 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     end
 end
 
-function resolve_frame_type_name(frame_type_id)
-    local frame_type_name = ""
-        if frame_type_id == BEGIN_ID     then frame_type_name = "BEGIN"
-    elseif frame_type_id == DATA_ID      then frame_type_name = "DATA"
-    elseif frame_type_id == END_ID       then frame_type_name = "END"
-    elseif frame_type_id == ABORT_ID     then frame_type_name = "ABORT"
-    elseif frame_type_id == FLUSH_ID     then frame_type_name = "FLUSH"
-    elseif frame_type_id == RESET_ID     then frame_type_name = "RESET"
-    elseif frame_type_id == WINDOW_ID    then frame_type_name = "WINDOW"
-    elseif frame_type_id == SIGNAL_ID    then frame_type_name = "SIGNAL"
-    elseif frame_type_id == CHALLENGE_ID then frame_type_name = "CHALLENGE"
+function resolve_frame_type(frame_type_id)
+    local frame_type = ""
+        if frame_type_id == BEGIN_ID     then frame_type = "BEGIN"
+    elseif frame_type_id == DATA_ID      then frame_type = "DATA"
+    elseif frame_type_id == END_ID       then frame_type = "END"
+    elseif frame_type_id == ABORT_ID     then frame_type = "ABORT"
+    elseif frame_type_id == FLUSH_ID     then frame_type = "FLUSH"
+    elseif frame_type_id == RESET_ID     then frame_type = "RESET"
+    elseif frame_type_id == WINDOW_ID    then frame_type = "WINDOW"
+    elseif frame_type_id == SIGNAL_ID    then frame_type = "SIGNAL"
+    elseif frame_type_id == CHALLENGE_ID then frame_type = "CHALLENGE"
     end
-    return frame_type_name
+    return frame_type
 end
 
-function resolve_type_name(type_id)
-    local type_name = ""
-        if type_id == AMQP_ID  then type_name = "amqp"
-    elseif type_id == GRPC_ID  then type_name = "grpc"
-    elseif type_id == HTTP_ID  then type_name = "http"
-    elseif type_id == KAFKA_ID then type_name = "kafka"
-    elseif type_id == MQTT_ID  then type_name = "mqtt"
-    elseif type_id == PROXY_ID then type_name = "proxy"
-    elseif type_id == TLS_ID   then type_name = "tls"
+function resolve_type(type_id)
+    local type = ""
+        if type_id == AMQP_ID  then type = "amqp"
+    elseif type_id == GRPC_ID  then type = "grpc"
+    elseif type_id == HTTP_ID  then type = "http"
+    elseif type_id == KAFKA_ID then type = "kafka"
+    elseif type_id == MQTT_ID  then type = "mqtt"
+    elseif type_id == PROXY_ID then type = "proxy"
+    elseif type_id == TLS_ID   then type = "tls"
     end
-    return type_name
+    return type
 end
 
-function resolve_dissector(protocol_type_name, payload)
+function resolve_dissector(protocol_type, payload)
     local dissector
-        if protocol_type_name == "amqp"  then dissector = Dissector.get("amqp")
-    elseif protocol_type_name == "grpc"  then dissector = Dissector.get("grpc")
-    elseif protocol_type_name == "http"  then dissector = resolve_http_dissector(payload)
-    elseif protocol_type_name == "kafka" then dissector = Dissector.get("kafka")
-    elseif protocol_type_name == "mqtt"  then dissector = Dissector.get("mqtt")
-    elseif protocol_type_name == "tls"   then dissector = Dissector.get("tls")
+        if protocol_type == "amqp"  then dissector = Dissector.get("amqp")
+    elseif protocol_type == "grpc"  then dissector = Dissector.get("grpc")
+    elseif protocol_type == "http"  then dissector = resolve_http_dissector(payload)
+    elseif protocol_type == "kafka" then dissector = Dissector.get("kafka")
+    elseif protocol_type == "mqtt"  then dissector = Dissector.get("mqtt")
+    elseif protocol_type == "tls"   then dissector = Dissector.get("tls")
     end
     return dissector
 end
