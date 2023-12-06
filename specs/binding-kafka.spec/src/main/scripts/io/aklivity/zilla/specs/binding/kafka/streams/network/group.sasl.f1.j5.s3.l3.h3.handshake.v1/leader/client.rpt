@@ -29,11 +29,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 17                                # size
+write 22                                # size
       17s                               # sasl.handshake
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 read 17                                 # size
@@ -42,11 +42,11 @@ read 17                                 # size
      1                                  # mechanisms
        5s "PLAIN"                         # PLAIN
 
-write 32                                # size
+write 37                                # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       18
       [0x00] "username"                 # authentication bytes
       [0x00] "password"
@@ -76,11 +76,11 @@ read  35                                 # size
       9092                            #port
 
 
-write 17                                # size
+write 22                                # size
       17s                               # sasl.handshake
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 read 17                                 # size
@@ -89,11 +89,11 @@ read 17                                 # size
      1                                  # mechanisms
        5s "PLAIN"                         # PLAIN
 
-write 32                                # size
+write 37                                # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       18
       [0x00] "username"                 # authentication bytes
       [0x00] "password"
@@ -105,11 +105,11 @@ read 20                                 # size
      -1s                                # authentication bytes
      0L                                 # session lifetime
 
-write 82                                                 # size
+write 87                                                 # size
       32s                                                # describe configs
       0s                                                 # v0
       ${newRequestId}
-      -1s                                                # no client id
+      5s "zilla"                                         # client id
       1                                                  # resources
         [0x04]                                           # broker resource
         1s "0"                                           # "node" topic
@@ -147,11 +147,11 @@ connect await ROUTED_DESCRIBE_SERVER
 
 connected
 
-write 17                                # size
+write 22                                # size
       17s                               # sasl.handshake
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 read 17                                 # size
@@ -160,11 +160,11 @@ read 17                                 # size
      1                                  # mechanisms
        5s "PLAIN"                         # PLAIN
 
-write 32                                # size
+write 37                                # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       18
       [0x00] "username"                 # authentication bytes
       [0x00] "password"
@@ -213,7 +213,7 @@ write 64                                           # size
       14s                                           # sync group
       3s                                            # v3
       ${newRequestId}
-      5s "zilla"                                    # no client id
+      5s "zilla"                                    # client id
       4s "test"                                     # consumer group
       0                                             # generation id
       10s "memberId-1"                              # consumer member group id

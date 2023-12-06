@@ -1481,7 +1481,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .apiKey(METADATA_API_KEY)
                         .apiVersion(METADATA_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -1501,7 +1501,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
