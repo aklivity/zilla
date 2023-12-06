@@ -51,9 +51,11 @@ local fields = {
     trace_id = ProtoField.uint64("zilla.trace_id", "traceId", base.HEX),
     authorization = ProtoField.uint64("zilla.authorization", "authorization", base.HEX),
 
+    -- almost all frames
+    extension = ProtoField.bytes("zilla.extension", "extension", base.NONE),
+
     -- begin frame
     affinity = ProtoField.uint64("zilla.affinity", "affinity", base.HEX),
-    extension = ProtoField.bytes("zilla.extension", "extension", base.NONE),
 
     -- data frame
     flags = ProtoField.uint8("zilla.flags", "flags", base.HEX),
@@ -166,32 +168,21 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     if frame_type_id == BEGIN_ID then
         slices.affinity = buffer(frame_offset + 72, 8)
         subtree:add_le(fields.affinity, slices.affinity)
-
-        begin_extension_offset = frame_offset + 80
-        if buffer:len() > begin_extension_offset then
-            slices.stream_type_id = buffer(begin_extension_offset, 4)
-            subtree:add(fields.stream_type_id, slices.stream_type_id)
-            local stream_type_id = slices.stream_type_id:le_uint();
-            local stream_type = resolve_type(stream_type_id)
-            subtree:add(fields.stream_type, stream_type)
-
-            slices.extension = buffer(begin_extension_offset)
-            subtree:add(fields.extension, slices.extension)
-        end
+        handle_extension(buffer, slices, subtree, frame_offset + 80)
     end
 
     -- data
     if frame_type_id == DATA_ID then
         slices.flags = buffer(frame_offset + 72, 1)
+        subtree:add_le(fields.flags, slices.flags)
         slices.budget_id = buffer(frame_offset + 73, 8)
+        subtree:add_le(fields.budget_id, slices.budget_id)
         slices.reserved = buffer(frame_offset + 81, 4)
+        subtree:add_le(fields.reserved, slices.reserved)
+
         slices.length = buffer(frame_offset + 85, 4)
         local length = slices.length:le_int()
         slices.payload = buffer(frame_offset + 89, length)
-
-        subtree:add_le(fields.flags, slices.flags)
-        subtree:add_le(fields.budget_id, slices.budget_id)
-        subtree:add_le(fields.reserved, slices.reserved)
         subtree:add_le(fields.length, slices.length)
         subtree:add(fields.payload, slices.payload)
 
@@ -213,13 +204,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     -- window
     if frame_type_id == WINDOW_ID then
         slices.budget_id = buffer(frame_offset + 72, 8)
-        slices.padding = buffer(frame_offset + 80, 4)
-        slices.minimum = buffer(frame_offset + 84, 4)
-        slices.capabilities = buffer(frame_offset + 88, 1)
-
         subtree:add_le(fields.budget_id, slices.budget_id)
+        slices.padding = buffer(frame_offset + 80, 4)
         subtree:add_le(fields.padding, slices.padding)
+        slices.minimum = buffer(frame_offset + 84, 4)
         subtree:add_le(fields.minimum, slices.minimum)
+        slices.capabilities = buffer(frame_offset + 88, 1)
         subtree:add_le(fields.capabilities, slices.capabilities)
 
         local sequence = slices.sequence:le_int64();
@@ -247,6 +237,20 @@ function resolve_frame_type(frame_type_id)
     elseif frame_type_id == CHALLENGE_ID then frame_type = "CHALLENGE"
     end
     return frame_type
+end
+
+function handle_extension(buffer, slices, subtree, offset)
+    if buffer:len() > offset then
+        slices.stream_type_id = buffer(offset, 4)
+        subtree:add(fields.stream_type_id, slices.stream_type_id)
+
+        local stream_type_id = slices.stream_type_id:le_uint();
+        local stream_type = resolve_type(stream_type_id)
+        subtree:add(fields.stream_type, stream_type)
+
+        slices.extension = buffer(offset)
+        subtree:add(fields.extension, slices.extension)
+    end
 end
 
 function resolve_type(type_id)
