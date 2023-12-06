@@ -6,7 +6,7 @@ RELEASE_URL="https://github.com/$REPO/releases/download"
 MAIN_URL="https://api.github.com/repos/$REPO/tarball"
 VERSION=""
 EXAMPLE_FOLDER=""
-KAFKA_FOLDER="kafka.broker"
+KAFKA_FOLDER=""
 COMPOSE_FOLDER="docker/compose"
 HELM_FOLDER="k8s/helm"
 USE_HELM=false
@@ -14,13 +14,14 @@ USE_MAIN=false
 START_KAFKA=true
 AUTO_TEARDOWN=false
 REMOTE_KAFKA=false
+KAFKA_BROKER="kafka"
 KAFKA_HOST=""
 KAFKA_PORT=""
 WORKDIR=$(pwd)
 
 # help text
 read -r -d '' HELP_TEXT <<-EOF || :
-Usage: ${CMD:=${0##*/}} [-km][-h KAFKA_HOST -p KAFKA_PORT][-d WORKDIR][-v VERSION][--no-kafka][--auto-teardown] example.name
+Usage: ${CMD:=${0##*/}} [-km][-h KAFKA_HOST -p KAFKA_PORT][-d WORKDIR][-v VERSION][--no-kafka][--auto-teardown][--redpanda] example.name
 
 Operand:
     example.name          The name of the example to use                                 [default: quickstart][string]
@@ -34,6 +35,7 @@ Options:
     -v | --version        Sets the version to download                                       [default: latest][string]
          --auto-teardown  Executes the teardown script immediately after setup                               [boolean]
          --no-kafka       The script wont try to start a kafka broker                                        [boolean]
+         --redpanda       Makes the included kafka broker and scripts use Redpanda                           [boolean]
          --help           Print help                                                                         [boolean]
 
 Report a bug: github.com/$REPO/issues/new
@@ -57,6 +59,7 @@ while [ "$1" != "$EOL" ]; do
     -m | --use-main      ) USE_MAIN=true;;
          --no-kafka      ) START_KAFKA=false;;
          --auto-teardown ) AUTO_TEARDOWN=true;;
+         --redpanda      ) KAFKA_BROKER="redpanda";;
          --help          ) printf "%s\n" "$USAGE"; exit 0;;
 
     # process special cases
@@ -92,12 +95,26 @@ if [[ ! -d "$WORKDIR/$EXAMPLE_FOLDER/$HELM_FOLDER" && ! -d "$WORKDIR/$EXAMPLE_FO
     START_KAFKA=false
 fi
 
-# use helm if there isn't a compose implimentation, remove after adding to all examples
+# use helm if there isn't a compose implimentation
 if [[ $USE_HELM == false && ! -d "$WORKDIR/$EXAMPLE_FOLDER/$COMPOSE_FOLDER" ]]; then
+    echo "==== This example only supports Helm currently ===";
     USE_HELM=true
 fi
 
+# use compose if there isn't a helm implimentation
+if [[ $USE_HELM == true && ! -d "$WORKDIR/$EXAMPLE_FOLDER/$HELM_FOLDER" ]]; then
+    echo "==== This example only supports Compose currently ===";
+    USE_HELM=false
+fi
+
+# force use of kafka if helm is being used
+if [[  $USE_HELM == true && $KAFKA_BROKER != "kafka" ]]; then
+    echo "**** Helm examples only support the Kafka broker currently, switching broker to Kafka ****";
+    KAFKA_BROKER="kafka"
+fi
+
 KAKFA_TEARDOWN_SCRIPT=""
+KAFKA_FOLDER="$KAFKA_BROKER.broker"
 if [[ $REMOTE_KAFKA == true ]]; then
     echo "Connecting to remote Kafka at $KAFKA_HOST:$KAFKA_PORT"
 elif [[ $START_KAFKA == true ]]; then
@@ -127,6 +144,7 @@ elif [[ $START_KAFKA == true ]]; then
     sh setup.sh
     echo "Kafka started at $KAFKA_HOST:$KAFKA_PORT"
 fi
+export KAFKA_BROKER=$KAFKA_BROKER
 if [[ $REMOTE_KAFKA == true || $START_KAFKA == true ]]; then
     export KAFKA_HOST=$KAFKA_HOST
     export KAFKA_PORT=$KAFKA_PORT
@@ -188,7 +206,7 @@ printf "\n\n"
 echo "==== Check out the README to see how to use this example ==== "
 echo "cd $WORKDIR/$EXAMPLE_FOLDER"
 echo "cat README.md"
-echo "$(head -n 4 "$WORKDIR"/"$EXAMPLE_FOLDER"/README.md | tail -n 3)"
+head -n 4 "$WORKDIR"/"$EXAMPLE_FOLDER"/README.md | tail -n 3
 
 printf "\n\n"
 echo "==== Finished, use the teardown script(s) to clean up ===="
