@@ -1062,7 +1062,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 final short errorCode = syncGroupResponse != null ? syncGroupResponse.errorCode() : ERROR_EXISTS;
 
-
                 if (syncGroupResponse == null)
                 {
                     break decode;
@@ -1543,7 +1542,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int offset,
             int length)
         {
-            final int reserved = replyPad;
+            final int reserved = length + replyPad;
 
             if (length > 0)
             {
@@ -4340,24 +4339,20 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 for (int i = 0; i < assignment.metadataTopicCount(); i++)
                 {
-                    ConsumerTopicPartitionFW topicPartition = topicPartitionRO
+                    final ConsumerTopicPartitionFW topicPartition = topicPartitionRO
                         .wrap(buffer, userdataProgress.get(), limit);
 
                     userdataProgress.set(topicPartition.limit());
 
-                    topicAssignmentBuilder.item(ta ->
+                    int partitionCount = topicPartition.partitionCount();
+                    for (int t = 0; t < partitionCount; t++)
                     {
-                        ta.topic(topicPartition.topic());
-                        int partitionCount = topicPartition.partitionCount();
-                        for (int t = 0; t < partitionCount; t++)
-                        {
-                            ConsumerPartitionFW partition = partitionRO.wrap(buffer, userdataProgress.get(), limit);
-                            userdataProgress.set(partition.limit());
-                        }
-                    });
+                        ConsumerPartitionFW partition = partitionRO.wrap(buffer, userdataProgress.get(), limit);
+                        userdataProgress.set(partition.limit());
+                    }
                 }
 
-                ConsumerAssignmentUserdataFW memberUserdata =
+                final ConsumerAssignmentUserdataFW memberUserdata =
                     assignmentUserdataRO.wrap(buffer, userdataProgress.get(), limit);
 
                 final OctetsFW memberUserdataValue = memberUserdata.userdata();
@@ -4380,7 +4375,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         {
                             ConsumerPartitionFW partition = partitionRO.wrap(buffer, progress.get(), limit);
                             progress.set(partition.limit());
-
                             ta.partitionsItem(p -> p.partitionId(partition.partitionId()));
                         }
 

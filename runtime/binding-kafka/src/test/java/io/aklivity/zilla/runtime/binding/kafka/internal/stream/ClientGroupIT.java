@@ -196,6 +196,16 @@ public class ClientGroupIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topics.partition.assignment/client",
+        "${net}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyInstanceId()
     {
         return "zilla";

@@ -162,4 +162,13 @@ public class GroupIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/topics.partition.assignment/client",
+        "${net}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
