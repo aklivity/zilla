@@ -74,9 +74,9 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/leader/client",
-        "${app}/leader/server"})
-    public void shouldBecameLeader() throws Exception
+        "${app}/leader.assignment/client",
+        "${app}/leader.assignment/server"})
+    public void shouldAssignLeader() throws Exception
     {
         k3po.finish();
     }

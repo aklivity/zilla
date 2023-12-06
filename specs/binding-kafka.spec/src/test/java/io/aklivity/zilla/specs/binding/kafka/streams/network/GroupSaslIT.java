@@ -40,9 +40,18 @@ public class GroupSaslIT
 
     @Test
     @Specification({
-        "${net}/leader/client",
-        "${net}/leader/server"})
-    public void shouldBecomeLeader() throws Exception
+        "${net}/leader.assignment.with.sasl.plain/client",
+        "${net}/leader.assignment.with.sasl.plain/server"})
+    public void shouldAssignLeaderWithSaslPlain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/leader.assignment.with.sasl.scram/client",
+        "${net}/leader.assignment.with.sasl.scram/server"})
+    public void shouldAssignLeaderWithSaslScram() throws Exception
     {
         k3po.finish();
     }

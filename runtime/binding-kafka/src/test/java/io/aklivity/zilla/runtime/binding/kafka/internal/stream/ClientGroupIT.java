@@ -99,7 +99,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception
     {
@@ -109,7 +109,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.reject.invalid.consumer/server"})
     public void shouldRejectInvalidConsumer() throws Exception
     {
@@ -119,7 +119,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/rebalance.protocol.highlander.unknown.member.id/server"})
     public void shouldRebalanceProtocolHighlanderUnknownMemberId() throws Exception
     {
