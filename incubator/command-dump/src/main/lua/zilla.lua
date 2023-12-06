@@ -86,49 +86,51 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local slices = {}
 
     -- header
+    local headerSubtree = subtree:add(zilla_protocol, buffer(), "Header")
     slices.frame_type_id = buffer(HEADER_OFFSET, 4)
     local frame_type_id = slices.frame_type_id:le_uint()
     local frame_type = resolve_frame_type(frame_type_id)
-    subtree:add_le(fields.frame_type_id, slices.frame_type_id)
-    subtree:add(fields.frame_type, frame_type)
+    headerSubtree:add_le(fields.frame_type_id, slices.frame_type_id)
+    headerSubtree:add(fields.frame_type, frame_type)
 
     slices.protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
     local protocol_type_id = slices.protocol_type_id:le_uint()
     local protocol_type = resolve_type(protocol_type_id)
-    subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
-    subtree:add(fields.protocol_type, protocol_type)
+    headerSubtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
+    headerSubtree:add(fields.protocol_type, protocol_type)
 
     -- labels
+    local labelsSubtree = subtree:add(zilla_protocol, buffer(), "Labels")
     slices.labels_length = buffer(LABELS_OFFSET, 4)
     local labels_length = slices.labels_length:le_uint()
     slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
-    subtree:add_le(fields.labels_length, slices.labels_length)
-    subtree:add(fields.labels, slices.labels)
+    labelsSubtree:add_le(fields.labels_length, slices.labels_length)
+    labelsSubtree:add(fields.labels, slices.labels)
 
     local label_offset = LABELS_OFFSET + 4;
     local origin_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     local origin_namespace = buffer(label_offset, origin_namespace_length):string()
     label_offset = label_offset + origin_namespace_length
-    subtree:add(fields.origin_namespace, origin_namespace)
+    labelsSubtree:add(fields.origin_namespace, origin_namespace)
 
     local origin_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     local origin_binding = buffer(label_offset, origin_binding_length):string()
     label_offset = label_offset + origin_binding_length
-    subtree:add(fields.origin_binding, origin_binding)
+    labelsSubtree:add(fields.origin_binding, origin_binding)
 
     local routed_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     local routed_namespace = buffer(label_offset, routed_namespace_length):string()
     label_offset = label_offset + routed_namespace_length
-    subtree:add(fields.routed_namespace, routed_namespace)
+    labelsSubtree:add(fields.routed_namespace, routed_namespace)
 
     local routed_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     local routed_binding = buffer(label_offset, routed_binding_length):string()
     label_offset = label_offset + routed_binding_length
-    subtree:add(fields.routed_binding, routed_binding)
+    labelsSubtree:add(fields.routed_binding, routed_binding)
 
     -- frame
     local frame_offset = LABELS_OFFSET + labels_length
@@ -187,13 +189,6 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         slices.reserved = buffer(frame_offset + 81, 4)
         subtree:add_le(fields.reserved, slices.reserved)
 
-        slices.length = buffer(frame_offset + 85, 4)
-        local length = slices.length:le_int()
-        slices.payload = buffer(frame_offset + 89, length)
-        subtree:add_le(fields.length, slices.length)
-        subtree:add(fields.payload, slices.payload)
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 89 + length)
-
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
         local maximum = slices.maximum:le_int();
@@ -202,6 +197,14 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local offset_maximum = offset .. "/" .. maximum
         subtree:add(fields.offset, offset)
         subtree:add(fields.offset_maximum, offset_maximum)
+
+        local payloadSubtree = subtree:add(zilla_protocol, buffer(), "Payload")
+        slices.length = buffer(frame_offset + 85, 4)
+        local length = slices.length:le_int()
+        slices.payload = buffer(frame_offset + 89, length)
+        payloadSubtree:add_le(fields.length, slices.length)
+        payloadSubtree:add(fields.payload, slices.payload)
+        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 89 + length)
 
         local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
         if dissector then
@@ -264,11 +267,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         slices.context_id = buffer(frame_offset + 84, 4)
         subtree:add_le(fields.context_id, slices.context_id)
 
+        local payloadSubtree = subtree:add(zilla_protocol, buffer(), "Payload")
         slices.length = buffer(frame_offset + 88, 4)
         local length = slices.length:le_int()
         slices.payload = buffer(frame_offset + 92, length)
-        subtree:add_le(fields.length, slices.length)
-        subtree:add(fields.payload, slices.payload)
+        payloadSubtree:add_le(fields.length, slices.length)
+        payloadSubtree:add(fields.payload, slices.payload)
     end
 
     -- challenge
@@ -294,15 +298,16 @@ end
 
 function handle_extension(buffer, slices, subtree, pinfo, info, offset)
     if buffer:len() > offset then
+        local extensionSubtree = subtree:add(zilla_protocol, buffer(), "Extension")
         slices.stream_type_id = buffer(offset, 4)
-        subtree:add(fields.stream_type_id, slices.stream_type_id)
+        extensionSubtree:add(fields.stream_type_id, slices.stream_type_id)
 
         local stream_type_id = slices.stream_type_id:le_uint();
         local stream_type = resolve_type(stream_type_id)
-        subtree:add(fields.stream_type, stream_type)
+        extensionSubtree:add(fields.stream_type, stream_type)
 
         slices.extension = buffer(offset)
-        subtree:add(fields.extension, slices.extension)
+        extensionSubtree:add(fields.extension, slices.extension)
 
         pinfo.cols.info:set(info .. " s=" .. stream_type)
     end
