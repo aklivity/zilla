@@ -62,16 +62,19 @@ local fields = {
     budget_id = ProtoField.uint64("zilla.budget_id", "budgetId", base.HEX),
     reserved = ProtoField.int32("zilla.reserved", "reserved", base.DEC),
     length = ProtoField.int32("zilla.length", "length", base.DEC),
-    offset = ProtoField.int64("zilla.offset", "offset", base.DEC), -- TODO: name?
-    offset_maximum = ProtoField.string("zilla.offset_maximum", "offset/maximum", base.NONE), -- TODO: name?
+    offset = ProtoField.int64("zilla.offset", "offset", base.DEC),
+    offset_maximum = ProtoField.string("zilla.offset_maximum", "offset/maximum", base.NONE),
     payload = ProtoField.protocol("zilla.payload", "payload", base.HEX),
-    -- extension
 
     -- window frame
-    -- budget_id
     padding = ProtoField.int32("zilla.padding", "padding", base.DEC),
     minimum = ProtoField.int32("zilla.minimum", "minimum", base.DEC),
-    capabilities = ProtoField.uint8("zilla.capabilities", "capabilities", base.HEX)
+    capabilities = ProtoField.uint8("zilla.capabilities", "capabilities", base.HEX),
+
+    -- signal frame
+    cancel_id = ProtoField.uint64("zilla.cancel_id", "cancelId", base.HEX),
+    signal_id = ProtoField.int32("zilla.signal_id", "signalId", base.DEC),
+    context_id = ProtoField.int32("zilla.context_id", "contextId", base.DEC),
 }
 
 zilla_protocol.fields = fields;
@@ -185,6 +188,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         slices.payload = buffer(frame_offset + 89, length)
         subtree:add_le(fields.length, slices.length)
         subtree:add(fields.payload, slices.payload)
+        handle_extension(buffer, slices, subtree, frame_offset + 89 + length)
 
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
@@ -199,6 +203,30 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         if dissector then
             dissector:call(slices.payload:tvb(), pinfo, tree)
         end
+    end
+
+    -- end
+    if frame_type_id == END_ID then
+        handle_extension(buffer, slices, subtree, frame_offset + 72)
+    end
+
+    -- abort
+    if frame_type_id == ABORT_ID then
+        handle_extension(buffer, slices, subtree, frame_offset + 72)
+    end
+
+    -- flush
+    if frame_type_id == FLUSH_ID then
+        slices.budget_id = buffer(frame_offset + 72, 8)
+        subtree:add_le(fields.budget_id, slices.budget_id)
+        slices.reserved = buffer(frame_offset + 80, 4)
+        subtree:add_le(fields.reserved, slices.reserved)
+        handle_extension(buffer, slices, subtree, frame_offset + 84)
+    end
+
+    -- reset
+    if frame_type_id == RESET_ID then
+        handle_extension(buffer, slices, subtree, frame_offset + 72)
     end
 
     -- window
@@ -221,6 +249,27 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add(fields.offset_maximum, offset_maximum)
 
         pinfo.cols.info:set("[" .. offset_maximum .. "]")
+    end
+
+    -- signal
+    if frame_type_id == SIGNAL_ID then
+        slices.cancel_id = buffer(frame_offset + 72, 8)
+        subtree:add_le(fields.cancel_id, slices.cancel_id)
+        slices.signal_id = buffer(frame_offset + 80, 4)
+        subtree:add_le(fields.signal_id, slices.signal_id)
+        slices.context_id = buffer(frame_offset + 84, 4)
+        subtree:add_le(fields.context_id, slices.context_id)
+
+        slices.length = buffer(frame_offset + 88, 4)
+        local length = slices.length:le_int()
+        slices.payload = buffer(frame_offset + 92, length)
+        subtree:add_le(fields.length, slices.length)
+        subtree:add(fields.payload, slices.payload)
+    end
+
+    -- challenge
+    if frame_type_id == CHALLENGE_ID then
+        handle_extension(buffer, slices, subtree, frame_offset + 72)
     end
 end
 
