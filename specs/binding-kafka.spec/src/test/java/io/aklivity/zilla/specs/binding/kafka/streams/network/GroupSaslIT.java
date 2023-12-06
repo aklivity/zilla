@@ -42,7 +42,7 @@ public class GroupSaslIT
     @Specification({
         "${net}/leader/client",
         "${net}/leader/server"})
-    public void shouldBecameLeader() throws Exception
+    public void shouldBecomeLeader() throws Exception
     {
         k3po.finish();
     }

@@ -1270,7 +1270,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                         .apiKey(DESCRIBE_CONFIGS_API_KEY)
                         .apiVersion(DESCRIBE_CONFIGS_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -1307,7 +1307,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);

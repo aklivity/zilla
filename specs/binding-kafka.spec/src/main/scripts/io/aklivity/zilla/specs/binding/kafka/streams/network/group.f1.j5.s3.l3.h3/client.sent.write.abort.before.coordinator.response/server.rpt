@@ -27,7 +27,7 @@ read  22                                # size
       10s                               # find coordinator
       1s                                # v1
       (int:newRequestId)
-      5s "zilla"                        # no client id
+      5s "zilla"                        # client id
       4s "test"                         # "session" coordinator key
       [0x00]                            # coordinator group type
 
