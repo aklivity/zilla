@@ -168,7 +168,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     pinfo.cols.protocol = zilla_protocol.name
     local info = "ZILLA " .. frame_type .. " " .. stream_dir
-    if protocol_type ~= "" then
+    if protocol_type and protocol_type ~= "" then
         info = info .. " p=" .. protocol_type
     end
     pinfo.cols.info:set(info)
@@ -309,7 +309,9 @@ function handle_extension(buffer, slices, subtree, pinfo, info, offset)
         slices.extension = buffer(offset)
         extensionSubtree:add(fields.extension, slices.extension)
 
-        pinfo.cols.info:set(info .. " s=" .. stream_type)
+        if stream_type and stream_type ~= "" then
+            pinfo.cols.info:set(info .. " s=" .. stream_type)
+        end
     end
 end
 
