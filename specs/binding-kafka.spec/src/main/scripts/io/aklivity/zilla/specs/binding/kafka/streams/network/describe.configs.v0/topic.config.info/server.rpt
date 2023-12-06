@@ -25,11 +25,11 @@ accepted
 
 connected
 
-read 41                                 # size
+read 46                                 # size
      32s                                # describe configs
      0s                                 # v0
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # resources
        [0x02]                           # topic resource
        4s "test"                        # "test" topic

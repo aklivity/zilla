@@ -28,11 +28,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 41                                # size
+write 46                                # size
       32s                               # describe configs
       0s                                # v0
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # resources
         [0x02]                          # topic resource
         4s "test"                       # "test" topic

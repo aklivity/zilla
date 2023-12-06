@@ -1392,7 +1392,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 .apiKey(OFFSET_FETCH_API_KEY)
                 .apiVersion(OFFSET_FETCH_API_VERSION)
                 .correlationId(0)
-                .clientId((String) null)
+                .clientId(clientId)
                 .build();
 
             encodeProgress = requestHeader.limit();
@@ -1430,7 +1430,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
