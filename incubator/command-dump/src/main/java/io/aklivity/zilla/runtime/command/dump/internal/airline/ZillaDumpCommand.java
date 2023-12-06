@@ -80,6 +80,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int MAX_YIELDS = 30;
     private static final int MAX_SPINS = 20;
     private static final int BUFFER_SLOT_CAPACITY = 64 * 1024;
+    private static final int LABELS_BUFFER_SLOT_CAPACITY = 4 * 128;
 
     private static final long PCAP_GLOBAL_MAGIC = 2712847316L;
     private static final short PCAP_GLOBAL_VERSION_MAJOR = 2;
@@ -256,34 +257,6 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
     }
 
-    private void encodePcapHeader(
-        MutableDirectBuffer buffer,
-        long length,
-        long timestamp)
-    {
-        pcapPacketHeaderRW.wrap(buffer, PCAP_HEADER_OFFSET, buffer.capacity())
-            .ts_sec(timestamp / 1000000)
-            .ts_usec(0)
-            .incl_len(length)
-            .orig_len(length)
-            .build();
-    }
-
-    private void encodeEtherHeader(
-        MutableDirectBuffer buffer)
-    {
-        buffer.putBytes(ETHER_HEADER_OFFSET, PSEUDO_ETHERNET_FRAME);
-    }
-
-    private void encodeZillaHeader(
-        MutableDirectBuffer buffer,
-        int frameTypeId,
-        int protocolTypeId)
-    {
-        buffer.putInt(ZILLA_HEADER_OFFSET, frameTypeId);
-        buffer.putInt(ZILLA_HEADER_OFFSET + Integer.BYTES, protocolTypeId);
-    }
-
     private void writePcapOutput(
         WritableByteChannel writer,
         DirectBuffer buffer,
@@ -305,6 +278,12 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
+    public static int namespaceId(
+        long bindingId)
+    {
+        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
+    }
+
     private static int localId(
         long bindingId)
     {
@@ -317,8 +296,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final WritableByteChannel writer;
         private final IntFunction<String> lookupLabel;
         private final Function<Long, long[]> getBindingInfo;
-        private final CRC32C crc = new CRC32C();
-        private final ExtensionFW extensionRO = new ExtensionFW();
+        private final CRC32C crc;
+        private final ExtensionFW extensionRO;
+        private final MutableDirectBuffer labelsBuffer;
 
         private long nextTimestamp = Long.MAX_VALUE;
 
@@ -332,6 +312,9 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.lookupLabel = lookupLabel;
             this.getBindingInfo = getBindingInfo;
             this.writer = writer;
+            this.crc = new CRC32C();
+            this.extensionRO = new ExtensionFW();
+            this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
         }
 
         private boolean nextTimestamp(
@@ -401,6 +384,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(bindingId))
             {
                 final MutableDirectBuffer buffer = writeBuffer;
+                final MutableDirectBuffer labelsBuffer = this.labelsBuffer;
                 final long timestamp = begin.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(begin.originId(), begin.routedId());
 
@@ -413,7 +397,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                     begin2buffer.putInt(BeginFW.FIELD_OFFSET_EXTENSION, streamTypeId);
                 }
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + begin.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, begin2.originId(), begin2.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + begin2.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -421,6 +407,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, BeginFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, begin2.buffer(), begin2.offset(), begin2.sizeof());
             }
@@ -437,7 +425,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = data.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(data.originId(), data.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + data.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, data.originId(), data.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + data.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -445,6 +435,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, DataFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, data.buffer(), data.offset(), data.sizeof());
             }
@@ -461,7 +453,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = end.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(end.originId(), end.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + end.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, end.originId(), end.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + end.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -469,6 +463,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, EndFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, end.buffer(), end.offset(), end.sizeof());
             }
@@ -485,7 +481,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = abort.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(abort.originId(), abort.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + abort.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, abort.originId(), abort.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + abort.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -493,6 +491,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, AbortFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, abort.buffer(), abort.offset(), abort.sizeof());
             }
@@ -509,7 +509,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = flush.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(flush.originId(), flush.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + flush.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, flush.originId(), flush.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + flush.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -517,6 +519,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, FlushFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, flush.buffer(), flush.offset(), flush.sizeof());
             }
@@ -533,7 +537,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = reset.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(reset.originId(), reset.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + reset.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, reset.originId(), reset.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + reset.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -557,7 +563,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final long timestamp = window.timestamp();
                 final int protocolTypeId = resolveProtocolTypeId(window.originId(), window.routedId());
 
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + window.sizeof(), timestamp);
+                int labelsLength = encodeZillaLabels(labelsBuffer, window.originId(), window.routedId());
+                int pcapLength = ETHER_HEADER_SIZE + ZILLA_HEADER_SIZE + labelsLength + window.sizeof();
+                encodePcapHeader(buffer, pcapLength, timestamp);
                 writePcapOutput(writer, buffer, PCAP_HEADER_OFFSET, PCAP_HEADER_LIMIT);
 
                 encodeEtherHeader(buffer);
@@ -565,6 +573,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 encodeZillaHeader(buffer, WindowFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
+
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
 
                 writePcapOutput(writer, window.buffer(), window.offset(), window.sizeof());
             }
@@ -611,6 +621,76 @@ public final class ZillaDumpCommand extends ZillaCommand
                 }
             }
             return result;
+        }
+
+        private void encodePcapHeader(
+            MutableDirectBuffer buffer,
+            long length,
+            long timestamp)
+        {
+            pcapPacketHeaderRW.wrap(buffer, PCAP_HEADER_OFFSET, buffer.capacity())
+                .ts_sec(timestamp / 1000000)
+                .ts_usec(0)
+                .incl_len(length)
+                .orig_len(length)
+                .build();
+        }
+
+        private void encodeEtherHeader(
+            MutableDirectBuffer buffer)
+        {
+            buffer.putBytes(ETHER_HEADER_OFFSET, PSEUDO_ETHERNET_FRAME);
+        }
+
+        private void encodeZillaHeader(
+            MutableDirectBuffer buffer,
+            int frameTypeId,
+            int protocolTypeId)
+        {
+            buffer.putInt(ZILLA_HEADER_OFFSET, frameTypeId);
+            buffer.putInt(ZILLA_HEADER_OFFSET + Integer.BYTES, protocolTypeId);
+        }
+
+        private int encodeZillaLabels(
+            MutableDirectBuffer buffer,
+            long originId,
+            long routedId)
+        {
+            byte[] originNamespace = lookupLabel.apply(namespaceId(originId)).getBytes(StandardCharsets.UTF_8);
+            byte[] originBinding = lookupLabel.apply(localId(originId)).getBytes(StandardCharsets.UTF_8);
+            byte[] routedNamespace = lookupLabel.apply(namespaceId(routedId)).getBytes(StandardCharsets.UTF_8);
+            byte[] routedBinding = lookupLabel.apply(localId(routedId)).getBytes(StandardCharsets.UTF_8);
+            int contentLength = 4 * Integer.BYTES + originNamespace.length + originBinding.length + routedNamespace.length +
+                routedBinding.length;
+            int totalLength = contentLength + Integer.BYTES;
+
+            int offset = 0;
+            buffer.putInt(offset, contentLength);
+            offset += Integer.BYTES;
+
+            buffer.putInt(offset, originNamespace.length);
+            offset += Integer.BYTES;
+            buffer.putBytes(offset, originNamespace);
+            offset += originNamespace.length;
+
+            buffer.putInt(offset, originBinding.length);
+            offset += Integer.BYTES;
+            buffer.putBytes(offset, originBinding);
+            offset += originBinding.length;
+
+            buffer.putInt(offset, routedNamespace.length);
+            offset += Integer.BYTES;
+            buffer.putBytes(offset, routedNamespace);
+            offset += routedNamespace.length;
+
+            buffer.putInt(offset, routedBinding.length);
+            offset += Integer.BYTES;
+            buffer.putBytes(offset, routedBinding);
+            offset += routedBinding.length;
+
+            assert offset == totalLength;
+
+            return totalLength;
         }
     }
 }

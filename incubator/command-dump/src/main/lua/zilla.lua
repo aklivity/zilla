@@ -1,8 +1,7 @@
 zilla_protocol = Proto("Zilla", "Zilla Frames")
 
 HEADER_OFFSET = 0
-FRAME_OFFSET = 4
-BEGIN_EXTENSION_OFFSET = FRAME_OFFSET + 80
+LABELS_OFFSET = 8
 
 BEGIN_ID = 0x00000001
 DATA_ID = 0x00000002
@@ -23,13 +22,23 @@ PROXY_ID = 0x8dcea850
 TLS_ID = 0x99f321bc
 
 local fields = {
-    -- all frames
+    -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "frameTypeId", base.HEX),
     frame_type_name = ProtoField.string("zilla.frame_type_name", "frameTypeName", base.NONE),
     protocol_type_id = ProtoField.uint32("zilla.protocol_type_id", "protocolTypeId", base.HEX),
     protocol_type_name = ProtoField.string("zilla.protocol_type_name", "protocolTypeName", base.NONE),
     stream_type_id = ProtoField.uint32("zilla.stream_type_id", "streamTypeId", base.HEX),
     stream_type_name = ProtoField.string("zilla.stream_type_name", "streamTypeName", base.NONE),
+
+    -- labels
+    labels_length = ProtoField.uint32("zilla.labels_length", "labelsLength", base.DEC),
+    labels = ProtoField.bytes("zilla.labels", "labels", base.NONE),
+    origin_namespace = ProtoField.string("zilla.origin_namespace", "originNamespace", base.NONE),
+    origin_binding = ProtoField.string("zilla.origin_binding", "originBinding", base.NONE),
+    routed_namespace = ProtoField.string("zilla.routed_namespace", "routedNamespace", base.NONE),
+    routed_binding = ProtoField.string("zilla.routed_binding", "routedBinding", base.NONE),
+
+    -- all frames
     origin_id = ProtoField.uint64("zilla.origin_id", "originId", base.HEX),
     routed_id = ProtoField.uint64("zilla.routed_id", "routedId", base.HEX),
     stream_id = ProtoField.uint64("zilla.stream_id", "streamId", base.HEX),
@@ -69,35 +78,60 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     if buffer:len() == 0 then return end
 
     local subtree = tree:add(zilla_protocol, buffer(), "Zilla Frame")
+    local slices = {}
 
-    local slices = {
-        -- header
-        frame_type_id = buffer(HEADER_OFFSET + 0, 4),
-        protocol_type_id = buffer(HEADER_OFFSET + 4, 4),
-        -- frame
-        origin_id = buffer(FRAME_OFFSET + 4, 8),
-        routed_id = buffer(FRAME_OFFSET + 12, 8),
-        stream_id = buffer(FRAME_OFFSET + 20, 8),
-        sequence = buffer(FRAME_OFFSET + 28, 8),
-        acknowledge = buffer(FRAME_OFFSET + 36, 8),
-        maximum = buffer(FRAME_OFFSET + 44, 4),
-        timestamp = buffer(FRAME_OFFSET + 48, 8),
-        trace_id = buffer(FRAME_OFFSET + 56, 8),
-        authorization = buffer(FRAME_OFFSET + 64, 8)
-    }
-
+    -- header
+    slices.frame_type_id = buffer(HEADER_OFFSET, 4)
     local frame_type_id = slices.frame_type_id:le_uint()
     local frame_type_name = resolve_frame_type_name(frame_type_id)
     subtree:add_le(fields.frame_type_id, slices.frame_type_id)
     subtree:add(fields.frame_type_name, frame_type_name)
 
+    slices.protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
     local protocol_type_id = slices.protocol_type_id:le_uint()
     local protocol_type_name = resolve_type_name(protocol_type_id)
     subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
     subtree:add(fields.protocol_type_name, protocol_type_name)
 
+    -- labels
+    slices.labels_length = buffer(LABELS_OFFSET, 4)
+    local labels_length = slices.labels_length:le_uint()
+    slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
+    subtree:add_le(fields.labels_length, slices.labels_length)
+    subtree:add(fields.labels, slices.labels)
+
+    local label_offset = LABELS_OFFSET + 4;
+    local origin_namespace_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local origin_namespace = buffer(label_offset, origin_namespace_length):string()
+    label_offset = label_offset + origin_namespace_length
+    subtree:add(fields.origin_namespace, origin_namespace)
+
+    local origin_binding_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local origin_binding = buffer(label_offset, origin_binding_length):string()
+    label_offset = label_offset + origin_binding_length
+    subtree:add(fields.origin_binding, origin_binding)
+
+    local routed_namespace_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local routed_namespace = buffer(label_offset, routed_namespace_length):string()
+    label_offset = label_offset + routed_namespace_length
+    subtree:add(fields.routed_namespace, routed_namespace)
+
+    local routed_binding_length = buffer(label_offset, 4):le_uint()
+    label_offset = label_offset + 4
+    local routed_binding = buffer(label_offset, routed_binding_length):string()
+    label_offset = label_offset + routed_binding_length
+    subtree:add(fields.routed_binding, routed_binding)
+
+    -- frame
+    local frame_offset = LABELS_OFFSET + labels_length
+    slices.origin_id = buffer(frame_offset + 4, 8)
     subtree:add_le(fields.origin_id, slices.origin_id)
+    slices.routed_id = buffer(frame_offset + 12, 8)
     subtree:add_le(fields.routed_id, slices.routed_id)
+    slices.stream_id = buffer(frame_offset + 20, 8)
     subtree:add_le(fields.stream_id, slices.stream_id)
     local stream_id = slices.stream_id:le_uint64();
     local stream_dir
@@ -111,11 +145,18 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     end
     subtree:add(fields.stream_dir, stream_dir)
     subtree:add(fields.init_stream_id, init_stream_id)
+
+    slices.sequence = buffer(frame_offset + 28, 8)
     subtree:add_le(fields.sequence, slices.sequence)
+    slices.acknowledge = buffer(frame_offset + 36, 8)
     subtree:add_le(fields.acknowledge, slices.acknowledge)
+    slices.maximum = buffer(frame_offset + 44, 4)
     subtree:add_le(fields.maximum, slices.maximum)
+    slices.timestamp = buffer(frame_offset + 48, 8)
     subtree:add_le(fields.timestamp, slices.timestamp)
+    slices.trace_id = buffer(frame_offset + 56, 8)
     subtree:add_le(fields.trace_id, slices.trace_id)
+    slices.authorization = buffer(frame_offset + 64, 8)
     subtree:add_le(fields.authorization, slices.authorization)
 
     pinfo.cols.protocol = zilla_protocol.name
@@ -123,29 +164,30 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- begin
     if frame_type_id == BEGIN_ID then
-        slices.affinity = buffer(FRAME_OFFSET + 72, 8)
+        slices.affinity = buffer(frame_offset + 72, 8)
         subtree:add_le(fields.affinity, slices.affinity)
 
-        if buffer:len() > BEGIN_EXTENSION_OFFSET then
-            slices.stream_type_id = buffer(BEGIN_EXTENSION_OFFSET, 4)
+        begin_extension_offset = frame_offset + 80
+        if buffer:len() > begin_extension_offset then
+            slices.stream_type_id = buffer(begin_extension_offset, 4)
             subtree:add(fields.stream_type_id, slices.stream_type_id)
             local stream_type_id = slices.stream_type_id:le_uint();
             local stream_type_name = resolve_type_name(stream_type_id)
             subtree:add(fields.stream_type_name, stream_type_name)
 
-            slices.extension = buffer(BEGIN_EXTENSION_OFFSET)
+            slices.extension = buffer(begin_extension_offset)
             subtree:add(fields.extension, slices.extension)
         end
     end
 
     -- data
     if frame_type_id == DATA_ID then
-        slices.flags = buffer(FRAME_OFFSET + 72, 1)
-        slices.budget_id = buffer(FRAME_OFFSET + 73, 8)
-        slices.reserved = buffer(FRAME_OFFSET + 81, 4)
-        slices.length = buffer(FRAME_OFFSET + 85, 4)
+        slices.flags = buffer(frame_offset + 72, 1)
+        slices.budget_id = buffer(frame_offset + 73, 8)
+        slices.reserved = buffer(frame_offset + 81, 4)
+        slices.length = buffer(frame_offset + 85, 4)
         local length = slices.length:le_int()
-        slices.payload = buffer(FRAME_OFFSET + 89, length)
+        slices.payload = buffer(frame_offset + 89, length)
 
         subtree:add_le(fields.flags, slices.flags)
         subtree:add_le(fields.budget_id, slices.budget_id)
@@ -170,10 +212,10 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- window
     if frame_type_id == WINDOW_ID then
-        slices.budget_id = buffer(FRAME_OFFSET + 72, 8)
-        slices.padding = buffer(FRAME_OFFSET + 80, 4)
-        slices.minimum = buffer(FRAME_OFFSET + 84, 4)
-        slices.capabilities = buffer(FRAME_OFFSET + 88, 1)
+        slices.budget_id = buffer(frame_offset + 72, 8)
+        slices.padding = buffer(frame_offset + 80, 4)
+        slices.minimum = buffer(frame_offset + 84, 4)
+        slices.capabilities = buffer(frame_offset + 88, 1)
 
         subtree:add_le(fields.budget_id, slices.budget_id)
         subtree:add_le(fields.padding, slices.padding)
