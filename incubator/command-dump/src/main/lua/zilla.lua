@@ -42,8 +42,8 @@ local fields = {
     origin_id = ProtoField.uint64("zilla.origin_id", "Origin ID", base.HEX),
     routed_id = ProtoField.uint64("zilla.routed_id", "Routed ID", base.HEX),
     stream_id = ProtoField.uint64("zilla.stream_id", "Stream ID", base.HEX),
-    stream_dir = ProtoField.string("zilla.direction", "Direction", base.NONE),
-    init_stream_id = ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX),
+    direction = ProtoField.string("zilla.direction", "Direction", base.NONE),
+    initial_id = ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX),
     sequence = ProtoField.int64("zilla.sequence", "Sequence", base.DEC),
     acknowledge = ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC),
     maximum = ProtoField.int32("zilla.maximum", "Maximum", base.DEC),
@@ -62,8 +62,8 @@ local fields = {
     budget_id = ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX),
     reserved = ProtoField.int32("zilla.reserved", "Reserved", base.DEC),
     length = ProtoField.int32("zilla.length", "Length", base.DEC),
-    offset = ProtoField.int64("zilla.progress", "Progress", base.DEC),
-    offset_maximum = ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE),
+    progress = ProtoField.int64("zilla.progress", "Progress", base.DEC),
+    progress_maximum = ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE),
     payload = ProtoField.protocol("zilla.payload", "Payload", base.HEX),
 
     -- window frame
@@ -144,17 +144,17 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     slices.stream_id = buffer(frame_offset + 20, 8)
     subtree:add_le(fields.stream_id, slices.stream_id)
     local stream_id = slices.stream_id:le_uint64();
-    local stream_dir
-    local init_stream_id
+    local direction
+    local initial_id
     if (stream_id % 2) == UInt64(0) then
-        stream_dir = "REP"
-        init_stream_id = stream_id + UInt64(1)
+        direction = "REP"
+        initial_id = stream_id + UInt64(1)
     else
-        stream_dir = "INI"
-        init_stream_id = stream_id
+        direction = "INI"
+        initial_id = stream_id
     end
-    subtree:add(fields.stream_dir, stream_dir)
-    subtree:add(fields.init_stream_id, init_stream_id)
+    subtree:add(fields.direction, direction)
+    subtree:add(fields.initial_id, initial_id)
 
     slices.sequence = buffer(frame_offset + 28, 8)
     subtree:add_le(fields.sequence, slices.sequence)
@@ -170,7 +170,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     subtree:add_le(fields.authorization, slices.authorization)
 
     pinfo.cols.protocol = zilla_protocol.name
-    local info = "ZILLA " .. frame_type .. " " .. stream_dir
+    local info = "ZILLA " .. frame_type .. " " .. direction
     if protocol_type and protocol_type ~= "" then
         info = info .. " p=" .. protocol_type
     end
@@ -196,10 +196,11 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local acknowledge = slices.acknowledge:le_int64();
         local maximum = slices.maximum:le_int();
         local reserved = slices.reserved:le_int();
-        local offset = sequence - acknowledge + reserved;
-        local offset_maximum = offset .. "/" .. maximum
-        subtree:add(fields.offset, offset)
-        subtree:add(fields.offset_maximum, offset_maximum)
+        local progress = sequence - acknowledge + reserved;
+        local progress_maximum = progress .. "/" .. maximum
+        subtree:add(fields.progress, progress)
+        subtree:add(fields.progress_maximum, progress_maximum)
+        pinfo.cols.info:set(info .. " [" .. progress_maximum .. "]")
 
         local payloadSubtree = subtree:add(zilla_protocol, buffer(), "Payload")
         slices.length = buffer(frame_offset + 85, 4)
@@ -212,7 +213,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
         if dissector then
             if protocol_type == "kafka" then
-                if stream_dir == "INI" then
+                if direction == "INI" then
                     pinfo.dst_port = pinfo.match_uint
                 end
             end
@@ -258,12 +259,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local sequence = slices.sequence:le_int64();
         local acknowledge = slices.acknowledge:le_int64();
         local maximum = slices.maximum:le_int();
-        local offset = sequence - acknowledge;
-        local offset_maximum = offset .. "/" .. maximum
-        subtree:add(fields.offset, offset)
-        subtree:add(fields.offset_maximum, offset_maximum)
+        local progress = sequence - acknowledge;
+        local progress_maximum = progress .. "/" .. maximum
+        subtree:add(fields.progress, progress)
+        subtree:add(fields.progress_maximum, progress_maximum)
 
-        pinfo.cols.info:set(info .. " [" .. offset_maximum .. "]")
+        pinfo.cols.info:set(info .. " [" .. progress_maximum .. "]")
     end
 
     -- signal
