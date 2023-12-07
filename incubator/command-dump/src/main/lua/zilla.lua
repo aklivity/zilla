@@ -23,58 +23,58 @@ TLS_ID = 0x99f321bc
 
 local fields = {
     -- header
-    frame_type_id = ProtoField.uint32("zilla.frame_type_id", "frameTypeId", base.HEX),
-    frame_type = ProtoField.string("zilla.frame_type", "frameType", base.NONE),
-    protocol_type_id = ProtoField.uint32("zilla.protocol_type_id", "protocolTypeId", base.HEX),
-    protocol_type = ProtoField.string("zilla.protocol_type", "protocolType", base.NONE),
-    stream_type_id = ProtoField.uint32("zilla.stream_type_id", "streamTypeId", base.HEX),
-    stream_type = ProtoField.string("zilla.stream_type", "streamType", base.NONE),
+    frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
+    frame_type = ProtoField.string("zilla.frame_type", "Frame Type", base.NONE),
+    protocol_type_id = ProtoField.uint32("zilla.protocol_type_id", "Protocol Type ID", base.HEX),
+    protocol_type = ProtoField.string("zilla.protocol_type", "Protocol Type", base.NONE),
+    stream_type_id = ProtoField.uint32("zilla.stream_type_id", "Stream Type ID", base.HEX),
+    stream_type = ProtoField.string("zilla.stream_type", "Stream Type", base.NONE),
 
     -- labels
-    labels_length = ProtoField.uint32("zilla.labels_length", "labelsLength", base.DEC),
-    labels = ProtoField.bytes("zilla.labels", "labels", base.NONE),
-    origin_namespace = ProtoField.string("zilla.origin_namespace", "originNamespace", base.STRING),
-    origin_binding = ProtoField.string("zilla.origin_binding", "originBinding", base.STRING),
-    routed_namespace = ProtoField.string("zilla.routed_namespace", "routedNamespace", base.STRING),
-    routed_binding = ProtoField.string("zilla.routed_binding", "routedBinding", base.STRING),
+    labels_length = ProtoField.uint32("zilla.labels_length", "Labels Length", base.DEC),
+    labels = ProtoField.bytes("zilla.labels", "Labels", base.NONE),
+    origin_namespace = ProtoField.string("zilla.origin_namespace", "Origin Namespace", base.STRING),
+    origin_binding = ProtoField.string("zilla.origin_binding", "Origin Binding", base.STRING),
+    routed_namespace = ProtoField.string("zilla.routed_namespace", "Routed Namespace", base.STRING),
+    routed_binding = ProtoField.string("zilla.routed_binding", "Routed Binding", base.STRING),
 
     -- all frames
-    origin_id = ProtoField.uint64("zilla.origin_id", "originId", base.HEX),
-    routed_id = ProtoField.uint64("zilla.routed_id", "routedId", base.HEX),
-    stream_id = ProtoField.uint64("zilla.stream_id", "streamId", base.HEX),
-    stream_dir = ProtoField.string("zilla.stream_dir", "streamDirection", base.NONE),
-    init_stream_id = ProtoField.uint64("zilla.init_stream_id", "initStreamId", base.HEX),
-    sequence = ProtoField.int64("zilla.sequence", "sequence", base.DEC),
-    acknowledge = ProtoField.int64("zilla.acknowledge", "acknowledge", base.DEC),
-    maximum = ProtoField.int32("zilla.maximum", "maximum", base.DEC),
-    timestamp = ProtoField.uint64("zilla.timestamp", "timestamp", base.HEX),
-    trace_id = ProtoField.uint64("zilla.trace_id", "traceId", base.HEX),
-    authorization = ProtoField.uint64("zilla.authorization", "authorization", base.HEX),
+    origin_id = ProtoField.uint64("zilla.origin_id", "Origin ID", base.HEX),
+    routed_id = ProtoField.uint64("zilla.routed_id", "Routed ID", base.HEX),
+    stream_id = ProtoField.uint64("zilla.stream_id", "Stream ID", base.HEX),
+    stream_dir = ProtoField.string("zilla.direction", "Direction", base.NONE),
+    init_stream_id = ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX),
+    sequence = ProtoField.int64("zilla.sequence", "Sequence", base.DEC),
+    acknowledge = ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC),
+    maximum = ProtoField.int32("zilla.maximum", "Maximum", base.DEC),
+    timestamp = ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX),
+    trace_id = ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX),
+    authorization = ProtoField.uint64("zilla.authorization", "Authorization", base.HEX),
 
     -- almost all frames
-    extension = ProtoField.bytes("zilla.extension", "extension", base.NONE),
+    extension = ProtoField.bytes("zilla.extension", "Extension", base.NONE),
 
     -- begin frame
-    affinity = ProtoField.uint64("zilla.affinity", "affinity", base.HEX),
+    affinity = ProtoField.uint64("zilla.affinity", "Affinity", base.HEX),
 
     -- data frame
-    flags = ProtoField.uint8("zilla.flags", "flags", base.HEX),
-    budget_id = ProtoField.uint64("zilla.budget_id", "budgetId", base.HEX),
-    reserved = ProtoField.int32("zilla.reserved", "reserved", base.DEC),
-    length = ProtoField.int32("zilla.length", "length", base.DEC),
-    offset = ProtoField.int64("zilla.offset", "offset", base.DEC),
-    offset_maximum = ProtoField.string("zilla.offset_maximum", "offset/maximum", base.NONE),
-    payload = ProtoField.protocol("zilla.payload", "payload", base.HEX),
+    flags = ProtoField.uint8("zilla.flags", "Flags", base.HEX),
+    budget_id = ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX),
+    reserved = ProtoField.int32("zilla.reserved", "Reserved", base.DEC),
+    length = ProtoField.int32("zilla.length", "Length", base.DEC),
+    offset = ProtoField.int64("zilla.progress", "Progress", base.DEC),
+    offset_maximum = ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE),
+    payload = ProtoField.protocol("zilla.payload", "Payload", base.HEX),
 
     -- window frame
-    padding = ProtoField.int32("zilla.padding", "padding", base.DEC),
-    minimum = ProtoField.int32("zilla.minimum", "minimum", base.DEC),
-    capabilities = ProtoField.uint8("zilla.capabilities", "capabilities", base.HEX),
+    padding = ProtoField.int32("zilla.padding", "Padding", base.DEC),
+    minimum = ProtoField.int32("zilla.minimum", "Minimum", base.DEC),
+    capabilities = ProtoField.uint8("zilla.capabilities", "Capabilities", base.HEX),
 
     -- signal frame
-    cancel_id = ProtoField.uint64("zilla.cancel_id", "cancelId", base.HEX),
-    signal_id = ProtoField.int32("zilla.signal_id", "signalId", base.DEC),
-    context_id = ProtoField.int32("zilla.context_id", "contextId", base.DEC),
+    cancel_id = ProtoField.uint64("zilla.cancel_id", "Cancel ID", base.HEX),
+    signal_id = ProtoField.int32("zilla.signal_id", "Signal ID", base.DEC),
+    context_id = ProtoField.int32("zilla.context_id", "Context ID", base.DEC),
 }
 
 zilla_protocol.fields = fields;
