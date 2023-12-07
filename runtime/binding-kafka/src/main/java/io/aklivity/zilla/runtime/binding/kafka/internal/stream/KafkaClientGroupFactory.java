@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -270,6 +271,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
+    private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -286,7 +288,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
         Signaler signaler,
-        BindingHandler streamFactory)
+        BindingHandler streamFactory,
+        UnaryOperator<KafkaSaslConfig> resolveSasl)
     {
         super(config, context);
         this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
@@ -301,6 +304,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.supplyDebitor = supplyDebitor;
         this.signaler = signaler;
         this.streamFactory = streamFactory;
+        this.resolveSasl = resolveSasl;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
         this.configs = new LinkedHashMap<>();
@@ -345,7 +349,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             if (resolved != null)
             {
                 final long resolvedId = resolved.id;
-                final KafkaSaslConfig sasl = binding.sasl();
+                final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
                 final GroupMembership groupMembership = instanceIds.get(binding.id);
                 assert groupMembership != null;
@@ -1728,7 +1732,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
-        private long encodeSlotTraceId;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -1999,7 +2002,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
-                encodeSlotTraceId = traceId;
 
                 buffer = encodeBuffer;
                 offset = 0;
@@ -2398,7 +2400,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
-                encodeSlotTraceId = 0;
             }
         }
 

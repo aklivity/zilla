@@ -89,50 +89,6 @@ read  35                                 # size
       9s "localhost"                     #host
       9092                               #port
 
-
-write 28                                # size
-      17s                               # sasl.handshake
-      1s                                # v1
-      ${newRequestId}
-      5s "zilla"                        # client id
-      11s "SCRAM-SHA-1"               # mechanism
-
-read 23                                 # size
-     ${newRequestId}
-     0s                                 # no error
-     1                                  # mechanisms
-       11s "SCRAM-SHA-1"              # SCRAM
-
-write 55                                # size
-      36s                               # sasl.authenticate
-      1s                                # v1
-      ${newRequestId}
-      5s "zilla"                        # client id
-      36                                # authentication bytes
-      "n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL"
-
-read 90                                 # size
-     ${newRequestId}
-     0s                                 # no error
-     -1s
-     70 "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096"
-     0L                                 # session lifetime
-
-write 101                               # size
-      36s                               # sasl.authenticate
-      1s                                # v1
-      ${newRequestId}
-      5s "zilla"                        # client id
-      82                                # authentication bytes
-      "c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts="
-
-read 50                                 # size
-     ${newRequestId}
-     0s                                 # no error
-     -1s
-     30 "v=rmF9pqV8S7suAoZWja4dJRkFsKQ="
-     0L                                 # session lifetime
-
 write 87                                                 # size
       32s                                                # describe configs
       0s                                                 # v0
