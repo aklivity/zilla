@@ -44,6 +44,7 @@ local fields = {
     stream_id = ProtoField.uint64("zilla.stream_id", "Stream ID", base.HEX),
     direction = ProtoField.string("zilla.direction", "Direction", base.NONE),
     initial_id = ProtoField.uint64("zilla.initial_id", "Initial ID", base.HEX),
+    reply_id = ProtoField.uint64("zilla.reply_id", "Reply ID", base.HEX),
     sequence = ProtoField.int64("zilla.sequence", "Sequence", base.DEC),
     acknowledge = ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC),
     maximum = ProtoField.int32("zilla.maximum", "Maximum", base.DEC),
@@ -146,15 +147,19 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local stream_id = slices.stream_id:le_uint64();
     local direction
     local initial_id
+    local reply_id
     if (stream_id % 2) == UInt64(0) then
         direction = "REP"
         initial_id = stream_id + UInt64(1)
+        reply_id = stream_id
     else
         direction = "INI"
         initial_id = stream_id
+        reply_id = stream_id - UInt64(1)
     end
     subtree:add(fields.direction, direction)
     subtree:add(fields.initial_id, initial_id)
+    subtree:add(fields.reply_id, reply_id)
 
     slices.sequence = buffer(frame_offset + 28, 8)
     subtree:add_le(fields.sequence, slices.sequence)
