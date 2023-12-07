@@ -217,11 +217,11 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
         local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
         if dissector then
-            if protocol_type == "kafka" then
-                if direction == "INI" then
-                    pinfo.dst_port = pinfo.match_uint
-                end
-            end
+--             if protocol_type == "kafka" then
+--                 if direction == "INI" then
+--                     pinfo.dst_port = pinfo.match_uint
+--                 end
+--             end
             dissector:call(slices.payload:tvb(), pinfo, tree)
         end
     end
@@ -382,5 +382,7 @@ function resolve_http_dissector(payload)
     end
 end
 
-local data_dissector = DissectorTable.get("ethertype")
-data_dissector:add(0x5a41, zilla_protocol)
+-- local data_dissector = DissectorTable.get("ethertype")
+-- data_dissector:add(0x5a41, zilla_protocol)
+local data_dissector = DissectorTable.get("tcp.port")
+data_dissector:add(7114, zilla_protocol)
