@@ -1253,7 +1253,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 replyAck = 0;
                 replySeq = 0;
                 initialBudId = NO_BUDGET_ID;
+                nextRequestId = 0;
+                nextResponseId = 0;
                 flushable = sasl == null;
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : null;
+                this.decoder = decodeReject;
             }
 
             if (!KafkaState.initialOpening(state))
@@ -1745,7 +1749,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int credit)
         {
-            if (initialBudId != NO_BUDGET_ID)
+            if (initialBudId != NO_BUDGET_ID && credit > 0)
             {
                 creditor.credit(traceId, initialBudId, credit);
             }
