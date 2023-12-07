@@ -100,44 +100,47 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     headerSubtree:add(fields.protocol_type, protocol_type)
 
     -- labels
-    local labelsSubtree = subtree:add(zilla_protocol, buffer(), "Labels")
     slices.labels_length = buffer(LABELS_OFFSET, 4)
     local labels_length = slices.labels_length:le_uint()
     slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
-    labelsSubtree:add_le(fields.labels_length, slices.labels_length)
-    labelsSubtree:add(fields.labels, slices.labels)
+    headerSubtree:add_le(fields.labels_length, slices.labels_length)
+    headerSubtree:add(fields.labels, slices.labels)
 
+    -- origin
     local label_offset = LABELS_OFFSET + 4;
     local origin_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.origin_namespace = buffer(label_offset, origin_namespace_length)
     label_offset = label_offset + origin_namespace_length
-    labelsSubtree:add(fields.origin_namespace, slices.origin_namespace)
+    subtree:add(fields.origin_namespace, slices.origin_namespace)
 
     local origin_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.origin_binding = buffer(label_offset, origin_binding_length)
     label_offset = label_offset + origin_binding_length
-    labelsSubtree:add(fields.origin_binding, slices.origin_binding)
+    subtree:add(fields.origin_binding, slices.origin_binding)
 
+    local frame_offset = LABELS_OFFSET + labels_length
+    slices.origin_id = buffer(frame_offset + 4, 8)
+    subtree:add_le(fields.origin_id, slices.origin_id)
+
+    -- routed
     local routed_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.routed_namespace = buffer(label_offset, routed_namespace_length)
     label_offset = label_offset + routed_namespace_length
-    labelsSubtree:add(fields.routed_namespace, slices.routed_namespace)
+    subtree:add(fields.routed_namespace, slices.routed_namespace)
 
     local routed_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.routed_binding = buffer(label_offset, routed_binding_length)
     label_offset = label_offset + routed_binding_length
-    labelsSubtree:add(fields.routed_binding, slices.routed_binding)
+    subtree:add(fields.routed_binding, slices.routed_binding)
 
-    -- frame
-    local frame_offset = LABELS_OFFSET + labels_length
-    slices.origin_id = buffer(frame_offset + 4, 8)
-    subtree:add_le(fields.origin_id, slices.origin_id)
     slices.routed_id = buffer(frame_offset + 12, 8)
     subtree:add_le(fields.routed_id, slices.routed_id)
+
+    -- more frame properties
     slices.stream_id = buffer(frame_offset + 20, 8)
     subtree:add_le(fields.stream_id, slices.stream_id)
     local stream_id = slices.stream_id:le_uint64();
