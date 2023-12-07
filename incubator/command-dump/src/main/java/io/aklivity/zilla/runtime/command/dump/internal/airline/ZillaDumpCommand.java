@@ -568,6 +568,8 @@ public final class ZillaDumpCommand extends ZillaCommand
                 encodeZillaHeader(buffer, ResetFW.TYPE_ID, protocolTypeId);
                 writePcapOutput(writer, buffer, ZILLA_HEADER_OFFSET, ZILLA_HEADER_SIZE);
 
+                writePcapOutput(writer, labelsBuffer, 0, labelsLength);
+
                 writePcapOutput(writer, reset.buffer(), reset.offset(), reset.sizeof());
             }
         }
