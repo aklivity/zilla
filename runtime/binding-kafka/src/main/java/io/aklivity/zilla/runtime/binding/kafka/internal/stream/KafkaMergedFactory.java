@@ -3019,10 +3019,18 @@ public final class KafkaMergedFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
+            merged.doMergedInitialResetIfNecessary(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
+                .typeId(kafkaTypeId)
+                .error(error)
+                .build()
+                .sizeof()));
 
             doConsumerReplyResetIfNecessary(traceId);
         }
