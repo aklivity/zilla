@@ -363,4 +363,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.mixture.qos/client",
+        "${net}/publish.mixture.qos/server"})
+    public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
 }

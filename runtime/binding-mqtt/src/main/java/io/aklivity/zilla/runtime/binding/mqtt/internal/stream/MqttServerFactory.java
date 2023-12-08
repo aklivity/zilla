@@ -578,9 +578,11 @@ public final class MqttServerFactory implements MqttStreamFactory
     }
 
     private int topicKey(
-        String topic)
+        String topic,
+        int qos)
     {
-        return System.identityHashCode(topic.intern());
+        final int qosKey = qos > 0 ? MqttQoS.EXACTLY_ONCE.value() : qos;
+        return Objects.hash(topic.intern(), qosKey);
     }
 
     private MessageConsumer newStream(
@@ -1225,12 +1227,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (reasonCode == SUCCESS)
             {
                 final String topic = mqttPublishHeader.topic;
-                final int topicKey = topicKey(topic);
+                final int topicKey = topicKey(topic, qos);
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
                 {
-                    publisher = server.resolvePublishStream(traceId, authorization, topic);
+                    publisher = server.resolvePublishStream(traceId, authorization, topic, qos);
                     if (publisher == null)
                     {
                         server.decodePublisherKey = 0;
@@ -1359,12 +1361,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (reasonCode == SUCCESS)
             {
                 final String topic = mqttPublishHeader.topic;
-                final int topicKey = topicKey(topic);
+                final int topicKey = topicKey(topic, qos);
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
                 {
-                    publisher = server.resolvePublishStream(traceId, authorization, topic);
+                    publisher = server.resolvePublishStream(traceId, authorization, topic, qos);
                     if (publisher == null)
                     {
                         server.decodePublisherKey = 0;
@@ -2968,7 +2970,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private MqttPublishStream resolvePublishStream(
             long traceId,
             long authorization,
-            String topic)
+            String topic,
+            int qos)
         {
             MqttPublishStream stream = null;
 
@@ -2979,9 +2982,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (resolved != null)
             {
                 final long resolvedId = resolved.id;
-                final int topicKey = topicKey(topic);
+                final int topicKey = topicKey(topic, qos);
 
-                stream = publishes.computeIfAbsent(topicKey, s -> new MqttPublishStream(routedId, resolvedId, topic));
+                stream = publishes.computeIfAbsent(topicKey, s -> new MqttPublishStream(routedId, resolvedId, topic, qos));
                 stream.doPublishBegin(traceId, affinity);
             }
             else
@@ -3024,7 +3027,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         unreleasedPacketIds.add(mqttPublishHeaderRO.packetId);
                     }
 
-                    final int topicKey = topicKey(mqttPublishHeaderRO.topic);
+                    final int topicKey = topicKey(mqttPublishHeaderRO.topic, mqttPublishHeaderRO.qos);
                     MqttPublishStream stream = publishes.get(topicKey);
 
                     final MqttDataExFW.Builder builder = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
@@ -5259,6 +5262,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             private MessageConsumer application;
             private final int topicKey;
+            private final int qos;
             private final String topic;
             private final long originId;
             private final long routedId;
@@ -5286,14 +5290,16 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPublishStream(
                 long originId,
                 long routedId,
-                String topic)
+                String topic,
+                int qos)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.topic = topic;
-                this.topicKey = topicKey(topic);
+                this.qos = qos;
+                this.topicKey = topicKey(topic, qos);
             }
 
             private void doPublishBegin(
@@ -5310,7 +5316,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .publish(p ->
                             p.clientId(clientId)
                                 .topic(topic)
-                                .flags(retainAvailable(capabilities) ? 1 : 0))
+                                .flags(retainAvailable(capabilities) ? 1 : 0)
+                                .qos(qos))
                         .build();
 
                     application = newStream(this::onPublish, originId, routedId, initialId, initialSeq, initialAck, initialMax,

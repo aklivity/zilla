@@ -51,6 +51,28 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
+                                .qos(0)
+                                .build()
+                             .build()}
+
+connected
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .qos("AT_MOST_ONCE")
+                                .build()
+                            .build()}
+read "message1"
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
                                 .qos(2)
                                 .build()
                              .build()}
@@ -63,4 +85,12 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                 .qos("EXACTLY_ONCE")
                                 .build()
                             .build()}
-read "message"
+read "message2"
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .qos("AT_LEAST_ONCE")
+                                .build()
+                            .build()}
+read "message3"
