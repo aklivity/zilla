@@ -42,6 +42,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "sensor")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

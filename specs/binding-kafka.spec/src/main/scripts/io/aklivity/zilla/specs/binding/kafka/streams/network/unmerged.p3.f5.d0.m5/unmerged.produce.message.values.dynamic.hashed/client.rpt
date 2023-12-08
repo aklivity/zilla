@@ -26,11 +26,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 233                               # size
+write 238                               # size
       32s                               # describe configs
       0s                                # v0
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # resources
         [0x02]                          # topic resource
         4s "test"                       # "test" topic
@@ -122,11 +122,11 @@ connect await RECEIVED_CONFIG
 
 connected
 
-write 21                                # size
+write 26                                # size
       3s                                # metadata
       5s                                # v5
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # topics
         4s "test"                       #   "test" topic
       [0x00]                            # allow_auto_topic_creation
@@ -194,11 +194,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}
@@ -241,11 +241,11 @@ read 44
      [0..8]                             # log append time
      [0..4]                             # throttle ms
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId2}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}
@@ -307,11 +307,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}
@@ -354,11 +354,11 @@ read 44
      [0..8]                             # log append time
      [0..4]                             # throttle ms
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId2}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}
@@ -420,11 +420,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}
@@ -467,11 +467,11 @@ read 44
      [0..8]                             # log append time
      [0..4]                             # throttle ms
 
-write 128                               # size
+write 133                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId2}
-      -1s                               # client id
+      5s "zilla"                        # client id
       -1s                               # transactional id
       1s                                # acks (leader only)
       ${produceWaitMax}

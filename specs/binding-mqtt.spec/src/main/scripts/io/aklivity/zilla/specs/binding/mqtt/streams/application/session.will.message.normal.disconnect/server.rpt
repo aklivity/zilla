@@ -51,7 +51,6 @@ read zilla:data.ext ${mqtt:dataEx()
 
 read ${mqtt:will()
                .topic("wills/one")
-               .format("TEXT")
                .payload("client one session expired")
                .build()}
 

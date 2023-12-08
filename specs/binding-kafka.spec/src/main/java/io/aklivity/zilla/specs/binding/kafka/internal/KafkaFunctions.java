@@ -1094,10 +1094,22 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 mergedBeginExRW.partitionsItem(p -> p.partitionId(partitionId)
-                                                     .partitionOffset(offset)
-                                                     .stableOffset(stableOffset)
-                                                     .latestOffset(latestOffset));
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 
@@ -2737,6 +2749,13 @@ public final class KafkaFunctions
                         writeBuffer.capacity());
                 }
 
+                public KafkaMergedConsumerFlushExBuilder correlationId(
+                    long correlationId)
+                {
+                    mergedConsumerFlushExRW.correlationId(correlationId);
+                    return this;
+                }
+
                 public KafkaMergedConsumerFlushExBuilder progress(
                     int partitionId,
                     long partitionOffset)
@@ -2970,6 +2989,13 @@ public final class KafkaFunctions
             private KafkaConsumerFlushExBuilder()
             {
                 flushConsumerExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
+            }
+
+            public KafkaConsumerFlushExBuilder correlationId(
+                long correlationId)
+            {
+                flushConsumerExRW.correlationId(correlationId);
+                return this;
             }
 
             public KafkaConsumerFlushExBuilder progress(
@@ -4644,9 +4670,17 @@ public final class KafkaFunctions
             public final class KafkaMergedConsumerFlushEx
             {
                 private KafkaOffsetFW.Builder partitionRW;
+                private Long correlationId;
 
                 private KafkaMergedConsumerFlushEx()
                 {
+                }
+
+                public KafkaMergedConsumerFlushEx correlationId(
+                    long correlationId)
+                {
+                    this.correlationId = correlationId;
+                    return this;
                 }
 
                 public KafkaMergedConsumerFlushEx progress(
@@ -4683,13 +4717,20 @@ public final class KafkaFunctions
                     KafkaFlushExFW flushEx)
                 {
                     final KafkaMergedConsumerFlushExFW mergedFlushEx = flushEx.merged().consumer();
-                    return matchProgress(mergedFlushEx);
+                    return matchProgress(mergedFlushEx) &&
+                        matchCorrelationId(mergedFlushEx);
                 }
 
                 private boolean matchProgress(
                     final KafkaMergedConsumerFlushExFW mergedFlush)
                 {
                     return partitionRW == null || partitionRW.build().equals(mergedFlush.progress());
+                }
+
+                private boolean matchCorrelationId(
+                    final KafkaMergedConsumerFlushExFW mergedFlush)
+                {
+                    return correlationId == null || correlationId.equals(mergedFlush.correlationId());
                 }
             }
         }
@@ -5540,6 +5581,17 @@ public final class KafkaFunctions
                 long stableOffset,
                 long latestOffset)
             {
+                partition(partitionId, offset, stableOffset, latestOffset, null);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset,
+                String metadata)
+            {
                 if (partitionsRW == null)
                 {
                     this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(),
@@ -5549,7 +5601,8 @@ public final class KafkaFunctions
                     .partitionId(partitionId)
                     .partitionOffset(offset)
                     .stableOffset(stableOffset)
-                    .latestOffset(latestOffset));
+                    .latestOffset(latestOffset)
+                    .metadata(metadata));
                 return this;
             }
 

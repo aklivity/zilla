@@ -38,8 +38,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message/client",
-        "${app}/publish.one.message/server"})
+        "${app}/publish.one.message.properties/client",
+        "${app}/publish.one.message.properties/server"})
     public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
@@ -47,9 +47,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message.subscribe.unfragmented/client",
-        "${app}/publish.one.message.subscribe.unfragmented/server"})
-    public void shouldSendOneMessageSubscribeUnfragmented() throws Exception
+        "${app}/publish.subscribe.batched/client",
+        "${app}/publish.subscribe.batched/server"})
+    public void shouldSendOneMessageSubscribeBatched() throws Exception
     {
         k3po.finish();
     }
@@ -195,6 +195,33 @@ public class PublishIT
         "${app}/publish.unroutable/client",
         "${app}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.dup.after.puback/client",
+        "${app}/publish.qos1.dup.after.puback/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.no.dupicate.before.pubrel/client",
+        "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
+    public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.ack.with.reasoncode/client",
+        "${app}/publish.qos2.ack.with.reasoncode/server"})
+    public void shouldPublishQoS2MessageAckWithReasoncode() throws Exception
     {
         k3po.finish();
     }

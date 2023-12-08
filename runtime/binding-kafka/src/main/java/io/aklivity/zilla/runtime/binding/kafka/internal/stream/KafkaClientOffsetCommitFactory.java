@@ -1319,7 +1319,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 .apiKey(OFFSET_COMMIT_API_KEY)
                 .apiVersion(OFFSET_COMMIT_API_VERSION)
                 .correlationId(0)
-                .clientId((String) null)
+                .clientId(clientId)
                 .build();
 
             encodeProgress = requestHeader.limit();
@@ -1363,7 +1363,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 .apiKey(requestHeader.apiKey())
                 .apiVersion(requestHeader.apiVersion())
                 .correlationId(requestId)
-                .clientId(requestHeader.clientId().asString())
+                .clientId(requestHeader.clientId())
                 .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);

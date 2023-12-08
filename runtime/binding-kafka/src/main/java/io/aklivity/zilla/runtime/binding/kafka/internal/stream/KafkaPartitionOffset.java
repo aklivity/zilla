@@ -22,6 +22,7 @@ public final class KafkaPartitionOffset
     public final int generationId;
     public final int leaderEpoch;
     public final String metadata;
+    public final long correlationId;
 
     public KafkaPartitionOffset(
         int partitionId,
@@ -30,10 +31,22 @@ public final class KafkaPartitionOffset
         int leaderEpoch,
         String metadata)
     {
+        this(partitionId, partitionOffset, generationId, leaderEpoch, metadata, -1);
+    }
+
+    public KafkaPartitionOffset(
+        int partitionId,
+        long partitionOffset,
+        int generationId,
+        int leaderEpoch,
+        String metadata,
+        long correlationId)
+    {
         this.partitionId = partitionId;
         this.partitionOffset = partitionOffset;
         this.generationId = generationId;
         this.leaderEpoch = leaderEpoch;
         this.metadata = metadata;
+        this.correlationId = correlationId;
     }
 }

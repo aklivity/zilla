@@ -34,6 +34,15 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("test")
+                                   .partition(0, 2, 2, 2, "test-meta")
+                                   .build()
+                               .build()}
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
@@ -49,6 +58,7 @@ write advise zilla:flush ${kafka:flushEx()
                               .merged()
                                 .consumer()
                                   .progress(0, 3, "test-meta")
+                                  .correlationId(1)
                                   .build()
                               .build()}
 
@@ -57,5 +67,6 @@ read advised zilla:flush ${kafka:matchFlushEx()
                               .merged()
                                 .consumer()
                                   .progress(0, 3, "test-meta")
+                                  .correlationId(1)
                                   .build()
                               .build()}

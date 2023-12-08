@@ -18,7 +18,7 @@ appVersion: 0.0.0 # helm-maven-plugin -> configuration -> appVersion
 name: zilla
 type: application
 version: 0.0.0 # helm-maven-plugin -> configuration -> chartVersion
-description: Zilla The Event-Driven API Gateway
+description: A multi-protocol edge/service proxy for interfacing apps and services to streaming data.
 icon: https://raw.githubusercontent.com/aklivity/zilla/develop/cloud/helm-chart/src/main/helm/logo.png
 home: https://github.com/aklivity/zilla
 sources:
