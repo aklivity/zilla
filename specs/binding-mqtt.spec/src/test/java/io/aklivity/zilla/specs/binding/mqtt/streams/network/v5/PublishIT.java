@@ -354,4 +354,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.ack.with.reasoncode/client",
+        "${net}/publish.qos2.ack.with.reasoncode/server"})
+    public void shouldPublishQoS2MessageAckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
 }

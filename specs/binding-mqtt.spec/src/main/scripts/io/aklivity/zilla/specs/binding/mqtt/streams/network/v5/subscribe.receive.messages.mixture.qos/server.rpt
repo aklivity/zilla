@@ -72,22 +72,18 @@ write [0x34 0x1b]                    # PUBLISH, qos = 2
       [0x01 0x01]                    # format = utf-8
       "message3"                     # payload
 
-read  [0x50 0x04]                    # PUBREC
+read  [0x50 0x03]                    # PUBREC
       [0x00 0x02]                    # packet id = 2
       [0x00]                         # reason code
-      [0x00]                         # properties
 
-read  [0x40 0x04]                    # PUBACK
+read  [0x40 0x03]                    # PUBACK
       [0x00 0x01]                    # packet id = 1
       [0x00]                         # reason code
-      [0x00]                         # properties
 
-write [0x62 0x04]                    # PUBREL
+write [0x62 0x03]                    # PUBREL
       [0x00 0x02]                    # packet id = 2
       [0x00]                         # reason code
-      [0x00]                         # properties
 
-read  [0x70 0x04]                    # PUBCOMP
+read  [0x70 0x03]                    # PUBCOMP
       [0x00 0x02]                    # packet id = 2
       [0x00]                         # reason code
-      [0x00]                         # properties
