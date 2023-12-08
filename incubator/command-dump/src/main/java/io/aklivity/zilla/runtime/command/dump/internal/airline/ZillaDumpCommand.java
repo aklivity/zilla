@@ -132,6 +132,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final String CLIENT_KIND = KindConfig.CLIENT.name().toLowerCase();
     private static final String UNKNOWN_LABEL = "??";
     private static final byte[] EMPTY_BYTES = new byte[0];
+    private static final short PSH_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
+    private static final short PSH_ACK_FIN = (short) (TcpFlag.FIN.value() | TcpFlag.PSH.value() | TcpFlag.ACK.value());
 
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
@@ -420,8 +422,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(BeginFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(BeginFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
@@ -435,8 +436,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(DataFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(DataFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
@@ -450,8 +450,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.FIN.value() | TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(EndFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(EndFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK_FIN);
             }
         }
 
@@ -465,8 +464,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(AbortFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(AbortFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
@@ -475,9 +473,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(window.routedId()))
             {
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
                 writeFrame(WindowFW.TYPE_ID, window.originId(), window.routedId(), window.streamId(), window.timestamp(), window,
-                    tcpFlags);
+                    PSH_ACK);
             }
         }
 
@@ -491,8 +488,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(ResetFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(ResetFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
@@ -506,8 +502,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, FlushFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(FlushFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(FlushFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
@@ -516,9 +511,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(signal.routedId()))
             {
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
                 writeFrame(SignalFW.TYPE_ID, signal.originId(), signal.routedId(), signal.streamId(), signal.timestamp(), signal,
-                    tcpFlags);
+                    PSH_ACK);
             }
         }
 
@@ -532,8 +526,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ChallengeFW.FIELD_OFFSET_EXTENSION);
 
-                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-                writeFrame(ChallengeFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+                writeFrame(ChallengeFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
             }
         }
 
