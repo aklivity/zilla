@@ -44,6 +44,7 @@ import java.util.zip.CRC32C;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.BackoffIdleStrategy;
@@ -370,7 +371,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final CRC32C crc;
         private final ExtensionFW extensionRO;
         private final MutableDirectBuffer labelsBuffer;
-        private final Long2LongHashMap sequence = new Long2LongHashMap(0L);
+        private final Long2LongHashMap sequence;
+        private final Int2IntHashMap crcCache;
 
         private long nextTimestamp = Long.MAX_VALUE;
 
@@ -387,6 +389,8 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
             this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
+            this.sequence = new Long2LongHashMap(0L);
+            this.crcCache = new Int2IntHashMap(0);
         }
 
         private boolean nextTimestamp(
@@ -589,9 +593,19 @@ public final class ZillaDumpCommand extends ZillaCommand
         private int calculateLabelCrc(
             int labelId)
         {
-            crc.reset();
-            crc.update(resolveLabelAsBytes(labelId));
-            return (int) crc.getValue();
+            int result = 0;
+            if (labelId != 0)
+            {
+                result = crcCache.get(labelId);
+                if (result == 0)
+                {
+                    crc.reset();
+                    crc.update(resolveLabelAsBytes(labelId));
+                    result = (int) crc.getValue();
+                    crcCache.put(labelId, result);
+                }
+            }
+            return result;
         }
 
         private byte[] resolveLabelAsBytes(
