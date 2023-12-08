@@ -182,6 +182,13 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
+    private final BeginFW.Builder beginRW = new BeginFW.Builder();
+    private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final EndFW.Builder endRW = new EndFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
     private final MutableDirectBuffer writeBuffer;
@@ -471,7 +478,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(begin.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(begin.sizeof()));
-                begin2RO = new BeginFW.Builder().wrap(buffer, 0, begin.sizeof()).set(begin).build();
+                begin2RO = beginRW.wrap(buffer, 0, begin.sizeof()).set(begin).build();
                 extension = begin2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
@@ -488,7 +495,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(data.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(data.sizeof()));
-                data2RO = new DataFW.Builder().wrap(buffer, 0, data.sizeof()).set(data).build();
+                data2RO = dataRW.wrap(buffer, 0, data.sizeof()).set(data).build();
                 extension = data2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
 
@@ -503,7 +510,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(end.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(end.sizeof()));
-                end2RO = new EndFW.Builder().wrap(buffer, 0, end.sizeof()).set(end).build();
+                end2RO = endRW.wrap(buffer, 0, end.sizeof()).set(end).build();
                 extension = end2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
@@ -518,7 +525,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(abort.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(abort.sizeof()));
-                abort2RO = new AbortFW.Builder().wrap(buffer, 0, abort.sizeof()).set(abort).build();
+                abort2RO = abortRW.wrap(buffer, 0, abort.sizeof()).set(abort).build();
                 extension = abort2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
@@ -543,7 +550,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(reset.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(reset.sizeof()));
-                reset2RO = new ResetFW.Builder().wrap(buffer, 0, reset.sizeof()).set(reset).build();
+                reset2RO = resetRW.wrap(buffer, 0, reset.sizeof()).set(reset).build();
                 extension = reset2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
@@ -558,7 +565,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(flush.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(flush.sizeof()));
-                flush2RO = new FlushFW.Builder().wrap(buffer, 0, flush.sizeof()).set(flush).build();
+                flush2RO = flushRW.wrap(buffer, 0, flush.sizeof()).set(flush).build();
                 extension = flush2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, FlushFW.FIELD_OFFSET_EXTENSION);
 
@@ -583,7 +590,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(challenge.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(challenge.sizeof()));
-                challenge2RO = new ChallengeFW.Builder().wrap(buffer, 0, challenge.sizeof()).set(challenge).build();
+                challenge2RO = challengeRW.wrap(buffer, 0, challenge.sizeof()).set(challenge).build();
                 extension = challenge2RO.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ChallengeFW.FIELD_OFFSET_EXTENSION);
 
