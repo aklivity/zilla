@@ -69,7 +69,6 @@
           <excludes>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*</exclude>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/engine/*</exclude>
-            <exclude>src/main/lua/**/*</exclude>
           </excludes>
         </configuration>
       </plugin>
