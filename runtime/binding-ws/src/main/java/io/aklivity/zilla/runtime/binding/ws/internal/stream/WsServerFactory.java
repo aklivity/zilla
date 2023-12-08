@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
@@ -58,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsDataExFW;
@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsEndExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class WsServerFactory implements WsStreamFactory
@@ -84,6 +85,7 @@ public final class WsServerFactory implements WsStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final SignalFW signalRO = new SignalFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -291,6 +293,7 @@ public final class WsServerFactory implements WsStreamFactory
         private int replyPad;
 
         private long pongId = NO_CANCEL_ID;
+        private int pingReceived;
 
         private WsServer(
             MessageConsumer receiver,
@@ -514,6 +517,10 @@ public final class WsServerFactory implements WsStreamFactory
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onNetData(data);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetSignal(signal);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onNetEnd(end);
@@ -605,6 +612,23 @@ public final class WsServerFactory implements WsStreamFactory
                 {
                     decodeState.decode(buffer, 0, 0);
                 }
+            }
+        }
+
+        private void onNetSignal(
+            SignalFW signal)
+        {
+            final int signalId = signal.signalId();
+            final long traceId = signal.traceId();
+            final OctetsFW payload = signal.payload();
+
+            assert signalId == PONG_SIGNAL_ID;
+
+            if (--pingReceived == 0)
+            {
+                final int reserved = payload.sizeof() + MAXIMUM_HEADER_SIZE + replyPad;
+
+                doNetData(traceId, decodeAuthorization, replyBudgetId, reserved, payload, 0x8a);
             }
         }
 
@@ -940,10 +964,9 @@ public final class WsServerFactory implements WsStreamFactory
                     this.decodeState = this::decodeHeader;
                 }
 
-                if (pongId != NO_CANCEL_ID)
-                {
-                    signaler.signalNow(originId, routedId, initialId, decodeTraceId, PONG_SIGNAL_ID, 0);
-                }
+                pingReceived++;
+                signaler.signalNow(originId, routedId, replyId, decodeTraceId, PONG_SIGNAL_ID, 0,
+                    payloadRO.value(), 0, payloadRO.sizeof());
 
                 return decodeBytes;
             }
