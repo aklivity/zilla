@@ -28,11 +28,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 17                                # size
+write 22                                # size
       17s                               # sasl.handshake
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 read 17                                 # size
@@ -41,11 +41,11 @@ read 17                                 # size
      1                                  # mechanisms
        5s "PLAIN"                         # PLAIN
 
-write 32                                # size
+write 37                                # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       18
       [0x00] "username"                 # authentication bytes
       [0x00] "password"
@@ -57,11 +57,11 @@ read 20                                 # size
      -1s                                # authentication bytes
      0L                                 # session lifetime
 
-write 21                                # size
+write 26                                # size
       3s                                # metadata
       5s                                # v5
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # topics
         4s "test"                       #   "test" topic
       [0x00]                            # allow_auto_topic_creation

@@ -16,11 +16,13 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.function.LongFunction;
+import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaMergedBudgetAccountant;
@@ -55,10 +57,13 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
         final KafkaClientConnectionPool connectionPool = new KafkaClientConnectionPool(
-            config, context, accountant.creditor());
+            config, context, bindings::get, accountant.creditor());
 
         final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();
+
+        final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool() ? c -> null :
+            UnaryOperator.identity();
 
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
                 context.signaler();
@@ -70,7 +75,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);

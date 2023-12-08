@@ -99,7 +99,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception
     {
@@ -109,7 +109,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.reject.invalid.consumer/server"})
     public void shouldRejectInvalidConsumer() throws Exception
     {
@@ -119,7 +119,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/rebalance.protocol.highlander.unknown.member.id/server"})
     public void shouldRebalanceProtocolHighlanderUnknownMemberId() throws Exception
     {
@@ -202,6 +202,36 @@ public class ClientGroupIT
         "${app}/topics.partition.assignment/client",
         "${net}/topics.partition.assignment/server"})
     public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${net}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${net}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
     {
         k3po.finish();
     }

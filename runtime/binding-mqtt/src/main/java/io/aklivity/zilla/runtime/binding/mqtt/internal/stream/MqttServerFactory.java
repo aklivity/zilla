@@ -303,6 +303,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttPubrelV5FW mqttPubrelV5RO = new MqttPubrelV5FW();
     private final MqttPubcompV4FW mqttPubcompV4RO = new MqttPubcompV4FW();
     private final MqttPubcompV5FW mqttPubcompV5RO = new MqttPubcompV5FW();
+    private final MqttPropertiesFW mqttPropertiesRO = new MqttPropertiesFW();
     private final MqttConnectV5FW mqttConnectV5RO = new MqttConnectV5FW();
     private final MqttConnectV4FW mqttConnectV4RO = new MqttConnectV4FW();
     private final MqttWillV5FW mqttWillV5RO = new MqttWillV5FW();
@@ -1503,7 +1504,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 int pubackLimit = ackHeader.limit();
-                if (ackHeader.remainingLength() > 2)
+                final int remainingLength = ackHeader.remainingLength();
+                if (remainingLength > 2)
                 {
                     final MqttPubackV5FW puback = mqttPubackV5RO.tryWrap(buffer, offset, limit);
                     if (puback == null)
@@ -1512,6 +1514,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     pubackLimit = puback.limit();
+                    if (remainingLength >= 4)
+                    {
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubackLimit, limit);
+                        if (properties == null)
+                        {
+                            reasonCode = PROTOCOL_ERROR;
+                            break decode;
+                        }
+                        pubackLimit = properties.limit();
+                    }
                 }
 
                 if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBACK_FIXED_HEADER)
@@ -1607,7 +1619,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 int pubrecLimit = ackHeader.limit();
-                if (ackHeader.remainingLength() > 2)
+                final int remainingLength = ackHeader.remainingLength();
+                if (remainingLength > 2)
                 {
                     final MqttPubrecV5FW pubrec = mqttPubrecV5RO.tryWrap(buffer, offset, limit);
                     if (pubrec == null)
@@ -1616,6 +1629,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     pubrecLimit = pubrec.limit();
+                    if (remainingLength >= 4)
+                    {
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubrecLimit, limit);
+                        if (properties == null)
+                        {
+                            reasonCode = PROTOCOL_ERROR;
+                            break decode;
+                        }
+                        pubrecLimit = properties.limit();
+                    }
                 }
 
                 if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBREC_FIXED_HEADER)
@@ -1711,7 +1734,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 int pubrelLimit = ackHeader.limit();
-                if (ackHeader.remainingLength() > 2)
+                final int remainingLength = ackHeader.remainingLength();
+                if (remainingLength > 2)
                 {
                     final MqttPubrelV5FW pubrel = mqttPubrelV5RO.tryWrap(buffer, offset, limit);
                     if (pubrel == null)
@@ -1720,6 +1744,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     pubrelLimit = pubrel.limit();
+                    if (remainingLength >= 4)
+                    {
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubrelLimit, limit);
+                        if (properties == null)
+                        {
+                            reasonCode = PROTOCOL_ERROR;
+                            break decode;
+                        }
+                        pubrelLimit = properties.limit();
+                    }
                 }
 
                 if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBREL_FIXED_HEADER)
@@ -1815,7 +1849,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 int pubcompLimit = ackHeader.limit();
-                if (ackHeader.remainingLength() > 2)
+                final int remainingLength = ackHeader.remainingLength();
+                if (remainingLength > 2)
                 {
                     final MqttPubcompV5FW pubrec = mqttPubcompV5RO.tryWrap(buffer, offset, limit);
                     if (pubrec == null)
@@ -1824,6 +1859,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     pubcompLimit = pubrec.limit();
+                    if (remainingLength >= 4)
+                    {
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubcompLimit, limit);
+                        if (properties == null)
+                        {
+                            reasonCode = PROTOCOL_ERROR;
+                            break decode;
+                        }
+                        pubcompLimit = properties.limit();
+                    }
                 }
 
                 if ((ackHeader.typeAndFlags() & 0b1111_1111) != PUBCOMP_FIXED_HEADER)
@@ -3034,6 +3079,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
             stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
             stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId);
+            doSignalKeepAliveTimeout(traceId);
         }
         private void onDecodePubrec(
             long traceId,
@@ -3045,6 +3091,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             qos2Subscribes.get(packetId)
                 .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+            doSignalKeepAliveTimeout(traceId);
         }
 
         private void onDecodePubrel(
@@ -3065,6 +3112,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doEncodePubcompV5(traceId, authorization, packetId);
                 break;
             }
+            doSignalKeepAliveTimeout(traceId);
         }
 
         private void onDecodePubcomp(
@@ -3078,6 +3126,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttSubscribeStream stream = qos2Subscribes.remove(packetId);
             stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
             stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
+            doSignalKeepAliveTimeout(traceId);
         }
 
         private void onDecodeSubscribeV4(
@@ -4025,10 +4074,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubackV5FW puback = mqttPubackV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBACK_FIXED_HEADER)
-                .remainingLength(4)
+                .remainingLength(3)
                 .packetId(packetId)
                 .reasonCode(SUCCESS)
-                .properties(p -> p.length(0).value(EMPTY_OCTETS))
                 .build();
 
             doNetworkData(traceId, authorization, 0L, puback);
@@ -4055,10 +4103,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubrecV5FW pubrec = mqttPubrecV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREC_FIXED_HEADER)
-                .remainingLength(4)
+                .remainingLength(3)
                 .packetId(packetId)
                 .reasonCode(SUCCESS)
-                .properties(p -> p.length(0).value(EMPTY_OCTETS))
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubrec);
@@ -4085,10 +4132,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubrelV5FW pubrel = mqttPubrelV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREL_FIXED_HEADER)
-                .remainingLength(4)
+                .remainingLength(3)
                 .packetId(packetId)
                 .reasonCode(SUCCESS)
-                .properties(p -> p.length(0).value(EMPTY_OCTETS))
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubrel);
@@ -4115,10 +4161,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttPubcompV5FW pubcomp = mqttPubcompV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBCOMP_FIXED_HEADER)
-                .remainingLength(4)
+                .remainingLength(3)
                 .packetId(packetId)
                 .reasonCode(SUCCESS)
-                .properties(p -> p.length(0).value(EMPTY_OCTETS))
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubcomp);

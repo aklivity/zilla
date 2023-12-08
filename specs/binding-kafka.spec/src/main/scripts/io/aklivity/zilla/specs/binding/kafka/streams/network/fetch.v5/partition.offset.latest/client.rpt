@@ -31,11 +31,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 21                                # size
+write 26                                # size
       3s                                # metadata
       5s                                # v5
       ${newMetadataId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # topics
         4s "test"                       #   "test" topic
       [0x00]                            # allow_auto_topic_creation
@@ -83,11 +83,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 41                                # size
+write 46                                # size
       2s                                # list offsets
       2s                                # v2
       ${newOffsetsId}
-      -1s
+      5s "zilla"                        # client id
       -1
       [0x00]
       1
@@ -107,11 +107,11 @@ read 44
      [0..8]                             # timestamp
      1L                                 # offset (latest actual)
 
-write 65                                # size
+write 70                                # size
       1s                                # fetch
       5s                                # v5
       ${newFetchId}
-      -1s
+      5s "zilla"                        # client id
       -1
       ${fetchWaitMax}
       1
