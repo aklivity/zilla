@@ -37,6 +37,11 @@ MQTT_ID = 0xd0d41a76
 PROXY_ID = 0x8dcea850
 TLS_ID = 0x99f321bc
 
+local flags_types = {
+    [0] = "Not set",
+    [1] = "Set"
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -74,6 +79,10 @@ local fields = {
 
     -- data frame
     flags = ProtoField.uint8("zilla.flags", "Flags", base.HEX),
+    flags_fin = ProtoField.uint8("zilla.flags_fin", "FIN", base.DEC, flags_types, 0x01),
+    flags_init = ProtoField.uint8("zilla.flags_init", "INIT", base.DEC, flags_types, 0x02),
+    flags_incomplete = ProtoField.uint8("zilla.flags_incomplete", "INCOMPLETE", base.DEC, flags_types, 0x04),
+    flags_skip = ProtoField.uint8("zilla.flags_skip", "SKIP", base.DEC, flags_types, 0x08),
     budget_id = ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX),
     reserved = ProtoField.int32("zilla.reserved", "Reserved", base.DEC),
     length = ProtoField.int32("zilla.length", "Length", base.DEC),
@@ -215,7 +224,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     -- data
     if frame_type_id == DATA_ID then
         slices.flags = buffer(frame_offset + 72, 1)
-        subtree:add_le(fields.flags, slices.flags)
+        local flags_label = string.format("Flags: 0x%02x", slices.flags:le_uint())
+        local flagsSubtree = subtree:add(zilla_protocol, buffer(), flags_label)
+        flagsSubtree:add_le(fields.flags_fin, slices.flags)
+        flagsSubtree:add_le(fields.flags_init, slices.flags)
+        flagsSubtree:add_le(fields.flags_incomplete, slices.flags)
+        flagsSubtree:add_le(fields.flags_skip, slices.flags)
         slices.budget_id = buffer(frame_offset + 73, 8)
         subtree:add_le(fields.budget_id, slices.budget_id)
         slices.reserved = buffer(frame_offset + 81, 4)
