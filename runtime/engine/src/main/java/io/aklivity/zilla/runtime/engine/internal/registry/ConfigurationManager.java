@@ -33,7 +33,6 @@ import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -58,7 +57,6 @@ public class ConfigurationManager
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
     private final Collection<URL> schemaTypes;
-    private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
@@ -73,7 +71,6 @@ public class ConfigurationManager
 
     public ConfigurationManager(
         Collection<URL> schemaTypes,
-        Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
@@ -86,7 +83,6 @@ public class ConfigurationManager
         BiFunction<URL, String, String> readURL)
     {
         this.schemaTypes = schemaTypes;
-        this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
         this.maxWorkers = maxWorkers;
@@ -159,11 +155,6 @@ public class ConfigurationManager
             {
                 binding.id = namespace.resolveId.applyAsLong(binding.name);
                 binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
-                binding.typeId = namespace.resolveId.applyAsLong(binding.type);
-                binding.kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-                Binding b = bindingByType.apply(binding.type);
-                binding.originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
-                binding.routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
                 binding.resolveId = namespace.resolveId;
 
                 if (binding.vault != null)

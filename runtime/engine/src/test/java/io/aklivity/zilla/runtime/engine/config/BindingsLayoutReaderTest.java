@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -36,9 +35,7 @@ public class BindingsLayoutReaderTest
         // GIVEN
         Path directory = Paths.get("target/zilla-itests");
         BindingsLayout bindingsLayout = BindingsLayout.builder().directory(directory).build();
-        BindingConfig binding = new BindingConfig("vault", "test0", "test", KindConfig.SERVER, "entry",
-            null, List.of(), null);
-        bindingsLayout.writeBindingInfo(binding);
+        bindingsLayout.writeBindingInfo(1L, 2L, 3L, 4L, 5L);
         BindingsLayoutReader reader = BindingsLayoutReader.builder().directory(directory).build();
 
         // WHEN
@@ -46,9 +43,9 @@ public class BindingsLayoutReaderTest
 
         // THEN
         assertThat(result.size(), equalTo(1));
-        assertThat(result.get(0L)[0], equalTo(0L));
-        assertThat(result.get(0L)[1], equalTo(0L));
-        assertThat(result.get(0L)[2], equalTo(0L));
-        assertThat(result.get(0L)[3], equalTo(0L));
+        assertThat(result.get(1L)[0], equalTo(2L));
+        assertThat(result.get(1L)[1], equalTo(3L));
+        assertThat(result.get(1L)[2], equalTo(4L));
+        assertThat(result.get(1L)[3], equalTo(5L));
     }
 }

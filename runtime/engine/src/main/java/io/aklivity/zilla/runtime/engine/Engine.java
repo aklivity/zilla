@@ -103,6 +103,7 @@ public final class Engine implements Collector, AutoCloseable
     private final Collection<DispatchAgent> dispatchers;
     private final boolean readonly;
     private final EngineConfiguration config;
+    private final Map<String, Binding> bindingsByType;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -191,8 +192,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
-        final Map<String, Binding> bindingsByType = bindings.stream()
-            .collect(Collectors.toMap(b -> b.name(), b -> b));
+        bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
@@ -212,8 +212,8 @@ public final class Engine implements Collector, AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, bindingsByType::get, guardsByType::get,
-            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions, this::readURL);
+        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
+            tuning, dispatchers, logger, context, config, extensions, this::readURL);
 
         this.namespaces = new HashMap<>();
 
@@ -307,19 +307,7 @@ public final class Engine implements Collector, AutoCloseable
         NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
         if (newNamespace != null)
         {
-            BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
-            for (BindingConfig binding : newNamespace.bindings)
-            {
-                bindingsLayout.writeBindingInfo(binding);
-            }
-            try
-            {
-                bindingsLayout.close();
-            }
-            catch (Exception ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
+            writeBindingsLayout(newNamespace);
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
             try
@@ -335,6 +323,29 @@ public final class Engine implements Collector, AutoCloseable
             }
         }
         return newNamespace;
+    }
+
+    private void writeBindingsLayout(
+        NamespaceConfig namespace)
+    {
+        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
+        for (BindingConfig binding : namespace.bindings)
+        {
+            long typeId = namespace.resolveId.applyAsLong(binding.type);
+            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+            Binding b = bindingsByType.get(binding.type);
+            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
+            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
+            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+        }
+        try
+        {
+            bindingsLayout.close();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 
     public static EngineBuilder builder()
