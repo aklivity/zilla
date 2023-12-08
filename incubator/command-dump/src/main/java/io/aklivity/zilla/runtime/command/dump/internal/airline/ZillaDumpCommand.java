@@ -467,7 +467,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(AbortFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
+                writeFrame(AbortFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK_FIN);
             }
         }
 
@@ -491,7 +491,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(ResetFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
+                writeFrame(ResetFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK_FIN);
             }
         }
 
