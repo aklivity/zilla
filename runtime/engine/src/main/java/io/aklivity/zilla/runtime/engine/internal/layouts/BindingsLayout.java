@@ -37,6 +37,7 @@ public final class BindingsLayout implements AutoCloseable
     private final Path path;
     private final ByteChannel channel;
     private final Map<Long, long[]> bindings;
+    private final ByteBuffer byteBuf;
 
     private BindingsLayout(
         Path path,
@@ -46,12 +47,13 @@ public final class BindingsLayout implements AutoCloseable
         this.path = path;
         this.channel = channel;
         this.bindings = bindings;
+        this.byteBuf = ByteBuffer.wrap(new byte[RECORD_SIZE]).order(nativeOrder());
     }
 
     public void writeBindingInfo(
         BindingConfig binding)
     {
-        ByteBuffer byteBuf = ByteBuffer.wrap(new byte[RECORD_SIZE]).order(nativeOrder());
+        byteBuf.clear();
         byteBuf.putLong(binding.id);
         byteBuf.putLong(binding.typeId);
         byteBuf.putLong(binding.kindId);
