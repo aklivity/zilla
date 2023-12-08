@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal;
+package io.aklivity.zilla.runtime.engine.internal.layouts;
 
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -30,7 +30,7 @@ import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public final class Bindings implements AutoCloseable
+public final class BindingsLayout implements AutoCloseable
 {
     private static final int RECORD_SIZE = 5 * Long.BYTES;
 
@@ -38,7 +38,7 @@ public final class Bindings implements AutoCloseable
     private final ByteChannel channel;
     private final Map<Long, long[]> bindings;
 
-    private Bindings(
+    private BindingsLayout(
         Path path,
         ByteChannel channel,
         Map<Long, long[]> bindings)
@@ -111,7 +111,7 @@ public final class Bindings implements AutoCloseable
             return this;
         }
 
-        public Bindings build()
+        public BindingsLayout build()
         {
             ByteChannel channel = null;
             Map<Long, long[]> bindings = null;
@@ -156,7 +156,7 @@ public final class Bindings implements AutoCloseable
                     LangUtil.rethrowUnchecked(ex);
                 }
             }
-            return new Bindings(path, channel, bindings);
+            return new BindingsLayout(path, channel, bindings);
         }
     }
 }

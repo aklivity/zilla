@@ -67,10 +67,10 @@ import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
-import io.aklivity.zilla.runtime.engine.internal.Bindings;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
@@ -303,11 +303,11 @@ public final class Engine implements Collector, AutoCloseable
         URL configURL,
         String configText)
     {
-        Bindings bindings = Bindings.builder().directory(config.directory()).build();
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText, bindings::writeBindingInfo);
+        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
+        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText, bindingsLayout::writeBindingInfo);
         try
         {
-            bindings.close();
+            bindingsLayout.close();
         }
         catch (Exception ex)
         {

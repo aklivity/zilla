@@ -18,21 +18,21 @@ package io.aklivity.zilla.runtime.engine.reader;
 import java.nio.file.Path;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.engine.internal.Bindings;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 
-public final class BindingsReader
+public final class BindingsLayoutReader
 {
-    private final Bindings bindings;
+    private final BindingsLayout bindingsLayout;
 
-    private BindingsReader(
-        Bindings bindings)
+    private BindingsLayoutReader(
+        BindingsLayout bindingsLayout)
     {
-        this.bindings = bindings;
+        this.bindingsLayout = bindingsLayout;
     }
 
     public Map<Long, long[]> bindings()
     {
-        return bindings.bindings();
+        return bindingsLayout.bindings();
     }
 
     public static Builder builder()
@@ -51,13 +51,13 @@ public final class BindingsReader
             return this;
         }
 
-        public BindingsReader build()
+        public BindingsLayoutReader build()
         {
-            Bindings bindings = Bindings.builder()
+            BindingsLayout bindingsLayout = BindingsLayout.builder()
                 .directory(directory)
                 .readonly(true)
                 .build();
-            return new BindingsReader(bindings);
+            return new BindingsLayoutReader(bindingsLayout);
         }
     }
 }

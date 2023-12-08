@@ -25,24 +25,24 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.Bindings;
-import io.aklivity.zilla.runtime.engine.reader.BindingsReader;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
+import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
-public class BindingsReaderTest
+public class BindingsLayoutReaderTest
 {
     @Test
     public void shouldReadBindings()
     {
         // GIVEN
         Path directory = Paths.get("target/zilla-itests");
-        Bindings bindings = Bindings.builder().directory(directory).build();
+        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(directory).build();
         BindingConfig binding = new BindingConfig("vault", "test0", "test", KindConfig.SERVER, "entry",
             null, List.of(), null);
-        bindings.writeBindingInfo(binding);
-        BindingsReader bindingsReader = BindingsReader.builder().directory(directory).build();
+        bindingsLayout.writeBindingInfo(binding);
+        BindingsLayoutReader reader = BindingsLayoutReader.builder().directory(directory).build();
 
         // WHEN
-        Map<Long, long[]> result = bindingsReader.bindings();
+        Map<Long, long[]> result = reader.bindings();
 
         // THEN
         assertThat(result.size(), equalTo(1));

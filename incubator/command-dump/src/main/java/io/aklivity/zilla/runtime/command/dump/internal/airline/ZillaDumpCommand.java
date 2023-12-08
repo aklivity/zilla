@@ -77,7 +77,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.reader.BindingsReader;
+import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
@@ -258,7 +258,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             final int streamBufferCount = streamBuffers.length;
 
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
-            final BindingsReader bindings = BindingsReader.builder().directory(directory).build();
+            final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
             final DumpHandler dumpHandler = new DumpHandler(filter, labels::lookupLabel, bindings.bindings()::get, writer);
             final MessagePredicate spyHandler = dumpHandler::handleFrame;
 
