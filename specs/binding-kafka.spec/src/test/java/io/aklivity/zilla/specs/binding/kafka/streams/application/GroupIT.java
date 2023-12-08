@@ -161,4 +161,31 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${app}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${app}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${app}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
 }

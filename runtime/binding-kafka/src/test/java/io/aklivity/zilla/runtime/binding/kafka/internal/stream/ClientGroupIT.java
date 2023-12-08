@@ -196,6 +196,36 @@ public class ClientGroupIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${net}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${net}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyInstanceId()
     {
         return "zilla";

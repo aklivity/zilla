@@ -118,6 +118,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short ERROR_EXISTS = -1;
     private static final short ERROR_NONE = 0;
 
+    private static final short ERROR_COORDINATOR_LOAD_IN_PROGRESS = 14;
     private static final short ERROR_COORDINATOR_NOT_AVAILABLE = 15;
     private static final short ERROR_NOT_COORDINATOR_FOR_CONSUMER = 16;
     private static final short ERROR_UNKNOWN_MEMBER = 25;
@@ -855,6 +856,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 final short errorCode = findCoordinatorResponse.errorCode();
                 switch (errorCode)
                 {
+                case ERROR_COORDINATOR_LOAD_IN_PROGRESS:
                 case ERROR_COORDINATOR_NOT_AVAILABLE:
                     client.onCoordinatorNotAvailable(traceId, authorization);
                     break;
