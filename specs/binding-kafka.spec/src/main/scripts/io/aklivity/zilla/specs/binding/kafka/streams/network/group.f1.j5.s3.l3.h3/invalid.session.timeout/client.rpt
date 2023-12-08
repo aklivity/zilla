@@ -101,7 +101,7 @@ write  82                               # size
        ${newRequestId}
        5s "zilla"                        # client id
        4s "test"                         # consumer group
-       0                             # session timeout
+       6000                              # session timeout
        4000                              # rebalance timeout
        0s                                # consumer group member
        5s "zilla"                        # group instance id
