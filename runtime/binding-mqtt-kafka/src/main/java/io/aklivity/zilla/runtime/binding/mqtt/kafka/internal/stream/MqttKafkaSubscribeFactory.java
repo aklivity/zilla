@@ -448,6 +448,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             final List<MqttKafkaRouteConfig> routes = binding != null ?
                 binding.resolveAll(authorization, filters) : null;
+            final int packetId = mqttSubscribeFlushEx.packetId();
 
             if (!filters.isEmpty())
             {
@@ -507,9 +508,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     }
                 }
             }
-            else
+            else if (packetId > 0)
             {
-                final int packetId = mqttSubscribeFlushEx.packetId();
                 final int qos = mqttSubscribeFlushEx.qos();
                 final MqttOffsetStateFlags state = MqttOffsetStateFlags.valueOf(mqttSubscribeFlushEx.state());
                 final PartitionOffset offset = state == MqttOffsetStateFlags.INCOMPLETE ?
