@@ -24,6 +24,7 @@ import static java.time.Instant.now;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
@@ -125,6 +126,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
+    private final Function<Long, String> supplyNamespace;
     private final LongPredicate activate;
     private final LongConsumer deactivate;
     private final Signaler signaler;
@@ -147,6 +149,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyNamespace = context::supplyNamespace;
         this.activate = activate;
         this.deactivate = deactivate;
         this.bindings = new Long2ObjectHashMap<>();
@@ -179,9 +182,12 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             newBinding.routes.forEach(r ->
                 r.when.forEach(c ->
                 {
+                    final String groupId = String.format("zilla-%s-%s", supplyNamespace.apply(binding.id),
+                        binding.name);
                     KafkaGrpcConditionResult condition = c.resolve();
                     servers.add(
-                        new KafkaRemoteServer(newBinding.id, newBinding.entryId, r.id, condition, newBinding.helper));
+                        new KafkaRemoteServer(newBinding.id, newBinding.entryId, r.id, condition,
+                            newBinding.helper, groupId));
                 }));
 
             this.reconnectAt = signaler.signalAt(
@@ -220,6 +226,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private final KafkaErrorProducer errorProducer;
         private final Map<OctetsFW, GrpcClient> grpcClients;
         private final KafkaGrpcFetchHeaderHelper helper;
+        private final String groupId;
         private final long originId;
         private final long routedId;
         private final long entryId;
@@ -248,7 +255,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long routedId,
             long entryId,
             KafkaGrpcConditionResult condition,
-            KafkaGrpcFetchHeaderHelper helper)
+            KafkaGrpcFetchHeaderHelper helper,
+            String groupId)
         {
             this.entryId = entryId;
             this.originId = originId;
@@ -264,6 +272,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             this.grpcClients = new Object2ObjectHashMap<>();
             this.condition = condition;
             this.helper = helper;
+            this.groupId = groupId;
         }
         private void initiate(
             long traceId)
@@ -291,7 +300,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 state = KafkaGrpcState.openingInitial(state);
 
                 kafka = newKafkaFetch(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, condition);
+                    traceId, authorization, affinity, condition, groupId);
             }
         }
 
@@ -1979,14 +1988,15 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         long traceId,
         long authorization,
         long affinity,
-        KafkaGrpcConditionResult condition)
+        KafkaGrpcConditionResult condition,
+        String groupId)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
                     .topic(condition.topic())
-                    .groupId("zilla-kafka-grpc")
+                    .groupId(groupId)
                     .partitions(condition::partitions)
                     .filters(condition::filters))
                 .build();
