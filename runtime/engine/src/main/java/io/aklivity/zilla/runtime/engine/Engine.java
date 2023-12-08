@@ -61,6 +61,7 @@ import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -303,18 +304,22 @@ public final class Engine implements Collector, AutoCloseable
         URL configURL,
         String configText)
     {
-        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText, bindingsLayout::writeBindingInfo);
-        try
-        {
-            bindingsLayout.close();
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
+        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
         if (newNamespace != null)
         {
+            BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
+            for (BindingConfig binding : newNamespace.bindings)
+            {
+                bindingsLayout.writeBindingInfo(binding);
+            }
+            try
+            {
+                bindingsLayout.close();
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
             try

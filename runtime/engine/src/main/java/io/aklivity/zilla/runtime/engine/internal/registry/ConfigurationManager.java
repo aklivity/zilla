@@ -102,8 +102,7 @@ public class ConfigurationManager
 
     public NamespaceConfig parse(
         URL configURL,
-        String configText,
-        Consumer<BindingConfig> writeBindingInfo)
+        String configText)
     {
         NamespaceConfig namespace = null;
         if (configText == null || configText.isEmpty())
@@ -166,7 +165,6 @@ public class ConfigurationManager
                 binding.originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
                 binding.routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
                 binding.resolveId = namespace.resolveId;
-                writeBindingInfo.accept(binding);
 
                 if (binding.vault != null)
                 {
