@@ -1787,11 +1787,12 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void doMergedConsumerReplyFlush(
             long traceId,
+            long correlationId,
             KafkaOffsetFW partition)
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.consumer(c -> c.progress(partition)))
+                .merged(mc -> mc.consumer(c -> c.progress(partition).correlationId(correlationId)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1961,7 +1962,7 @@ public final class KafkaMergedFactory implements BindingHandler
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
                     p.partitionId(),
-                    p.partitionOffset(),
+                    p.partitionOffset() == LIVE.value() ? HISTORICAL.value() : p.partitionOffset(),
                     0,
                     p.leaderEpoch(),
                     p.metadata().asString())));
@@ -2833,7 +2834,8 @@ public final class KafkaMergedFactory implements BindingHandler
                             .partitionId(offsetAck.partitionId())
                             .partitionOffset(offsetAck.partitionOffset())
                             .metadata(offsetAck.metadata()))
-                        .leaderEpoch(partitionOffset.leaderEpoch))
+                        .leaderEpoch(partitionOffset.leaderEpoch)
+                        .correlationId(consumer.correlationId()))
                     .build();
 
                 final int reserved = initialPad;
@@ -2951,8 +2953,9 @@ public final class KafkaMergedFactory implements BindingHandler
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
             final KafkaOffsetFW progress = consumerFlushEx.progress();
+            final long correlationId = consumerFlushEx.correlationId();
 
-            merged.doMergedConsumerReplyFlush(traceId, progress);
+            merged.doMergedConsumerReplyFlush(traceId, correlationId, progress);
         }
 
         private void onConsumerReplyData(

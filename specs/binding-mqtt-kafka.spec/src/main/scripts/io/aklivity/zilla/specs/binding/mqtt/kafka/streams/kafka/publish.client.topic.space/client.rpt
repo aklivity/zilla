@@ -44,6 +44,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:filter", "sensors")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client-1")
+                                .header("zilla:qos", "0")
                                 .build()
                             .build()}
 write "Hello, world"
@@ -81,6 +82,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:filter", "device")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client-2")
+                                .header("zilla:qos", "0")
                                 .build()
                             .build()}
 write "Hello, again"

@@ -71,7 +71,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 ### <a name="mqtt-kafka-proxying"> MQTT-Kafka Proxying
 
-- [x] **Publish** — Publish messages to Kafka topics, marking specific messages as retained. (`QoS 0` now, `QoS 1` and `QoS 2` coming)
+- [x] **Publish** — Publish messages to Kafka topics, marking specific messages as retained. (`QoS 0`, `QoS 1`, `QoS 2`)
 - [x] **Subscribe** — Subscribe to receive messages from Kafka topics, supporting `replay-on-subscribe` of messages marked as retained during publish.
 - [x] **Last Will and Testament (LWT)** — Clients can specify a `last will` message that is delivered when the client disconnects abruptly and fails to reconnect before session timeout.
 - [x] **Reconnect** - Clients reconnecting with the same `client-id`, even to a different Zilla instance, will automatically remain subscribed to `MQTT` topics previously subscribed while previously connected.
@@ -79,7 +79,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Redirect** - Clients can be redirected to a specific Zilla instance, sharding client session state across Zilla instances, without needing to replicate every client's session state on each Zilla instance.
 - [x] **Security** - Integrated with [Zilla Guards](https://docs.aklivity.io/zilla/latest/reference/config/overview.html#guards) for `MQTT` client authorization. Supports `JWT` access tokens, with fine-grained privileges enforced to publish or subscribe to `MQTT` topics.
 - [x] **Correlated Request-Response** - Support correlated `MQTT` request-response messages over Kafka topics.
-- [x] **Protocol** - Support `MQTT v5` standard protocol (`MQTT v3.1.1` coming)
+- [x] **Protocol** - Support for `MQTT v5` and `MQTT v3.1.1`
 
 ### Deployment, Performance & Other
 

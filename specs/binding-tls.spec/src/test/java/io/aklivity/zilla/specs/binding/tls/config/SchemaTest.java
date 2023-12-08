@@ -44,6 +44,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientWithOptionsDefault()
+    {
+        JsonObject config = schema.validate("client.options.default.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClientAlpnDefault()
     {
         JsonObject config = schema.validate("client.alpn.default.yaml");

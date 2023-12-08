@@ -39,6 +39,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "sensor")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
