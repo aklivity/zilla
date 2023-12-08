@@ -63,12 +63,14 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.TcpFlag;
 import io.aklivity.zilla.runtime.command.dump.internal.types.TcpHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -129,6 +131,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final String SERVER_KIND = KindConfig.SERVER.name().toLowerCase();
     private static final String CLIENT_KIND = KindConfig.CLIENT.name().toLowerCase();
     private static final String UNKNOWN_LABEL = "??";
+    private static final byte[] EMPTY_BYTES = new byte[0];
 
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
@@ -163,6 +166,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final FlushFW flushRO = new FlushFW();
+    private final SignalFW signalRO = new SignalFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
@@ -392,6 +397,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             case FlushFW.TYPE_ID:
                 onFlush(flushRO.wrap(buffer, index, index + length));
                 break;
+            case SignalFW.TYPE_ID:
+                onSignal(signalRO.wrap(buffer, index, index + length));
+                break;
+            case ChallengeFW.TYPE_ID:
+                onChallenge(challengeRO.wrap(buffer, index, index + length));
+                break;
             default:
                 break;
             }
@@ -500,6 +511,32 @@ public final class ZillaDumpCommand extends ZillaCommand
             }
         }
 
+        private void onSignal(
+            SignalFW signal)
+        {
+            if (allowedBinding.test(signal.routedId()))
+            {
+                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
+                writeFrame(SignalFW.TYPE_ID, signal.originId(), signal.routedId(), signal.streamId(), signal.timestamp(), signal,
+                    tcpFlags);
+            }
+        }
+
+        private void onChallenge(
+            ChallengeFW challenge)
+        {
+            if (allowedBinding.test(challenge.routedId()))
+            {
+                final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(challenge.sizeof()));
+                final ChallengeFW f = new ChallengeFW.Builder().wrap(buffer, 0, challenge.sizeof()).set(challenge).build();
+                final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
+                patchExtension(buffer, extension, ChallengeFW.FIELD_OFFSET_EXTENSION);
+
+                short tcpFlags = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
+                writeFrame(ChallengeFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
+            }
+        }
+
         private void patchExtension(
             MutableDirectBuffer buffer,
             ExtensionFW extension,
@@ -515,15 +552,21 @@ public final class ZillaDumpCommand extends ZillaCommand
         private int calculateLabelCrc(
             int labelId)
         {
-            int result = 0;
+            crc.reset();
+            crc.update(resolveLabelAsBytes(labelId));
+            return (int) crc.getValue();
+        }
+
+        private byte[] resolveLabelAsBytes(
+            int labelId)
+        {
+            byte[] result = EMPTY_BYTES;
             if (labelId != 0)
             {
                 String label = lookupLabel.apply(labelId);
                 if (!UNKNOWN_LABEL.equals(label))
                 {
-                    crc.reset();
-                    crc.update(label.getBytes(StandardCharsets.UTF_8));
-                    result = (int) crc.getValue();
+                    result = label.getBytes(StandardCharsets.UTF_8);
                 }
             }
             return result;
@@ -565,22 +608,24 @@ public final class ZillaDumpCommand extends ZillaCommand
             long originId,
             long routedId)
         {
+            int protocolTypeLabelId = 0;
             long[] origin = getBindingInfo.apply(originId);
             long[] routed = getBindingInfo.apply(routedId);
 
-            long protocolTypeLabelId = 0;
-            String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
-            if (SERVER_KIND.equals(routedBindingKind))
+            if (origin != null && routed != null)
             {
-                protocolTypeLabelId = routed[ROUTED_TYPE_ID_INDEX];
+                String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
+                if (SERVER_KIND.equals(routedBindingKind))
+                {
+                    protocolTypeLabelId = localId(routed[ROUTED_TYPE_ID_INDEX]);
+                }
+                String originBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
+                if (protocolTypeLabelId == 0 && CLIENT_KIND.equals(originBindingKind))
+                {
+                    protocolTypeLabelId = localId(origin[ORIGIN_TYPE_ID_INDEX]);
+                }
             }
-            String originBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
-            if (protocolTypeLabelId == 0 && CLIENT_KIND.equals(originBindingKind))
-            {
-                protocolTypeLabelId = origin[ORIGIN_TYPE_ID_INDEX];
-            }
-
-            return calculateLabelCrc(localId(protocolTypeLabelId));
+            return calculateLabelCrc(protocolTypeLabelId);
         }
 
         private void encodePcapHeader(
@@ -710,10 +755,10 @@ public final class ZillaDumpCommand extends ZillaCommand
             long originId,
             long routedId)
         {
-            byte[] originNamespace = lookupLabel.apply(namespaceId(originId)).getBytes(StandardCharsets.UTF_8);
-            byte[] originBinding = lookupLabel.apply(localId(originId)).getBytes(StandardCharsets.UTF_8);
-            byte[] routedNamespace = lookupLabel.apply(namespaceId(routedId)).getBytes(StandardCharsets.UTF_8);
-            byte[] routedBinding = lookupLabel.apply(localId(routedId)).getBytes(StandardCharsets.UTF_8);
+            byte[] originNamespace = resolveLabelAsBytes(namespaceId(originId));
+            byte[] originBinding = resolveLabelAsBytes(localId(originId));
+            byte[] routedNamespace = resolveLabelAsBytes(namespaceId(routedId));
+            byte[] routedBinding = resolveLabelAsBytes(localId(routedId));
             int contentLength = 4 * Integer.BYTES + originNamespace.length + originBinding.length + routedNamespace.length +
                 routedBinding.length;
             int totalLength = contentLength + Integer.BYTES;

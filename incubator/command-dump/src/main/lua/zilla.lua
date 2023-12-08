@@ -104,8 +104,8 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     slices.labels_length = buffer(LABELS_OFFSET, 4)
     local labels_length = slices.labels_length:le_uint()
     slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
-    --headerSubtree:add_le(fields.labels_length, slices.labels_length)
-    --headerSubtree:add(fields.labels, slices.labels)
+    --subtree:add_le(fields.labels_length, slices.labels_length)
+    --subtree:add(fields.labels, slices.labels)
 
     -- origin id
     local frame_offset = LABELS_OFFSET + labels_length
@@ -117,13 +117,17 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     label_offset = label_offset + 4
     slices.origin_namespace = buffer(label_offset, origin_namespace_length)
     label_offset = label_offset + origin_namespace_length
-    subtree:add(fields.origin_namespace, slices.origin_namespace)
+    if (origin_namespace_length > 0) then
+        subtree:add(fields.origin_namespace, slices.origin_namespace)
+    end
 
     local origin_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.origin_binding = buffer(label_offset, origin_binding_length)
     label_offset = label_offset + origin_binding_length
-    subtree:add(fields.origin_binding, slices.origin_binding)
+    if (origin_binding_length > 0) then
+        subtree:add(fields.origin_binding, slices.origin_binding)
+    end
 
     -- routed id
     slices.routed_id = buffer(frame_offset + 12, 8)
@@ -133,13 +137,17 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     label_offset = label_offset + 4
     slices.routed_namespace = buffer(label_offset, routed_namespace_length)
     label_offset = label_offset + routed_namespace_length
-    subtree:add(fields.routed_namespace, slices.routed_namespace)
+    if (routed_namespace_length > 0) then
+        subtree:add(fields.routed_namespace, slices.routed_namespace)
+    end
 
     local routed_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.routed_binding = buffer(label_offset, routed_binding_length)
     label_offset = label_offset + routed_binding_length
-    subtree:add(fields.routed_binding, slices.routed_binding)
+    if (routed_binding_length > 0) then
+        subtree:add(fields.routed_binding, slices.routed_binding)
+    end
 
     -- stream id
     slices.stream_id = buffer(frame_offset + 20, 8)
@@ -148,17 +156,21 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local direction
     local initial_id
     local reply_id
-    if (stream_id % 2) == UInt64(0) then
-        direction = "REP"
-        initial_id = stream_id + UInt64(1)
-        reply_id = stream_id
+    if stream_id == UInt64(0) then
+        direction = ""
     else
-        direction = "INI"
-        initial_id = stream_id
-        reply_id = stream_id - UInt64(1)
+        if (stream_id % 2) == UInt64(0) then
+            direction = "REP"
+            initial_id = stream_id + UInt64(1)
+            reply_id = stream_id
+        else
+            direction = "INI"
+            initial_id = stream_id
+            reply_id = stream_id - UInt64(1)
+        end
+        subtree:add(fields.initial_id, initial_id)
+        subtree:add(fields.reply_id, reply_id)
     end
-    subtree:add(fields.initial_id, initial_id)
-    subtree:add(fields.reply_id, reply_id)
     subtree:add(fields.direction, direction)
 
     -- more frame properties
