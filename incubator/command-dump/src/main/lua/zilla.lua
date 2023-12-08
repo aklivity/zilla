@@ -87,27 +87,31 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local slices = {}
 
     -- header
-    local headerSubtree = subtree:add(zilla_protocol, buffer(), "Header")
+    --local headerSubtree = subtree:add(zilla_protocol, buffer(), "Header")
     slices.frame_type_id = buffer(HEADER_OFFSET, 4)
     local frame_type_id = slices.frame_type_id:le_uint()
     local frame_type = resolve_frame_type(frame_type_id)
-    headerSubtree:add_le(fields.frame_type_id, slices.frame_type_id)
-    headerSubtree:add(fields.frame_type, frame_type)
+    subtree:add_le(fields.frame_type_id, slices.frame_type_id)
+    subtree:add(fields.frame_type, frame_type)
 
     slices.protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
     local protocol_type_id = slices.protocol_type_id:le_uint()
     local protocol_type = resolve_type(protocol_type_id)
-    headerSubtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
-    headerSubtree:add(fields.protocol_type, protocol_type)
+    subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
+    subtree:add(fields.protocol_type, protocol_type)
 
     -- labels
     slices.labels_length = buffer(LABELS_OFFSET, 4)
     local labels_length = slices.labels_length:le_uint()
     slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
-    headerSubtree:add_le(fields.labels_length, slices.labels_length)
-    headerSubtree:add(fields.labels, slices.labels)
+    --headerSubtree:add_le(fields.labels_length, slices.labels_length)
+    --headerSubtree:add(fields.labels, slices.labels)
 
-    -- origin
+    -- origin id
+    local frame_offset = LABELS_OFFSET + labels_length
+    slices.origin_id = buffer(frame_offset + 4, 8)
+    subtree:add_le(fields.origin_id, slices.origin_id)
+
     local label_offset = LABELS_OFFSET + 4;
     local origin_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
@@ -121,11 +125,10 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     label_offset = label_offset + origin_binding_length
     subtree:add(fields.origin_binding, slices.origin_binding)
 
-    local frame_offset = LABELS_OFFSET + labels_length
-    slices.origin_id = buffer(frame_offset + 4, 8)
-    subtree:add_le(fields.origin_id, slices.origin_id)
+    -- routed id
+    slices.routed_id = buffer(frame_offset + 12, 8)
+    subtree:add_le(fields.routed_id, slices.routed_id)
 
-    -- routed
     local routed_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
     slices.routed_namespace = buffer(label_offset, routed_namespace_length)
@@ -138,10 +141,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     label_offset = label_offset + routed_binding_length
     subtree:add(fields.routed_binding, slices.routed_binding)
 
-    slices.routed_id = buffer(frame_offset + 12, 8)
-    subtree:add_le(fields.routed_id, slices.routed_id)
-
-    -- more frame properties
+    -- stream id
     slices.stream_id = buffer(frame_offset + 20, 8)
     subtree:add_le(fields.stream_id, slices.stream_id)
     local stream_id = slices.stream_id:le_uint64();
@@ -157,10 +157,11 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         initial_id = stream_id
         reply_id = stream_id - UInt64(1)
     end
-    subtree:add(fields.direction, direction)
     subtree:add(fields.initial_id, initial_id)
     subtree:add(fields.reply_id, reply_id)
+    subtree:add(fields.direction, direction)
 
+    -- more frame properties
     slices.sequence = buffer(frame_offset + 28, 8)
     subtree:add_le(fields.sequence, slices.sequence)
     slices.acknowledge = buffer(frame_offset + 36, 8)

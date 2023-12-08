@@ -97,7 +97,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int PSEUDO_IPV6_PREFIX = 1629561669;
     private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 1536;
     private static final short TCP_DEST_PORT = 7114;
-    private static final short TCP_SRC_PORT = 7777;
+    private static final short TCP_SRC_PORT = 0;
 
     private static final int PCAP_HEADER_OFFSET = 0;
     private static final int PCAP_HEADER_SIZE = 16;
