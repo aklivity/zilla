@@ -104,6 +104,7 @@ public final class WsServerFactory implements WsStreamFactory
     private final WsDataExFW.Builder wsDataExRW = new WsDataExFW.Builder();
     private final WsEndExFW.Builder wsEndExRW = new WsEndExFW.Builder();
 
+    private final OctetsFW.Builder payloadRW = new OctetsFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
@@ -119,6 +120,7 @@ public final class WsServerFactory implements WsStreamFactory
     private final WsHeaderFW.Builder wsHeaderRW = new WsHeaderFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -133,6 +135,7 @@ public final class WsServerFactory implements WsStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -954,7 +957,16 @@ public final class WsServerFactory implements WsStreamFactory
             {
                 final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
 
-                payloadRO.wrap(buffer, offset, offset + decodeBytes);
+                OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
+
+                OctetsFW.Builder payloadBuilder = payloadRW.wrap(extBuffer, 0, extBuffer.capacity());
+                payloadBuilder.set(payload);
+                xor(extBuffer, 0, payload.sizeof(), maskingKey);
+                OctetsFW unmaskedPayload = payloadBuilder.build();
+
+                pingReceived++;
+                signaler.signalNow(originId, routedId, replyId, decodeTraceId, PONG_SIGNAL_ID, 0,
+                    unmaskedPayload.value(), 0, unmaskedPayload.sizeof());
 
                 payloadProgress += decodeBytes;
                 maskingKey = rotateMaskingKey(maskingKey, decodeBytes);
@@ -963,10 +975,6 @@ public final class WsServerFactory implements WsStreamFactory
                 {
                     this.decodeState = this::decodeHeader;
                 }
-
-                pingReceived++;
-                signaler.signalNow(originId, routedId, replyId, decodeTraceId, PONG_SIGNAL_ID, 0,
-                    payloadRO.value(), 0, payloadRO.sizeof());
 
                 return decodeBytes;
             }

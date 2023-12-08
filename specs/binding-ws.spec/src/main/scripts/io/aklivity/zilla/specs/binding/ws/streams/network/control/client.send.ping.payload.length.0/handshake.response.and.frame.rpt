@@ -14,36 +14,34 @@
 # under the License.
 #
 
-property writeMask ${http:randomBytes(4)}
-
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 accepted
 
-read zilla:begin.ext ${zilla:id("http")}
-                       [0xb4 0x00 0x00 0x00]
-                       [0x08 0x00 0x00 0x00]
-                       [0x07] ":method" [0x03 0x00] "GET"
-                       [0x07] ":scheme" [0x04 0x00] "http"
-                       [0x0a] ":authority" [0x0e 0x00] "localhost:8080"
-                       [0x05] ":path" [0x05 0x00] "/echo"
-                       [0x07] "upgrade" [0x09 0x00] "websocket"
-                       [0x0a] "connection" [0x07 0x00] "upgrade"
-                       [0x11] "sec-websocket-key" [0x18 0x00] /(?<key>[a-zA-Z0-9+\/=]{24})/
-                       [0x15] "sec-websocket-version" [0x02 0x00] "13"
+read zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":method", "GET")
+                              .header(":scheme", "http")
+                              .header(":authority", "localhost:8080")
+                              .header(":path", "/echo")
+                              .header("upgrade", "websocket")
+                              .header("connection", "upgrade")
+                              .header("sec-websocket-key", newHandshakeKey)
+                              .header("sec-websocket-version", "13")
+                              .build()}
 
 connected
 
 write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "101")
-                              .header("upgrade", "websocket")
-                              .header("connection", "upgrade")
-                              .header("sec-websocket-accept", ws:handshakeHash(key))
-                              .build()}
+                             .typeId(zilla:id("http"))
+                             .header(":status", "101")
+                             .header("upgrade", "websocket")
+                             .header("connection", "upgrade")
+                             .header("sec-websocket-accept", ws:handshakeHash(newHandshakeKey))
+                             .build()}
 write flush
 
-read [0x8a 0x80] [0..4]
+read [0x89 0x80] [0..4]
 
-write [0x89 0x80]
+write [0x8a 0x00]
