@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static java.lang.Integer.parseInt;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongPredicate;
@@ -79,6 +81,7 @@ import io.aklivity.zilla.runtime.engine.reader.BindingsReader;
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
 {
+    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
     private static final Pattern PATTERN_NAMESPACED_BINDING = Pattern.compile("(?<namespace>[^\\.]+)\\.(?<binding>[^\\\\.]+)");
     private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
 
@@ -153,11 +156,15 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Affinity mask")
     public long affinity = 0xffff_ffff_ffff_ffffL;
 
-    @Option(name = {"-d", "--directory"},
-        hidden = true,
-        description = "Configuration directory",
-        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
-    public Path directory = Paths.get(".zilla", "engine");
+    @Option(name = {"-P", "--property"},
+        description = "Property name=value",
+        hidden = true)
+    public List<String> properties;
+
+    @Option(name = {"-p", "--properties"},
+        description = "Path to properties",
+        hidden = true)
+    public String propertiesPath;
 
     boolean continuous = true;
 
@@ -177,6 +184,9 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
     private final MutableDirectBuffer writeBuffer;
 
+    // visible for testing
+    Path directory;
+
     public ZillaDumpCommand()
     {
         this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
@@ -185,6 +195,36 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
+        Properties props = new Properties();
+        props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
+
+        Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
+        if (Files.exists(path) || propertiesPath != null)
+        {
+            try
+            {
+                props.load(Files.newInputStream(path));
+            }
+            catch (IOException ex)
+            {
+                System.out.println("Failed to load properties: " + path);
+                rethrowUnchecked(ex);
+            }
+        }
+
+        if (properties != null)
+        {
+            for (String property : properties)
+            {
+                final int equalsAt = property.indexOf('=');
+                String name = equalsAt != -1 ? property.substring(0, equalsAt) : property;
+                String value = equalsAt != -1 ? property.substring(equalsAt + 1) : "true";
+
+                props.put(name, value);
+            }
+        }
+
+        this.directory = Paths.get(props.getProperty(ENGINE_DIRECTORY.name()));
         LabelManager labels = new LabelManager(directory);
 
         final LongHashSet filtered = new LongHashSet();
