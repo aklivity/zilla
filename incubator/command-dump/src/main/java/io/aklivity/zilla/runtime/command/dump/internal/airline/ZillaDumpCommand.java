@@ -116,6 +116,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int TCP_HEADER_LIMIT = TCP_HEADER_OFFSET + TCP_HEADER_SIZE;
 
     private static final int ZILLA_HEADER_OFFSET = TCP_HEADER_LIMIT;
+    private static final int ZILLA_PROTOCOL_TYPE_OFFSET = ZILLA_HEADER_OFFSET + 4;
     private static final int ZILLA_HEADER_SIZE = 8;
     private static final int ZILLA_HEADER_LIMIT = ZILLA_HEADER_OFFSET + ZILLA_HEADER_SIZE;
 
@@ -688,7 +689,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             int protocolTypeId)
         {
             buffer.putInt(ZILLA_HEADER_OFFSET, frameTypeId);
-            buffer.putInt(ZILLA_HEADER_OFFSET + Integer.BYTES, protocolTypeId);
+            buffer.putInt(ZILLA_PROTOCOL_TYPE_OFFSET, protocolTypeId);
         }
 
         private int encodeZillaLabels(
