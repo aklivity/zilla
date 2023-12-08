@@ -31,8 +31,6 @@ local fields = {
     stream_type = ProtoField.string("zilla.stream_type", "Stream Type", base.NONE),
 
     -- labels
-    labels_length = ProtoField.uint32("zilla.labels_length", "Labels Length", base.DEC),
-    labels = ProtoField.bytes("zilla.labels", "Labels", base.NONE),
     origin_namespace = ProtoField.string("zilla.origin_namespace", "Origin Namespace", base.STRING),
     origin_binding = ProtoField.string("zilla.origin_binding", "Origin Binding", base.STRING),
     routed_namespace = ProtoField.string("zilla.routed_namespace", "Routed Namespace", base.STRING),
@@ -87,7 +85,6 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local slices = {}
 
     -- header
-    --local headerSubtree = subtree:add(zilla_protocol, buffer(), "Header")
     slices.frame_type_id = buffer(HEADER_OFFSET, 4)
     local frame_type_id = slices.frame_type_id:le_uint()
     local frame_type = resolve_frame_type(frame_type_id)
@@ -104,8 +101,6 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     slices.labels_length = buffer(LABELS_OFFSET, 4)
     local labels_length = slices.labels_length:le_uint()
     slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
-    --subtree:add_le(fields.labels_length, slices.labels_length)
-    --subtree:add(fields.labels, slices.labels)
 
     -- origin id
     local frame_offset = LABELS_OFFSET + labels_length
@@ -230,11 +225,6 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
         local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
         if dissector then
---             if protocol_type == "kafka" then
---                 if direction == "INI" then
---                     pinfo.dst_port = pinfo.match_uint
---                 end
---             end
             dissector:call(slices.payload:tvb(), pinfo, tree)
         end
     end
@@ -358,7 +348,6 @@ end
 function resolve_dissector(protocol_type, payload)
     local dissector
         if protocol_type == "amqp"  then dissector = Dissector.get("amqp")
-    elseif protocol_type == "grpc"  then dissector = Dissector.get("grpc")
     elseif protocol_type == "http"  then dissector = resolve_http_dissector(payload)
     elseif protocol_type == "kafka" then dissector = Dissector.get("kafka")
     elseif protocol_type == "mqtt"  then dissector = Dissector.get("mqtt")
@@ -395,7 +384,5 @@ function resolve_http_dissector(payload)
     end
 end
 
--- local data_dissector = DissectorTable.get("ethertype")
--- data_dissector:add(0x5a41, zilla_protocol)
 local data_dissector = DissectorTable.get("tcp.port")
 data_dissector:add(7114, zilla_protocol)

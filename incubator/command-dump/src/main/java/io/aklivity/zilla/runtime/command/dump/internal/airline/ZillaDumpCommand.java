@@ -95,12 +95,9 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int PCAP_GLOBAL_SIZE = 24;
     private static final int PCAP_LINK_TYPE_IPV6 = 1;
 
-    //private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e44005a41");
     private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
     private static final int PSEUDO_IPV6_PREFIX = 1629561669;
     private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 1536;
-    private static final short TCP_DEST_PORT = 7114;
-    private static final short TCP_SRC_PORT = 0;
 
     private static final int PCAP_HEADER_OFFSET = 0;
     private static final int PCAP_HEADER_SIZE = 16;
@@ -118,7 +115,6 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int TCP_HEADER_SIZE = 20;
     private static final int TCP_HEADER_LIMIT = TCP_HEADER_OFFSET + TCP_HEADER_SIZE;
 
-    //private static final int ZILLA_HEADER_OFFSET = ETHER_HEADER_LIMIT;
     private static final int ZILLA_HEADER_OFFSET = TCP_HEADER_LIMIT;
     private static final int ZILLA_HEADER_SIZE = 8;
     private static final int ZILLA_HEADER_LIMIT = ZILLA_HEADER_OFFSET + ZILLA_HEADER_SIZE;
@@ -132,8 +128,12 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final String CLIENT_KIND = KindConfig.CLIENT.name().toLowerCase();
     private static final String UNKNOWN_LABEL = "??";
     private static final byte[] EMPTY_BYTES = new byte[0];
+
+    private static final short TCP_DEST_PORT = 7114;
+    private static final short TCP_SRC_PORT = 0;
     private static final short PSH_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-    private static final short PSH_ACK_FIN = (short) (TcpFlag.FIN.value() | TcpFlag.PSH.value() | TcpFlag.ACK.value());
+    private static final short PSH_ACK_SYN = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value() | TcpFlag.SYN.value());
+    private static final short PSH_ACK_FIN = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value() | TcpFlag.FIN.value());
 
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
@@ -422,7 +422,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = f.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(BeginFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, PSH_ACK);
+                final boolean initial = begin.streamId() % 2 != 0;
+                short tcpFlags = initial ? PSH_ACK_SYN : PSH_ACK;
+                writeFrame(BeginFW.TYPE_ID, f.originId(), f.routedId(), f.streamId(), f.timestamp(), f, tcpFlags);
             }
         }
 
@@ -644,9 +646,6 @@ public final class ZillaDumpCommand extends ZillaCommand
             MutableDirectBuffer buffer,
             long source,
             long destination,
-            //long bindingId,
-            //long sourceId,
-            //long targetId,
             int payloadLength)
         {
             ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
@@ -660,43 +659,16 @@ public final class ZillaDumpCommand extends ZillaCommand
                 .build();
         }
 
-        /*private void encodeIpv6Header(
-            MutableDirectBuffer buffer,
-            long bindingId,
-            long sourceId,
-            long targetId,
-            int payloadLength)
-        {
-            ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
-                .prefix(PSEUDO_IPV6_PREFIX)
-                .payload_length((short) payloadLength)
-                .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
-                .src_addr_part1(bindingId)
-                .src_addr_part2(sourceId)
-                .dst_addr_part1(bindingId)
-                .dst_addr_part2(targetId)
-                .build();
-        }*/
-
         private void encodeTcpHeader(
             MutableDirectBuffer buffer,
-            //long sourceId,
-            //long targetId,
-            boolean ini,
-            //short sourcePort,
-            //short destPort,
+            boolean initial,
             long sequence,
             long acknowledge,
             short flagValue)
-        //TcpFlag flag)
         {
-            //final short sourcePort = (short) (sourceId & 0xffffL);
-            //final short destPort = (short) (targetId & 0xffffL);
-            //final short otherFields = (short) (0x5000 | flag.value());
             final short otherFields = (short) (0x5000 | flagValue);
-            //final short otherFields = (short) (0x5000 | TcpFlag.PSH.value() | TcpFlag.ACK.value());
-            short sourcePort = ini ? TCP_SRC_PORT : TCP_DEST_PORT;
-            short destPort = ini ? TCP_DEST_PORT : TCP_SRC_PORT;
+            short sourcePort = initial ? TCP_SRC_PORT : TCP_DEST_PORT;
+            short destPort = initial ? TCP_DEST_PORT : TCP_SRC_PORT;
 
             tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET, buffer.capacity())
                 .src_port(sourcePort)
@@ -709,30 +681,6 @@ public final class ZillaDumpCommand extends ZillaCommand
                 .urgent_pointer((short) 0)
                 .build();
         }
-
-        /*private void encodeTcpHeader(
-            MutableDirectBuffer buffer,
-            long sourceId,
-            long targetId,
-            long sequence,
-            long acknowledge,
-            TcpFlag flag)
-        {
-            final short sourcePort = (short) (sourceId & 0xffffL);
-            final short destPort = (short) (targetId & 0xffffL);
-            final short otherFields = (short) (0x5000 | flag.value());
-
-            tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET, buffer.capacity())
-                .src_port(sourcePort)
-                .dst_port(destPort)
-                .sequence_number((int) sequence)
-                .acknowledgment_number((int) acknowledge)
-                .other_fields(otherFields)
-                .window((short) 1024)
-                .checksum((short) 0)
-                .urgent_pointer((short) 0)
-                .build();
-        }*/
 
         private void encodeZillaHeader(
             MutableDirectBuffer buffer,
