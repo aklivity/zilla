@@ -713,6 +713,7 @@ public abstract class KafkaClientSaslHandshaker
                     client.encodeSaslAuthenticate = client::doEncodeSaslScramFinalAuthenticateRequest;
                     client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
+                    client.onDecodeSaslHandshakeResponse(traceId, authorization, ERROR_NONE);
                 }
                 else
                 {
