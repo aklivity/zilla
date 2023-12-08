@@ -22,17 +22,17 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 
 public final class BindingsLayoutReader
 {
-    private final BindingsLayout bindingsLayout;
+    private final BindingsLayout layout;
 
     private BindingsLayoutReader(
-        BindingsLayout bindingsLayout)
+        BindingsLayout layout)
     {
-        this.bindingsLayout = bindingsLayout;
+        this.layout = layout;
     }
 
     public Map<Long, long[]> bindings()
     {
-        return bindingsLayout.bindings();
+        return layout.bindings();
     }
 
     public static Builder builder()
