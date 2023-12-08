@@ -97,9 +97,10 @@ public class KafkaConfiguration extends Configuration
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
             (c, v) -> Duration.parse(v), "PT4S");
-        KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT = config.property("client.group.min.session.timeout.default", 0);
+        KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT = config.property("client.group.min.session.timeout.default",
+            (int) Duration.ofSeconds(6).toMillis());
         KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
-            Integer.MAX_VALUE);
+            (int) Duration.ofMinutes(5).toMillis());
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
