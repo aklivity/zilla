@@ -599,27 +599,28 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (extension != null)
             {
-                int streamTypeId = calculateLabelCrc(extension.typeId());
+                int streamTypeId = supplyLabelCrc(extension.typeId());
                 buffer.putInt(offset, streamTypeId);
             }
         }
 
-        private int calculateLabelCrc(
+        private int supplyLabelCrc(
             int labelId)
         {
             int result = 0;
             if (labelId != 0)
             {
-                result = crcCache.get(labelId);
-                if (result == 0)
-                {
-                    crc.reset();
-                    crc.update(resolveLabelAsBytes(labelId));
-                    result = (int) crc.getValue();
-                    crcCache.put(labelId, result);
-                }
+                result = crcCache.computeIfAbsent(labelId, this::computeLabelCrc);
             }
             return result;
+        }
+
+        private int computeLabelCrc(
+            int labelId)
+        {
+            crc.reset();
+            crc.update(resolveLabelAsBytes(labelId));
+            return (int) crc.getValue();
         }
 
         private byte[] resolveLabelAsBytes(
@@ -690,7 +691,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                     protocolTypeLabelId = localId(origin[ORIGIN_TYPE_ID_INDEX]);
                 }
             }
-            return calculateLabelCrc(protocolTypeLabelId);
+            return supplyLabelCrc(protocolTypeLabelId);
         }
 
         private void encodePcapHeader(
