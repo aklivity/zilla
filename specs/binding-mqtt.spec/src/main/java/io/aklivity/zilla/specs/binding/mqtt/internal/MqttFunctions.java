@@ -366,6 +366,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExBuilder qos(
+                int qos)
+            {
+                publishBeginExRW.qos(qos);
+                return this;
+            }
+
             public MqttBeginExBuilder build()
             {
                 final MqttPublishBeginExFW publishBeginEx = publishBeginExRW.build();
@@ -1225,6 +1232,7 @@ public final class MqttFunctions
             private String16FW clientId;
             private String16FW topic;
             private Integer flags;
+            private Integer qos;
 
             private MqttPublishBeginExMatcherBuilder()
             {
@@ -1252,6 +1260,12 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExMatcherBuilder qos(
+                int qos)
+            {
+                this.qos = qos;
+                return this;
+            }
 
             public MqttBeginExMatcherBuilder build()
             {
@@ -1264,7 +1278,8 @@ public final class MqttFunctions
                 final MqttPublishBeginExFW publishBeginEx = beginEx.publish();
                 return matchClientId(publishBeginEx) &&
                     matchTopic(publishBeginEx) &&
-                    matchFlags(publishBeginEx);
+                    matchFlags(publishBeginEx) &&
+                    matchQos(publishBeginEx);
             }
 
             private boolean matchClientId(
@@ -1272,7 +1287,6 @@ public final class MqttFunctions
             {
                 return clientId == null || clientId.equals(publishBeginEx.clientId());
             }
-
 
             private boolean matchTopic(
                 final MqttPublishBeginExFW publishBeginEx)
@@ -1284,6 +1298,12 @@ public final class MqttFunctions
                 final MqttPublishBeginExFW publishBeginEx)
             {
                 return flags == null || flags == publishBeginEx.flags();
+            }
+
+            private boolean matchQos(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return qos == null || qos == publishBeginEx.qos();
             }
         }
 

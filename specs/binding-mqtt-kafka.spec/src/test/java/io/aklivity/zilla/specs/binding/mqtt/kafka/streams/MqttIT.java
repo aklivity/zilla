@@ -660,6 +660,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.mixture.qos/client",
+        "${mqtt}/publish.mixture.qos/server"})
+    public void shouldSendMessageMixtureQos() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos1/client",
         "${mqtt}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception
