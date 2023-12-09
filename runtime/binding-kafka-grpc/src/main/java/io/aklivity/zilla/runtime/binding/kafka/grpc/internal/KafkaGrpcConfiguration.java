@@ -91,6 +91,6 @@ public class KafkaGrpcConfiguration extends Configuration
     private static GroupIdSupplier defaultGroupId(
         Configuration config)
     {
-        return () -> String.format("zilla-%s-%s", "", "");
+        return () -> "zilla:%s-%s";
     }
 }

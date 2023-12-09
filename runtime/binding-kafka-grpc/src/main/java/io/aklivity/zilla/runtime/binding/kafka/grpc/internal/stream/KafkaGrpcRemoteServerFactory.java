@@ -29,6 +29,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -130,6 +131,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongPredicate activate;
     private final LongConsumer deactivate;
     private final Signaler signaler;
+    private final Supplier<String> groupIdFormat;
     private final int grpcTypeId;
     private final int kafkaTypeId;
     private long reconnectAt = NO_CANCEL_ID;
@@ -156,6 +158,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.servers = new ArrayList<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
+        this.groupIdFormat = config.groupIdSupplier();
     }
 
     @Override
@@ -182,8 +185,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             newBinding.routes.forEach(r ->
                 r.when.forEach(c ->
                 {
-                    final String groupId = String.format("zilla-%s-%s", supplyNamespace.apply(binding.id),
-                        binding.name);
+                    final String groupId = String.format(groupIdFormat.get(),
+                        supplyNamespace.apply(binding.id), binding.name);
                     KafkaGrpcConditionResult condition = c.resolve();
                     servers.add(
                         new KafkaRemoteServer(newBinding.id, newBinding.entryId, r.id, condition,
