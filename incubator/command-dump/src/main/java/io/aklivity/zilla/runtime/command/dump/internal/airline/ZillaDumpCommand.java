@@ -102,7 +102,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
     private static final int PSEUDO_IPV6_PREFIX = 1629561669;
     private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 0x0640;
-    private static final int IPV6_LOCAL_ADDRESS = 0xfe80;
+    private static final long IPV6_LOCAL_ADDRESS = 0xfe80L << 48;
 
     private static final int PCAP_HEADER_OFFSET = 0;
     private static final int PCAP_HEADER_SIZE = 16;
