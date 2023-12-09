@@ -194,14 +194,6 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final MutableDirectBuffer writeBuffer;
 
     private Path directory;
-    private BeginFW begin2RO = new BeginFW();
-    private DataFW data2RO = new DataFW();
-    private EndFW end2RO = new EndFW();
-    private AbortFW abort2RO = new AbortFW();
-    private ResetFW reset2RO = new ResetFW();
-    private FlushFW flush2RO = new FlushFW();
-    private ChallengeFW challenge2RO = new ChallengeFW();
-    private ExtensionFW extension = new ExtensionFW();
 
     public ZillaDumpCommand()
     {
@@ -478,14 +470,14 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(begin.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(begin.sizeof()));
-                begin2RO = beginRW.wrap(buffer, 0, begin.sizeof()).set(begin).build();
-                extension = begin2RO.extension().get(extensionRO::tryWrap);
+                final BeginFW newBegin = beginRW.wrap(buffer, 0, begin.sizeof()).set(begin).build();
+                final ExtensionFW extension = newBegin.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
                 final boolean initial = begin.streamId() % 2 != 0;
                 short tcpFlags = initial ? PSH_ACK_SYN : PSH_ACK;
-                writeFrame(BeginFW.TYPE_ID, begin2RO.originId(), begin2RO.routedId(), begin2RO.streamId(), begin2RO.timestamp(),
-                    begin2RO, tcpFlags);
+                writeFrame(BeginFW.TYPE_ID, newBegin.originId(), newBegin.routedId(), newBegin.streamId(), newBegin.timestamp(),
+                    newBegin, tcpFlags);
             }
         }
 
@@ -495,12 +487,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(data.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(data.sizeof()));
-                data2RO = dataRW.wrap(buffer, 0, data.sizeof()).set(data).build();
-                extension = data2RO.extension().get(extensionRO::tryWrap);
+                final DataFW newData = dataRW.wrap(buffer, 0, data.sizeof()).set(data).build();
+                final ExtensionFW extension = newData.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(DataFW.TYPE_ID, data2RO.originId(), data2RO.routedId(), data2RO.streamId(), data2RO.timestamp(),
-                    data2RO, PSH_ACK);
+                writeFrame(DataFW.TYPE_ID, newData.originId(), newData.routedId(), newData.streamId(), newData.timestamp(),
+                    newData, PSH_ACK);
             }
         }
 
@@ -510,12 +502,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(end.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(end.sizeof()));
-                end2RO = endRW.wrap(buffer, 0, end.sizeof()).set(end).build();
-                extension = end2RO.extension().get(extensionRO::tryWrap);
+                final EndFW newEnd = endRW.wrap(buffer, 0, end.sizeof()).set(end).build();
+                final ExtensionFW extension = newEnd.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(EndFW.TYPE_ID, end2RO.originId(), end2RO.routedId(), end2RO.streamId(), end2RO.timestamp(),
-                    end2RO, PSH_ACK_FIN);
+                writeFrame(EndFW.TYPE_ID, newEnd.originId(), newEnd.routedId(), newEnd.streamId(), newEnd.timestamp(),
+                    newEnd, PSH_ACK_FIN);
             }
         }
 
@@ -525,12 +517,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(abort.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(abort.sizeof()));
-                abort2RO = abortRW.wrap(buffer, 0, abort.sizeof()).set(abort).build();
-                extension = abort2RO.extension().get(extensionRO::tryWrap);
+                final AbortFW newAbort = abortRW.wrap(buffer, 0, abort.sizeof()).set(abort).build();
+                final ExtensionFW extension = newAbort.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(AbortFW.TYPE_ID, abort2RO.originId(), abort2RO.routedId(), abort2RO.streamId(), abort2RO.timestamp(),
-                    abort2RO, PSH_ACK_FIN);
+                writeFrame(AbortFW.TYPE_ID, newAbort.originId(), newAbort.routedId(), newAbort.streamId(), newAbort.timestamp(),
+                    newAbort, PSH_ACK_FIN);
             }
         }
 
@@ -550,12 +542,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(reset.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(reset.sizeof()));
-                reset2RO = resetRW.wrap(buffer, 0, reset.sizeof()).set(reset).build();
-                extension = reset2RO.extension().get(extensionRO::tryWrap);
+                final ResetFW newReset = resetRW.wrap(buffer, 0, reset.sizeof()).set(reset).build();
+                final ExtensionFW extension = newReset.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(ResetFW.TYPE_ID, reset2RO.originId(), reset2RO.routedId(), reset2RO.streamId(), reset2RO.timestamp(),
-                    reset2RO, PSH_ACK_FIN);
+                writeFrame(ResetFW.TYPE_ID, newReset.originId(), newReset.routedId(), newReset.streamId(), newReset.timestamp(),
+                    newReset, PSH_ACK_FIN);
             }
         }
 
@@ -565,12 +557,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(flush.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(flush.sizeof()));
-                flush2RO = flushRW.wrap(buffer, 0, flush.sizeof()).set(flush).build();
-                extension = flush2RO.extension().get(extensionRO::tryWrap);
+                final FlushFW newFlush = flushRW.wrap(buffer, 0, flush.sizeof()).set(flush).build();
+                final ExtensionFW extension = newFlush.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, FlushFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(FlushFW.TYPE_ID, flush2RO.originId(), flush2RO.routedId(), flush2RO.streamId(), flush2RO.timestamp(),
-                    flush2RO, PSH_ACK);
+                writeFrame(FlushFW.TYPE_ID, newFlush.originId(), newFlush.routedId(), newFlush.streamId(), newFlush.timestamp(),
+                    newFlush, PSH_ACK);
             }
         }
 
@@ -590,12 +582,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             if (allowedBinding.test(challenge.routedId()))
             {
                 final MutableDirectBuffer buffer = new UnsafeBuffer(ByteBuffer.allocate(challenge.sizeof()));
-                challenge2RO = challengeRW.wrap(buffer, 0, challenge.sizeof()).set(challenge).build();
-                extension = challenge2RO.extension().get(extensionRO::tryWrap);
+                final ChallengeFW newChallenge = challengeRW.wrap(buffer, 0, challenge.sizeof()).set(challenge).build();
+                final ExtensionFW extension = newChallenge.extension().get(extensionRO::tryWrap);
                 patchExtension(buffer, extension, ChallengeFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(ChallengeFW.TYPE_ID, challenge2RO.originId(), challenge2RO.routedId(), challenge2RO.streamId(),
-                    challenge2RO.timestamp(), challenge2RO, PSH_ACK);
+                writeFrame(ChallengeFW.TYPE_ID, newChallenge.originId(), newChallenge.routedId(), newChallenge.streamId(),
+                    newChallenge.timestamp(), newChallenge, PSH_ACK);
             }
         }
 
