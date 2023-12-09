@@ -14,25 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.util.function.Supplier;
-
-import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaGrpcConfiguration extends Configuration
 {
     private static final ConfigurationDef KAFKA_GRPC_CONFIG;
-    public static final PropertyDef<GroupIdSupplier> KAFKA_GROUP_ID;
+    public static final PropertyDef<String> KAFKA_GROUP_ID;
+
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka.grpc");
-        KAFKA_GROUP_ID = config.property(GroupIdSupplier.class, "group.id",
-            KafkaGrpcConfiguration::decodeGroupId, KafkaGrpcConfiguration::defaultGroupId);
+        KAFKA_GROUP_ID = config.property("group.id.format", "zilla:%s-%s");
         KAFKA_GRPC_CONFIG = config;
     }
 
@@ -42,55 +36,8 @@ public class KafkaGrpcConfiguration extends Configuration
         super(KAFKA_GRPC_CONFIG, config);
     }
 
-    public Supplier<String> groupIdSupplier()
+    public String groupIdFormat()
     {
-        return KAFKA_GROUP_ID.get(this)::get;
-    }
-
-    @FunctionalInterface
-    private interface GroupIdSupplier extends Supplier<String>
-    {
-    }
-
-    private static GroupIdSupplier decodeGroupId(
-        Configuration config,
-        String fullyQualifiedMethodName)
-    {
-        GroupIdSupplier supplier = null;
-
-        try
-        {
-            MethodType signature = MethodType.methodType(String.class);
-            String[] parts = fullyQualifiedMethodName.split("::");
-            Class<?> ownerClass = Class.forName(parts[0]);
-            String methodName = parts[1];
-            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            supplier = () ->
-            {
-                String value = null;
-                try
-                {
-                    value = (String) method.invoke();
-                }
-                catch (Throwable ex)
-                {
-                    LangUtil.rethrowUnchecked(ex);
-                }
-
-                return value;
-            };
-        }
-        catch (Throwable ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return supplier;
-    }
-
-    private static GroupIdSupplier defaultGroupId(
-        Configuration config)
-    {
-        return () -> "zilla:%s-%s";
+        return KAFKA_GROUP_ID.get(this);
     }
 }
