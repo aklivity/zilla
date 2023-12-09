@@ -381,7 +381,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final LongPredicate allowedBinding;
         private final WritableByteChannel writer;
         private final IntFunction<String> lookupLabel;
-        private final Function<Long, long[]> getBindingInfo;
+        private final Function<Long, long[]> lookupBindingInfo;
         private final CRC32C crc;
         private final ExtensionFW extensionRO;
         private final MutableDirectBuffer labelsBuffer;
@@ -393,12 +393,12 @@ public final class ZillaDumpCommand extends ZillaCommand
         private DumpHandler(
             LongPredicate allowedBinding,
             IntFunction<String> lookupLabel,
-            Function<Long, long[]> getBindingInfo,
+            Function<Long, long[]> lookupBindingInfo,
             WritableByteChannel writer)
         {
             this.allowedBinding = allowedBinding;
             this.lookupLabel = lookupLabel;
-            this.getBindingInfo = getBindingInfo;
+            this.lookupBindingInfo = lookupBindingInfo;
             this.writer = writer;
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
@@ -682,8 +682,8 @@ public final class ZillaDumpCommand extends ZillaCommand
             long routedId)
         {
             int protocolTypeLabelId = 0;
-            long[] origin = getBindingInfo.apply(originId);
-            long[] routed = getBindingInfo.apply(routedId);
+            long[] origin = lookupBindingInfo.apply(originId);
+            long[] routed = lookupBindingInfo.apply(routedId);
 
             if (origin != null && routed != null)
             {
