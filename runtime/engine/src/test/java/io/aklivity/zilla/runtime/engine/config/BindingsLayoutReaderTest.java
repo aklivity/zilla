@@ -34,8 +34,8 @@ public class BindingsLayoutReaderTest
     {
         // GIVEN
         Path directory = Paths.get("target/zilla-itests");
-        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(directory).build();
-        bindingsLayout.writeBindingInfo(1L, 2L, 3L, 4L, 5L);
+        BindingsLayout layout = BindingsLayout.builder().directory(directory).build();
+        layout.writeBindingInfo(1L, 2L, 3L, 4L, 5L);
         BindingsLayoutReader reader = BindingsLayoutReader.builder().directory(directory).build();
 
         // WHEN
