@@ -577,12 +577,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         return newStream;
     }
 
-    private int topicKey(
+    private long topicKey(
         String topic,
         int qos)
     {
+        final int topicHashCode = System.identityHashCode(topic.intern());
         final int qosKey = qos > 0 ? MqttQoS.EXACTLY_ONCE.value() : qos;
-        return Objects.hash(topic.intern(), qosKey);
+        return ((long) topicHashCode << 32) | (qosKey & 0xFFFFFFFFL);
     }
 
     private MessageConsumer newStream(
@@ -1227,7 +1228,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (reasonCode == SUCCESS)
             {
                 final String topic = mqttPublishHeader.topic;
-                final int topicKey = topicKey(topic, qos);
+                final long topicKey = topicKey(topic, qos);
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
@@ -1361,7 +1362,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (reasonCode == SUCCESS)
             {
                 final String topic = mqttPublishHeader.topic;
-                final int topicKey = topicKey(topic, qos);
+                final long topicKey = topicKey(topic, qos);
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
@@ -2286,7 +2287,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final long replyId;
         private final long encodeBudgetId;
 
-        private final Int2ObjectHashMap<MqttPublishStream> publishes;
+        private final Long2ObjectHashMap<MqttPublishStream> publishes;
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
@@ -2321,7 +2322,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long encodeSlotTraceId;
 
         private MqttServerDecoder decoder;
-        private int decodePublisherKey;
+        private long decodePublisherKey;
         private int decodeablePacketBytes;
 
         private long connectTimeoutId = NO_CANCEL_ID;
@@ -2377,7 +2378,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.replyId = replyId;
             this.encodeBudgetId = budgetId;
             this.decoder = decodeInitialType;
-            this.publishes = new Int2ObjectHashMap<>();
+            this.publishes = new Long2ObjectHashMap<>();
             this.subscribes = new Long2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
@@ -2982,7 +2983,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (resolved != null)
             {
                 final long resolvedId = resolved.id;
-                final int topicKey = topicKey(topic, qos);
+                final long topicKey = topicKey(topic, qos);
 
                 stream = publishes.computeIfAbsent(topicKey, s -> new MqttPublishStream(routedId, resolvedId, topic, qos));
                 stream.doPublishBegin(traceId, affinity);
@@ -3027,7 +3028,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         unreleasedPacketIds.add(mqttPublishHeaderRO.packetId);
                     }
 
-                    final int topicKey = topicKey(mqttPublishHeaderRO.topic, mqttPublishHeaderRO.qos);
+                    final long topicKey = topicKey(mqttPublishHeaderRO.topic, mqttPublishHeaderRO.qos);
                     MqttPublishStream stream = publishes.get(topicKey);
 
                     final MqttDataExFW.Builder builder = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
@@ -5261,7 +5262,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private class MqttPublishStream
         {
             private MessageConsumer application;
-            private final int topicKey;
+            private final long topicKey;
             private final int qos;
             private final String topic;
             private final long originId;
