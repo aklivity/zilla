@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.reader;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -25,7 +25,6 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
-import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 public class BindingsLayoutReaderTest
 {
