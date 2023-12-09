@@ -13,12 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.ws.internal.streams.server;
+package io.aklivity.zilla.runtime.binding.ws.internal.streams.client;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -42,58 +41,28 @@ public class ControlIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
-        .external("app0")
+        .external("net0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/client.send.pong.payload.length.0/handshake.request.and.frame",
-        "${app}/client.send.pong.payload.length.0/handshake.response" })
-    public void shouldReceiveClientPongFrameWithEmptyPayload() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("client.when.yaml")
     @Specification({
-        "${net}/client.send.pong.payload.length.125/handshake.request.and.frame",
-        "${app}/client.send.pong.payload.length.125/handshake.response" })
-    public void shouldReceiveClientPongFrameWithPayload() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("TODO: WebSocket close handshake with status code")
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/client.send.pong.payload.length.126/handshake.request.and.frame",
-        "${app}/client.send.pong.payload.length.126/handshake.response" })
-    public void shouldRejectClientPongFrameWithPayloadTooLong() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/client.send.ping.payload.length.0/handshake.request.and.frame",
-        "${app}/client.send.ping.payload.length.0/handshake.response" })
+        "${app}/server.send.ping/handshake.request",
+        "${net}/server.send.ping.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveClientPingFrameWithEmptyPayload() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("client.when.yaml")
     @Specification({
-        "${net}/client.send.ping.payload.length.125/handshake.request.and.frame",
-        "${app}/client.send.ping.payload.length.125/handshake.response" })
+        "${app}/server.send.ping/handshake.request",
+        "${net}/server.send.ping.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveClientPingFrameWithPayload() throws Exception
     {
         k3po.finish();
