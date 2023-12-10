@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.9.61](https://github.com/aklivity/zilla/tree/0.9.61) (2023-12-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.60...0.9.61)
+
+**Implemented enhancements:**
+
+- Kafka GRPC consumer Group Support [\#597](https://github.com/aklivity/zilla/issues/597)
+- Integrate Schema Registry / Karapace [\#404](https://github.com/aklivity/zilla/issues/404)
+- Apply typed schema to cached messages; `kafka cache fetch server` [\#314](https://github.com/aklivity/zilla/issues/314)
+- `schema-registry` feature \(baseline\) [\#265](https://github.com/aklivity/zilla/issues/265)
+- Enhance inspection of internal streams [\#154](https://github.com/aklivity/zilla/issues/154)
+
+**Fixed bugs:**
+
+- Group Coordinator sasl scram doesn't have complete full handshake [\#624](https://github.com/aklivity/zilla/issues/624)
+- Follow kafka consumer protocol data structure for userdata parsing [\#617](https://github.com/aklivity/zilla/issues/617)
+- WebSocket inbound `ping` frames are rejected [\#606](https://github.com/aklivity/zilla/issues/606)
+- Fix encoding error when no properties defined by the client [\#627](https://github.com/aklivity/zilla/pull/627) ([bmaidics](https://github.com/bmaidics))
+
+**Closed issues:**
+
+- MQTT client is disconnected and cannot reconnect after sending message [\#623](https://github.com/aklivity/zilla/issues/623)
+- Use affinity and Long2ObjectHashmap instead of clientId  [\#432](https://github.com/aklivity/zilla/issues/432)
+
+**Merged pull requests:**
+
+- WebSocket inbound ping frames support [\#629](https://github.com/aklivity/zilla/pull/629) ([akrambek](https://github.com/akrambek))
+- Split qos0 and qos12 publish streams, add ISR [\#628](https://github.com/aklivity/zilla/pull/628) ([bmaidics](https://github.com/bmaidics))
+- Update kafka client group session timeout defaults [\#625](https://github.com/aklivity/zilla/pull/625) ([jfallows](https://github.com/jfallows))
+- Fix handeling sasl scram error in group coordinator [\#622](https://github.com/aklivity/zilla/pull/622) ([akrambek](https://github.com/akrambek))
+- Include kafka client id consistently in all kafka protocol encoders [\#621](https://github.com/aklivity/zilla/pull/621) ([jfallows](https://github.com/jfallows))
+- Follow kafka consumer protocol data structure for userdata parsing [\#618](https://github.com/aklivity/zilla/pull/618) ([akrambek](https://github.com/akrambek))
+- Kafka GRPC consumer Group Support [\#598](https://github.com/aklivity/zilla/pull/598) ([akrambek](https://github.com/akrambek))
+- Enhance inspection of internal streams [\#596](https://github.com/aklivity/zilla/pull/596) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.60](https://github.com/aklivity/zilla/tree/0.9.60) (2023-12-05)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.59...0.9.60)
