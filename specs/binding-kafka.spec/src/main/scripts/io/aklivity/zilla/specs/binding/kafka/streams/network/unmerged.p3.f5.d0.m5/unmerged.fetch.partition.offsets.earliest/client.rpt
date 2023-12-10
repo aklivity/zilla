@@ -27,11 +27,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 233                               # size
+write 238                               # size
       32s                               # describe configs
       0s                                # v0
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # resources
         [0x02]                          # topic resource
         4s "test"                       # "test" topic
@@ -123,11 +123,11 @@ connect await RECEIVED_CONFIG
 
 connected
 
-write 21                                # size
+write 26                                # size
       3s                                # metadata
       5s                                # v5
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # topics
         4s "test"                       #   "test" topic
       [0x00]                            # allow_auto_topic_creation
@@ -185,11 +185,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 65                                # size
+write 70                                # size
       1s                                # fetch
       5s                                # v5
       ${newRequestId}
-      -1s
+      5s "zilla"                        # client id
       -1
       ${fetchWaitMax}
       1
@@ -249,11 +249,11 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 65                                # size
+write 70                                # size
       1s                                # fetch
       5s                                # v5
       ${newRequestId}
-      -1s
+      5s "zilla"                        # client id
       -1
       ${fetchWaitMax}
       1

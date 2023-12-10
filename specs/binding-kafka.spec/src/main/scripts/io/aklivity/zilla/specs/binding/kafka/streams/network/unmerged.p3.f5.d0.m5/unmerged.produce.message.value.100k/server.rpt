@@ -26,11 +26,11 @@ accepted
 
 connected
 
-read 233                                # size
+read 238                                # size
      32s                                # describe configs
      0s                                 # v0
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # resources
        [0x02]                           # topic resource
        4s "test"                        # "test" topic
@@ -116,11 +116,11 @@ accepted
 
 connected
 
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -162,11 +162,11 @@ read zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-read 102512
+read 102517
      0s
      3s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1s
      [0..2]
      [0..4]

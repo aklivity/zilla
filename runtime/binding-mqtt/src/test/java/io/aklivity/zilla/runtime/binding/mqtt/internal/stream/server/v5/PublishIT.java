@@ -413,4 +413,24 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.ack.with.reasoncode/client",
+        "${app}/publish.qos2.ack.with.reasoncode/server"})
+    public void shouldPublishQoS2MessageAckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.mixture.qos/client",
+        "${app}/publish.mixture.qos/server"})
+    public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
 }

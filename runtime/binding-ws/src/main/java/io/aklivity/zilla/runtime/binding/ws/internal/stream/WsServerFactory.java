@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeader
 import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeaderFW.STATUS_PROTOCOL_ERROR;
 import static io.aklivity.zilla.runtime.binding.ws.internal.types.codec.WsHeaderFW.STATUS_UNEXPECTED_CONDITION;
 import static io.aklivity.zilla.runtime.binding.ws.internal.util.WsMaskUtil.xor;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -56,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsDataExFW;
@@ -63,6 +65,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsEndExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class WsServerFactory implements WsStreamFactory
@@ -74,12 +77,15 @@ public final class WsServerFactory implements WsStreamFactory
     private static final String WEBSOCKET_VERSION_13 = "13";
     private static final int MAXIMUM_HEADER_SIZE = 14;
 
+    private static final int PONG_SIGNAL_ID = 1;
+
     private static final DirectBuffer CLOSE_PAYLOAD = new UnsafeBuffer(new byte[0]);
 
     private final MessageDigest sha1 = initSHA1();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final SignalFW signalRO = new SignalFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -98,6 +104,7 @@ public final class WsServerFactory implements WsStreamFactory
     private final WsDataExFW.Builder wsDataExRW = new WsDataExFW.Builder();
     private final WsEndExFW.Builder wsEndExRW = new WsEndExFW.Builder();
 
+    private final OctetsFW.Builder payloadRW = new OctetsFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
@@ -113,9 +120,11 @@ public final class WsServerFactory implements WsStreamFactory
     private final WsHeaderFW.Builder wsHeaderRW = new WsHeaderFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final Signaler signaler;
 
     private final Long2ObjectHashMap<WsBindingConfig> bindings;
     private final int wsTypeId;
@@ -126,10 +135,12 @@ public final class WsServerFactory implements WsStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
+        this.signaler = context.signaler();
         this.wsTypeId = context.supplyTypeId(WsBinding.NAME);
         this.httpTypeId = context.supplyTypeId("http");
     }
@@ -283,6 +294,9 @@ public final class WsServerFactory implements WsStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private long pongId = NO_CANCEL_ID;
+        private int pingReceived;
 
         private WsServer(
             MessageConsumer receiver,
@@ -506,6 +520,10 @@ public final class WsServerFactory implements WsStreamFactory
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onNetData(data);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetSignal(signal);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onNetEnd(end);
@@ -597,6 +615,23 @@ public final class WsServerFactory implements WsStreamFactory
                 {
                     decodeState.decode(buffer, 0, 0);
                 }
+            }
+        }
+
+        private void onNetSignal(
+            SignalFW signal)
+        {
+            final int signalId = signal.signalId();
+            final long traceId = signal.traceId();
+            final OctetsFW payload = signal.payload();
+
+            assert signalId == PONG_SIGNAL_ID;
+
+            if (--pingReceived == 0)
+            {
+                final int reserved = payload.sizeof() + MAXIMUM_HEADER_SIZE + replyPad;
+
+                doNetData(traceId, decodeAuthorization, replyBudgetId, reserved, payload, 0x8a);
             }
         }
 
@@ -747,6 +782,9 @@ public final class WsServerFactory implements WsStreamFactory
                 case 0x08:
                     this.decodeState = this::decodeClose;
                     break;
+                case 0x09:
+                    this.decodeState = this::decodePing;
+                    break;
                 case 0x0a:
                     this.decodeState = this::decodePong;
                     break;
@@ -891,6 +929,44 @@ public final class WsServerFactory implements WsStreamFactory
                 final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
 
                 payloadRO.wrap(buffer, offset, offset + decodeBytes);
+
+                payloadProgress += decodeBytes;
+                maskingKey = rotateMaskingKey(maskingKey, decodeBytes);
+
+                if (payloadProgress == payloadLength)
+                {
+                    this.decodeState = this::decodeHeader;
+                }
+
+                return decodeBytes;
+            }
+        }
+
+        private int decodePing(
+            final DirectBuffer buffer,
+            final int offset,
+            final int length)
+        {
+            if (payloadLength > MAXIMUM_CONTROL_FRAME_PAYLOAD_SIZE)
+            {
+                doNetReset(decodeTraceId, decodeAuthorization);
+                stream.doAppAbort(decodeTraceId, decodeAuthorization, STATUS_PROTOCOL_ERROR);
+                return length;
+            }
+            else
+            {
+                final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+
+                OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
+
+                OctetsFW.Builder payloadBuilder = payloadRW.wrap(extBuffer, 0, extBuffer.capacity());
+                payloadBuilder.set(payload);
+                xor(extBuffer, 0, payload.sizeof(), maskingKey);
+                OctetsFW unmaskedPayload = payloadBuilder.build();
+
+                pingReceived++;
+                signaler.signalNow(originId, routedId, replyId, decodeTraceId, PONG_SIGNAL_ID, 0,
+                    unmaskedPayload.value(), 0, unmaskedPayload.sizeof());
 
                 payloadProgress += decodeBytes;
                 maskingKey = rotateMaskingKey(maskingKey, decodeBytes);

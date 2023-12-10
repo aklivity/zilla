@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.60</version>
+  <version>0.9.61</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -289,6 +289,7 @@
               <proto>SLASHSTAR_STYLE</proto>
               <idl>SLASHSTAR_STYLE</idl>
               <rpt>SCRIPT_STYLE</rpt>
+              <lua>LUA</lua>
             </mapping>
             <failIfUnknown>true</failIfUnknown>
             <failIfMissing>true</failIfMissing>

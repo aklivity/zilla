@@ -173,6 +173,7 @@ scope mqtt
             string16 clientId;
             string16 topic;
             uint8 flags = 0;
+            uint8 qos = 0;
         }
 
         union MqttDataEx switch (uint8) extends core::stream::Extension

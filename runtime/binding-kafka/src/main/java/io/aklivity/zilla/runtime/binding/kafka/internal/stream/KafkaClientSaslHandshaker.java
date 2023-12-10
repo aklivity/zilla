@@ -36,6 +36,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAuthenticateRequestFW;
@@ -94,6 +95,7 @@ public abstract class KafkaClientSaslHandshaker
     private Matcher serverResponseMatcher;
     private byte[] result, ui, prev;
 
+    protected final String16FW clientId;
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
     protected final MutableDirectBuffer writeBuffer;
@@ -102,6 +104,7 @@ public abstract class KafkaClientSaslHandshaker
         KafkaConfiguration config,
         EngineContext context)
     {
+        this.clientId = new String16FW(config.clientId());
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -157,7 +160,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(SASL_HANDSHAKE_API_KEY)
                     .apiVersion(SASL_HANDSHAKE_API_VERSION)
                     .correlationId(0)
-                    .clientId((String) null)
+                    .clientId(clientId)
                     .build();
 
             encodeProgress = requestHeader.limit();
@@ -177,7 +180,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
                     .correlationId(requestId)
-                    .clientId(requestHeader.clientId().asString())
+                    .clientId(requestHeader.clientId())
                     .build();
 
             if (KafkaConfiguration.DEBUG)
@@ -212,7 +215,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(SASL_AUTHENTICATE_API_KEY)
                     .apiVersion(SASL_AUTHENTICATE_API_VERSION)
                     .correlationId(0)
-                    .clientId((String) null)
+                    .clientId(clientId)
                     .build();
 
             encodeProgress = requestHeader.limit();
@@ -242,7 +245,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
                     .correlationId(requestId)
-                    .clientId(requestHeader.clientId().asString())
+                    .clientId(requestHeader.clientId())
                     .build();
 
             if (KafkaConfiguration.DEBUG)
@@ -270,7 +273,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(SASL_AUTHENTICATE_API_KEY)
                     .apiVersion(SASL_AUTHENTICATE_API_VERSION)
                     .correlationId(0)
-                    .clientId((String) null)
+                    .clientId(clientId)
                     .build();
 
             encodeProgress = requestHeader.limit();
@@ -304,7 +307,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
                     .correlationId(requestId)
-                    .clientId(requestHeader.clientId().asString())
+                    .clientId(requestHeader.clientId())
                     .build();
 
             if (KafkaConfiguration.DEBUG)
@@ -359,7 +362,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(SASL_AUTHENTICATE_API_KEY)
                     .apiVersion(SASL_AUTHENTICATE_API_VERSION)
                     .correlationId(0)
-                    .clientId((String) null)
+                    .clientId(clientId)
                     .build();
 
             encodeProgress = requestHeader.limit();
@@ -379,7 +382,7 @@ public abstract class KafkaClientSaslHandshaker
                     .apiKey(requestHeader.apiKey())
                     .apiVersion(requestHeader.apiVersion())
                     .correlationId(requestId)
-                    .clientId(requestHeader.clientId().asString())
+                    .clientId(requestHeader.clientId())
                     .build();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -710,6 +713,7 @@ public abstract class KafkaClientSaslHandshaker
                     client.encodeSaslAuthenticate = client::doEncodeSaslScramFinalAuthenticateRequest;
                     client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
+                    client.onDecodeSaslHandshakeResponse(traceId, authorization, ERROR_NONE);
                 }
                 else
                 {

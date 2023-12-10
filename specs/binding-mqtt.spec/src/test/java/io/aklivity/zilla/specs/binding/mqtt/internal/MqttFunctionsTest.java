@@ -201,6 +201,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .topic("sensor/one")
                 .flags("RETAIN")
+                .qos(1)
                 .build()
             .build();
 
@@ -212,7 +213,8 @@ public class MqttFunctionsTest
             .publish(f -> f
                 .clientId("client")
                 .topic("sensor/one")
-                .flags(1))
+                .flags(1)
+                .qos(1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -373,6 +375,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .topic("sensor/one")
                 .flags("RETAIN")
+                .qos(1)
                 .build()
             .build();
 
@@ -383,6 +386,7 @@ public class MqttFunctionsTest
         assertEquals("client", mqttBeginEx.publish().clientId().asString());
         assertEquals("sensor/one", mqttBeginEx.publish().topic().asString());
         assertEquals(1, mqttBeginEx.publish().flags());
+        assertEquals(1, mqttBeginEx.publish().qos());
     }
 
     @Test

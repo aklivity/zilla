@@ -820,6 +820,16 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.mixture.qos/client",
+        "${kafka}/publish.mixture.qos/server"})
+    public void shouldSendMessageMixtureQos() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.qos1/client",
         "${kafka}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception

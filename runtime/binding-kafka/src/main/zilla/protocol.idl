@@ -626,6 +626,18 @@ scope protocol
                 octets[userdataLength] userdata;
             }
 
+            struct ConsumerAssignmentTopicUserdata
+            {
+                string16 topic;
+                uint32 userdataLength;
+                octets[userdataLength] userdata;
+            }
+
+            struct ConsumerAssignmentTopicsUserdata
+            {
+                ConsumerAssignmentTopicUserdata[] topicsUserdata;
+            }
+
             struct ConsumerMetadataTopic
             {
                 string16 name;
