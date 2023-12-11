@@ -168,6 +168,11 @@ public final class ZillaDumpCommand extends ZillaCommand
         hidden = true)
     public String propertiesPath;
 
+    @Option(name = "-e",
+        description = "Show exception traces",
+        hidden = true)
+    public boolean exceptions;
+
     boolean continuous = true;
 
     private final FrameFW frameRO = new FrameFW();
@@ -280,8 +285,12 @@ public final class ZillaDumpCommand extends ZillaCommand
                 idleStrategy.idle(workCount);
             } while (workCount != exitWorkCount);
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
+            if (exceptions)
+            {
+                ex.printStackTrace();
+            }
             rethrowUnchecked(ex);
         }
     }
