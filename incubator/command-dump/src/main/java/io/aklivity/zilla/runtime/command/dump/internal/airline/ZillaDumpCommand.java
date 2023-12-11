@@ -90,7 +90,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 30;
     private static final int MAX_SPINS = 20;
-    private static final int BUFFER_SLOT_CAPACITY = 64 * 1024;
+    private static final int WRITE_BUFFER_SLOT_CAPACITY = 64 * 1024;
+    private static final int PATCH_BUFFER_SLOT_CAPACITY = 64 * 1024 + 85;
     private static final int LABELS_BUFFER_SLOT_CAPACITY = 4 * 128;
 
     private static final long PCAP_GLOBAL_MAGIC = 2712847316L;
@@ -203,8 +204,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     public ZillaDumpCommand()
     {
-        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
+        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
+        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
     }
 
     @Override
