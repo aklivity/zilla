@@ -26,6 +26,8 @@ scope internal
             octets[methodLength] method = null;
             int64 traceId;
             int64 authorization;
+            int32 partitionId;
+            int64 partitionOffset;
             uint8 flags = 3;                    // 0x01 FIN, 0x02 INIT, 0x04 INCOMPLETE, 0x08 SKIP
             int32 reserved;
             int32 valueLength;

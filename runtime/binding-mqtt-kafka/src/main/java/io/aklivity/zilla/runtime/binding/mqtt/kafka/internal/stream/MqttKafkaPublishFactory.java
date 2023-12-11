@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
@@ -278,6 +279,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             String topicName = mqttPublishBeginEx.topic().asString();
             assert topicName != null;
 
+            final int qos = mqttPublishBeginEx.qos();
 
             final String16FW clientId = mqttPublishBeginEx.clientId();
             final MutableDirectBuffer clientIdBuffer = new UnsafeBuffer(new byte[clientId.sizeof() + 2]);
@@ -323,11 +325,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     .build();
             }
 
-            messages.doKafkaBegin(traceId, authorization, affinity);
+            messages.doKafkaBegin(traceId, authorization, affinity, qos);
             this.retainAvailable = (mqttPublishBeginEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0;
             if (retainAvailable)
             {
-                retained.doKafkaBegin(traceId, authorization, affinity);
+                retained.doKafkaBegin(traceId, authorization, affinity, qos);
             }
         }
 
@@ -802,7 +804,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private void doKafkaBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            int qos)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -810,7 +813,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, topic);
+                traceId, authorization, affinity, topic, qos);
         }
 
         private void doKafkaData(
@@ -1109,7 +1112,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private void doKafkaBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            int qos)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -1117,7 +1121,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, topic);
+                    traceId, authorization, affinity, topic, qos);
         }
 
         private void doKafkaData(
@@ -1548,15 +1552,17 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW topic)
+        String16FW topic,
+        int qos)
     {
+        final KafkaAckMode ackMode = qos > 0 ? IN_SYNC_REPLICAS : KAFKA_DEFAULT_ACK_MODE;
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                     .topic(topic)
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
-                    .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
+                    .ackMode(b -> b.set(ackMode)))
                 .build();
 
 

@@ -51,6 +51,20 @@ public final class KafkaBinding implements Binding
     }
 
     @Override
+    public String originType(
+        KindConfig kind)
+    {
+        return kind == KindConfig.CLIENT ? NAME : null;
+    }
+
+    @Override
+    public String routedType(
+        KindConfig kind)
+    {
+        return kind == KindConfig.SERVER ? NAME : null;
+    }
+
+    @Override
     public int workers(
         KindConfig kind)
     {

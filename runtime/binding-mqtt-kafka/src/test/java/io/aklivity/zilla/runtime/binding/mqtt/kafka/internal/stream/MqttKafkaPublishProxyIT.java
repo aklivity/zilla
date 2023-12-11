@@ -304,4 +304,15 @@ public class MqttKafkaPublishProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.mixture.qos/client",
+        "${kafka}/publish.mixture.qos/server"})
+    public void shouldSendMessageMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
 }
