@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -133,6 +134,35 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
     public static final String GROUPID_SESSION_SUFFIX = "session";
+    public static final Int2IntHashMap MQTT_REASON_CODES;
+    public static final Int2ObjectHashMap<String16FW> MQTT_REASONS;
+    public static final int GROUP_AUTH_FAILED_ERROR_CODE = 30;
+    public static final int INVALID_DESCRIBE_CONFIG_ERROR_CODE = 35;
+    public static final int INVALID_SESSION_TIMEOUT_ERROR_CODE = 26;
+    public static final byte MQTT_NOT_AUTHORIZED = (byte) 0x87;
+    public static final byte MQTT_IMPLEMENTATION_SPECIFIC_ERROR = (byte) 0x83;
+    public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
+    private static final String16FW EMPTY_STRING = new String16FW("");
+
+    static
+    {
+        final Int2IntHashMap reasonCodes = new Int2IntHashMap(-1);
+
+        reasonCodes.put(GROUP_AUTH_FAILED_ERROR_CODE, MQTT_NOT_AUTHORIZED);
+        reasonCodes.put(INVALID_SESSION_TIMEOUT_ERROR_CODE, MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
+        reasonCodes.put(INVALID_DESCRIBE_CONFIG_ERROR_CODE, MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
+
+        MQTT_REASON_CODES = reasonCodes;
+    }
+
+    static
+    {
+        final Int2ObjectHashMap<String16FW> reasons = new Int2ObjectHashMap<>();
+
+        reasons.put(INVALID_SESSION_TIMEOUT_ERROR_CODE, new String16FW(MQTT_INVALID_SESSION_TIMEOUT_REASON));
+
+        MQTT_REASONS = reasons;
+    }
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -172,6 +202,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final MqttBeginExFW.Builder mqttSessionBeginExRW = new MqttBeginExFW.Builder();
+    private final MqttResetExFW.Builder mqttSessionResetExRW = new MqttResetExFW.Builder();
     private final String16FW binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
     private final String16FW textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
 
@@ -3292,10 +3323,24 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
+
+            Flyweight mqttResetEx = EMPTY_OCTETS;
+            if (error != -1)
+            {
+                mqttResetEx = mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .reasonCode(MQTT_REASON_CODES.get(kafkaResetEx.error()) & 0xff)
+                    .reason(MQTT_REASONS.getOrDefault(kafkaResetEx.error(), EMPTY_STRING))
+                    .build();
+            }
+            delegate.doMqttReset(traceId, mqttResetEx);
         }
 
         private void doKafkaReset(
