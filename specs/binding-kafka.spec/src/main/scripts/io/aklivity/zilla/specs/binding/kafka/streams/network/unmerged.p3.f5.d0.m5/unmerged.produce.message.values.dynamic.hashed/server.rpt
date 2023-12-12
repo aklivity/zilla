@@ -169,7 +169,7 @@ write 203                               # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -278,7 +278,7 @@ write 44
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -387,7 +387,7 @@ write 44
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
