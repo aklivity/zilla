@@ -42,6 +42,33 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
     }
 
     @Override
+    public int maxPadding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int padding = 0;
+        if (FORMAT_JSON.equals(format))
+        {
+            int schemaId;
+            if (data.getByte(index) == MAGIC_BYTE)
+            {
+                schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+            }
+            else if (catalog.id != NO_SCHEMA_ID)
+            {
+                schemaId = catalog.id;
+            }
+            else
+            {
+                schemaId = handler.resolve(subject, catalog.version);
+            }
+            padding = paddings.computeIfAbsent(schemaId, this::supplyPadding);
+        }
+        return padding;
+    }
+
+    @Override
     public int validate(
         DirectBuffer data,
         int index,

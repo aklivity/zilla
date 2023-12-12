@@ -26,6 +26,8 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestValidator implements ValueValidator, FragmentValidator
 {
+    private static final int MAX_PADDING_LEN = 10;
+
     private final int length;
     private final byte[] prefix;
     private final DirectBuffer prefixRO;
@@ -38,6 +40,20 @@ public class TestValidator implements ValueValidator, FragmentValidator
         this.prefix = config.prefix;
         this.prefixRO = new UnsafeBuffer();
         this.appendPrefix = config.append;
+    }
+
+    @Override
+    public int maxPadding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int padding = 0;
+        if (appendPrefix)
+        {
+            padding = MAX_PADDING_LEN; // TODO: fetch this from catalog
+        }
+        return padding;
     }
 
     @Override

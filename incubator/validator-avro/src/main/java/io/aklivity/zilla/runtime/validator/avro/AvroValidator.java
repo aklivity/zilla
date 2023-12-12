@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
@@ -67,6 +68,7 @@ public abstract class AvroValidator
     protected final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
     protected final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
     protected final Int2ObjectCache<GenericRecord> records;
+    protected final Int2IntHashMap paddings;
 
     protected AvroValidator(
         AvroValidatorConfig config,
@@ -86,6 +88,7 @@ public abstract class AvroValidator
         this.readers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.paddings = new Int2IntHashMap(-1);
         this.valueRO = new UnsafeBuffer();
         this.encoded = new ByteArrayOutputStream();
         this.in = new DirectBufferInputStream();
@@ -102,6 +105,39 @@ public abstract class AvroValidator
             schema = new Schema.Parser().parse(schemaStr);
         }
         return schema;
+    }
+
+    private int calculatePadding(
+        Schema schema)
+    {
+        int padding = 2;
+
+        for (Schema.Field field : schema.getFields())
+        {
+            if (field.schema().getType().equals(Schema.Type.RECORD))
+            {
+                padding += calculatePadding(field.schema());
+            }
+            else
+            {
+                padding += field.name().getBytes().length + 6;
+            }
+        }
+
+        return padding;
+    }
+
+    protected int supplyPadding(
+        int schemaId)
+    {
+        int padding = 0;
+        Schema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
+        if (schema != null)
+        {
+            padding = calculatePadding(schema);
+            paddings.put(schemaId, padding);
+        }
+        return padding;
     }
 
     protected GenericDatumReader<GenericRecord> supplyReader(

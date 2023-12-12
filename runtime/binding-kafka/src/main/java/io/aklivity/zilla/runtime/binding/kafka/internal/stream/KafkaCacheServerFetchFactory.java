@@ -878,7 +878,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(partitionOffset, entryMark, valueMark, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey, validateValue);
+                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, validateKey, validateValue);
             }
 
             if (valueFragment != null)

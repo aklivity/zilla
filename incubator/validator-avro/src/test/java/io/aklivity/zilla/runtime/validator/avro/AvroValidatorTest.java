@@ -259,4 +259,32 @@ public class AvroValidatorTest
         assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH,
             validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
+
+    @Test
+    public void shouldVerifyMaxPaddingLength()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroReadValidator validator = new AvroReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(22, validator.maxPadding(data, 0, data.capacity()));
+
+    }
 }

@@ -703,7 +703,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     final long keyHash = partition.computeKeyHash(key);
                     if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
                         stream.valueLimit, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
-                        headers, trailersSizeMax, validateKey, validateValue) == -1)
+                        headers, trailersSizeMax, valueFragment, validateKey, validateValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
                         break init;

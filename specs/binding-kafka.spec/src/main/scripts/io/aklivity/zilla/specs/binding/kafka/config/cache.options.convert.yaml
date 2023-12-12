@@ -52,7 +52,7 @@ bindings:
         - name: test
           value:
             type: test
-            length: 18
+            length: 13
             append: true
             id: 1
             padding: 2

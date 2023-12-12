@@ -33,6 +33,8 @@ import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroWriteValidator extends AvroValidator implements ValueValidator, FragmentValidator
 {
+    private static final int SCHEMA_REGISTRY_PADDING_LEN = 5;
+
     private final MutableDirectBuffer prefixRO = new UnsafeBuffer(new byte[5]);
 
     public AvroWriteValidator(
@@ -40,6 +42,20 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);
+    }
+
+    @Override
+    public int maxPadding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int padding = 0;
+        if (appendSchemaId)
+        {
+            padding = SCHEMA_REGISTRY_PADDING_LEN; // TODO: fetch this from catalog
+        }
+        return padding;
     }
 
     @Override

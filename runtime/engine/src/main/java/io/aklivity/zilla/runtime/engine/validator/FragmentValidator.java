@@ -36,4 +36,12 @@ public interface FragmentValidator
         int index,
         int length,
         FragmentConsumer next);
+
+    default int maxPadding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return 0;
+    }
 }

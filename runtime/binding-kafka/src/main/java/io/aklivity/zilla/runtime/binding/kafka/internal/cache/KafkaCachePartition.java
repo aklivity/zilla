@@ -346,7 +346,7 @@ public final class KafkaCachePartition
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, validateKey, validateValue);
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, validateKey, validateValue);
         writeEntryContinue(FLAGS_COMPLETE, entryMark, valueMark, value, validateValue);
         writeEntryFinish(headers, deltaType);
     }
@@ -363,6 +363,7 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
+        OctetsFW payload,
         ValueValidator validateKey,
         FragmentValidator validateValue)
     {
@@ -399,7 +400,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (validateValue != FragmentValidator.NONE)
         {
-            int convertedPadding = 5; // TODO: obtain from converter catalog
+            int convertedPadding = validateValue.maxPadding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -609,6 +610,7 @@ public final class KafkaCachePartition
         int valueLength,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
+        OctetsFW payload,
         ValueValidator validateKey,
         FragmentValidator validateValue)
     {
@@ -627,7 +629,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (validateValue != FragmentValidator.NONE)
         {
-            int convertedPadding = 5; // TODO: obtain from converter catalog
+            int convertedPadding = validateValue.maxPadding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
