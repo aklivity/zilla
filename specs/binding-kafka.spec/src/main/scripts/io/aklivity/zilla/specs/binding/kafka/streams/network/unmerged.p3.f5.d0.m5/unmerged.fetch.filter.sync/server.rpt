@@ -169,6 +169,9 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
                               .build()}
 
 connected
@@ -273,6 +276,9 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                                 .destination("broker2.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker2.example.com")
                                 .build()
                               .build()}
 

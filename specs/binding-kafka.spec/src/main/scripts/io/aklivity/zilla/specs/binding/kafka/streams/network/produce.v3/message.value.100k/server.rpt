@@ -71,6 +71,9 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
                               .build()}
 
 connected
