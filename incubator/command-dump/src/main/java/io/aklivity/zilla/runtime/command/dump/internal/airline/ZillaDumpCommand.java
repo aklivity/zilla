@@ -757,6 +757,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             long destination,
             int payloadLength)
         {
+            long addrPart1 = IPV6_LOCAL_ADDRESS | core;
             if (jumbo)
             {
                 ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
@@ -764,9 +765,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                     .payload_length((short) 0)
                     .next_header(IPV6_NEXT_HEADER_JUMBO)
                     .hop_limit(IPV6_HOP_LIMIT)
-                    .src_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .src_addr_part1(addrPart1)
                     .src_addr_part2(source)
-                    .dst_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .dst_addr_part1(addrPart1)
                     .dst_addr_part2(destination)
                     .build();
                 ipv6JumboHeaderRW.wrap(buffer, IPV6_JUMBO_HEADER_OFFSET, buffer.capacity())
@@ -781,9 +782,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                     .payload_length((short) payloadLength)
                     .next_header(IPV6_NEXT_HEADER_TCP)
                     .hop_limit(IPV6_HOP_LIMIT)
-                    .src_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .src_addr_part1(addrPart1)
                     .src_addr_part2(source)
-                    .dst_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .dst_addr_part1(addrPart1)
                     .dst_addr_part2(destination)
                     .build();
             }
