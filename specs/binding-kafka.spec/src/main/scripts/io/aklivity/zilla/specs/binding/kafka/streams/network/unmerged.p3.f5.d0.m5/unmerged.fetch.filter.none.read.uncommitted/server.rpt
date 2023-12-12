@@ -160,7 +160,7 @@ write 150                               # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -168,6 +168,9 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker1.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
                                 .build()
                               .build()}
 
@@ -429,7 +432,7 @@ write notify SENT_MESSAGE_A6
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -437,6 +440,9 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker2.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker2.example.com")
                                 .build()
                               .build()}
 
