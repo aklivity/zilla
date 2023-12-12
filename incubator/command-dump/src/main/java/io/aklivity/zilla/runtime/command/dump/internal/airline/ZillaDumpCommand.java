@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLa
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.command.dump.internal.types.IPv6HeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.IPv6JumboHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapPacketHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.TcpFlag;
@@ -100,10 +101,15 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int PCAP_GLOBAL_SIZE = 24;
     private static final int PCAP_LINK_TYPE_IPV6 = 1;
 
-    private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
-    private static final int PSEUDO_IPV6_PREFIX = 1629561669;
-    private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 0x0640;
+    private static final byte[] ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
+
+    private static final int IPV6_PREFIX = 0x61212345;
+    private static final byte IPV6_NEXT_HEADER_TCP = 0x06;
+    private static final byte IPV6_NEXT_HEADER_JUMBO = 0x00;
+    private static final byte IPV6_HOP_LIMIT = 0x40;
     private static final long IPV6_LOCAL_ADDRESS = 0xfe80L << 48;
+    private static final int IPV6_JUMBO_PREFIX = 0x0600c204;
+    private static final int IPV6_JUMBO_THRESHOLD = 0xffff;
 
     private static final int PCAP_HEADER_OFFSET = 0;
     private static final int PCAP_HEADER_SIZE = 16;
@@ -116,6 +122,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int IPV6_HEADER_OFFSET = ETHER_HEADER_LIMIT;
     private static final int IPV6_HEADER_SIZE = 40;
     private static final int IPV6_HEADER_LIMIT = IPV6_HEADER_OFFSET + IPV6_HEADER_SIZE;
+    private static final int IPV6_JUMBO_HEADER_OFFSET = IPV6_HEADER_LIMIT;
+    private static final int IPV6_JUMBO_HEADER_SIZE = 8;
 
     private static final int TCP_HEADER_OFFSET = IPV6_HEADER_LIMIT;
     private static final int TCP_HEADER_SIZE = 20;
@@ -196,6 +204,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
+    private final IPv6JumboHeaderFW.Builder ipv6JumboHeaderRW = new IPv6JumboHeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
     private final MutableDirectBuffer patchBuffer;
     private final MutableDirectBuffer writeBuffer;
@@ -654,22 +663,24 @@ public final class ZillaDumpCommand extends ZillaCommand
             final int labelsLength = encodeZillaLabels(labelsBuffer, originId, routedId);
             final int tcpSegmentLength = ZILLA_HEADER_SIZE + labelsLength + frame.sizeof();
             final int ipv6Length = TCP_HEADER_SIZE + tcpSegmentLength;
-            final int pcapLength = ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + ipv6Length;
+            final boolean jumbo = ipv6Length > IPV6_JUMBO_THRESHOLD;
+            final int ipv6JumboLength = jumbo ? IPV6_JUMBO_HEADER_SIZE : 0;
+            final int pcapLength = ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + ipv6Length + ipv6JumboLength;
 
             encodePcapHeader(writeBuffer, pcapLength, timestamp);
             encodeEtherHeader(writeBuffer);
-            encodeIpv6Header(writeBuffer, streamId ^ 1L, streamId, ipv6Length);
+            encodeIpv6Header(writeBuffer, jumbo, streamId ^ 1L, streamId, ipv6Length);
 
             final boolean initial = streamId % 2 != 0;
             final long seq = sequence.get(streamId);
             final long ack = sequence.get(streamId ^ 1L);
             sequence.put(streamId, sequence.get(streamId) + tcpSegmentLength);
-            encodeTcpHeader(writeBuffer, initial, seq, ack, tcpFlags);
+            encodeTcpHeader(writeBuffer, ipv6JumboLength, initial, seq, ack, tcpFlags);
 
             final int protocolTypeId = resolveProtocolTypeId(originId, routedId);
-            encodeZillaHeader(writeBuffer, frameTypeId, protocolTypeId);
+            encodeZillaHeader(writeBuffer, ipv6JumboLength, frameTypeId, protocolTypeId);
 
-            writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, ZILLA_HEADER_LIMIT);
+            writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, ZILLA_HEADER_LIMIT + ipv6JumboLength);
             writePcapOutput(writer, labelsBuffer, 0, labelsLength);
             writePcapOutput(writer, frame.buffer(), frame.offset(), frame.sizeof());
         }
@@ -714,28 +725,51 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void encodeEtherHeader(
             MutableDirectBuffer buffer)
         {
-            buffer.putBytes(ETHER_HEADER_OFFSET, PSEUDO_ETHERNET_FRAME);
+            buffer.putBytes(ETHER_HEADER_OFFSET, ETHERNET_FRAME);
         }
 
         private void encodeIpv6Header(
             MutableDirectBuffer buffer,
+            boolean jumbo,
             long source,
             long destination,
             int payloadLength)
         {
-            ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
-                .prefix(PSEUDO_IPV6_PREFIX)
-                .payload_length((short) payloadLength)
-                .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
-                .src_addr_part1(IPV6_LOCAL_ADDRESS)
-                .src_addr_part2(source)
-                .dst_addr_part1(IPV6_LOCAL_ADDRESS)
-                .dst_addr_part2(destination)
-                .build();
+            if (jumbo)
+            {
+                ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_PREFIX)
+                    .payload_length((short) 0)
+                    .next_header(IPV6_NEXT_HEADER_JUMBO)
+                    .hop_limit(IPV6_HOP_LIMIT)
+                    .src_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .src_addr_part2(source)
+                    .dst_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .dst_addr_part2(destination)
+                    .build();
+                ipv6JumboHeaderRW.wrap(buffer, IPV6_JUMBO_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_JUMBO_PREFIX)
+                    .payload_length(payloadLength + IPV6_JUMBO_HEADER_SIZE)
+                    .build();
+            }
+            else
+            {
+                ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_PREFIX)
+                    .payload_length((short) payloadLength)
+                    .next_header(IPV6_NEXT_HEADER_TCP)
+                    .hop_limit(IPV6_HOP_LIMIT)
+                    .src_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .src_addr_part2(source)
+                    .dst_addr_part1(IPV6_LOCAL_ADDRESS)
+                    .dst_addr_part2(destination)
+                    .build();
+            }
         }
 
         private void encodeTcpHeader(
             MutableDirectBuffer buffer,
+            int ipv6JumboLength,
             boolean initial,
             long sequence,
             long acknowledge,
@@ -745,7 +779,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             short sourcePort = initial ? TCP_SRC_PORT : TCP_DEST_PORT;
             short destPort = initial ? TCP_DEST_PORT : TCP_SRC_PORT;
 
-            tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET, buffer.capacity())
+            tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET + ipv6JumboLength, buffer.capacity())
                 .src_port(sourcePort)
                 .dst_port(destPort)
                 .sequence_number((int) sequence)
@@ -759,11 +793,12 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         private void encodeZillaHeader(
             MutableDirectBuffer buffer,
+            int ipv6JumboLength,
             int frameTypeId,
             int protocolTypeId)
         {
-            buffer.putInt(ZILLA_HEADER_OFFSET, frameTypeId);
-            buffer.putInt(ZILLA_PROTOCOL_TYPE_OFFSET, protocolTypeId);
+            buffer.putInt(ZILLA_HEADER_OFFSET + ipv6JumboLength, frameTypeId);
+            buffer.putInt(ZILLA_PROTOCOL_TYPE_OFFSET + ipv6JumboLength, protocolTypeId);
         }
 
         private int encodeZillaLabels(
