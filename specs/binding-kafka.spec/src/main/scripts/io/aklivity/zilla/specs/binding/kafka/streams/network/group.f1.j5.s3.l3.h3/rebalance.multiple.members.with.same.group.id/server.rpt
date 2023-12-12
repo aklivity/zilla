@@ -181,7 +181,7 @@ write 91                                               # size
       10s "memberId-1"                                  # consumer member group id
       1                                                 # members
          10s "memberId-1"                                  # consumer member group id
-         5s "zilla"                                 # group instance id
+         5s "zilla"                                        # group instance id
          14                                                # metadata size
          2s                                                # version
          0                                                 # topics
@@ -214,7 +214,7 @@ read 44                                            # size
      5s "zilla"                                    # client id
      4s "test"                                     # consumer group
      1                                             # assignments
-       10s "memberId-1"                             # consumer member group id
+       10s "memberId-1"                            # consumer member group id
        5s "zilla"                                  # group instance id
 
 write 35                                           # size
@@ -228,7 +228,7 @@ write 35                                           # size
 
 #Second try
 
-read  82                               # size
+read  82                                # size
       11s                               # join group
       5s                                # v5
       (int:newRequestId)

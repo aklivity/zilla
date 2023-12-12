@@ -250,6 +250,16 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.mixture.qos/client",
+        "${app}/publish.mixture.qos/server"})
+    public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Before
     public void setSubscriptionId()
     {

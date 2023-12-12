@@ -1591,7 +1591,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (capabilities == FETCH_ONLY)
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, affinity, httpBeginExToKafka());
+                        traceId, authorization, affinity, beginExToKafka());
             }
             else
             {
@@ -1602,7 +1602,7 @@ public final class KafkaMergedFactory implements BindingHandler
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
         }
 
-        private Flyweight.Builder.Visitor httpBeginExToKafka()
+        private Flyweight.Builder.Visitor beginExToKafka()
         {
             return (buffer, offset, maxLimit) ->
                 kafkaBeginExRW.wrap(buffer, offset, maxLimit)
@@ -3019,10 +3019,18 @@ public final class KafkaMergedFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
+            merged.doMergedInitialResetIfNecessary(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
+                .typeId(kafkaTypeId)
+                .error(error)
+                .build()
+                .sizeof()));
 
             doConsumerReplyResetIfNecessary(traceId);
         }
