@@ -1477,6 +1477,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                                                             .destination(broker.host)
                                                                             .sourcePort(0)
                                                                             .destinationPort(broker.port)))
+                                                                    .infos(i -> i.item(ii -> ii.authority(broker.host)))
                                                                     .build()
                                                                     .sizeof());
                 }

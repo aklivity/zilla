@@ -1280,6 +1280,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                             .destination(host)
                             .sourcePort(0)
                             .destinationPort(port)))
+                        .infos(i -> i.item(ii -> ii.authority(host)))
                         .build()
                         .sizeof());
                 }
