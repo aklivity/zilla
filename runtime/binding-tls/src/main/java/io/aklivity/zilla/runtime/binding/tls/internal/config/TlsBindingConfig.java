@@ -174,7 +174,7 @@ public final class TlsBindingConfig
             engine.setUseClientMode(true);
 
             List<String> sni = options.sni;
-            if (sni == null && beginEx != null)
+            if (beginEx != null)
             {
                 ProxyInfoFW info = beginEx.infos().matchFirst(a -> a.kind() == AUTHORITY);
 

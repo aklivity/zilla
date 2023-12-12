@@ -105,6 +105,11 @@ public final class ZpmInstall extends ZpmCommand
             description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
 
+    @Option(name = { "--instrument" },
+            description = "Link java.instrument module",
+            hidden = true)
+    public Boolean instrument = false;
+
     @Option(name = { "--exclude-local-repository" },
             description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
@@ -660,6 +665,10 @@ public final class ZpmInstall extends ZpmCommand
         if (debug)
         {
             extraModuleNames.add("jdk.jdwp.agent");
+        }
+        if (instrument)
+        {
+            extraModuleNames.add("java.instrument");
         }
 
         Stream<String> moduleNames = Stream.concat(modules.stream().map(m -> m.name), extraModuleNames.stream());

@@ -281,6 +281,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
+    private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -298,7 +299,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         LongFunction<BudgetDebitor> supplyDebitor,
         Signaler signaler,
         BindingHandler streamFactory,
-        UnaryOperator<KafkaSaslConfig> resolveSasl)
+        UnaryOperator<KafkaSaslConfig> resolveSasl,
+        LongFunction<KafkaClientRoute> supplyClientRoute)
     {
         super(config, context);
         this.rebalanceTimeout = config.clientGroupRebalanceTimeout();
@@ -315,6 +317,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
+        this.supplyClientRoute = supplyClientRoute;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
         this.configs = new LinkedHashMap<>();
@@ -2702,8 +2705,26 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+            final KafkaClientRoute clientRoute = supplyClientRoute.apply(routedId);
+            final KafkaBrokerInfo broker = clientRoute.brokers.get(Long.parseLong(delegate.nodeId));
+            if (broker != null)
+            {
+                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                    .typeId(proxyTypeId)
+                    .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                        .source("0.0.0.0")
+                        .destination(broker.host)
+                        .sourcePort(0)
+                        .destinationPort(broker.port)))
+                    .infos(i -> i.item(ii -> ii.authority(broker.host)))
+                    .build()
+                    .sizeof());
+            }
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                traceId, authorization, affinity, extension);
         }
 
         @Override
@@ -3470,6 +3491,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .destination(delegate.host)
                     .sourcePort(0)
                     .destinationPort(delegate.port)))
+                .infos(i -> i.item(ii -> ii.authority(delegate.host)))
                 .build()
                 .sizeof());
 
