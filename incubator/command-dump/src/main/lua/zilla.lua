@@ -17,7 +17,7 @@
 zilla_protocol = Proto("Zilla", "Zilla Frames")
 
 HEADER_OFFSET = 0
-LABELS_OFFSET = 8
+LABELS_OFFSET = 16
 
 BEGIN_ID = 0x00000001
 DATA_ID = 0x00000002
@@ -50,6 +50,9 @@ local fields = {
     protocol_type = ProtoField.string("zilla.protocol_type", "Protocol Type", base.NONE),
     stream_type_id = ProtoField.uint32("zilla.stream_type_id", "Stream Type ID", base.HEX),
     stream_type = ProtoField.string("zilla.stream_type", "Stream Type", base.NONE),
+    core = ProtoField.uint32("zilla.core", "Core", base.DEC),
+    offset = ProtoField.uint32("zilla.offset", "Offset", base.HEX),
+    core_offset = ProtoField.string("zilla.core_offset", "Core/Offset", base.NONE),
 
     -- labels
     origin_namespace = ProtoField.string("zilla.origin_namespace", "Origin Namespace", base.STRING),
@@ -121,6 +124,17 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local protocol_type = resolve_type(protocol_type_id)
     subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
     subtree:add(fields.protocol_type, protocol_type)
+
+    slices.core = buffer(HEADER_OFFSET + 8, 4)
+    local core = slices.core:le_int()
+    subtree:add_le(fields.core, slices.core)
+
+    slices.offset = buffer(HEADER_OFFSET + 12, 4)
+    local offset = slices.offset:le_int()
+    subtree:add_le(fields.offset, slices.offset)
+
+    local core_offset = string.format("%02d/%08x", core, offset)
+    subtree:add(fields.core_offset, core_offset)
 
     -- labels
     slices.labels_length = buffer(LABELS_OFFSET, 4)
