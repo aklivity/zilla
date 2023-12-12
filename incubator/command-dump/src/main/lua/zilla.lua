@@ -42,6 +42,35 @@ local flags_types = {
     [1] = "Set"
 }
 
+local ext_proxy_address_family_types = {
+    [0] = "INET",
+    [1] = "INET4",
+    [2] = "INET6",
+    [3] = "UNIX",
+    [4] = "NONE",
+}
+
+local ext_proxy_address_protocol_types = {
+    [0] = "STREAM",
+    [1] = "DATAGRAM",
+}
+
+local ext_proxy_info_types = {
+    [0x01] = "ALPN",
+    [0x02] = "AUTHORITY",
+    [0x05] = "IDENTITY",
+    [0x20] = "SECURE",
+    [0x30] = "NAMESPACE",
+}
+
+local ext_proxy_secure_info_types = {
+    [0x21] = "VERSION",
+    [0x22] = "NAME",
+    [0x23] = "CIPHER",
+    [0x24] = "SIGNATURE",
+    [0x25] = "KEY",
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -74,9 +103,6 @@ local fields = {
     trace_id = ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX),
     authorization = ProtoField.uint64("zilla.authorization", "Authorization", base.HEX),
 
-    -- almost all frames
-    extension = ProtoField.bytes("zilla.extension", "Extension", base.NONE),
-
     -- begin frame
     affinity = ProtoField.uint64("zilla.affinity", "Affinity", base.HEX),
 
@@ -102,6 +128,41 @@ local fields = {
     cancel_id = ProtoField.uint64("zilla.cancel_id", "Cancel ID", base.HEX),
     signal_id = ProtoField.int32("zilla.signal_id", "Signal ID", base.DEC),
     context_id = ProtoField.int32("zilla.context_id", "Context ID", base.DEC),
+
+    -- proxy extension
+        -- address
+    ext_proxy_address_family = ProtoField.uint8("zilla.proxy_ext.address_family", "Family", base.DEC,
+        ext_proxy_address_family_types),
+    ext_proxy_address_protocol = ProtoField.uint8("zilla.proxy_ext.address_protocol", "Protocol", base.DEC,
+        ext_proxy_address_protocol_types),
+    ext_proxy_address_inet_source_port = ProtoField.uint16("zilla.proxy_ext.address_inet_source_port", "Source Port",
+        base.DEC),
+    ext_proxy_address_inet_destination_port = ProtoField.uint16("zilla.proxy_ext.address_inet_destination_port",
+        "Destination Port", base.DEC),
+    ext_proxy_address_inet_source = ProtoField.string("zilla.proxy_ext.address_inet_source", "Source", base.NONE),
+    ext_proxy_address_inet_destination = ProtoField.string("zilla.proxy_ext.address_inet_destination", "Destination",
+        base.NONE),
+    ext_proxy_address_inet4_source = ProtoField.new("Source", "zilla.proxy_ext.address_inet4_source", ftypes.IPv4),
+    ext_proxy_address_inet4_destination = ProtoField.new("Destination", "zilla.proxy_ext.address_inet4_destination",
+        ftypes.IPv4),
+    ext_proxy_address_inet6_source = ProtoField.new("Source", "zilla.proxy_ext.address_inet6_source", ftypes.IPv6),
+    ext_proxy_address_inet6_destination = ProtoField.new("Destination", "zilla.proxy_ext.address_inet6_destination",
+        ftypes.IPv6),
+    ext_proxy_address_unix_source = ProtoField.string("zilla.proxy_ext.address_unix_source", "Source", base.NONE),
+    ext_proxy_address_unix_destination = ProtoField.string("zilla.proxy_ext.address_unix_destination", "Destination",
+        base.NONE),
+        -- info
+    ext_proxy_info_array_length = ProtoField.uint8("zilla.proxy_ext.info_array_length", "Length", base.DEC),
+    ext_proxy_info_array_size = ProtoField.uint8("zilla.proxy_ext.info_array_size", "Size", base.DEC),
+    ext_proxy_info_type = ProtoField.uint8("zilla.proxy_ext.info_type", "Type", base.HEX, ext_proxy_info_types),
+    ext_proxy_info_length = ProtoField.uint16("zilla.proxy_ext.info_length", "Length", base.DEC),
+    ext_proxy_info_alpn = ProtoField.string("zilla.proxy_ext.info_alpn", "Value", base.NONE),
+    ext_proxy_info_authority = ProtoField.string("zilla.proxy_ext.info_authority", "Value", base.NONE),
+    ext_proxy_info_identity = ProtoField.bytes("zilla.proxy_ext.info_identity", "Value", base.NONE),
+    ext_proxy_info_namespace = ProtoField.string("zilla.proxy_ext.info_namespace", "Value", base.NONE),
+    ext_proxy_info_secure = ProtoField.string("zilla.proxy_ext.info_secure", "Value", base.NONE),
+    ext_proxy_info_secure_type = ProtoField.uint8("zilla.proxy_ext.info_secure_type", "Secure Type", base.HEX,
+        ext_proxy_secure_info_types),
 }
 
 zilla_protocol.fields = fields;
@@ -359,21 +420,172 @@ end
 
 function handle_extension(buffer, slices, subtree, pinfo, info, offset)
     if buffer:len() > offset then
-        local extensionSubtree = subtree:add(zilla_protocol, buffer(), "Extension")
         slices.stream_type_id = buffer(offset, 4)
-        extensionSubtree:add(fields.stream_type_id, slices.stream_type_id)
-
         local stream_type_id = slices.stream_type_id:le_uint();
         local stream_type = resolve_type(stream_type_id)
+        local extensionLabel = string.format("Extension: %s", stream_type)
+        slices.extension = buffer(offset)
+        local extensionSubtree = subtree:add(zilla_protocol, slices.extension, extensionLabel)
+        extensionSubtree:add(fields.stream_type_id, slices.stream_type_id)
         extensionSubtree:add(fields.stream_type, stream_type)
 
-        slices.extension = buffer(offset)
-        extensionSubtree:add(fields.extension, slices.extension)
+        if stream_type_id == PROXY_ID then
+            handle_proxy_extension(buffer, slices, extensionSubtree, offset + 4)
+        end
 
         if stream_type and stream_type ~= "" then
             pinfo.cols.info:set(info .. " s=" .. stream_type)
         end
     end
+end
+
+function handle_proxy_extension(buffer, slices, extensionSubtree, offset)
+    slices.ext_proxy_address_family = buffer(offset, 1)
+    local address_family_id = slices.ext_proxy_address_family:le_int()
+    local address_family = ext_proxy_address_family_types[address_family_id]
+    local addressSubtreeLabel = string.format("Address: %s", address_family)
+    local info_offset
+    if address_family == "INET" then
+        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
+        local source_length = buffer(offset + 2, 2):le_int()
+        slices.ext_proxy_address_inet_source = buffer(offset + 4, source_length)
+        local destination_length = buffer(offset + 4 + source_length, 2):le_int()
+        slices.ext_proxy_address_inet_destination = buffer(offset + 6 + source_length, destination_length)
+        local length = 6 + source_length + destination_length
+        local addressSubtree = extensionSubtree:add(zilla_protocol, buffer(offset, length + 1), addressSubtreeLabel)
+        addressSubtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        addressSubtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
+        addressSubtree:add(fields.ext_proxy_address_inet_source, slices.ext_proxy_address_inet_source)
+        addressSubtree:add(fields.ext_proxy_address_inet_destination, slices.ext_proxy_address_inet_destination)
+        info_offset = offset + length + 1
+    elseif address_family == "INET4" then
+        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
+        slices.ext_proxy_inet4_source = buffer(offset + 2, 4)
+        slices.ext_proxy_inet4_destination = buffer(offset + 6, 4)
+        slices.ext_proxy_inet_source_port = buffer(offset + 10, 2)
+        slices.ext_proxy_inet_destination_port = buffer(offset + 12, 2)
+        local length = 13;
+        local addressSubtree = extensionSubtree:add(zilla_protocol, buffer(offset, length + 1), addressSubtreeLabel)
+        addressSubtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        addressSubtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
+        addressSubtree:add(fields.ext_proxy_address_inet4_source, slices.ext_proxy_inet4_source)
+        addressSubtree:add(fields.ext_proxy_address_inet4_destination, slices.ext_proxy_inet4_destination)
+        addressSubtree:add_le(fields.ext_proxy_address_inet_source_port, slices.ext_proxy_inet_source_port)
+        addressSubtree:add_le(fields.ext_proxy_address_inet_destination_port, slices.ext_proxy_inet_destination_port)
+        info_offset = offset + length + 1
+    elseif address_family == "INET6" then
+        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
+        slices.ext_proxy_inet6_source = buffer(offset + 2, 16)
+        slices.ext_proxy_inet6_destination = buffer(offset + 18, 16)
+        slices.ext_proxy_inet_source_port = buffer(offset + 34, 2)
+        slices.ext_proxy_inet_destination_port = buffer(offset + 36, 2)
+        local length = 37;
+        local addressSubtree = extensionSubtree:add(zilla_protocol, buffer(offset, length + 1), addressSubtreeLabel)
+        addressSubtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        addressSubtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
+        addressSubtree:add(fields.ext_proxy_address_inet6_source, slices.ext_proxy_inet6_source)
+        addressSubtree:add(fields.ext_proxy_address_inet6_destination, slices.ext_proxy_inet6_destination)
+        addressSubtree:add_le(fields.ext_proxy_address_inet_source_port, slices.ext_proxy_inet_source_port)
+        addressSubtree:add_le(fields.ext_proxy_address_inet_destination_port, slices.ext_proxy_inet_destination_port)
+        info_offset = offset + length + 1;
+    elseif address_family == "UNIX" then
+        local slice_address_protocol = buffer(offset + 1, 1)
+        local slice_source = buffer(offset + 2, 108)
+        local slice_destination = buffer(offset + 110, 108)
+        local length = 217
+        local address_subtree = extensionSubtree:add(zilla_protocol, buffer(offset, length + 1), addressSubtreeLabel)
+        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        address_subtree:add(fields.ext_proxy_address_protocol, slice_address_protocol)
+        address_subtree:add(fields.ext_proxy_address_unix_source, slice_source)
+        address_subtree:add(fields.ext_proxy_address_unix_destination, slice_destination)
+        info_offset = offset + length + 1
+    elseif address_family == "NONE" then
+        local length = 0
+        local address_subtree = extensionSubtree:add(zilla_protocol, buffer(offset, length + 1), addressSubtreeLabel)
+        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        info_offset = offset + 1
+    end
+
+    local slice_info_array_length = buffer(info_offset, 4)
+    local slice_info_array_size = buffer(info_offset + 4, 4)
+    local info_array_length = slice_info_array_length:le_int()
+    local info_array_size = slice_info_array_size:le_int()
+    local length = 8
+    local label = string.format("Info (%d items)", info_array_size)
+    local info_array_subtree = extensionSubtree:add(zilla_protocol, buffer(info_offset, length), label)
+    info_array_subtree:add_le(fields.ext_proxy_info_array_length, slice_info_array_length)
+    info_array_subtree:add_le(fields.ext_proxy_info_array_size, slice_info_array_size)
+    local item_offset = info_offset + length
+    for i = 1, info_array_size do
+        local slice_type_id = buffer(item_offset, 1)
+        local type_id = slice_type_id:le_int()
+        local type = ext_proxy_info_types[type_id]
+        local label_format = "Info: %s: %s"
+        item_offset = item_offset + 1
+        if type == "ALPN" then
+            local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 1)
+            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extensionSubtree, label_format, slice_type_id,
+                slice_length, slice_text, fields.ext_proxy_info_type, fields.ext_proxy_info_length, fields.ext_proxy_info_alpn)
+            item_offset = item_offset + item_length
+        elseif type == "AUTHORITY" then
+            local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
+            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extensionSubtree, label_format, slice_type_id,
+                slice_length, slice_text, fields.ext_proxy_info_type, fields.ext_proxy_info_length, fields.ext_proxy_info_authority)
+            item_offset = item_offset + item_length
+        elseif type == "IDENTITY" then
+            local item_length, slice_length, slice_bytes = dissect_length_value(buffer, item_offset, 2)
+            local label = string.format("Info: %s: 0x%s", type, slice_bytes:bytes())
+            local subtree = extensionSubtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
+            subtree:add(fields.ext_proxy_info_type, slice_type_id)
+            subtree:add_le(fields.ext_proxy_info_length, slice_length)
+            subtree:add(fields.ext_proxy_info_identity, slice_bytes)
+            item_offset = item_offset + item_length
+        elseif type == "SECURE" then
+            local slice_secure_type_id = buffer(item_offset, 1)
+            local secure_type_id = slice_secure_type_id:le_int();
+            local secure_type = ext_proxy_secure_info_types[secure_type_id]
+            item_offset = item_offset + 1
+            local length_length
+            if secure_type == "VERSION" or secure_type == "CIPHER" or secure_type == "SIGNATURE" or secure_type == "KEY" then
+                length_length = 1
+            elseif secure_type == "NAME" then
+                length_length = 2
+            end
+            local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, length_length)
+            local label = string.format("Info: %s: %s: %s", type, secure_type, slice_text:string())
+            local subtree = extensionSubtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
+            subtree:add(fields.ext_proxy_info_type, slice_type_id)
+            subtree:add(fields.ext_proxy_info_secure_type, slice_secure_type_id)
+            subtree:add_le(fields.ext_proxy_info_length, slice_length)
+            subtree:add(fields.ext_proxy_info_secure, slice_text)
+            item_offset = item_offset + item_length
+        elseif type == "NAMESPACE" then
+            local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
+            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extensionSubtree, label_format, slice_type_id, slice_length,
+                slice_text, fields.ext_proxy_info_type, fields.ext_proxy_info_length, fields.ext_proxy_info_namespace)
+            item_offset = item_offset + item_length
+        end
+    end
+end
+
+function dissect_length_value(buffer, item_offset, length_length)
+    local slice_length = buffer(item_offset, length_length)
+    local length = slice_length:le_int()
+    local slice_value = buffer(item_offset + length_length, length)
+    local item_length = length + length_length
+    return item_length, slice_length, slice_value
+end
+
+function add_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_length, slice_text, field_type, field_length,
+        field_text)
+    local type_id = slice_type_id:le_int()
+    local type = ext_proxy_info_types[type_id]
+    local text = slice_text:string()
+    local label = string.format(label_format, type, text)
+    local subtree = tree:add(zilla_protocol, buffer, label)
+    subtree:add(field_type, slice_type_id)
+    subtree:add_le(field_length, slice_length)
+    subtree:add(field_text, slice_text)
 end
 
 function resolve_type(type_id)
