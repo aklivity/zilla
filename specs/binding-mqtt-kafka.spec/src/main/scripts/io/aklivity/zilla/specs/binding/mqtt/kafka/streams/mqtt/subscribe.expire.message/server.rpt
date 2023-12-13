@@ -22,24 +22,14 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
-                                .filter("sensor/one", 1)
-                                .build()
+                                 .clientId("client")
+                                 .qos("AT_MOST_ONCE")
+                                 .filter("sensor/one", 1, "AT_LEAST_ONCE")
+                                 .build()
                              .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                 .topic("sensor/one")
-                                 .subscriptionId(1)
-                                 .contentType("message")
-                                 .format("TEXT")
-                                 .responseTopic("sensor/one")
-                                 .correlation("info")
-                                 .build()
-                             .build()}
-
-write "message"
-write flush
+read notify SEND_DATA
+read closed
+write close

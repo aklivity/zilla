@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSu
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
@@ -1420,6 +1421,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            sendData:
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
@@ -1439,12 +1441,27 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final OctetsFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().key().value() : null;
                 final long filters = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().filters() : 0;
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
+                final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
 
                 if (key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
+
+                    long expireInterval;
+                    if (helper.timeout != -1)
+                    {
+                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
+                        if (expireInterval < 0)
+                        {
+                            break sendData;
+                        }
+                    }
+                    else
+                    {
+                        expireInterval = helper.timeout;
+                    }
 
                     // If the qos it was created for is 0, set the high watermark, as we won't receive ack
                     if (mqtt.qos == MqttQoS.AT_MOST_ONCE.value())
@@ -1487,9 +1504,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             }
                             b.flags(flag);
                             b.subscriptionIds(subscriptionIdsRW.build());
-                            if (helper.timeout != -1)
+
+                            if (expireInterval != -1)
                             {
-                                b.expiryInterval(helper.timeout / 1000);
+                                b.expiryInterval((int) expireInterval / 1000);
                             }
                             if (helper.contentType != null)
                             {
@@ -2138,6 +2156,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            sendData:
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
@@ -2157,12 +2176,28 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final OctetsFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().key().value() : null;
                 final long filters = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().filters() : 0;
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
+                final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
 
                 if (key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
+
+                    long expireInterval;
+                    if (helper.timeout != -1)
+                    {
+                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
+                        if (expireInterval < 0)
+                        {
+                            break sendData;
+                        }
+                    }
+                    else
+                    {
+                        expireInterval = helper.timeout;
+                    }
+
                     final Flyweight mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(mqttTypeId)
                         .subscribe(b ->
@@ -2199,9 +2234,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             }
                             b.flags(flag);
                             b.subscriptionIds(subscriptionIdsRW.build());
-                            if (helper.timeout != -1)
+                            if (expireInterval != -1)
                             {
-                                b.expiryInterval(helper.timeout / 1000);
+                                b.expiryInterval((int) expireInterval / 1000);
                             }
                             if (helper.contentType != null)
                             {

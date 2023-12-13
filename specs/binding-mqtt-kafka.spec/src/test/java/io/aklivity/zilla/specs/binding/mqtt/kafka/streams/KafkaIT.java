@@ -917,4 +917,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

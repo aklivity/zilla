@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property timestamp ${kafka:timestamp()}
+
 accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
@@ -29,32 +31,44 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
+                                    .headerNot("zilla:qos", "1")
+                                    .headerNot("zilla:qos", "2")
                                     .build()
                                 .evaluation("EAGER")
                                 .build()
                             .build()}
 
-connected
-
-write zilla:data.ext ${kafka:dataEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                              .fetch()
-                                .timestamp(kafka:timestamp())
-                                .filters(1)
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("sensor/one")
-                                .header("zilla:filter", "sensor")
-                                .header("zilla:filter", "one")
-                                .header("zilla:local", "client")
-                                .header("zilla:content-type", "message")
-                                .header("zilla:format", "TEXT")
-                                .header("zilla:reply-to", "sensor/one")
-                                .header("zilla:correlation-id", "info")
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 0, 1, 1)
                                 .build()
                             .build()}
 
+connected
+
+write await SEND_DATA
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .fetch()
+                                    .timestamp(timestamp)
+                                    .filters(1)
+                                    .partition(0, 2, 2)
+                                    .progress(0, 3)
+                                    .progress(1, 1)
+                                    .key("sensor/one")
+                                    .header("zilla:filter", "sensor")
+                                    .header("zilla:filter", "one")
+                                    .header("zilla:local", "client")
+                                    .headerInt("zilla:timeout-ms", 1000)
+                                    .header("zilla:format", "TEXT")
+                                    .build()
+                                .build()}
 write "message"
 write flush
+
+read closed
+write close

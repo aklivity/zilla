@@ -580,4 +580,18 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
+    {
+        k3po.start();
+        Thread.sleep(1500);
+        k3po.notifyBarrier("SEND_DATA");
+        k3po.finish();
+    }
 }
