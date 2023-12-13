@@ -14,6 +14,7 @@
     specific language governing permissions and limitations under the License.
 
 ]]
+
 zilla_protocol = Proto("Zilla", "Zilla Frames")
 
 HEADER_OFFSET = 0
@@ -129,7 +130,7 @@ local fields = {
     context_id = ProtoField.int32("zilla.context_id", "Context ID", base.DEC),
 
     -- proxy extension
-        -- address
+    --     address
     ext_proxy_address_family = ProtoField.uint8("zilla.proxy_ext.address_family", "Family", base.DEC,
         ext_proxy_address_family_types),
     ext_proxy_address_protocol = ProtoField.uint8("zilla.proxy_ext.address_protocol", "Protocol", base.DEC,
@@ -150,7 +151,7 @@ local fields = {
     ext_proxy_address_unix_source = ProtoField.string("zilla.proxy_ext.address_unix_source", "Source", base.NONE),
     ext_proxy_address_unix_destination = ProtoField.string("zilla.proxy_ext.address_unix_destination", "Destination",
         base.NONE),
-        -- info
+    --     info
     ext_proxy_info_array_length = ProtoField.uint8("zilla.proxy_ext.info_array_length", "Length", base.DEC),
     ext_proxy_info_array_size = ProtoField.uint8("zilla.proxy_ext.info_array_size", "Size", base.DEC),
     ext_proxy_info_type = ProtoField.uint8("zilla.proxy_ext.info_type", "Type", base.HEX, ext_proxy_info_types),
