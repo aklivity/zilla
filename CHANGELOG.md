@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.61...HEAD)
+
+**Closed issues:**
+
+- MQTT sessions don't show up in Redpanda [\#585](https://github.com/aklivity/zilla/issues/585)
+
+**Merged pull requests:**
+
+- Reinitiate initialId and replyId on  mqtt session reconnection [\#636](https://github.com/aklivity/zilla/pull/636) ([akrambek](https://github.com/akrambek))
+- Support ability to connect to specific kafka cluster node hostname [\#633](https://github.com/aklivity/zilla/pull/633) ([akrambek](https://github.com/akrambek))
+- Zpm install instrument [\#632](https://github.com/aklivity/zilla/pull/632) ([jfallows](https://github.com/jfallows))
+- Bump alpine from 3.18.5 to 3.19.0 in /cloud/docker-image/src/main/docker/release [\#626](https://github.com/aklivity/zilla/pull/626) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.61](https://github.com/aklivity/zilla/tree/0.9.61) (2023-12-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.60...0.9.61)
