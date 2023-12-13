@@ -85,7 +85,7 @@ public abstract class JsonValidator
         {
             provider = providers.computeIfAbsent(schemaId, this::supplyProvider);
             in.wrap(buffer, index, length);
-            provider.createReader(in).readObject();
+            provider.createReader(in).readValue();
             status = true;
         }
         catch (JsonValidatingException ex)

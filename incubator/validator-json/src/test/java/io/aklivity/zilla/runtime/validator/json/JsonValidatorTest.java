@@ -111,7 +111,7 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+        JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -124,7 +124,12 @@ public class JsonValidatorTest
             "]";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.write(data, 0, data.capacity()));
+
+        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+        value.putBytes(5, bytes);
+
+        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -154,7 +159,7 @@ public class JsonValidatorTest
     @Test
     public void shouldWriteValidJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
@@ -178,7 +183,7 @@ public class JsonValidatorTest
     @Test
     public void shouldWriteValidFragmentJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
@@ -204,7 +209,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidFragmentJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -228,7 +233,7 @@ public class JsonValidatorTest
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+        JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -241,6 +246,6 @@ public class JsonValidatorTest
             "]";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

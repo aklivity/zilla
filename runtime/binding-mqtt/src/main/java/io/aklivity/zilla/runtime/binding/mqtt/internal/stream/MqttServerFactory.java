@@ -1372,7 +1372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final int payloadSize = payload.sizeof();
 
-                if (validators != null && !validContent(mqttPublishHeader.topic, payload))
+                if (!server.validContent(mqttPublishHeader.topic, payload))
                 {
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
@@ -2369,7 +2369,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unAckedReceivedQos2PacketIds = new LinkedHashMap<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
-            this.guard = resolveGuard(options, resolveId);
             this.credentials = credentials;
             this.authField = authField;
             this.supplyValidator = supplyValidator;

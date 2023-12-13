@@ -786,15 +786,16 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                 final long keyHash = partition.computeKeyHash(EMPTY_KEY);
-                partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
-                    KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
+                partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
+                    stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
+                    KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS,
+                    trailersSizeMax, EMPTY_OCTETS, validateKey, validateValue);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 
                 Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
 
-                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
                 flushClientFanInitialIfNecessary(traceId);
             }
             else

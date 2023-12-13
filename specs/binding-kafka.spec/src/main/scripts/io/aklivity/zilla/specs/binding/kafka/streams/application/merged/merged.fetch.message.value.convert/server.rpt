@@ -37,9 +37,10 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
-                                  .timestamp(newTimestamp)
-                                  .partition(0, 1, 2)
-                                  .build()
+                                  .fetch()
+                                   .timestamp(newTimestamp)
+                                   .partition(0, 1, 2)
+                                   .build()
                               .build()}
 write [0x00] [0x00 0x00 0x00 0x00 0x01] ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
 write flush

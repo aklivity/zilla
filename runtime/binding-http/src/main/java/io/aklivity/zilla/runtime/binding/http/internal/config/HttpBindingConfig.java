@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
@@ -50,7 +49,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class HttpBindingConfig
 {
@@ -80,7 +80,7 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         BindingConfig binding,
-        BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
+        Function<ValidatorConfig, ValueValidator> createValidator)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -195,38 +195,38 @@ public final class HttpBindingConfig
     }
 
     private List<HttpRequestType> createRequestTypes(
-        BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
+        Function<ValidatorConfig, ValueValidator> createValidator)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                Map<String8FW, Validator> headers = new HashMap<>();
+                Map<String8FW, ValueValidator> headers = new HashMap<>();
                 if (request.headers != null)
                 {
                     for (HttpParamConfig header : request.headers)
                     {
-                        headers.put(new String8FW(header.name), createValidator.apply(header.validator, this.resolveId));
+                        headers.put(new String8FW(header.name), createValidator.apply(header.validator));
                     }
                 }
-                Map<String, Validator> pathParams = new Object2ObjectHashMap<>();
+                Map<String, ValueValidator> pathParams = new Object2ObjectHashMap<>();
                 if (request.pathParams != null)
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        pathParams.put(pathParam.name, createValidator.apply(pathParam.validator, this.resolveId));
+                        pathParams.put(pathParam.name, createValidator.apply(pathParam.validator));
                     }
                 }
-                Map<String, Validator> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
+                Map<String, ValueValidator> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
+                        queryParams.put(queryParam.name, createValidator.apply(queryParam.validator));
                     }
                 }
-                Validator content = request.content == null ? null : createValidator.apply(request.content, this.resolveId);
+                ValueValidator content = request.content == null ? null : createValidator.apply(request.content);
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
@@ -308,11 +308,11 @@ public final class HttpBindingConfig
             {
                 if (valid.value)
                 {
-                    Validator validator = requestType.headers.get(header.name());
+                    ValueValidator validator = requestType.headers.get(header.name());
                     if (validator != null)
                     {
                         String16FW value = header.value();
-                        valid.value &= validator.read(value.value(), value.offset(), value.length());
+                        valid.value &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
                     }
                 }
             });
@@ -335,8 +335,8 @@ public final class HttpBindingConfig
             if (value != null)
             {
                 String8FW value0 = new String8FW(value);
-                Validator validator = requestType.pathParams.get(name);
-                if (!validator.read(value0.value(), value0.offset(), value0.length()))
+                ValueValidator validator = requestType.pathParams.get(name);
+                if (validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP) == -1)
                 {
                     valid = false;
                     break;
@@ -355,11 +355,11 @@ public final class HttpBindingConfig
         while (valid && matcher.find())
         {
             String name = matcher.group(1);
-            Validator validator = requestType.queryParams.get(name);
+            ValueValidator validator = requestType.queryParams.get(name);
             if (validator != null)
             {
                 String8FW value = new String8FW(matcher.group(2));
-                valid &= validator.read(value.value(), value.offset(), value.length());
+                valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
             }
         }
         return valid;
@@ -373,7 +373,7 @@ public final class HttpBindingConfig
     {
         return requestType == null ||
             requestType.content == null ||
-            requestType.content.read(buffer, index, length);
+            requestType.content.validate(buffer, index, length, ValueConsumer.NOP) != -1;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(

@@ -32,7 +32,8 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
-                                 .partition(0, 1, 2)
-                                 .build()
+                                 .fetch()
+                                  .partition(0, 1, 2)
+                                  .build()
                              .build()}
 read ${kafka:varint(3)} "id0" ${kafka:varint(8)} "positive"
