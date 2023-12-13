@@ -161,8 +161,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Dump specific namespaced bindings only, e.g example.http0,example.kafka0")
     public List<String> bindings = new ArrayList<>();
 
-    @Option(name = {"-o", "--output"},
-        description = "PCAP output filename",
+    @Option(name = {"-w", "--write"},
+        description = "Write output to PCAP file",
         typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
     public Path output;
 
