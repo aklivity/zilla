@@ -957,22 +957,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long affinity)
         {
-            reconnectAttempt = 0;
-            state = 0;
-            replySeq = 0;
-            replyAck = 0;
-
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-
-            if (decodeSlot != NO_SLOT)
-            {
-                bufferPool.release(decodeSlot);
-                decodeSlot = NO_SLOT;
-                decodeSlotOffset = 0;
-            }
-            willFetchers.values().forEach(f -> f.cleanup(traceId, authorization));
-            willFetchers.clear();
+            assert state == 0;
 
             state = MqttKafkaState.openingInitial(state);
 
@@ -1294,7 +1279,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert signalId == SIGNAL_CONNECT_WILL_STREAM;
 
             this.reconnectAt = NO_CANCEL_ID;
-            doKafkaBegin(supplyTraceId.get(), 0, 0);
+
+            reconnectAttempt = 0;
+            state = 0;
+            replySeq = 0;
+            replyAck = 0;
+
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
+            if (decodeSlot != NO_SLOT)
+            {
+                bufferPool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+            final long traceId = supplyTraceId.get();
+
+            willFetchers.values().forEach(f -> f.cleanup(traceId, 0L));
+            willFetchers.clear();
+
+            doKafkaBegin(traceId, 0, 0);
         }
 
         private void onKafkaEnd(
