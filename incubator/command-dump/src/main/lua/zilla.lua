@@ -114,7 +114,7 @@ local fields = {
     flags_skip = ProtoField.uint8("zilla.flags_skip", "SKIP", base.DEC, flags_types, 0x08),
     budget_id = ProtoField.uint64("zilla.budget_id", "Budget ID", base.HEX),
     reserved = ProtoField.int32("zilla.reserved", "Reserved", base.DEC),
-    length = ProtoField.int32("zilla.length", "Length", base.DEC),
+    payload_length = ProtoField.int32("zilla.payload_length", "Length", base.DEC),
     progress = ProtoField.int64("zilla.progress", "Progress", base.DEC),
     progress_maximum = ProtoField.string("zilla.progress_maximum", "Progress/Maximum", base.NONE),
     payload = ProtoField.protocol("zilla.payload", "Payload", base.HEX),
@@ -294,7 +294,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     if frame_type_id == DATA_ID then
         local slice_flags = buffer(frame_offset + 72, 1)
         local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-        local flags_subtree = subtree:add(zilla_protocol, buffer(), flags_label)
+        local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
         flags_subtree:add_le(fields.flags_fin, slice_flags)
         flags_subtree:add_le(fields.flags_init, slice_flags)
         flags_subtree:add_le(fields.flags_incomplete, slice_flags)
@@ -311,14 +311,14 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add(fields.progress_maximum, progress_maximum)
         pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
 
-        local payload_subtree = subtree:add(zilla_protocol, buffer(), "Payload")
-        local slice_length = buffer(frame_offset + 85, 4)
-        local length = slice_length:le_int()
-        local slice_payload = buffer(frame_offset + 89, length)
-        payload_subtree:add_le(fields.length, slice_length)
+        local slice_payload_length = buffer(frame_offset + 85, 4)
+        local payload_length = slice_payload_length:le_int()
+        local slice_payload = buffer(frame_offset + 89, payload_length)
+        local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
+        payload_subtree:add_le(fields.payload_length, slice_payload_length)
         payload_subtree:add(fields.payload, slice_payload)
 
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + length)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + payload_length)
 
         local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
         if dissector then
@@ -378,11 +378,11 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add_le(fields.signal_id, slice_signal_id)
         subtree:add_le(fields.context_id, slice_context_id)
 
-        local slice_length = buffer(frame_offset + 88, 4)
-        local length = slice_length:le_int()
-        local slice_payload = buffer(frame_offset + 92, length)
-        local payload_subtree = subtree:add(zilla_protocol, buffer(), "Payload")
-        payload_subtree:add_le(fields.length, slice_length)
+        local slice_payload_length = buffer(frame_offset + 88, 4)
+        local payload_length = slice_payload_length:le_int()
+        local slice_payload = buffer(frame_offset + 92, payload_length)
+        local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
+        payload_subtree:add_le(fields.payload_length, slice_payload_length)
         payload_subtree:add(fields.payload, slice_payload)
     end
 
@@ -429,6 +429,7 @@ function handle_extension(buffer, subtree, pinfo, info, offset)
 end
 
 function handle_proxy_extension(buffer, extension_subtree, offset)
+    -- address
     local slice_address_family = buffer(offset, 1)
     local address_family_id = slice_address_family:le_int()
     local address_family = ext_proxy_address_family_types[address_family_id]
@@ -492,9 +493,10 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         local length = 0
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
         address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
-        info_offset = offset + 1
+        info_offset = offset + length + 1
     end
 
+    -- info
     local slice_info_array_length = buffer(info_offset, 4)
     local slice_info_array_size = buffer(info_offset + 4, 4)
     local info_array_length = slice_info_array_length:le_int()
