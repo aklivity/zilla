@@ -205,6 +205,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final InstanceId instanceId;
     private final boolean willAvailable;
     private final int reconnectDelay;
+    private final Int2ObjectHashMap<String16FW> qosLevels;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -246,6 +247,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
+        this.qosLevels = new Int2ObjectHashMap<>();
+        this.qosLevels.put(0, new String16FW("0"));
+        this.qosLevels.put(1, new String16FW("1"));
+        this.qosLevels.put(2, new String16FW("2"));
     }
 
     @Override
@@ -2068,6 +2073,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             will.properties().forEach(property ->
                 addHeader(property.key(), property.value()));
+
+            addHeader(helper.kafkaQosHeaderName, qosLevels.get(will.qos()));
 
             kafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())

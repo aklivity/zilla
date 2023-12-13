@@ -1907,7 +1907,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final MqttOffsetStateFlags state = offsetCommit.state;
             final int packetId = offsetCommit.packetId;
 
-            boolean shouldClose = false;
             if (qos == MqttQoS.EXACTLY_ONCE.value() && state == MqttOffsetStateFlags.COMPLETE)
             {
                 final IntArrayList incompletes = incompletePacketIds.get(offset.partitionId);
@@ -1921,11 +1920,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             if (state == MqttOffsetStateFlags.INCOMPLETE)
             {
                 incompletePacketIds.computeIfAbsent(offset.partitionId, c -> new IntArrayList()).add(packetId);
-            }
-
-            if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
-            {
-                shouldClose = true;
             }
 
             final int correlationId = state == MqttOffsetStateFlags.INCOMPLETE ? packetId : -1;
@@ -1949,12 +1943,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, reserved, kafkaFlushEx);
-
-            if (shouldClose)
-            {
-                mqtt.retainedSubscriptionIds.clear();
-                doKafkaEnd(traceId, authorization);
-            }
         }
 
         private void doKafkaFlush(
@@ -2299,7 +2287,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         .subscribe(b -> b.packetId((int) correlationId)).build();
                     mqtt.doMqttFlush(traceId, authorization, budgetId, reserved, mqttSubscribeFlushEx);
                 }
-                unAckedPackets--;
+                else
+                {
+                    unAckedPackets--;
+                }
             }
             else
             {

@@ -2893,18 +2893,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = RETAIN_NOT_SUPPORTED;
                         break decode;
                     }
-                    payload.willRetain = (byte) RETAIN_FLAG;
-                }
-
-                if (payload.willQos > maximumQos)
-                {
-                    reasonCode = QOS_NOT_SUPPORTED;
-                    break decode;
                 }
 
                 final int flags = connectFlags;
                 final int willFlags = decodeWillFlags(flags);
                 final int willQos = decodeWillQos(flags);
+
+                if (willQos > maximumQos)
+                {
+                    reasonCode = QOS_NOT_SUPPORTED;
+                    break decode;
+                }
 
                 if (willFlagSet)
                 {
@@ -6299,8 +6298,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int willQos = 0;
         if (isSetWillQos(flags))
         {
-            //TODO shift by 3?
-            willQos = (flags & WILL_QOS_MASK) >>> 2;
+            willQos = (flags & WILL_QOS_MASK) >>> 3;
         }
         return willQos;
     }
@@ -6418,8 +6416,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     {
         private byte reasonCode = SUCCESS;
         private MqttPropertiesFW willProperties;
-        private byte willQos;
-        private byte willRetain;
         private String16FW willTopic;
         private BinaryFW willPayload;
         private String16FW username;
@@ -6436,8 +6432,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             this.reasonCode = SUCCESS;
             this.willProperties = null;
-            this.willQos = 0;
-            this.willRetain = 0;
             this.willTopic = null;
             this.willPayload = null;
             this.username = null;
@@ -6492,12 +6486,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                         willPayload = mqttWillV5.payload();
                         progress = mqttWillV5.limit();
                         break;
-                    }
-
-                    final byte qos = (byte) ((flags & WILL_QOS_MASK) >>> 3);
-                    if (qos != 0)
-                    {
-                        willQos = (byte) (qos << 1);
                     }
 
                     if (willTopic == null || willTopic.asString().isEmpty())
