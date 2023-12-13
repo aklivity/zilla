@@ -74,11 +74,6 @@
                                             "type": "string",
                                             "enum": [ "live", "historical" ]
                                         },
-                                        "deltaType":
-                                        {
-                                            "type": "string",
-                                            "enum": [ "none", "json_patch" ]
-                                        },
                                         "key":
                                         {
                                             "$ref": "#/$defs/validator/type"
@@ -225,11 +220,6 @@
                                             "topic":
                                             {
                                                 "title": "Topic",
-                                                "type": "string"
-                                            },
-                                            "groupId":
-                                            {
-                                                "title": "groupId",
                                                 "type": "string"
                                             }
                                         },
