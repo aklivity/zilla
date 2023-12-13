@@ -74,6 +74,12 @@
                                             "type": "string",
                                             "enum": [ "live", "historical" ]
                                         },
+                                        "deltaType":
+                                        {
+                                            "type": "string",
+                                            "enum": [ "none", "json_patch" ],
+                                            "deprecated": true
+                                        },
                                         "key":
                                         {
                                             "$ref": "#/$defs/validator/type"
@@ -221,6 +227,12 @@
                                             {
                                                 "title": "Topic",
                                                 "type": "string"
+                                            },
+                                            "groupId":
+                                            {
+                                                "title": "groupId",
+                                                "type": "string",
+                                                "deprecated": true
                                             }
                                         },
                                         "additionalProperties": false
