@@ -907,8 +907,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
-        private final long initialId;
-        private final long replyId;
         private final String16FW sessionsTopic;
         private final String16FW messagesTopic;
         private final String16FW retainedTopic;
@@ -918,6 +916,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private IntHashSet partitions;
         private int state;
 
+        private long initialId;
+        private long replyId;
         private long replySeq;
         private long replyAck;
         private int replyMax;
@@ -934,11 +934,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             this.originId = originId;
             this.routedId = routedId;
-            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.sessionsTopic = sessionsTopic;
             this.messagesTopic = messagesTopic;
             this.retainedTopic = retainedTopic;
-            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.willFetchers = new Object2ObjectHashMap<>();
             this.expiryClientIds = new Int2ObjectHashMap<>();
             this.partitions = new IntHashSet();
@@ -962,6 +960,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             reconnectAttempt = 0;
             replySeq = 0;
             replyAck = 0;
+
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
             if (decodeSlot != NO_SLOT)
             {
                 bufferPool.release(decodeSlot);
