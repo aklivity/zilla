@@ -169,85 +169,82 @@ zilla_protocol.fields = fields;
 
 function zilla_protocol.dissector(buffer, pinfo, tree)
     if buffer:len() == 0 then return end
-
     local subtree = tree:add(zilla_protocol, buffer(), "Zilla Frame")
-    local slices = {}
 
     -- header
-    slices.frame_type_id = buffer(HEADER_OFFSET, 4)
-    local frame_type_id = slices.frame_type_id:le_uint()
+    local slice_frame_type_id = buffer(HEADER_OFFSET, 4)
+    local frame_type_id = slice_frame_type_id:le_uint()
     local frame_type = resolve_frame_type(frame_type_id)
-    subtree:add_le(fields.frame_type_id, slices.frame_type_id)
+    subtree:add_le(fields.frame_type_id, slice_frame_type_id)
     subtree:add(fields.frame_type, frame_type)
 
-    slices.protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
-    local protocol_type_id = slices.protocol_type_id:le_uint()
+    local slice_protocol_type_id = buffer(HEADER_OFFSET + 4, 4)
+    local protocol_type_id = slice_protocol_type_id:le_uint()
     local protocol_type = resolve_type(protocol_type_id)
-    subtree:add_le(fields.protocol_type_id, slices.protocol_type_id)
+    subtree:add_le(fields.protocol_type_id, slice_protocol_type_id)
     subtree:add(fields.protocol_type, protocol_type)
 
-    slices.core = buffer(HEADER_OFFSET + 8, 4)
-    local core = slices.core:le_int()
-    subtree:add_le(fields.core, slices.core)
+    local slice_core = buffer(HEADER_OFFSET + 8, 4)
+    local core = slice_core:le_int()
+    subtree:add_le(fields.core, slice_core)
 
-    slices.offset = buffer(HEADER_OFFSET + 12, 4)
-    local offset = slices.offset:le_int()
-    subtree:add_le(fields.offset, slices.offset)
+    local slice_offset = buffer(HEADER_OFFSET + 12, 4)
+    local offset = slice_offset:le_int()
+    subtree:add_le(fields.offset, slice_offset)
 
     local core_offset = string.format("%02d/%08x", core, offset)
     subtree:add(fields.core_offset, core_offset)
 
     -- labels
-    slices.labels_length = buffer(LABELS_OFFSET, 4)
-    local labels_length = slices.labels_length:le_uint()
-    slices.labels = buffer(LABELS_OFFSET + 4, labels_length)
+    local slice_labels_length = buffer(LABELS_OFFSET, 4)
+    local labels_length = slice_labels_length:le_uint()
 
     -- origin id
     local frame_offset = LABELS_OFFSET + labels_length
-    slices.origin_id = buffer(frame_offset + 4, 8)
-    subtree:add_le(fields.origin_id, slices.origin_id)
+    local slice_origin_id = buffer(frame_offset + 4, 8)
+    subtree:add_le(fields.origin_id, slice_origin_id)
 
     local label_offset = LABELS_OFFSET + 4;
     local origin_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    slices.origin_namespace = buffer(label_offset, origin_namespace_length)
+    local slice_origin_namespace = buffer(label_offset, origin_namespace_length)
     label_offset = label_offset + origin_namespace_length
     if (origin_namespace_length > 0) then
-        subtree:add(fields.origin_namespace, slices.origin_namespace)
+        subtree:add(fields.origin_namespace, slice_origin_namespace)
     end
 
     local origin_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    slices.origin_binding = buffer(label_offset, origin_binding_length)
+    local slice_origin_binding = buffer(label_offset, origin_binding_length)
     label_offset = label_offset + origin_binding_length
     if (origin_binding_length > 0) then
-        subtree:add(fields.origin_binding, slices.origin_binding)
+        subtree:add(fields.origin_binding, slice_origin_binding)
     end
 
     -- routed id
-    slices.routed_id = buffer(frame_offset + 12, 8)
-    subtree:add_le(fields.routed_id, slices.routed_id)
+    local slice_routed_id = buffer(frame_offset + 12, 8)
+    subtree:add_le(fields.routed_id, slice_routed_id)
 
     local routed_namespace_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    slices.routed_namespace = buffer(label_offset, routed_namespace_length)
+    slice_routed_namespace = buffer(label_offset, routed_namespace_length)
     label_offset = label_offset + routed_namespace_length
     if (routed_namespace_length > 0) then
-        subtree:add(fields.routed_namespace, slices.routed_namespace)
+        subtree:add(fields.routed_namespace, slice_routed_namespace)
     end
 
     local routed_binding_length = buffer(label_offset, 4):le_uint()
     label_offset = label_offset + 4
-    slices.routed_binding = buffer(label_offset, routed_binding_length)
+    local slice_routed_binding = buffer(label_offset, routed_binding_length)
     label_offset = label_offset + routed_binding_length
     if (routed_binding_length > 0) then
-        subtree:add(fields.routed_binding, slices.routed_binding)
+        subtree:add(fields.routed_binding, slice_routed_binding)
     end
 
     -- stream id
-    slices.stream_id = buffer(frame_offset + 20, 8)
-    subtree:add_le(fields.stream_id, slices.stream_id)
-    local stream_id = slices.stream_id:le_uint64();
+    local slice_stream_id = buffer(frame_offset + 20, 8)
+    local stream_id = slice_stream_id:le_uint64();
+    subtree:add_le(fields.stream_id, slice_stream_id)
     local direction
     local initial_id
     local reply_id
@@ -269,137 +266,135 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     subtree:add(fields.direction, direction)
 
     -- more frame properties
-    slices.sequence = buffer(frame_offset + 28, 8)
-    subtree:add_le(fields.sequence, slices.sequence)
-    slices.acknowledge = buffer(frame_offset + 36, 8)
-    subtree:add_le(fields.acknowledge, slices.acknowledge)
-    slices.maximum = buffer(frame_offset + 44, 4)
-    subtree:add_le(fields.maximum, slices.maximum)
-    slices.timestamp = buffer(frame_offset + 48, 8)
-    subtree:add_le(fields.timestamp, slices.timestamp)
-    slices.trace_id = buffer(frame_offset + 56, 8)
-    subtree:add_le(fields.trace_id, slices.trace_id)
-    slices.authorization = buffer(frame_offset + 64, 8)
-    subtree:add_le(fields.authorization, slices.authorization)
+    local slice_sequence = buffer(frame_offset + 28, 8)
+    local sequence = slice_sequence:le_int64();
+    local slice_acknowledge = buffer(frame_offset + 36, 8)
+    local acknowledge = slice_acknowledge:le_int64();
+    local slice_maximum = buffer(frame_offset + 44, 4)
+    local maximum = slice_maximum:le_int();
+    local slice_timestamp = buffer(frame_offset + 48, 8)
+    local slice_trace_id = buffer(frame_offset + 56, 8)
+    local slice_authorization = buffer(frame_offset + 64, 8)
+    subtree:add_le(fields.sequence, slice_sequence)
+    subtree:add_le(fields.acknowledge, slice_acknowledge)
+    subtree:add_le(fields.maximum, slice_maximum)
+    subtree:add_le(fields.timestamp, slice_timestamp)
+    subtree:add_le(fields.trace_id, slice_trace_id)
+    subtree:add_le(fields.authorization, slice_authorization)
 
     pinfo.cols.protocol = zilla_protocol.name
-    local info = "ZILLA " .. frame_type .. " " .. direction
+    local info = string.format("ZILLA %s %s", frame_type, direction)
     if protocol_type and protocol_type ~= "" then
-        info = info .. " p=" .. protocol_type
+        info = string.format("%s p=%s", info, protocol_type)
     end
     pinfo.cols.info:set(info)
 
     -- begin
     if frame_type_id == BEGIN_ID then
-        slices.affinity = buffer(frame_offset + 72, 8)
-        subtree:add_le(fields.affinity, slices.affinity)
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 80)
+        local slice_affinity = buffer(frame_offset + 72, 8)
+        subtree:add_le(fields.affinity, slice_affinity)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 80)
     end
 
     -- data
     if frame_type_id == DATA_ID then
-        slices.flags = buffer(frame_offset + 72, 1)
-        local flags_label = string.format("Flags: 0x%02x", slices.flags:le_uint())
+        local slice_flags = buffer(frame_offset + 72, 1)
+        local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
         local flags_subtree = subtree:add(zilla_protocol, buffer(), flags_label)
-        flags_subtree:add_le(fields.flags_fin, slices.flags)
-        flags_subtree:add_le(fields.flags_init, slices.flags)
-        flags_subtree:add_le(fields.flags_incomplete, slices.flags)
-        flags_subtree:add_le(fields.flags_skip, slices.flags)
-        slices.budget_id = buffer(frame_offset + 73, 8)
-        subtree:add_le(fields.budget_id, slices.budget_id)
-        slices.reserved = buffer(frame_offset + 81, 4)
-        subtree:add_le(fields.reserved, slices.reserved)
+        flags_subtree:add_le(fields.flags_fin, slice_flags)
+        flags_subtree:add_le(fields.flags_init, slice_flags)
+        flags_subtree:add_le(fields.flags_incomplete, slice_flags)
+        flags_subtree:add_le(fields.flags_skip, slice_flags)
 
-        local sequence = slices.sequence:le_int64();
-        local acknowledge = slices.acknowledge:le_int64();
-        local maximum = slices.maximum:le_int();
-        local reserved = slices.reserved:le_int();
+        local slice_budget_id = buffer(frame_offset + 73, 8)
+        local slice_reserved = buffer(frame_offset + 81, 4)
+        local reserved = slice_reserved:le_int();
         local progress = sequence - acknowledge + reserved;
-        local progress_maximum = progress .. "/" .. maximum
+        local progress_maximum = string.format("%s/%s", progress, maximum)
+        subtree:add_le(fields.budget_id, slice_budget_id)
+        subtree:add_le(fields.reserved, slice_reserved)
         subtree:add(fields.progress, progress)
         subtree:add(fields.progress_maximum, progress_maximum)
-        pinfo.cols.info:set(info .. " [" .. progress_maximum .. "]")
+        pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
 
         local payload_subtree = subtree:add(zilla_protocol, buffer(), "Payload")
-        slices.length = buffer(frame_offset + 85, 4)
-        local length = slices.length:le_int()
-        slices.payload = buffer(frame_offset + 89, length)
-        payload_subtree:add_le(fields.length, slices.length)
-        payload_subtree:add(fields.payload, slices.payload)
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 89 + length)
+        local slice_length = buffer(frame_offset + 85, 4)
+        local length = slice_length:le_int()
+        local slice_payload = buffer(frame_offset + 89, length)
+        payload_subtree:add_le(fields.length, slice_length)
+        payload_subtree:add(fields.payload, slice_payload)
 
-        local dissector = resolve_dissector(protocol_type, slices.payload:tvb())
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + length)
+
+        local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
         if dissector then
-            dissector:call(slices.payload:tvb(), pinfo, tree)
+            dissector:call(slice_payload:tvb(), pinfo, tree)
         end
     end
 
     -- end
     if frame_type_id == END_ID then
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- abort
     if frame_type_id == ABORT_ID then
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- flush
     if frame_type_id == FLUSH_ID then
-        slices.budget_id = buffer(frame_offset + 72, 8)
-        subtree:add_le(fields.budget_id, slices.budget_id)
-        slices.reserved = buffer(frame_offset + 80, 4)
-        subtree:add_le(fields.reserved, slices.reserved)
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 84)
+        local slice_budget_id = buffer(frame_offset + 72, 8)
+        local slice_reserved = buffer(frame_offset + 80, 4)
+        subtree:add_le(fields.budget_id, slice_budget_id)
+        subtree:add_le(fields.reserved, slice_reserved)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 84)
     end
 
     -- reset
     if frame_type_id == RESET_ID then
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
     end
 
     -- window
     if frame_type_id == WINDOW_ID then
-        slices.budget_id = buffer(frame_offset + 72, 8)
-        subtree:add_le(fields.budget_id, slices.budget_id)
-        slices.padding = buffer(frame_offset + 80, 4)
-        subtree:add_le(fields.padding, slices.padding)
-        slices.minimum = buffer(frame_offset + 84, 4)
-        subtree:add_le(fields.minimum, slices.minimum)
-        slices.capabilities = buffer(frame_offset + 88, 1)
-        subtree:add_le(fields.capabilities, slices.capabilities)
+        local slice_budget_id = buffer(frame_offset + 72, 8)
+        local slice_padding = buffer(frame_offset + 80, 4)
+        local slice_minimum = buffer(frame_offset + 84, 4)
+        local slice_capabilities = buffer(frame_offset + 88, 1)
+        subtree:add_le(fields.budget_id, slice_budget_id)
+        subtree:add_le(fields.padding, slice_padding)
+        subtree:add_le(fields.minimum, slice_minimum)
+        subtree:add_le(fields.capabilities, slice_capabilities)
 
-        local sequence = slices.sequence:le_int64();
-        local acknowledge = slices.acknowledge:le_int64();
-        local maximum = slices.maximum:le_int();
         local progress = sequence - acknowledge;
-        local progress_maximum = progress .. "/" .. maximum
+        local progress_maximum = string.format("%s/%s", progress, maximum)
         subtree:add(fields.progress, progress)
         subtree:add(fields.progress_maximum, progress_maximum)
 
-        pinfo.cols.info:set(info .. " [" .. progress_maximum .. "]")
+        pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
     end
 
     -- signal
     if frame_type_id == SIGNAL_ID then
-        slices.cancel_id = buffer(frame_offset + 72, 8)
-        subtree:add_le(fields.cancel_id, slices.cancel_id)
-        slices.signal_id = buffer(frame_offset + 80, 4)
-        subtree:add_le(fields.signal_id, slices.signal_id)
-        slices.context_id = buffer(frame_offset + 84, 4)
-        subtree:add_le(fields.context_id, slices.context_id)
+        local slice_cancel_id = buffer(frame_offset + 72, 8)
+        local slice_signal_id = buffer(frame_offset + 80, 4)
+        local slice_context_id = buffer(frame_offset + 84, 4)
+        subtree:add_le(fields.cancel_id, slice_cancel_id)
+        subtree:add_le(fields.signal_id, slice_signal_id)
+        subtree:add_le(fields.context_id, slice_context_id)
 
+        local slice_length = buffer(frame_offset + 88, 4)
+        local length = slice_length:le_int()
+        local slice_payload = buffer(frame_offset + 92, length)
         local payload_subtree = subtree:add(zilla_protocol, buffer(), "Payload")
-        slices.length = buffer(frame_offset + 88, 4)
-        local length = slices.length:le_int()
-        slices.payload = buffer(frame_offset + 92, length)
-        payload_subtree:add_le(fields.length, slices.length)
-        payload_subtree:add(fields.payload, slices.payload)
+        payload_subtree:add_le(fields.length, slice_length)
+        payload_subtree:add(fields.payload, slice_payload)
     end
 
     -- challenge
     if frame_type_id == CHALLENGE_ID then
-        handle_extension(buffer, slices, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
     end
 end
 
@@ -418,91 +413,91 @@ function resolve_frame_type(frame_type_id)
     return frame_type
 end
 
-function handle_extension(buffer, slices, subtree, pinfo, info, offset)
+function handle_extension(buffer, subtree, pinfo, info, offset)
     if buffer:len() > offset then
-        slices.stream_type_id = buffer(offset, 4)
-        local stream_type_id = slices.stream_type_id:le_uint();
+        local slice_stream_type_id = buffer(offset, 4)
+        local stream_type_id = slice_stream_type_id:le_uint();
         local stream_type = resolve_type(stream_type_id)
-        local extensionLabel = string.format("Extension: %s", stream_type)
-        slices.extension = buffer(offset)
-        local extension_subtree = subtree:add(zilla_protocol, slices.extension, extensionLabel)
-        extension_subtree:add(fields.stream_type_id, slices.stream_type_id)
+        local extension_label = string.format("Extension: %s", stream_type)
+        local slice_extension = buffer(offset)
+        local extension_subtree = subtree:add(zilla_protocol, slice_extension, extension_label)
+        extension_subtree:add(fields.stream_type_id, slice_stream_type_id)
         extension_subtree:add(fields.stream_type, stream_type)
 
         if stream_type_id == PROXY_ID then
-            handle_proxy_extension(buffer, slices, extension_subtree, offset + 4)
+            handle_proxy_extension(buffer, extension_subtree, offset + 4)
         end
 
         if stream_type and stream_type ~= "" then
-            pinfo.cols.info:set(info .. " s=" .. stream_type)
+            pinfo.cols.info:set(string.format("%s s=%s", info, stream_type))
         end
     end
 end
 
-function handle_proxy_extension(buffer, slices, extension_subtree, offset)
-    slices.ext_proxy_address_family = buffer(offset, 1)
-    local address_family_id = slices.ext_proxy_address_family:le_int()
+function handle_proxy_extension(buffer, extension_subtree, offset)
+    local slice_address_family = buffer(offset, 1)
+    local address_family_id = slice_address_family:le_int()
     local address_family = ext_proxy_address_family_types[address_family_id]
     local address_subtree_label = string.format("Address: %s", address_family)
     local info_offset
     if address_family == "INET" then
-        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
+        local slice_protocol = buffer(offset + 1, 1)
         local source_length = buffer(offset + 2, 2):le_int()
-        slices.ext_proxy_address_inet_source = buffer(offset + 4, source_length)
+        local slice_source = buffer(offset + 4, source_length)
         local destination_length = buffer(offset + 4 + source_length, 2):le_int()
-        slices.ext_proxy_address_inet_destination = buffer(offset + 6 + source_length, destination_length)
+        local slice_destination = buffer(offset + 6 + source_length, destination_length)
         local length = 6 + source_length + destination_length
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
-        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
-        address_subtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
-        address_subtree:add(fields.ext_proxy_address_inet_source, slices.ext_proxy_address_inet_source)
-        address_subtree:add(fields.ext_proxy_address_inet_destination, slices.ext_proxy_address_inet_destination)
+        address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
+        address_subtree:add(fields.ext_proxy_address_protocol, slice_protocol)
+        address_subtree:add(fields.ext_proxy_address_inet_source, slice_source)
+        address_subtree:add(fields.ext_proxy_address_inet_destination, slice_destination)
         info_offset = offset + length + 1
     elseif address_family == "INET4" then
-        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
-        slices.ext_proxy_inet4_source = buffer(offset + 2, 4)
-        slices.ext_proxy_inet4_destination = buffer(offset + 6, 4)
-        slices.ext_proxy_inet_source_port = buffer(offset + 10, 2)
-        slices.ext_proxy_inet_destination_port = buffer(offset + 12, 2)
+        local slice_protocol = buffer(offset + 1, 1)
+        local slice_source = buffer(offset + 2, 4)
+        local slice_destination = buffer(offset + 6, 4)
+        local slice_source_port = buffer(offset + 10, 2)
+        local slice_destination_port = buffer(offset + 12, 2)
         local length = 13;
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
-        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
-        address_subtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
-        address_subtree:add(fields.ext_proxy_address_inet4_source, slices.ext_proxy_inet4_source)
-        address_subtree:add(fields.ext_proxy_address_inet4_destination, slices.ext_proxy_inet4_destination)
-        address_subtree:add_le(fields.ext_proxy_address_inet_source_port, slices.ext_proxy_inet_source_port)
-        address_subtree:add_le(fields.ext_proxy_address_inet_destination_port, slices.ext_proxy_inet_destination_port)
+        address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
+        address_subtree:add(fields.ext_proxy_address_protocol, slice_protocol)
+        address_subtree:add(fields.ext_proxy_address_inet4_source, slice_source)
+        address_subtree:add(fields.ext_proxy_address_inet4_destination, slice_destination)
+        address_subtree:add_le(fields.ext_proxy_address_inet_source_port, slice_source_port)
+        address_subtree:add_le(fields.ext_proxy_address_inet_destination_port, slice_destination_port)
         info_offset = offset + length + 1
     elseif address_family == "INET6" then
-        slices.ext_proxy_address_protocol = buffer(offset + 1, 1)
-        slices.ext_proxy_inet6_source = buffer(offset + 2, 16)
-        slices.ext_proxy_inet6_destination = buffer(offset + 18, 16)
-        slices.ext_proxy_inet_source_port = buffer(offset + 34, 2)
-        slices.ext_proxy_inet_destination_port = buffer(offset + 36, 2)
+        local slice_protocol = buffer(offset + 1, 1)
+        local slice_source = buffer(offset + 2, 16)
+        local slice_destination = buffer(offset + 18, 16)
+        local slice_source_port = buffer(offset + 34, 2)
+        local slice_destination_port = buffer(offset + 36, 2)
         local length = 37;
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
-        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
-        address_subtree:add(fields.ext_proxy_address_protocol, slices.ext_proxy_address_protocol)
-        address_subtree:add(fields.ext_proxy_address_inet6_source, slices.ext_proxy_inet6_source)
-        address_subtree:add(fields.ext_proxy_address_inet6_destination, slices.ext_proxy_inet6_destination)
-        address_subtree:add_le(fields.ext_proxy_address_inet_source_port, slices.ext_proxy_inet_source_port)
-        address_subtree:add_le(fields.ext_proxy_address_inet_destination_port, slices.ext_proxy_inet_destination_port)
+        address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
+        address_subtree:add(fields.ext_proxy_address_protocol, slice_protocol)
+        address_subtree:add(fields.ext_proxy_address_inet6_source, slice_source)
+        address_subtree:add(fields.ext_proxy_address_inet6_destination, slice_destination)
+        address_subtree:add_le(fields.ext_proxy_address_inet_source_port, slice_source_port)
+        address_subtree:add_le(fields.ext_proxy_address_inet_destination_port, slice_destination_port)
         info_offset = offset + length + 1;
     elseif address_family == "UNIX" then
-        local slice_address_protocol = buffer(offset + 1, 1)
+        local slice_protocol = buffer(offset + 1, 1)
         local slice_source = buffer(offset + 2, 108)
         local slice_destination = buffer(offset + 110, 108)
         local length = 217
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
-        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
-        address_subtree:add(fields.ext_proxy_address_protocol, slice_address_protocol)
+        address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
+        address_subtree:add(fields.ext_proxy_address_protocol, slice_protocol)
         address_subtree:add(fields.ext_proxy_address_unix_source, slice_source)
         address_subtree:add(fields.ext_proxy_address_unix_destination, slice_destination)
         info_offset = offset + length + 1
     elseif address_family == "NONE" then
         local length = 0
         local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length + 1), address_subtree_label)
-        address_subtree:add(fields.ext_proxy_address_family, slices.ext_proxy_address_family)
+        address_subtree:add(fields.ext_proxy_address_family, slice_address_family)
         info_offset = offset + 1
     end
 
@@ -561,8 +556,8 @@ function handle_proxy_extension(buffer, slices, extension_subtree, offset)
             item_offset = item_offset + item_length
         elseif type == "NAMESPACE" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
-            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id, slice_length,
-                slice_text, fields.ext_proxy_info_type, fields.ext_proxy_info_length, fields.ext_proxy_info_namespace)
+            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+                slice_length, slice_text, fields.ext_proxy_info_type, fields.ext_proxy_info_length, fields.ext_proxy_info_namespace)
             item_offset = item_offset + item_length
         end
     end
