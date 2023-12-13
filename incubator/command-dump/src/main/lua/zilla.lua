@@ -407,6 +407,58 @@ function resolve_frame_type(frame_type_id)
     return frame_type
 end
 
+function resolve_type(type_id)
+    local type = ""
+        if type_id == AMQP_ID  then type = "amqp"
+    elseif type_id == GRPC_ID  then type = "grpc"
+    elseif type_id == HTTP_ID  then type = "http"
+    elseif type_id == KAFKA_ID then type = "kafka"
+    elseif type_id == MQTT_ID  then type = "mqtt"
+    elseif type_id == PROXY_ID then type = "proxy"
+    elseif type_id == TLS_ID   then type = "tls"
+    end
+    return type
+end
+
+function resolve_dissector(protocol_type, payload)
+    local dissector
+        if protocol_type == "amqp"  then dissector = Dissector.get("amqp")
+    elseif protocol_type == "http"  then dissector = resolve_http_dissector(payload)
+    elseif protocol_type == "kafka" then dissector = Dissector.get("kafka")
+    elseif protocol_type == "mqtt"  then dissector = Dissector.get("mqtt")
+    elseif protocol_type == "tls"   then dissector = Dissector.get("tls")
+    end
+    return dissector
+end
+
+function resolve_http_dissector(payload)
+    if payload:range(0, 3):int() + 9 == payload:len() then
+        return Dissector.get("http2")
+    elseif payload:range(0, 3):string() == "PRI" then
+        return Dissector.get("http2")
+    elseif payload:range(0, 4):string() == "HTTP" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "GET" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "POST" then
+        return Dissector.get("http")
+    elseif payload:range(0, 3):string() == "PUT" then
+        return Dissector.get("http")
+    elseif payload:range(0, 6):string() == "DELETE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 4):string() == "HEAD" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "OPTIONS" then
+        return Dissector.get("http")
+    elseif payload:range(0, 5):string() == "TRACE" then
+        return Dissector.get("http")
+    elseif payload:range(0, 7):string() == "CONNECT" then
+        return Dissector.get("http")
+    else
+        return nil
+    end
+end
+
 function handle_extension(buffer, subtree, pinfo, info, offset)
     if buffer:len() > offset then
         local slice_stream_type_id = buffer(offset, 4)
@@ -577,58 +629,6 @@ function add_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_
     subtree:add(field_type, slice_type_id)
     subtree:add_le(field_length, slice_length)
     subtree:add(field_text, slice_text)
-end
-
-function resolve_type(type_id)
-    local type = ""
-        if type_id == AMQP_ID  then type = "amqp"
-    elseif type_id == GRPC_ID  then type = "grpc"
-    elseif type_id == HTTP_ID  then type = "http"
-    elseif type_id == KAFKA_ID then type = "kafka"
-    elseif type_id == MQTT_ID  then type = "mqtt"
-    elseif type_id == PROXY_ID then type = "proxy"
-    elseif type_id == TLS_ID   then type = "tls"
-    end
-    return type
-end
-
-function resolve_dissector(protocol_type, payload)
-    local dissector
-        if protocol_type == "amqp"  then dissector = Dissector.get("amqp")
-    elseif protocol_type == "http"  then dissector = resolve_http_dissector(payload)
-    elseif protocol_type == "kafka" then dissector = Dissector.get("kafka")
-    elseif protocol_type == "mqtt"  then dissector = Dissector.get("mqtt")
-    elseif protocol_type == "tls"   then dissector = Dissector.get("tls")
-    end
-    return dissector
-end
-
-function resolve_http_dissector(payload)
-    if payload:range(0, 3):int() + 9 == payload:len() then
-        return Dissector.get("http2")
-    elseif payload:range(0, 3):string() == "PRI" then
-        return Dissector.get("http2")
-    elseif payload:range(0, 4):string() == "HTTP" then
-        return Dissector.get("http")
-    elseif payload:range(0, 3):string() == "GET" then
-        return Dissector.get("http")
-    elseif payload:range(0, 4):string() == "POST" then
-        return Dissector.get("http")
-    elseif payload:range(0, 3):string() == "PUT" then
-        return Dissector.get("http")
-    elseif payload:range(0, 6):string() == "DELETE" then
-        return Dissector.get("http")
-    elseif payload:range(0, 4):string() == "HEAD" then
-        return Dissector.get("http")
-    elseif payload:range(0, 7):string() == "OPTIONS" then
-        return Dissector.get("http")
-    elseif payload:range(0, 5):string() == "TRACE" then
-        return Dissector.get("http")
-    elseif payload:range(0, 7):string() == "CONNECT" then
-        return Dissector.get("http")
-    else
-        return nil
-    end
 end
 
 local data_dissector = DissectorTable.get("tcp.port")
