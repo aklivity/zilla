@@ -42,10 +42,10 @@ write await RECEIVED_EXPIRY_CANCELLATION_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
-                               .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
@@ -55,6 +55,7 @@ write await RECEIVED_EXPIRE_LATER_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
@@ -76,6 +77,7 @@ write await RECEIVED_EXPIRE_AT_SIGNAL
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
@@ -92,10 +94,31 @@ write ${mqtt:sessionSignal()
             .build()}
 write flush
 
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry-signal")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client-2")
+                .delay(1000)
+                .expireAt(2000)
+                .build()
+            .build()}
+write flush
+
 # cleanup session state
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1")
@@ -104,6 +127,18 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+# cleanup session state
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2")
+                               .hashKey("client-2")
+                               .build()
+                           .build()}
+read zilla:data.null
 
 accepted
 
@@ -126,6 +161,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#migrate")
@@ -144,7 +180,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
@@ -192,6 +228,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#will-signal")
@@ -207,6 +244,7 @@ read notify RECEIVED_WILL_CANCELLATION_SIGNAL
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
@@ -221,6 +259,7 @@ read notify RECEIVED_EXPIRY_CANCELLATION_SIGNAL
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
@@ -247,6 +286,7 @@ write advise zilla:flush
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")

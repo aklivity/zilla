@@ -431,6 +431,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.get.items.yaml")
     @Specification({
+        "${http}/get.items.fragmented/client",
+        "${kafka}/get.items.fragmented/server"})
+    public void shouldGetItemsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.yaml")
+    @Specification({
         "${http}/get.items.empty/client",
         "${kafka}/get.items.empty/server"})
     public void shouldGetItemsEmpty() throws Exception

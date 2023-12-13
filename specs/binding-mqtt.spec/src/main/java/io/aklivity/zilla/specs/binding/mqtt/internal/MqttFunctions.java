@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -52,6 +53,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
@@ -117,6 +120,12 @@ public final class MqttFunctions
     public static MqttSessionStateBuilder session()
     {
         return new MqttSessionStateBuilder();
+    }
+
+    @Function
+    public static MqttOffsetMetadataBuilder metadata()
+    {
+        return new MqttOffsetMetadataBuilder();
     }
 
     @Function
@@ -280,6 +289,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExBuilder qos(
+                String qosName)
+            {
+                subscribeBeginExRW.qos(MqttQoS.valueOf(qosName).ordinal());
+                return this;
+            }
+
             public MqttSubscribeBeginExBuilder filter(
                 String pattern)
             {
@@ -347,6 +363,13 @@ public final class MqttFunctions
                     .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
                     .reduce(0, (a, b) -> a | b);
                 publishBeginExRW.flags(flags);
+                return this;
+            }
+
+            public MqttPublishBeginExBuilder qos(
+                int qos)
+            {
+                publishBeginExRW.qos(qos);
                 return this;
             }
 
@@ -421,6 +444,13 @@ public final class MqttFunctions
                 String topic)
             {
                 subscribeDataExRW.topic(topic);
+                return this;
+            }
+
+            public MqttSubscribeDataExBuilder packetId(
+                int packetId)
+            {
+                subscribeDataExRW.packetId(packetId);
                 return this;
             }
 
@@ -652,6 +682,27 @@ public final class MqttFunctions
                 subscribeFlushExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttSubscribeFlushExBuilder packetId(
+                int packetId)
+            {
+                subscribeFlushExRW.packetId(packetId);
+                return this;
+            }
+
+            public MqttSubscribeFlushExBuilder qos(
+                String qos)
+            {
+                subscribeFlushExRW.qos(MqttQoS.valueOf(qos).ordinal());
+                return this;
+            }
+
+            public MqttSubscribeFlushExBuilder state(
+                String state)
+            {
+                subscribeFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
+                return this;
+            }
+
             public MqttSubscribeFlushExBuilder filter(
                 String topic,
                 int id)
@@ -756,7 +807,7 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttSessionStateBuilder subscription(
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
             String pattern,
             int id,
             int reasonCode)
@@ -785,6 +836,32 @@ public final class MqttFunctions
             final byte[] array = new byte[sessionState.sizeof()];
             sessionState.buffer().getBytes(sessionState.offset(), array);
             return array;
+        }
+    }
+
+    public static final class MqttOffsetMetadataBuilder
+    {
+        private final MqttOffsetMetadataFW.Builder offsetMetadataRW = new MqttOffsetMetadataFW.Builder();
+
+        private MqttOffsetMetadataBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttOffsetMetadataBuilder metadata(
+            int packetId)
+        {
+            offsetMetadataRW.metadataItem(f -> f.packetId(packetId));
+            return this;
+        }
+
+        public String build()
+        {
+            final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            final byte[] array = new byte[offsetMetadata.sizeof()];
+            offsetMetadata.buffer().getBytes(offsetMetadata.offset(), array);
+            return BitUtil.toHex(array);
         }
     }
 
@@ -1155,6 +1232,7 @@ public final class MqttFunctions
             private String16FW clientId;
             private String16FW topic;
             private Integer flags;
+            private Integer qos;
 
             private MqttPublishBeginExMatcherBuilder()
             {
@@ -1182,6 +1260,12 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExMatcherBuilder qos(
+                int qos)
+            {
+                this.qos = qos;
+                return this;
+            }
 
             public MqttBeginExMatcherBuilder build()
             {
@@ -1194,7 +1278,8 @@ public final class MqttFunctions
                 final MqttPublishBeginExFW publishBeginEx = beginEx.publish();
                 return matchClientId(publishBeginEx) &&
                     matchTopic(publishBeginEx) &&
-                    matchFlags(publishBeginEx);
+                    matchFlags(publishBeginEx) &&
+                    matchQos(publishBeginEx);
             }
 
             private boolean matchClientId(
@@ -1202,7 +1287,6 @@ public final class MqttFunctions
             {
                 return clientId == null || clientId.equals(publishBeginEx.clientId());
             }
-
 
             private boolean matchTopic(
                 final MqttPublishBeginExFW publishBeginEx)
@@ -1215,11 +1299,18 @@ public final class MqttFunctions
             {
                 return flags == null || flags == publishBeginEx.flags();
             }
+
+            private boolean matchQos(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return qos == null || qos == publishBeginEx.qos();
+            }
         }
 
         public final class MqttSubscribeBeginExMatcherBuilder
         {
             private String16FW clientId;
+            private Integer qos;
             private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filters;
 
             private MqttSubscribeBeginExMatcherBuilder()
@@ -1229,6 +1320,13 @@ public final class MqttFunctions
                 String clientId)
             {
                 this.clientId = new String16FW(clientId);
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder qos(
+                String qosName)
+            {
+                this.qos = MqttQoS.valueOf(qosName).ordinal();
                 return this;
             }
 
@@ -1294,6 +1392,7 @@ public final class MqttFunctions
             {
                 final MqttSubscribeBeginExFW subscribeBeginEx = beginEx.subscribe();
                 return matchClientId(subscribeBeginEx) &&
+                    matchQos(subscribeBeginEx) &&
                     matchFilters(subscribeBeginEx);
             }
 
@@ -1301,6 +1400,12 @@ public final class MqttFunctions
                 final MqttSubscribeBeginExFW subscribeBeginEx)
             {
                 return clientId == null || clientId.equals(subscribeBeginEx.clientId());
+            }
+
+            private boolean matchQos(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return qos == null || qos.equals(subscribeBeginEx.qos());
             }
 
             private boolean matchFilters(
@@ -1510,6 +1615,7 @@ public final class MqttFunctions
             private MqttBinaryFW.Builder correlationRW;
             private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
             private String16FW topic;
+            private Integer packetId;
             private Integer qos;
             private Integer flags;
             private Integer expiryInterval = -1;
@@ -1527,6 +1633,13 @@ public final class MqttFunctions
                 String topic)
             {
                 this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public MqttSubscribeDataExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
                 return this;
             }
 
@@ -1639,6 +1752,7 @@ public final class MqttFunctions
             {
                 final MqttSubscribeDataExFW subscribeDataEx = dataEx.subscribe();
                 return matchTopic(subscribeDataEx) &&
+                    matchPacketId(subscribeDataEx) &&
                     matchQos(subscribeDataEx) &&
                     matchFlags(subscribeDataEx) &&
                     matchSubscriptionIds(subscribeDataEx) &&
@@ -1654,6 +1768,12 @@ public final class MqttFunctions
                 final MqttSubscribeDataExFW data)
             {
                 return topic == null || topic.equals(data.topic());
+            }
+
+            private boolean matchPacketId(
+                final MqttSubscribeDataExFW data)
+            {
+                return packetId == null || packetId == data.packetId();
             }
 
             private boolean matchQos(

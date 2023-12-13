@@ -316,6 +316,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.items.fragmented/client",
+        "${kafka}/get.items.fragmented/server"})
+    public void shouldGetItemsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.items.empty/client",
         "${kafka}/get.items.empty/server"})
     public void shouldGetItemsEmpty() throws Exception

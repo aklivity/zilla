@@ -227,6 +227,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.message.ack/client",
+        "${app}/merged.fetch.message.ack/server"})
+    public void shouldProduceMergedMessageAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.flush/client",
         "${app}/merged.produce.flush/server"})
     public void shouldProduceMergedFlush() throws Exception
@@ -722,15 +731,6 @@ public class MergedIT
 
     @Test
     @Specification({
-        "${app}/merged.group.fetch.message.value/client",
-        "${app}/merged.group.fetch.message.value/server"})
-    public void shouldFetchGroupMergedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/unmerged.group.fetch.message.value/client",
         "${app}/unmerged.group.fetch.message.value/server"})
     public void shouldFetchGroupUnmergedMessage() throws Exception
@@ -770,6 +770,15 @@ public class MergedIT
         "${app}/unmerged.group.produce.message.value/client",
         "${app}/unmerged.group.produce.message.value/server"})
     public void shouldProduceUnmergedMergedMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.fetch.message.ack/client",
+        "${app}/unmerged.group.fetch.message.ack/server"})
+    public void shouldAckUnmergedFetchMessage() throws Exception
     {
         k3po.finish();
     }

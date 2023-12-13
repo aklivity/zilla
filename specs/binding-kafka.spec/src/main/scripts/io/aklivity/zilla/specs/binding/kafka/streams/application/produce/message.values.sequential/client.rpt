@@ -81,7 +81,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .produce()
                                   .build()
                               .build()}
-write ${kafka:randomBytes(7580)}
+write ${kafka:randomBytes(8192-(512+512))}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()

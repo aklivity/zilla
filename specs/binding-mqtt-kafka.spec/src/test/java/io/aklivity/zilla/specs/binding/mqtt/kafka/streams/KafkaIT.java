@@ -181,6 +181,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.space/client",
+        "${kafka}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.client.topic.space/client",
+        "${kafka}/publish.client.topic.space/server"})
+    public void shouldSendUsingClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.with.user.properties.distinct/client",
         "${kafka}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
@@ -469,6 +487,51 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.topic.space/client",
+        "${kafka}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.client.topic.space/client",
+        "${kafka}/subscribe.client.topic.space/server"})
+    public void shouldFilterClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.end.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.end.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.abort.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.abort.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.bootstrap.stream.reset.reconnect/client",
+        "${kafka}/subscribe.bootstrap.stream.reset.reconnect/server"})
+    public void shouldReconnectBootstrapStreamOnKafkaReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/unsubscribe.after.subscribe/client",
         "${kafka}/unsubscribe.after.subscribe/server"})
     public void shouldAcknowledge() throws Exception
@@ -715,6 +778,142 @@ public class KafkaIT
         "${kafka}/session.redirect/client",
         "${kafka}/session.redirect/server"})
     public void shouldRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.session.expiry.fragmented/client",
+        "${kafka}/session.session.expiry.fragmented/server"})
+    public void shouldDecodeSessionExpirySignalFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.expiry.after.signal.stream.restart/client",
+        "${kafka}/session.expiry.after.signal.stream.restart/server"})
+    public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1/client",
+        "${kafka}/publish.qos1/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2/client",
+        "${kafka}/publish.qos2/server"})
+    public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.mixture.qos/client",
+        "${kafka}/publish.mixture.qos/server"})
+    public void shouldSendMessageMixtureQos() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos1/client",
+        "${kafka}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos1.published.qos2/client",
+        "${kafka}/subscribe.receive.message.qos1.published.qos2/server"})
+    public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos2/client",
+        "${kafka}/subscribe.receive.message.qos2/server"})
+    public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.messages.mixture.qos/client",
+        "${kafka}/subscribe.receive.messages.mixture.qos/server"})
+    public void shouldReceiveMessagesMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.reconnect.replay.qos1.unacked.message/client",
+        "${kafka}/subscribe.reconnect.replay.qos1.unacked.message/server"})
+    public void shouldReplayUnackedQoS1MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.reconnect.replay.qos2.unreceived.message/client",
+        "${kafka}/subscribe.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldReplayUnreceivedQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.reconnect.replay.qos2.incomplete.message/client",
+        "${kafka}/subscribe.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldReplayIncompleteQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.replay.retained.message.qos1/client",
+        "${kafka}/subscribe.replay.retained.message.qos1/server"})
+    public void shouldReplayRetainedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.replay.retained.message.qos2/client",
+        "${kafka}/subscribe.replay.retained.message.qos2/server"})
+    public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
+        "${kafka}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
+    public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
     {
         k3po.finish();
     }

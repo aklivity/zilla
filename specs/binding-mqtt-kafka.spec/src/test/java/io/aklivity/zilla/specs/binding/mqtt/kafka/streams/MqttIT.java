@@ -127,6 +127,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.topic.space/client",
+        "${mqtt}/publish.topic.space/server"})
+    public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.client.topic.space/client",
+        "${mqtt}/publish.client.topic.space/server"})
+    public void shouldSendUsingClientTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.retained/client",
         "${mqtt}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception
@@ -397,6 +415,26 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.topic.space/client",
+        "${mqtt}/subscribe.topic.space/server"})
+    public void shouldFilterTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.client.topic.space/client",
+        "${mqtt}/subscribe.client.topic.space/server"})
+    public void shouldFilterClientTopicSpace() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("RECEIVED_BOOTSTRAP_CONNECTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/unsubscribe.after.subscribe/client",
         "${mqtt}/unsubscribe.after.subscribe/server"})
     public void shouldAcknowledge() throws Exception
@@ -597,6 +635,126 @@ public class MqttIT
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1/client",
+        "${mqtt}/publish.qos1/server"})
+    public void shouldPublishQoS1Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2/client",
+        "${mqtt}/publish.qos2/server"})
+    public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.mixture.qos/client",
+        "${mqtt}/publish.mixture.qos/server"})
+    public void shouldSendMessageMixtureQos() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos1/client",
+        "${mqtt}/subscribe.receive.message.qos1/server"})
+    public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos1.published.qos2/client",
+        "${mqtt}/subscribe.receive.message.qos1.published.qos2/server"})
+    public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos2/client",
+        "${mqtt}/subscribe.receive.message.qos2/server"})
+    public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.messages.mixture.qos/client",
+        "${mqtt}/subscribe.receive.messages.mixture.qos/server"})
+    public void shouldReceiveMessagesMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.reconnect.replay.qos1.unacked.message/client",
+        "${mqtt}/subscribe.reconnect.replay.qos1.unacked.message/server"})
+    public void shouldReplayUnackedQoS1MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.reconnect.replay.qos2.unreceived.message/client",
+        "${mqtt}/subscribe.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldReplayUnreceivedQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.reconnect.replay.qos2.incomplete.message/client",
+        "${mqtt}/subscribe.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldReplayIncompleteQoS2MessageAtReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.replay.retained.message.qos1/client",
+        "${mqtt}/subscribe.replay.retained.message.qos1/server"})
+    public void shouldReplayRetainedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.replay.retained.message.qos2/client",
+        "${mqtt}/subscribe.replay.retained.message.qos2/server"})
+    public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
+        "${mqtt}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
+    public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
         k3po.finish();
     }
 }

@@ -44,4 +44,14 @@ public class BootstrapIT
     {
         k3po.finish();
     }
+
+
+    @Test
+    @Specification({
+        "${app}/group.fetch.message.value/client",
+        "${app}/group.fetch.message.value/server"})
+    public void shouldReceiveGroupMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -35,6 +35,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
@@ -42,6 +43,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
@@ -50,6 +52,7 @@ read "message1"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
@@ -57,6 +60,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
@@ -65,6 +69,7 @@ read "message2"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
@@ -72,6 +77,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

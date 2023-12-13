@@ -164,6 +164,7 @@ scope mqtt
         struct MqttSubscribeBeginEx
         {
             string16 clientId;
+            uint8 qos = 0;
             MqttTopicFilter[] filters;
         }
 
@@ -172,6 +173,7 @@ scope mqtt
             string16 clientId;
             string16 topic;
             uint8 flags = 0;
+            uint8 qos = 0;
         }
 
         union MqttDataEx switch (uint8) extends core::stream::Extension
@@ -185,6 +187,7 @@ scope mqtt
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
+            uint16 packetId = 0;
             uint8 qos = 0;
             uint8 flags = 0;
             varuint32[] subscriptionIds;
@@ -233,7 +236,27 @@ scope mqtt
 
         struct MqttSubscribeFlushEx
         {
+            uint8 qos = 0;
+            uint16 packetId = 0;
+            uint8 state = 0;
             MqttTopicFilter[] filters;
+        }
+
+        enum MqttOffsetStateFlags (uint8)
+        {
+            COMPLETE(0),
+            INCOMPLETE(1)
+        }
+
+        struct MqttOffsetState
+        {
+            uint16 packetId;
+        }
+
+        struct MqttOffsetMetadata
+        {
+            uint8 version = 1;
+            MqttOffsetState[] metadata;
         }
     }
 }

@@ -32,6 +32,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensors/1")
@@ -41,6 +42,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:format", "TEXT")
                                .header("row1", "1")
                                .header("row1", "2")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

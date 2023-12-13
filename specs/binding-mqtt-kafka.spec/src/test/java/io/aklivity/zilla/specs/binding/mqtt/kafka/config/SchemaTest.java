@@ -48,4 +48,28 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWhenPublishTopicWithMessages()
+    {
+        JsonObject config = schema.validate("proxy.when.publish.topic.with.messages.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenSubscribeTopicWithMessages()
+    {
+        JsonObject config = schema.validate("proxy.when.subscribe.topic.with.messages.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenClientTopicSpace()
+    {
+        JsonObject config = schema.validate("proxy.when.client.topic.space.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

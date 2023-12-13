@@ -74,15 +74,6 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${net}/client.sent.write.close.after.sync.group.response/client",
-        "${net}/client.sent.write.close.after.sync.group.response/server"})
-    public void shouldHandleClientSentWriteClosetAfterSyncGroupResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/coordinator.not.available/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception
@@ -167,6 +158,42 @@ public class GroupIT
         "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
         "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
     public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/topics.partition.assignment/client",
+        "${net}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid.describe.config/client",
+        "${net}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid.session.timeout/client",
+        "${net}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
     {
         k3po.finish();
     }

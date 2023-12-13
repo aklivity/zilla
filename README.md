@@ -1,3 +1,4 @@
+<div id="top"></div>
 <div align="center">
   <img src="./assets/zilla-rings@2x.png" height="250">
 </div>
@@ -35,7 +36,7 @@ When Zilla is deployed alongside Apache Kafka®, any application or service can 
     - [REST-Kafka Proxying](#rest-kafka-proxying)
     - [SSE-Kafka Proxying](#sse-kafka-proxying)
     - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
-    - [MQTT-Kafka Proxying]((#mqtt-kafka-proxying))
+    - [MQTT-Kafka Proxying](#mqtt-kafka-proxying)
 - [Resources](#resources)
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
@@ -61,7 +62,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 - [x] **Filtering** — Streams messages from a Kafka topic, filtered by message key and/or headers, with key and/or header values extracted from segments of the `HTTP` path if needed.
 - [x] **Reliable Delivery** — Supports `event-id` and `last-event-id` header to recover from an interrupted stream without message loss, and without the client needing to acknowledge message receipt.
-- [x] **Continous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
+- [x] **Continuous Authorization** — Supports a `challenge` event, triggering the client to send up-to-date authorization credentials, such as JWT token, before expiration. The response stream is terminated if the authorization expires. Multiple SSE streams on the same `HTTP/2` connection and authorized by the same JWT token can be reauthorized by a single `challenge` event response.
 
 ### <a name="grpc-kafka-proxying"> gRPC-Kafka Proxying
 
@@ -70,15 +71,15 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 ### <a name="mqtt-kafka-proxying"> MQTT-Kafka Proxying
 
-- [x] **Publish** — Publish messages to Kafka topics, marking specific messages as retained. (`QoS 0` now, `QoS 1` and `QoS 2` coming)
+- [x] **Publish** — Publish messages to Kafka topics, marking specific messages as retained. (`QoS 0`, `QoS 1`, `QoS 2`)
 - [x] **Subscribe** — Subscribe to receive messages from Kafka topics, supporting `replay-on-subscribe` of messages marked as retained during publish.
 - [x] **Last Will and Testament (LWT)** — Clients can specify a `last will` message that is delivered when the client disconnects abruptly and fails to reconnect before session timeout.
-- [x] **Reconnect** - Clients reconnecting with the same `client-id`, even to a different Zilla instance, will automatically remain subscribed to `MQTT` topics previously subscribed while previously connected.
-- [x] **Session Takeover** - A client connecting with the same `client-id`, even to a different Zilla instance, will automatically disconnect the original `MQTT` client and take over the session.
-- [x] **Redirect** - Clients can be redirected to a specific Zilla instance, sharding client session state across Zilla instances, without needing to replicate every client's session state on each Zilla instance.
-- [x] **Security** - Integrated with [Zilla Guards](https://docs.aklivity.io/zilla/latest/reference/config/overview.html#guards) for `MQTT` client authorization. Supports `JWT` access tokens, with fine-grained privileges enforced to publish or subscribe to `MQTT` topics.
-- [x] **Correlated Request-Response** - Support correlated `MQTT` request-response messages over Kafka topics.
-- [x] **Protocol** - Support `MQTT v5` standard protocol (`MQTT v3.1.1` coming)
+- [x] **Reconnect** — Clients reconnecting with the same `client-id`, even to a different Zilla instance, will automatically remain subscribed to `MQTT` topics previously subscribed while previously connected.
+- [x] **Session Takeover** — A client connecting with the same `client-id`, even to a different Zilla instance, will automatically disconnect the original `MQTT` client and take over the session.
+- [x] **Redirect** — Clients can be redirected to a specific Zilla instance, sharding client session state across Zilla instances, without needing to replicate every client's session state on each Zilla instance.
+- [x] **Security** — Integrated with [Zilla Guards](https://docs.aklivity.io/zilla/latest/reference/config/overview.html#guards) for `MQTT` client authorization. Supports `JWT` access tokens, with fine-grained privileges enforced to publish or subscribe to `MQTT` topics.
+- [x] **Correlated Request-Response** — Support correlated `MQTT` request-response messages over Kafka topics.
+- [x] **Protocol** — Support for `MQTT v5` and `MQTT v3.1.1`
 
 ### Deployment, Performance & Other
 
@@ -86,7 +87,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 - [x] **Filtering** — Local cache indexes message key and headers upon retrieval from Kafka, supporting efficiently filtered reads from cached topics.
 - [x] **Fan-in, Fan-out** — Local cache uses a small number of connections to interact with Kafka brokers, independent of the number of connected clients.
 - [x] **Authorization** — Specific routed topics can be guarded to enforce required client privileges.
-- [x] **Helm Chart** — Generic Zilla Helm chart avaliable.
+- [x] **Helm Chart** — Generic Zilla Helm chart available.
 - [x] **Auto-reconfigure** — Detect changes in `zilla.yaml` and reconfigure Zilla automatically.
 - [x] **Prometheus Integration** — Export Zilla metrics to Prometheus for observability and auto-scaling.
 - [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.
@@ -98,7 +99,7 @@ Returns an `etag` header with `HTTP` response. Supports conditional `GET if-none
 
 - **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
-- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A repo of sample Zilla configurations for different use cases running on Kubernetes.
+- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A collection of pre-canned Zilla feature demos.
 - **[Todo Application](https://docs.aklivity.io/zilla/latest/tutorials/todo-app/build.html):** Follow the tutorial and see how Zilla and Kafka can be used to build a Todo app based on streaming and CQRS.
 
 ### 📝 Check out blog posts
@@ -174,8 +175,13 @@ Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedb
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
+###  Many Thanks To Our Contributors!
+<a href="https://github.com/aklivity/zilla/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=aklivity/zilla" />
+</a>
+
 ## <a name="license"> License
-Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a commercialized “as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
 
 <!-- Links -->
@@ -188,3 +194,5 @@ Zilla is made available under the [Aklivity Community License](./LICENSE-Aklivit
 [release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
 [release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>

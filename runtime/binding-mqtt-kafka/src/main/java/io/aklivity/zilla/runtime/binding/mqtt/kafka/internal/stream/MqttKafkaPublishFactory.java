@@ -14,15 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
+import java.util.List;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -104,6 +108,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
+    private final Int2ObjectHashMap<String16FW> qosLevels;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -121,6 +126,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
+        this.qosLevels = new Int2ObjectHashMap<>();
+        this.qosLevels.put(0, new String16FW("0"));
+        this.qosLevels.put(1, new String16FW("1"));
+        this.qosLevels.put(2, new String16FW("2"));
     }
 
     @Override
@@ -136,17 +145,24 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final OctetsFW extension = begin.extension();
+        final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
+
+        assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
+        final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
 
         final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
 
-        final MqttKafkaRouteConfig resolved = binding != null ? binding.resolve(authorization) : null;
+        final MqttKafkaRouteConfig resolved = binding != null ?
+            binding.resolve(authorization, mqttPublishBeginEx.topic().asString()) : null;
         MessageConsumer newStream = null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            final String16FW messagesTopic = resolved.messages;
             newStream = new MqttPublishProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.messagesTopic(), binding.retainedTopic())::onMqttMessage;
+                messagesTopic, binding.retainedTopic(), binding.clients)::onMqttMessage;
         }
 
         return newStream;
@@ -161,8 +177,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private final long replyId;
         private final KafkaMessagesProxy messages;
         private final KafkaRetainedProxy retained;
-        private final String16FW kafkaMessagesTopic;
-        private final String16FW kafkaRetainedTopic;
+        private final List<Function<String, String>> clients;
 
         private int state;
 
@@ -176,6 +191,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int replyPad;
 
         private KafkaKeyFW key;
+        private KafkaKeyFW hashKey;
 
         private Array32FW<String16FW> topicNameHeaders;
         private OctetsFW clientIdOctets;
@@ -188,17 +204,17 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long initialId,
             long resolvedId,
             String16FW kafkaMessagesTopic,
-            String16FW kafkaRetainedTopic)
+            String16FW kafkaRetainedTopic,
+            List<Function<String, String>> clients)
         {
             this.mqtt = mqtt;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.messages = new KafkaMessagesProxy(originId, resolvedId, this);
-            this.retained = new KafkaRetainedProxy(originId, resolvedId, this);
-            this.kafkaMessagesTopic = kafkaMessagesTopic;
-            this.kafkaRetainedTopic = kafkaRetainedTopic;
+            this.messages = new KafkaMessagesProxy(originId, resolvedId, this, kafkaMessagesTopic);
+            this.retained = new KafkaRetainedProxy(originId, resolvedId, this, kafkaRetainedTopic);
+            this.clients = clients;
         }
 
         private void onMqttMessage(
@@ -263,6 +279,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             String topicName = mqttPublishBeginEx.topic().asString();
             assert topicName != null;
 
+            final int qos = mqttPublishBeginEx.qos();
 
             final String16FW clientId = mqttPublishBeginEx.clientId();
             final MutableDirectBuffer clientIdBuffer = new UnsafeBuffer(new byte[clientId.sizeof() + 2]);
@@ -296,12 +313,39 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .value(topicNameBuffer, 0, topicNameBuffer.capacity())
                 .build();
 
-            messages.doKafkaBegin(traceId, authorization, affinity, kafkaMessagesTopic);
+            final String clientHashKey = clientHashKey(topicName);
+            if (clientHashKey != null)
+            {
+                final DirectBuffer clientHashKeyBuffer = new String16FW(clientHashKey).value();
+                final MutableDirectBuffer hashKeyBuffer = new UnsafeBuffer(new byte[clientHashKeyBuffer.capacity() + 4]);
+                hashKey = new KafkaKeyFW.Builder()
+                    .wrap(hashKeyBuffer, 0, hashKeyBuffer.capacity())
+                    .length(clientHashKeyBuffer.capacity())
+                    .value(clientHashKeyBuffer, 0, clientHashKeyBuffer.capacity())
+                    .build();
+            }
+
+            messages.doKafkaBegin(traceId, authorization, affinity, qos);
             this.retainAvailable = (mqttPublishBeginEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0;
             if (retainAvailable)
             {
-                retained.doKafkaBegin(traceId, authorization, affinity, kafkaRetainedTopic);
+                retained.doKafkaBegin(traceId, authorization, affinity, qos);
             }
+        }
+
+        private String clientHashKey(
+            String topicName)
+        {
+            String clientHashKey = null;
+            if (clients != null)
+            {
+                for (Function<String, String> client : clients)
+                {
+                    clientHashKey = client.apply(topicName);
+                    break;
+                }
+            }
+            return clientHashKey;
         }
 
         private void onMqttData(
@@ -357,7 +401,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 addHeader(helper.kafkaContentTypeHeaderName, mqttPublishDataEx.contentType());
             }
 
-            if (payload.sizeof() != 0 && mqttPublishDataEx.format() != null)
+            if (payload.sizeof() != 0 && mqttPublishDataEx.format() != null &&
+                !mqttPublishDataEx.format().get().equals(MqttPayloadFormat.NONE))
             {
                 addHeader(helper.kafkaFormatHeaderName, mqttPublishDataEx.format());
             }
@@ -365,7 +410,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             if (mqttPublishDataEx.responseTopic().length() != -1)
             {
                 final String16FW responseTopic = mqttPublishDataEx.responseTopic();
-                addHeader(helper.kafkaReplyToHeaderName, kafkaMessagesTopic);
+                addHeader(helper.kafkaReplyToHeaderName, messages.topic);
                 addHeader(helper.kafkaReplyKeyHeaderName, responseTopic);
 
                 addFiltersHeader(responseTopic);
@@ -376,19 +421,23 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 addHeader(helper.kafkaCorrelationHeaderName, mqttPublishDataEx.correlation().bytes());
             }
 
+
             mqttPublishDataEx.properties().forEach(property ->
                 addHeader(property.key(), property.value()));
+
+            addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
 
             final int deferred = mqttPublishDataEx.deferred();
             kafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m
+                .merged(m -> m.produce(mp -> mp
                     .deferred(deferred)
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.set(key))
-                    .headers(kafkaHeadersRW.build()))
+                    .hashKey(this::setHashKey)
+                    .headers(kafkaHeadersRW.build())))
                 .build();
 
             messages.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
@@ -411,6 +460,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                             .build();
                     retained.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
                 }
+            }
+        }
+
+        private void setHashKey(
+            KafkaKeyFW.Builder builder)
+        {
+            if (hashKey != null)
+            {
+                builder.set(hashKey);
             }
         }
 
@@ -673,7 +731,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         });
     }
 
-    private void addHeader(String16FW key, String16FW value)
+    private void addHeader(
+        String16FW key,
+        String16FW value)
     {
         DirectBuffer keyBuffer = key.value();
         DirectBuffer valueBuffer = value.value();
@@ -713,6 +773,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final MqttPublishProxy delegate;
+        private final String16FW topic;
 
         private int state;
 
@@ -728,20 +789,23 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private KafkaMessagesProxy(
             long originId,
             long routedId,
-            MqttPublishProxy delegate)
+            MqttPublishProxy delegate,
+            String16FW topic)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.topic = topic;
+
         }
 
         private void doKafkaBegin(
             long traceId,
             long authorization,
             long affinity,
-            String16FW kafkaMessagesTopic)
+            int qos)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -749,7 +813,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, kafkaMessagesTopic);
+                traceId, authorization, affinity, topic, qos);
         }
 
         private void doKafkaData(
@@ -1018,6 +1082,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final MqttPublishProxy delegate;
+        private final String16FW topic;
 
         private int state;
 
@@ -1033,20 +1098,22 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private KafkaRetainedProxy(
             long originId,
             long routedId,
-            MqttPublishProxy delegate)
+            MqttPublishProxy delegate,
+            String16FW topic)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.topic = topic;
         }
 
         private void doKafkaBegin(
             long traceId,
             long authorization,
             long affinity,
-            String16FW kafkaRetainedTopic)
+            int qos)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -1054,7 +1121,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, kafkaRetainedTopic);
+                    traceId, authorization, affinity, topic, qos);
         }
 
         private void doKafkaData(
@@ -1485,15 +1552,17 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW topic)
+        String16FW topic,
+        int qos)
     {
+        final KafkaAckMode ackMode = qos > 0 ? IN_SYNC_REPLICAS : KAFKA_DEFAULT_ACK_MODE;
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                     .topic(topic)
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
-                    .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
+                    .ackMode(b -> b.set(ackMode)))
                 .build();
 
 

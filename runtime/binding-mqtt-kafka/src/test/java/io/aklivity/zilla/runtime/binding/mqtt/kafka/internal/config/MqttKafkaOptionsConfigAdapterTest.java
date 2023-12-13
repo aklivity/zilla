@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.Arrays;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -48,11 +50,16 @@ public class MqttKafkaOptionsConfigAdapterTest
                 "\"server\":\"mqtt-1.example.com:1883\"," +
                 "\"topics\":" +
                 "{" +
-                "\"sessions\":\"sessions\"," +
-                "\"messages\":\"messages\"," +
-                "\"retained\":\"retained\"," +
-                "}" +
-                "}";
+                    "\"sessions\":\"sessions\"," +
+                    "\"messages\":\"messages\"," +
+                    "\"retained\":\"retained\"," +
+                "}," +
+                "\"clients\":" +
+                "[" +
+                    "\"/clients/{identity}/#\"," +
+                    "\"/department/clients/{identity}/#\"" +
+                "]" +
+            "}";
 
         MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
 
@@ -62,6 +69,10 @@ public class MqttKafkaOptionsConfigAdapterTest
         assertThat(options.topics.messages.asString(), equalTo("messages"));
         assertThat(options.topics.retained.asString(), equalTo("retained"));
         assertThat(options.serverRef, equalTo("mqtt-1.example.com:1883"));
+        assertThat(options.clients, not(nullValue()));
+        assertThat(options.clients.size(), equalTo(2));
+        assertThat(options.clients.get(0), equalTo("/clients/{identity}/#"));
+        assertThat(options.clients.get(1), equalTo("/department/clients/{identity}/#"));
     }
 
     @Test
@@ -71,20 +82,72 @@ public class MqttKafkaOptionsConfigAdapterTest
             new MqttKafkaTopicsConfig(
                 new String16FW("sessions"),
                 new String16FW("messages"),
-                new String16FW("retained")), "mqtt-1.example.com:1883");
+                new String16FW("retained")),
+            "mqtt-1.example.com:1883",
+            Arrays.asList("/clients/{identity}/#", "/department/clients/{identity}/#"));
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+                "{" +
+                "\"server\":\"mqtt-1.example.com:1883\"," +
+                "\"topics\":" +
+                "{" +
+                    "\"sessions\":\"sessions\"," +
+                    "\"messages\":\"messages\"," +
+                    "\"retained\":\"retained\"" +
+                "}," +
+                "\"clients\":" +
+                "[" +
+                    "\"/clients/{identity}/#\"," +
+                    "\"/department/clients/{identity}/#\"" +
+                "]" +
+            "}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutClients()
+    {
+        String text =
+            "{" +
+                "\"topics\":" +
+                "{" +
+                    "\"sessions\":\"sessions\"," +
+                    "\"messages\":\"messages\"," +
+                    "\"retained\":\"retained\"" +
+                "}" +
+            "}";
+
+        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.topics, not(nullValue()));
+        assertThat(options.topics.sessions.asString(), equalTo("sessions"));
+        assertThat(options.topics.messages.asString(), equalTo("messages"));
+        assertThat(options.topics.retained.asString(), equalTo("retained"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithoutClients()
+    {
+        MqttKafkaOptionsConfig options = new MqttKafkaOptionsConfig(
+            new MqttKafkaTopicsConfig(
+                new String16FW("sessions"),
+                new String16FW("messages"),
+                new String16FW("retained")), null, null);
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                "\"server\":\"mqtt-1.example.com:1883\"," +
-                "\"topics\":" +
-                "{" +
-                "\"sessions\":\"sessions\"," +
-                "\"messages\":\"messages\"," +
-                "\"retained\":\"retained\"" +
-                "}" +
+                    "\"topics\":" +
+                    "{" +
+                        "\"sessions\":\"sessions\"," +
+                        "\"messages\":\"messages\"," +
+                        "\"retained\":\"retained\"" +
+                    "}" +
                 "}"));
     }
 }

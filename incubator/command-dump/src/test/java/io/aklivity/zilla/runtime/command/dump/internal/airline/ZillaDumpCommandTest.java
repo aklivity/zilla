@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
-
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -192,9 +192,9 @@ public class ZillaDumpCommandTest
     public void init()
     {
         command = new ZillaDumpCommand();
-        command.directory = Paths.get(baseDir, "engine");
         command.verbose = true;
         command.continuous = false;
+        command.properties = List.of(String.format("zilla.engine.directory=%s", Paths.get(baseDir, "engine")));
         command.output = Paths.get(tempDir.getPath(), "test.pcap");
     }
 

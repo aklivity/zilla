@@ -71,6 +71,15 @@
                                     "messages"
                                 ],
                                 "additionalProperties": false
+                            },
+                            "clients":
+                            {
+                                "title": "Clients",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
                             }
                         },
                         "required":
@@ -79,15 +88,96 @@
                         ],
                         "additionalProperties": false
                     },
-                    "routes": false
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "anyOf":
+                                        [
+                                            {
+                                                "properties":
+                                                {
+                                                    "subscribe":
+                                                    {
+                                                        "title": "Subscribe",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "topic":
+                                                            {
+                                                                "title": "Topic",
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "properties":
+                                                {
+                                                    "publish":
+                                                    {
+                                                        "title": "Subscribe",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "topic":
+                                                            {
+                                                                "title": "Topic",
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                "with":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "messages":
+                                            {
+                                                "title": "Messages Topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
+                    }
                 },
+                "required":
+                [
+                    "options"
+                ],
                 "anyOf":
                 [
                     {
                         "required":
                         [
-                            "exit",
-                            "options"
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
                         ]
                     }
                 ]

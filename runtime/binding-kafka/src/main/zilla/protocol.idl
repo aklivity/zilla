@@ -477,6 +477,48 @@ scope protocol
                 int16 errorCode;
             }
 
+            struct OffsetCommitRequest
+            {
+                string16 groupId;
+                int32 generationId;
+                string16 memberId;
+                string16 groupInstanceId = null;
+                int32 topicCount;
+            }
+
+            struct OffsetCommitTopicRequest
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetCommitTopicPartitionRequest
+            {
+                int32 partitionIndex;
+                int64 partitionOffset;
+                int32 leaderEpoch;
+                string16 metadata = null;
+            }
+
+            struct OffsetCommitResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMs;
+                int32 topicCount;
+            }
+
+            struct OffsetCommitTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetCommitTopicPartitionResponse
+            {
+                int32 partitionIndex;
+                int16 errorCode;
+            }
+
             struct OffsetFetchRequest
             {
                 string16 groupId;
@@ -485,13 +527,19 @@ scope protocol
 
             struct OffsetFetchTopicRequest
             {
-                string16 topic;
+                string16 name;
                 int32 partitionsCount;
+            }
+
+            struct OffsetFetchTopicPartitionRequest
+            {
+                int32 partitionIndex;
             }
 
             struct OffsetFetchResponse
             {
                 int32 correlationId;
+                int32 throttleTimeMillis;
                 int32 topicCount;
             }
 
@@ -501,12 +549,18 @@ scope protocol
                 int32 partitionCount;
             }
 
-            struct OffsetFetchPartition
+            struct OffsetFetchPartitionResponse
             {
                 int32 partitionIndex;
                 int64 committedOffset;
+                int32 committedLeaderEpoch;
                 string16 metadata = null;
                 int16 errorCode;
+            }
+
+            struct OffsetFetchErrorResponse
+            {
+                int16 code;
             }
         }
 
@@ -570,6 +624,18 @@ scope protocol
             {
                 uint32 userdataLength;
                 octets[userdataLength] userdata;
+            }
+
+            struct ConsumerAssignmentTopicUserdata
+            {
+                string16 topic;
+                uint32 userdataLength;
+                octets[userdataLength] userdata;
+            }
+
+            struct ConsumerAssignmentTopicsUserdata
+            {
+                ConsumerAssignmentTopicUserdata[] topicsUserdata;
             }
 
             struct ConsumerMetadataTopic

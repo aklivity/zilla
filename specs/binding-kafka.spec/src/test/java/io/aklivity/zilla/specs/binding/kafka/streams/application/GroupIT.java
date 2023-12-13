@@ -65,9 +65,18 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/leader/client",
-        "${app}/leader/server"})
-    public void shouldBecameLeader() throws Exception
+        "${app}/client.sent.read.abort.after.sync.group.response/client",
+        "${app}/client.sent.read.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/leader.assignment/client",
+        "${app}/leader.assignment/server"})
+    public void shouldAssignLeader() throws Exception
     {
         k3po.finish();
     }
@@ -128,6 +137,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/topics.partition.assignment/client",
+        "${app}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reassign.new.topic/client",
         "${app}/reassign.new.topic/server"})
     public void shouldReassignOnNewTopic() throws Exception
@@ -149,6 +167,33 @@ public class GroupIT
         "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
         "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
     public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${app}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${app}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${app}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
     {
         k3po.finish();
     }

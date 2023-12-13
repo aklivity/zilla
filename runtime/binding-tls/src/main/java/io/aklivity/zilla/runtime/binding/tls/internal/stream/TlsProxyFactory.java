@@ -132,6 +132,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         BindingConfig binding)
     {
         TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
+        assert tlsBinding.options != null;
+
         bindings.put(binding.id, tlsBinding);
     }
 

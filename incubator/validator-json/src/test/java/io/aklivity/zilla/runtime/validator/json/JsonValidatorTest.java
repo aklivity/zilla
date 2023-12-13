@@ -41,8 +41,7 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorTest
 {
-    private static final String SCHEMA =
-                "{" +
+    private static final String OBJECT_SCHEMA = "{" +
                     "\"type\": \"object\"," +
                     "\"properties\": " +
                     "{" +
@@ -58,6 +57,12 @@ public class JsonValidatorTest
                     "\"status\"" +
                     "]" +
                 "}";
+
+    private static final String ARRAY_SCHEMA = "{" +
+                    "\"type\": \"array\"," +
+                    "\"items\": " +
+                        OBJECT_SCHEMA +
+                    "}";
 
     private final JsonValidatorConfig config = JsonValidatorConfig.builder()
             .catalog()
@@ -83,9 +88,9 @@ public class JsonValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidJsonData()
+    public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -102,9 +107,30 @@ public class JsonValidatorTest
     }
 
     @Test
-    public void shouldVerifyInvalidJsonData()
+    public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+            "[" +
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}" +
+            "]";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertTrue(validator.write(data, 0, data.capacity()));
+    }
+
+    @Test
+    public void shouldVerifyInvalidJsonObject()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -195,5 +221,26 @@ public class JsonValidatorTest
         assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
 
         assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyInvalidJsonArray()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        JsonValidator validator = new JsonValidator(config, resolveId, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+            "[" +
+                "{" +
+                    "\"id\": 123," +
+                    "\"status\": \"OK\"" +
+                "}" +
+            "]";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(validator.write(data, 0, data.capacity()));
     }
 }

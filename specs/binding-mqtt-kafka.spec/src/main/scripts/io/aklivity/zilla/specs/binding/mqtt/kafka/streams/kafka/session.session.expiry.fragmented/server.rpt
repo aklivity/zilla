@@ -13,13 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property delayMillis 2000L
-property expireAt ${mqtt:timestamp() + delayMillis}
-
 accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
-
 
 accepted
 
@@ -44,6 +40,7 @@ write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
@@ -60,10 +57,10 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-1#expiry-signal")
-                               .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}

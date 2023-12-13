@@ -39,6 +39,7 @@ write notify FIRST_CONNECTED
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .fetch()
                                 .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -73,6 +74,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("sensor/one")
@@ -80,6 +82,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -39,6 +38,7 @@ public class KafkaConfiguration extends Configuration
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
+    public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS;
@@ -47,6 +47,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE;
     public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
@@ -67,6 +68,8 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
@@ -80,6 +83,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
+        KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS = config.property("client.connection.pool.cleanup.millis", 4 * 1000L);
         KAFKA_CLIENT_META_MAX_AGE_MILLIS = config.property("client.meta.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS = config.property("client.describe.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS = config.property("client.fetch.max.wait.millis", 1 * 60 * 1000);
@@ -88,10 +92,15 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
+        KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE = config.property("client.produce.record.framing.size", 512);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT = config.property(Duration.class, "client.group.rebalance.timeout",
             (c, v) -> Duration.parse(v), "PT4S");
+        KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT = config.property("client.group.min.session.timeout.default",
+            (int) Duration.ofSeconds(6).toMillis());
+        KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
+            (int) Duration.ofMinutes(5).toMillis());
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -132,6 +141,11 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_MAX_IDLE_MILLIS.getAsInt(this);
     }
 
+    public long clientConnectionPoolCleanupMillis()
+    {
+        return KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS.getAsLong(this);
+    }
+
     public long clientMetaMaxAgeMillis()
     {
         return KAFKA_CLIENT_META_MAX_AGE_MILLIS.getAsInt(this);
@@ -170,6 +184,11 @@ public class KafkaConfiguration extends Configuration
     public int clientProduceMaxBytes()
     {
         return KAFKA_CLIENT_PRODUCE_MAX_BYTES.getAsInt(this);
+    }
+
+    public int clientProduceRecordFramingSize()
+    {
+        return KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE.getAsInt(this);
     }
 
     public Path cacheDirectory()
@@ -276,6 +295,16 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT.get(this);
     }
 
+    public int clientGroupMinSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
+    public int clientGroupMaxSessionTimeoutDefault()
+    {
+        return KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
     private static Path cacheDirectory(
         Configuration config,
         String cacheDirectory)
@@ -353,42 +382,38 @@ public class KafkaConfiguration extends Configuration
 
     private static InstanceIdSupplier decodeInstanceId(
         Configuration config,
-        String value)
+        String fullyQualifiedMethodName)
     {
+        InstanceIdSupplier supplier = null;
+
         try
         {
-            String className = value.substring(0, value.indexOf("$$Lambda"));
-            Class<?> lambdaClass = Class.forName(className);
-
-            Method targetMethod = null;
-            for (Method method : lambdaClass.getDeclaredMethods())
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = fullyQualifiedMethodName.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
             {
-                if (method.isSynthetic())
-                {
-                    targetMethod = method;
-                    break;
-                }
-            }
-
-            Method finalTargetMethod = targetMethod;
-            return () ->
-            {
+                String value = null;
                 try
                 {
-                    finalTargetMethod.setAccessible(true);
-                    return (String) finalTargetMethod.invoke(null);
+                    value = (String) method.invoke();
                 }
-                catch (Exception e)
+                catch (Throwable ex)
                 {
-                    throw new RuntimeException("Failed to invoke the lambda method.", e);
+                    LangUtil.rethrowUnchecked(ex);
                 }
+
+                return value;
             };
         }
         catch (Throwable ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
-        return null;
+
+        return supplier;
     }
 
     private static InstanceIdSupplier defaultInstanceId(

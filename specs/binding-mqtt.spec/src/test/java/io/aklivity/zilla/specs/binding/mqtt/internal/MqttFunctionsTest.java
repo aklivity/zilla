@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -126,6 +128,7 @@ public class MqttFunctionsTest
             .typeId(0)
                 .subscribe()
                 .clientId("client")
+                .qos("AT_LEAST_ONCE")
                 .filter("sensor/one", 0)
                 .build()
             .build();
@@ -135,6 +138,7 @@ public class MqttFunctionsTest
 
         assertEquals(1, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.subscribe().clientId().asString());
+        assertEquals(1, mqttBeginEx.subscribe().qos());
         assertNotNull(mqttBeginEx.subscribe().filters()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
@@ -197,6 +201,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .topic("sensor/one")
                 .flags("RETAIN")
+                .qos(1)
                 .build()
             .build();
 
@@ -208,7 +213,8 @@ public class MqttFunctionsTest
             .publish(f -> f
                 .clientId("client")
                 .topic("sensor/one")
-                .flags(1))
+                .flags(1)
+                .qos(1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -369,6 +375,7 @@ public class MqttFunctionsTest
                 .clientId("client")
                 .topic("sensor/one")
                 .flags("RETAIN")
+                .qos(1)
                 .build()
             .build();
 
@@ -379,6 +386,7 @@ public class MqttFunctionsTest
         assertEquals("client", mqttBeginEx.publish().clientId().asString());
         assertEquals("sensor/one", mqttBeginEx.publish().topic().asString());
         assertEquals(1, mqttBeginEx.publish().flags());
+        assertEquals(1, mqttBeginEx.publish().qos());
     }
 
     @Test
@@ -387,6 +395,7 @@ public class MqttFunctionsTest
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .subscribe()
                 .topic("sensor/one")
+                .packetId(1)
                 .qos("AT_MOST_ONCE")
                 .flags("RETAIN")
                 .subscriptionId(1)
@@ -408,6 +417,7 @@ public class MqttFunctionsTest
             .subscribe(s ->
             {
                 s.topic("sensor/one");
+                s.packetId(1);
                 s.qos(0);
                 s.flags(1);
                 s.subscriptionIdsItem(i -> i.set(1));
@@ -499,6 +509,7 @@ public class MqttFunctionsTest
             .typeId(0)
                 .subscribe()
                 .topic("sensor/one")
+                .packetId(1)
                 .subscriptionId(1)
                 .subscriptionId(2)
                 .expiryInterval(15)
@@ -515,6 +526,7 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
+        assertEquals(1, mqttDataEx.subscribe().packetId());
         assertNotNull(mqttDataEx.subscribe().subscriptionIds().matchFirst(s -> s.value() == 1));
         assertNotNull(mqttDataEx.subscribe().subscriptionIds().matchFirst(s -> s.value() == 2));
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
@@ -1157,7 +1169,28 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttSubscribeFlushEx()
+    public void shouldEncodeMqttSubscribeFlushExOffsetCommit()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .qos("EXACTLY_ONCE")
+                .packetId(1)
+                .state("INCOMPLETE")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttFlushEx.typeId());
+        assertEquals(1, mqttFlushEx.subscribe().packetId());
+        assertEquals(2, mqttFlushEx.subscribe().qos());
+        assertEquals(1, mqttFlushEx.subscribe().state());
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeFlushExChangeFilter()
     {
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
@@ -1198,8 +1231,9 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSessionState()
     {
         final byte[] array = MqttFunctions.session()
-            .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-            .subscription("sensor/two", 1, 0)
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .subscriptionWithReasonCode("sensor/two", 1, 0)
+            .subscription("sensor/three", 1, "EXACTLY_ONCE", "SEND_RETAINED")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1209,7 +1243,7 @@ public class MqttFunctionsTest
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
-                    0 == f.qos() &&
+                    1 == f.qos() &&
                     0b0001 == f.flags()));
 
         assertNotNull(sessionState.subscriptions()
@@ -1219,6 +1253,33 @@ public class MqttFunctionsTest
                     0 == f.qos() &&
                     0 == f.reasonCode() &&
                     0b0000 == f.flags()));
+
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f ->
+                "sensor/three".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
+                    2 == f.qos() &&
+                    0b0001 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttOffsetMetadata()
+    {
+        final String state = MqttFunctions.metadata()
+            .metadata(1)
+            .metadata(2)
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                    1 == m.packetId()));
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                2 == m.packetId()));
     }
 
     @Test

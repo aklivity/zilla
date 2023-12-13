@@ -55,7 +55,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
     private static final String16FW HEADER_STATUS_VALUE_304 = new String16FW("304");
-    private static final String8FW HEADER_ETAG_NAME = new String8FW("Etag");
+    private static final String8FW HEADER_ETAG_NAME = new String8FW("etag");
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();

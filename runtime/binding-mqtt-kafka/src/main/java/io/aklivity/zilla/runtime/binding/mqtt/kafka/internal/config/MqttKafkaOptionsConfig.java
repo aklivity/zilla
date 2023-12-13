@@ -14,18 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class MqttKafkaOptionsConfig extends OptionsConfig
 {
     public final MqttKafkaTopicsConfig topics;
     public final String serverRef;
+    public final List<String> clients;
 
     public MqttKafkaOptionsConfig(
         MqttKafkaTopicsConfig topics,
-        String serverRef)
+        String serverRef,
+        List<String> clients)
     {
         this.topics = topics;
         this.serverRef = serverRef;
+        this.clients = clients;
     }
 }

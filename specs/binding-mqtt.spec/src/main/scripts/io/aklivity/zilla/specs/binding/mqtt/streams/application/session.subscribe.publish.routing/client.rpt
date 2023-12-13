@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -48,15 +48,15 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write ${mqtt:session()
-               .subscription("reply", 1)
+               .subscription("reply", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
 read ${mqtt:session()
-               .subscription("reply", 1)
+               .subscription("reply", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -64,13 +64,13 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("reply", 1)
+                                .filter("reply", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                               .build()}
 
 connected
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -93,7 +93,7 @@ write "message1"
 write flush
 
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 

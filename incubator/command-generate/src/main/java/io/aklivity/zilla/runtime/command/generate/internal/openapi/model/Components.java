@@ -19,4 +19,5 @@ import java.util.Map;
 public class Components
 {
     public Map<String, SecurityScheme> securitySchemes;
+    public Map<String, Schema> schemas;
 }

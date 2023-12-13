@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest
+    .KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_INSTANCE_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientGroupIT
 {
@@ -40,6 +44,8 @@ public class ClientGroupIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(KAFKA_CLIENT_INSTANCE_ID_NAME,
+            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupIT::supplyInstanceId")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -52,6 +58,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.before.coordinator.response/client",
         "${net}/client.sent.write.abort.before.coordinator.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortBeforeCoordinatorResponse() throws Exception
     {
         k3po.finish();
@@ -62,6 +69,7 @@ public class ClientGroupIT
     @Specification({
         "${app}/client.sent.write.abort.after.sync.group.response/client",
         "${net}/client.sent.write.abort.after.sync.group.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();
@@ -70,19 +78,10 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/client.sent.write.abort.after.sync.group.response/client",
+        "${app}/client.sent.read.abort.after.sync.group.response/client",
         "${net}/client.sent.read.abort.after.sync.group.response/server"})
+    @Configure(name = KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME, value = "0")
     public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/client.sent.write.abort.after.sync.group.response/client",
-        "${net}/client.sent.write.close.after.sync.group.response/server"})
-    public void shouldHandleClientSentWriteCloseAfterSyncGroupResponse() throws Exception
     {
         k3po.finish();
     }
@@ -100,7 +99,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception
     {
@@ -110,7 +109,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/coordinator.reject.invalid.consumer/server"})
     public void shouldRejectInvalidConsumer() throws Exception
     {
@@ -120,7 +119,7 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leader/client",
+        "${app}/leader.assignment/client",
         "${net}/rebalance.protocol.highlander.unknown.member.id/server"})
     public void shouldRebalanceProtocolHighlanderUnknownMemberId() throws Exception
     {
@@ -195,5 +194,50 @@ public class ClientGroupIT
     public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topics.partition.assignment/client",
+        "${net}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${net}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${net}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    public static String supplyInstanceId()
+    {
+        return "zilla";
     }
 }
