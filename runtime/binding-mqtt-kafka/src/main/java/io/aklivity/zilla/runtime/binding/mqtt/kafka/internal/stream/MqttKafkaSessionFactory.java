@@ -958,6 +958,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long affinity)
         {
             reconnectAttempt = 0;
+            state = 0;
             replySeq = 0;
             replyAck = 0;
 
