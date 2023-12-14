@@ -143,10 +143,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final byte MQTT_IMPLEMENTATION_SPECIFIC_ERROR = (byte) 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
     private static final String16FW EMPTY_STRING = new String16FW("");
+    public static final int MQTT_DEFAULT_ERROR = -1;
 
     static
     {
-        final Int2IntHashMap reasonCodes = new Int2IntHashMap(-1);
+        final Int2IntHashMap reasonCodes = new Int2IntHashMap(MQTT_DEFAULT_ERROR);
 
         reasonCodes.put(GROUP_AUTH_FAILED_ERROR_CODE, MQTT_NOT_AUTHORIZED);
         reasonCodes.put(INVALID_SESSION_TIMEOUT_ERROR_CODE, MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
