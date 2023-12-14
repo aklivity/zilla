@@ -235,6 +235,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             try
             {
                 InputStream is = getClass().getResourceAsStream("/wireshark/zilla.lua");
+                Files.createDirectories(pluginDirectory);
                 Path target = pluginDirectory.resolve("zilla.lua");
                 Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
                 if (verbose)
