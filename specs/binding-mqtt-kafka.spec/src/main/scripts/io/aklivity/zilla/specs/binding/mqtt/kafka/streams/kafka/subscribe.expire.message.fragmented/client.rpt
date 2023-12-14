@@ -13,15 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property timestamp ${kafka:timestamp()}
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accept "zilla://streams/kafka0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -38,7 +34,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .build()
                             .build()}
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -49,8 +45,9 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write await WAIT_TIME_ELAPSED
-write zilla:data.ext ${kafka:dataEx()
+
+read notify WAIT_TIME_ELAPSED
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .fetch()
@@ -67,8 +64,9 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:format", "TEXT")
                                     .build()
                                 .build()}
-write "message"
-write flush
+read "mess"
 
-read closed
+read "age"
+
 write close
+read closed

@@ -29,6 +29,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 
-write await SEND_DATA
+write await WAIT_TIME_ELAPSED
 write close
 read closed

@@ -153,6 +153,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.one.message/client",
+        "${kafka}/subscribe.one.message.fragmented/server"})
+    public void shouldReceiveOneMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.options.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
@@ -247,6 +258,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.retain/client",
         "${kafka}/subscribe.retain/server"})
     public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retain/client",
+        "${kafka}/subscribe.retain.fragmented/server"})
+    public void shouldReceiveRetainedFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -591,7 +613,21 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.start();
         Thread.sleep(1500);
-        k3po.notifyBarrier("SEND_DATA");
+        k3po.notifyBarrier("WAIT_TIME_ELAPSED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message.fragmented/server"})
+    public void shouldExpireMessageFragmented() throws Exception
+    {
+        k3po.start();
+        Thread.sleep(1500);
+        k3po.notifyBarrier("WAIT_TIME_ELAPSED");
         k3po.finish();
     }
 }

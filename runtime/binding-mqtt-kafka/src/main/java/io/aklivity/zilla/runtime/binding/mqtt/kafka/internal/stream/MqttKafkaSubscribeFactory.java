@@ -105,7 +105,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     private static final int SIGNAL_CONNECT_BOOTSTRAP_STREAM = 1;
-    private static final int DATA_FIN_FLAG = 0x03;
+    private static final int DATA_FLAG_INIT = 0x02;
+    private static final int DATA_FLAG_FIN = 0x01;
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -1097,6 +1100,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
+        private boolean expiredMessage;
 
         private KafkaMessagesProxy(
             long originId,
@@ -1443,7 +1447,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
 
-                if (key != null)
+
+                Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
+                if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
@@ -1455,6 +1461,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         expireInterval = timestamp + helper.timeout - now().toEpochMilli();
                         if (expireInterval < 0)
                         {
+                            expiredMessage = true;
                             break sendData;
                         }
                     }
@@ -1474,7 +1481,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         }
                     }
 
-                    final MqttDataExFW mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(mqttTypeId)
                         .subscribe(b ->
                         {
@@ -1543,7 +1550,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             });
                         }).build();
+                }
 
+                if (!expiredMessage)
+                {
                     if (!MqttKafkaState.initialOpened(mqtt.retained.state) ||
                         MqttKafkaState.replyClosed(mqtt.retained.state))
                     {
@@ -1573,6 +1583,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         messageSlotReserved += reserved;
                     }
                 }
+
+                if ((flags & DATA_FLAG_FIN) != 0x00)
+                {
+                    expiredMessage = false;
+                }
             }
         }
 
@@ -1591,7 +1606,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 {
                     final MqttSubscribeMessageFW message = mqttSubscribeMessageRO.wrap(dataBuffer, messageSlotOffset,
                         dataBuffer.capacity());
-                    mqtt.doMqttData(traceId, authorization, budgetId, reserved, DATA_FIN_FLAG, message.payload(),
+                    mqtt.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_FIN, message.payload(),
                         message.extension());
 
                     messageSlotOffset += message.sizeof();
@@ -1852,6 +1867,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int replyPad;
 
         private int unAckedPackets;
+        private boolean expiredMessage;
 
         private KafkaRetainedProxy(
             long originId,
@@ -2178,7 +2194,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
 
-                if (key != null)
+                Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
+                if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
@@ -2190,6 +2207,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         expireInterval = timestamp + helper.timeout - now().toEpochMilli();
                         if (expireInterval < 0)
                         {
+                            expiredMessage = true;
                             break sendData;
                         }
                     }
@@ -2198,7 +2216,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         expireInterval = helper.timeout;
                     }
 
-                    final Flyweight mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(mqttTypeId)
                         .subscribe(b ->
                         {
@@ -2272,10 +2290,17 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             });
                         }).build();
+                }
 
+                if (!expiredMessage)
+                {
                     mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
-
                     mqtt.mqttSharedBudget -= length;
+                }
+
+                if ((flags & DATA_FLAG_FIN) != 0x00)
+                {
+                    expiredMessage = false;
                 }
             }
         }

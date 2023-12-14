@@ -50,6 +50,7 @@ write zilla:begin.ext ${kafka:beginEx()
 connected
 
 write await WAIT_TIME_ELAPSED
+write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -67,7 +68,11 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:format", "TEXT")
                                     .build()
                                 .build()}
-write "message"
+write "mess"
+write flush
+
+write option zilla:flags "fin"
+write "age"
 write flush
 
 read closed
