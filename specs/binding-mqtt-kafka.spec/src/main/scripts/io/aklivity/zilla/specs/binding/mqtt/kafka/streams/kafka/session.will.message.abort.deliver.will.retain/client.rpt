@@ -462,9 +462,9 @@ write zilla:data.ext ${kafka:dataEx()
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
-
 write "client-1 disconnected abruptly"
 write flush
 
@@ -498,6 +498,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

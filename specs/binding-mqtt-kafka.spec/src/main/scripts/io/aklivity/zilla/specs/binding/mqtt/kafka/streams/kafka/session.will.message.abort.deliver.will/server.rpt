@@ -473,6 +473,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:reply-filter", "responses")
                                .header("zilla:reply-filter", "client1")
                                .header("zilla:correlation-id", "info")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 read "client-1 disconnected abruptly"
