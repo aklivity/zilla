@@ -170,19 +170,19 @@
                                             "type": "string"
                                         }
                                     },
-                                    "additionalProperties": false
-                                },
-                                "required":
-                                [
-                                    "scheme",
-                                    "authority"
-                                ]
-                            }
-                        },
-                        "required":
-                        [
-                            "with"
-                        ]
+                                    "additionalProperties": false,
+                                    "required":
+                                    [
+                                        "scheme",
+                                        "authority"
+                                    ]
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
                     },
                     "exit": false
                 },
