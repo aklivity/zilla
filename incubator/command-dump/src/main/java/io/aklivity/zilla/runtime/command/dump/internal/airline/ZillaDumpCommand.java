@@ -521,7 +521,8 @@ public final class ZillaDumpCommand extends ZillaCommand
                 int offset = data.offset() - HEADER_LENGTH;
                 final DataFW newData = dataRW.wrap(patchBuffer, 0, data.sizeof()).set(data).build();
                 final ExtensionFW extension = newData.extension().get(extensionRO::tryWrap);
-                patchExtension(patchBuffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
+                int extensionOffset = DataFW.FIELD_OFFSET_PAYLOAD + Math.max(newData.length(), 0) + DataFW.FIELD_OFFSET_EXTENSION;
+                patchExtension(patchBuffer, extension, extensionOffset);
 
                 writeFrame(DataFW.TYPE_ID, worker, offset, newData.originId(), newData.routedId(), newData.streamId(),
                     newData.timestamp(), newData, PSH_ACK);

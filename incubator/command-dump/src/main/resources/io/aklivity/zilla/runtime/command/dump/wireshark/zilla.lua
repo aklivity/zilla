@@ -312,11 +312,13 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
 
         local slice_payload_length = buffer(frame_offset + 85, 4)
-        local payload_length = slice_payload_length:le_int()
+        local payload_length = math.max(slice_payload_length:le_int(), 0)
         local slice_payload = buffer(frame_offset + 89, payload_length)
         local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
         payload_subtree:add_le(fields.payload_length, slice_payload_length)
-        payload_subtree:add(fields.payload, slice_payload)
+        if (payload_length > 0) then
+            payload_subtree:add(fields.payload, slice_payload)
+        end
 
         handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + payload_length)
 
@@ -379,11 +381,13 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         subtree:add_le(fields.context_id, slice_context_id)
 
         local slice_payload_length = buffer(frame_offset + 88, 4)
-        local payload_length = slice_payload_length:le_int()
+        local payload_length = math.max(slice_payload_length:le_int(), 0)
         local slice_payload = buffer(frame_offset + 92, payload_length)
         local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
         payload_subtree:add_le(fields.payload_length, slice_payload_length)
-        payload_subtree:add(fields.payload, slice_payload)
+        if (payload_length > 0) then
+            payload_subtree:add(fields.payload, slice_payload)
+        end
     end
 
     -- challenge
