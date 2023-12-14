@@ -24,12 +24,14 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -161,6 +163,11 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Dump specific namespaced bindings only, e.g example.http0,example.kafka0")
     public List<String> bindings = new ArrayList<>();
 
+    @Option(name = {"-i", "--install"},
+        description = "Install Zilla dissector to Wireshark plugin directory",
+        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
+    public Path pluginDirectory;
+
     @Option(name = {"-w", "--write"},
         description = "Write output to PCAP file",
         typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
@@ -223,6 +230,29 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
+        if (pluginDirectory != null)
+        {
+            try
+            {
+                InputStream is = getClass().getResourceAsStream("/wireshark/zilla.lua");
+                Path target = pluginDirectory.resolve("zilla.lua");
+                Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
+                if (verbose)
+                {
+                    System.out.printf("Copied Wireshark plugin to the directory: %s%n", pluginDirectory);
+                }
+            }
+            catch (IOException ex)
+            {
+                System.out.printf("Failed to copy the Wireshark plugin to the directory: %s%n", pluginDirectory);
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
+                rethrowUnchecked(ex);
+            }
+        }
+
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
@@ -235,7 +265,11 @@ public final class ZillaDumpCommand extends ZillaCommand
             }
             catch (IOException ex)
             {
-                System.out.println("Failed to load properties: " + path);
+                System.out.printf("Failed to load properties: %s%n", path);
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
                 rethrowUnchecked(ex);
             }
         }
@@ -346,7 +380,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     {
         if (verbose)
         {
-            System.out.printf("Discovered: %s\n", path);
+            System.out.printf("Discovered: %s%n", path);
         }
     }
 
@@ -380,7 +414,11 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
         catch (IOException ex)
         {
-            System.out.println("Could not write to file. Reason: " + ex.getMessage());
+            System.out.printf("Could not write to file. Reason: %s%n", ex.getMessage());
+            if (exceptions)
+            {
+                ex.printStackTrace();
+            }
             rethrowUnchecked(ex);
         }
     }
