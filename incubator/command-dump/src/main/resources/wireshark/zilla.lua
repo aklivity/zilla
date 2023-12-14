@@ -15,7 +15,20 @@
 
 ]]
 
-zilla_protocol = Proto("Zilla", "Zilla Frames")
+local zilla_version = "@version@"
+if zilla_version == string.format("@%s@", "version") or zilla_version == "develop-SNAPSHOT" then
+    zilla_version = "dev"
+end
+
+local zilla_info = {
+    version = zilla_version,
+    author = "Aklivity, Inc.",
+    repository = "https://github.com/aklivity/zilla",
+    description = "Dissector for the internal protocol of Zilla"
+}
+set_plugin_info(zilla_info)
+
+local zilla_protocol = Proto("Zilla", "Zilla Frames")
 
 HEADER_OFFSET = 0
 LABELS_OFFSET = 16
