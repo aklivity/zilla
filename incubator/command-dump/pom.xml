@@ -147,7 +147,7 @@
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
         <includes>
-          <include>wireshark/zilla.lua</include>
+          <include>**/zilla.lua</include>
         </includes>
       </resource>
     </resources>

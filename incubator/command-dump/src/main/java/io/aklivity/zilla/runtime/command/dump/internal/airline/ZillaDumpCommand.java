@@ -23,7 +23,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
@@ -234,7 +233,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             try
             {
-                InputStream is = getClass().getResourceAsStream("/wireshark/zilla.lua");
+                InputStream is = getClass().getResourceAsStream("zilla.lua");
                 Files.createDirectories(pluginDirectory);
                 Path target = pluginDirectory.resolve("zilla.lua");
                 Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
@@ -243,7 +242,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                     System.out.printf("Copied Wireshark plugin to the directory: %s%n", pluginDirectory);
                 }
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
                 System.out.printf("Failed to copy the Wireshark plugin to the directory: %s%n", pluginDirectory);
                 if (exceptions)
@@ -264,7 +263,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             {
                 props.load(Files.newInputStream(path));
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
                 System.out.printf("Failed to load properties: %s%n", path);
                 if (exceptions)
@@ -413,7 +412,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             byteBuf.limit(offset + length);
             writer.write(byteBuf);
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             System.out.printf("Could not write to file. Reason: %s%n", ex.getMessage());
             if (exceptions)
