@@ -22,6 +22,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.io.JsonEncoder;
 
@@ -124,9 +125,13 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             if (FORMAT_JSON.equals(format))
             {
                 byte[] record = deserializeRecord(schemaId, data, payloadIndex, payloadLength);
-                valueRO.wrap(record);
-                valLength = record.length;
-                next.accept(valueRO, 0, valLength);
+                int recordLength = record.length;
+                if (recordLength > 0)
+                {
+                    valLength = record.length;
+                    valueRO.wrap(record);
+                    next.accept(valueRO, 0, valLength);
+                }
             }
             else if (validate(schemaId, data, payloadIndex, payloadLength))
             {
@@ -156,7 +161,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             out.flush();
             encoded.close();
         }
-        catch (IOException ex)
+        catch (IOException | AvroRuntimeException ex)
         {
             ex.printStackTrace();
         }

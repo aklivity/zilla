@@ -21,6 +21,7 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryEncoder;
 
@@ -101,16 +102,19 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
                 byte[] record = serializeJsonRecord(schemaId, data, index, length);
 
                 int recordLength = record.length;
-                valLength = record.length;
-                if (appendSchemaId)
+                if (recordLength > 0)
                 {
-                    valLength += 5;
-                    prefixRO.putByte(0, MAGIC_BYTE);
-                    prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-                    next.accept(prefixRO, 0, 5);
+                    valLength = record.length;
+                    if (appendSchemaId)
+                    {
+                        valLength += 5;
+                        prefixRO.putByte(0, MAGIC_BYTE);
+                        prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+                        next.accept(prefixRO, 0, 5);
+                    }
+                    valueRO.wrap(record);
+                    next.accept(valueRO, 0, recordLength);
                 }
-                valueRO.wrap(record);
-                next.accept(valueRO, 0, recordLength);
             }
             else if (validate(schemaId, data, index, length))
             {
@@ -147,7 +151,7 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
             out.flush();
             encoded.close();
         }
-        catch (IOException ex)
+        catch (IOException | AvroRuntimeException ex)
         {
             ex.printStackTrace();
         }
