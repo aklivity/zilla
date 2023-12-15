@@ -63,7 +63,7 @@ write zilla:data.ext ${kafka:dataEx()
                                     .header("zilla:filter", "sensor")
                                     .header("zilla:filter", "one")
                                     .header("zilla:local", "client")
-                                    .headerInt("zilla:timeout-ms", 1000)
+                                    .headerInt("zilla:expiry", 1000)
                                     .header("zilla:format", "TEXT")
                                     .build()
                                 .build()}
