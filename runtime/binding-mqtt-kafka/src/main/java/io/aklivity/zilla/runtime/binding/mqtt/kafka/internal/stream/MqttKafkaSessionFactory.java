@@ -139,19 +139,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int GROUP_AUTH_FAILED_ERROR_CODE = 30;
     public static final int INVALID_DESCRIBE_CONFIG_ERROR_CODE = 35;
     public static final int INVALID_SESSION_TIMEOUT_ERROR_CODE = 26;
-    public static final byte MQTT_NOT_AUTHORIZED = (byte) 0x87;
-    public static final byte MQTT_IMPLEMENTATION_SPECIFIC_ERROR = (byte) 0x83;
+    public static final int MQTT_NOT_AUTHORIZED = 0x87;
+    public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
     private static final String16FW EMPTY_STRING = new String16FW("");
-    public static final int MQTT_DEFAULT_ERROR = -1;
 
     static
     {
-        final Int2IntHashMap reasonCodes = new Int2IntHashMap(MQTT_DEFAULT_ERROR);
+        final Int2IntHashMap reasonCodes = new Int2IntHashMap(MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
 
         reasonCodes.put(GROUP_AUTH_FAILED_ERROR_CODE, MQTT_NOT_AUTHORIZED);
-        reasonCodes.put(INVALID_SESSION_TIMEOUT_ERROR_CODE, MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
-        reasonCodes.put(INVALID_DESCRIBE_CONFIG_ERROR_CODE, MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
 
         MQTT_REASON_CODES = reasonCodes;
     }
@@ -3335,11 +3332,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight mqttResetEx = EMPTY_OCTETS;
             if (error != -1)
             {
-                mqttResetEx = mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                MqttResetExFW.Builder mqttResetBuilder =
+                    mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
-                    .reasonCode(MQTT_REASON_CODES.get(kafkaResetEx.error()) & 0xff)
-                    .reason(MQTT_REASONS.getOrDefault(kafkaResetEx.error(), EMPTY_STRING))
-                    .build();
+                    .reasonCode(MQTT_REASON_CODES.get(kafkaResetEx.error()));
+                final String16FW reason = MQTT_REASONS.get(kafkaResetEx.error());
+                if (reason != null)
+                {
+                    mqttResetBuilder.reason(reason);
+                }
+                mqttResetEx = mqttResetBuilder.build();
             }
             delegate.doMqttReset(traceId, mqttResetEx);
         }
