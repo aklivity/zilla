@@ -1269,7 +1269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (canPublish && (reserved != 0 || payloadSize == 0))
                 {
-                    server.onDecodePublish(traceId, authorization, reserved, packetId, payload);
+                    server.onDecodePublish(traceId, authorization, reserved, packetId, payload, payload.offset(), payload.limit());
                     server.decodeablePacketBytes = 0;
                     server.decoder = decodePacketTypeByVersion.get(server.version);
                     progress = publishLimit;
@@ -1303,6 +1303,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         decode:
         if (length >= server.decodeablePacketBytes)
         {
+
+
             final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
             final int typeAndFlags = publishHeader.typeAndFlags();
             final int qos = calculatePublishApplicationQos(typeAndFlags);
@@ -1393,20 +1395,25 @@ public final class MqttServerFactory implements MqttStreamFactory
                 boolean canPublish = MqttState.initialOpened(publisher.state);
 
                 int reserved = payloadSize + publisher.initialPad;
-                canPublish &= publisher.initialSeq + reserved <= publisher.initialAck + publisher.initialMax;
+                final int publishablePayloadSize =
+                    (int) Math.min((publisher.initialSeq + reserved), (publisher.initialAck + publisher.initialMax));
 
                 if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
                 {
-                    final int minimum = reserved; // TODO: fragmentation
+                    final int minimum = publishablePayloadSize; // TODO: fragmentation
                     reserved = publisher.debitor.claim(publisher.debitorIndex, publisher.initialId, minimum, reserved);
                 }
 
-                if (canPublish && (reserved != 0 || payloadSize == 0))
+                if (canPublish && (reserved != 0 || publishablePayloadSize == 0))
                 {
-                    server.onDecodePublish(traceId, authorization, reserved, packetId, payload);
-                    server.decodeablePacketBytes = 0;
-                    server.decoder = decodePacketTypeByVersion.get(server.version);
-                    progress = publishLimit;
+                    server.onDecodePublish(traceId, authorization, publishablePayloadSize, packetId, payload,
+                        payload.offset(), payload.offset() + publishablePayloadSize);
+                    server.decodeablePacketBytes = reserved - publishablePayloadSize;
+                    if (server.decodeablePacketBytes == 0)
+                    {
+                        server.decoder = decodePacketTypeByVersion.get(server.version);
+                    }
+                    progress = payload.offset() + publishablePayloadSize;
                 }
             }
         }
@@ -2324,6 +2331,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private MqttServerDecoder decoder;
         private long decodePublisherKey;
         private int decodeablePacketBytes;
+        private int decodeablePublishPayloadBytes;
 
         private long connectTimeoutId = NO_CANCEL_ID;
         private long connectTimeoutAt;
@@ -3001,7 +3009,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int reserved,
             int packetId,
-            OctetsFW payload)
+            OctetsFW payload,
+            int offset,
+            int limit)
         {
             int reasonCode = SUCCESS;
             if (mqttPublishHeaderRO.qos > maximumQos)
@@ -3052,7 +3062,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MqttDataExFW dataEx = builder.build();
                     if (stream != null)
                     {
-                        stream.doPublishData(traceId, reserved, packetId, payload, dataEx);
+                        stream.doPublishData(traceId, reserved, packetId, payload, offset, limit, dataEx);
                     }
                 }
                 else
@@ -5295,6 +5305,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long initialAck;
             private int initialMax;
             private int initialPad;
+            private int decodablePayloadSize;
 
             private long replySeq;
             private long replyAck;
@@ -5351,13 +5362,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int reserved,
                 int packetId,
                 OctetsFW payload,
+                int offset,
+                int limit,
                 MqttDataExFW mqttData)
             {
                 assert MqttState.initialOpening(state);
 
                 final DirectBuffer buffer = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
                 final int length = limit - offset;
                 assert reserved >= length + initialPad;
 

@@ -149,6 +149,7 @@
         {
             string16 topicName;
             uint16 packetId;
+            //TODO: have a separate payload decoder -> remove payload from here
             octets payload;
         }
 
