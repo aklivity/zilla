@@ -474,6 +474,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:reply-filter", "responses")
                                .header("zilla:reply-filter", "client1")
                                .header("zilla:correlation-id", "info")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 
