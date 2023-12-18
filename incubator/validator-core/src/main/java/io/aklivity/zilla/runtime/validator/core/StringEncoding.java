@@ -26,41 +26,24 @@ public enum StringEncoding
             int index,
             int length)
         {
-            int bytesIndex = 0;
-            while (bytesIndex < length)
+            final int limit = index + length;
+            while (index < limit)
             {
-                int numBytes;
-                if ((data.getByte(bytesIndex) & 0b10000000) == 0b00000000)
-                {
-                    numBytes = 1;
-                }
-                else if ((data.getByte(bytesIndex) & 0b11100000) == 0b11000000)
-                {
-                    numBytes = 2;
-                }
-                else if ((data.getByte(bytesIndex) & 0b11110000) == 0b11100000)
-                {
-                    numBytes = 3;
-                }
-                else if ((data.getByte(bytesIndex) & 0b11111000) == 0b11110000)
-                {
-                    numBytes = 4;
-                }
-                else
-                {
-                    break;
-                }
+                final int charByte0 = data.getByte(index);
+                final int charByteCount = (charByte0 & 0b1000_0000) != 0
+                    ? Integer.numberOfLeadingZeros((~charByte0 & 0xff) << 24)
+                    : 1;
 
-                for (int j = 1; j < numBytes; j++)
+                for (int j = 1; j < charByteCount; j++)
                 {
-                    if (bytesIndex + j >= length || (data.getByte(bytesIndex + j) & 0b11000000) != 0b10000000)
+                    if (index + j >= limit || (data.getByte(index + j) & 0b11000000) != 0b10000000)
                     {
                         break;
                     }
                 }
-                bytesIndex += numBytes;
+                index += charByteCount;
             }
-            return bytesIndex == length;
+            return index == limit;
         }
     },
 
@@ -72,33 +55,33 @@ public enum StringEncoding
             int index,
             int length)
         {
-            int bytesIndex = 0;
+            final int limit = index + length;
 
-            while (bytesIndex < length)
+            while (index < limit)
             {
-                if (bytesIndex == length - 1)
+                if (index == limit - 1)
                 {
                     break;
                 }
 
-                int highByte = data.getByte(bytesIndex) & 0xFF;
-                int lowByte = data.getByte(bytesIndex + 1) & 0xFF;
+                int highByte = data.getByte(index) & 0xFF;
+                int lowByte = data.getByte(index + 1) & 0xFF;
                 int codeUnit = (highByte << 8) | lowByte;
 
                 if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF)
                 {
-                    if (bytesIndex + 3 >= length)
+                    if (index + 3 >= limit)
                     {
                         break;
                     }
-                    int secondHighByte = data.getByte(bytesIndex + 2) & 0xFF;
-                    int secondLowByte = data.getByte(bytesIndex + 3) & 0xFF;
+                    int secondHighByte = data.getByte(index + 2) & 0xFF;
+                    int secondLowByte = data.getByte(index + 3) & 0xFF;
                     int secondCodeUnit = (secondHighByte << 8) | secondLowByte;
                     if (secondCodeUnit < 0xDC00 || secondCodeUnit > 0xDFFF)
                     {
                         break;
                     }
-                    bytesIndex += 4;
+                    index += 4;
                 }
                 else if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF)
                 {
@@ -106,10 +89,10 @@ public enum StringEncoding
                 }
                 else
                 {
-                    bytesIndex += 2;
+                    index += 2;
                 }
             }
-            return bytesIndex == length;
+            return index == limit;
         }
     },
 

@@ -15,13 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
-import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
@@ -30,9 +34,9 @@ public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, Js
 {
     private static final String TEST = "test";
     private static final String LENGTH = "length";
-    private static final String APPEND = "append";
-    private static final String ID = "id";
-    private static final String PADDING = "padding";
+    private static final String CAPABILITY = "capability";
+    private static final String READ = "read";
+    private static final String CATALOG_NAME = "catalog";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -59,31 +63,28 @@ public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, Js
             ? object.getInt(LENGTH)
             : 0;
 
-        int schemaId = object.containsKey(ID)
-            ? object.getInt(ID)
-            : 0;
-
-        boolean append = object.containsKey(APPEND)
-            ? object.getBoolean(APPEND)
+        boolean read = object.containsKey(CAPABILITY)
+            ? object.getString(CAPABILITY).equals(READ)
             : false;
 
-        int padding = object.containsKey(PADDING)
-            ? object.getInt(PADDING)
-            : 0;
-
-        byte[] prefix = new byte[0];
-
-        if (schemaId > 0 || padding > 0)
+        List<CatalogedConfig> catalogs = new LinkedList<>();
+        if (object.containsKey(CATALOG_NAME))
         {
-            ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + padding);
-            for (int i = 0; i < padding; i++)
+            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+            for (String catalogName: catalogsJson.keySet())
             {
-                buffer.put((byte) 0);
+                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+                List<SchemaConfig> schemas = new LinkedList<>();
+                for (JsonValue item : schemasJson)
+                {
+                    JsonObject schemaJson = (JsonObject) item;
+                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                    schemas.add(schemaElement);
+                }
+                catalogs.add(new CatalogedConfig(catalogName, schemas));
             }
-            buffer.putInt(schemaId);
-            prefix = buffer.array();
         }
 
-        return new TestValidatorConfig(length, append, prefix);
+        return new TestValidatorConfig(length, catalogs, read);
     }
 }

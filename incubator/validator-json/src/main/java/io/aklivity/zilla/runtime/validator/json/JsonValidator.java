@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.SCHEMA_REGISTRY;
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.TEST;
-
 import java.io.StringReader;
 import java.util.function.LongFunction;
 
@@ -44,7 +41,6 @@ public abstract class JsonValidator
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
-    protected final boolean appendSchemaId;
     protected final String subject;
 
     private final Int2ObjectCache<JsonSchema> schemas;
@@ -52,7 +48,6 @@ public abstract class JsonValidator
     private final JsonProvider schemaProvider;
     private final JsonValidationService service;
     private final JsonParserFactory factory;
-    private JsonProvider provider;
     private DirectBufferInputStream in;
 
     public JsonValidator(
@@ -71,10 +66,9 @@ public abstract class JsonValidator
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
-        this.appendSchemaId = SCHEMA_REGISTRY.equals(handler.type()) || TEST.equals(handler.type());
     }
 
-    protected boolean validate(
+    protected final boolean validate(
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -83,7 +77,7 @@ public abstract class JsonValidator
         boolean status = false;
         try
         {
-            provider = providers.computeIfAbsent(schemaId, this::supplyProvider);
+            JsonProvider provider = supplyProvider(schemaId);
             in.wrap(buffer, index, length);
             provider.createReader(in).readValue();
             status = true;
@@ -95,31 +89,40 @@ public abstract class JsonValidator
         return status;
     }
 
-    private JsonSchema resolveSchema(
+    private JsonSchema supplySchema(
         int schemaId)
     {
-        JsonSchema schema = null;
-
-        String schemaStr = handler.resolve(schemaId);
-        if (schemaStr != null)
-        {
-            JsonParser schemaParser = factory.createParser(new StringReader(schemaStr));
-            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            schema = reader.read();
-            schemas.put(schemaId, schema);
-        }
-
-        return schema;
+        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
     }
 
     private JsonProvider supplyProvider(
         int schemaId)
     {
-        JsonSchema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
+        return providers.computeIfAbsent(schemaId, id -> createProvider(supplySchema(id)));
+    }
+
+    private JsonSchema resolveSchema(
+        int schemaId)
+    {
+        JsonSchema schema = null;
+        String schemaText = handler.resolve(schemaId);
+        if (schemaText != null)
+        {
+            JsonParser schemaParser = factory.createParser(new StringReader(schemaText));
+            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+            schema = reader.read();
+        }
+
+        return schema;
+    }
+
+    private JsonProvider createProvider(
+        JsonSchema schema)
+    {
+        JsonProvider provider = null;
         if (schema != null)
         {
             provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
-            providers.put(schemaId, provider);
         }
         return provider;
     }

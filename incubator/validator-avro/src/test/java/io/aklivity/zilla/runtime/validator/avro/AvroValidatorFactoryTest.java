@@ -44,7 +44,11 @@ public class AvroValidatorFactoryTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         AvroValidatorFactory factory = new AvroValidatorFactory();
 
         // WHEN
@@ -68,7 +72,11 @@ public class AvroValidatorFactoryTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         AvroValidatorFactory factory = new AvroValidatorFactory();
 
         // WHEN

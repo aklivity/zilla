@@ -15,9 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import java.util.function.LongFunction;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
@@ -26,20 +29,22 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestValidator implements ValueValidator, FragmentValidator
 {
-    private static final int MAX_PADDING_LEN = 10;
-
     private final int length;
-    private final byte[] prefix;
-    private final DirectBuffer prefixRO;
-    private final boolean appendPrefix;
+    private final int schemaId;
+    private final boolean read;
+    private final CatalogHandler handler;
 
     public TestValidator(
-        TestValidatorConfig config)
+        TestValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
         this.length = config.length;
-        this.prefix = config.prefix;
-        this.prefixRO = new UnsafeBuffer();
-        this.appendPrefix = config.append;
+        this.read = config.read;
+        CatalogedConfig cataloged = config.cataloged != null && !config.cataloged.isEmpty()
+            ? config.cataloged.get(0)
+            : null;
+        schemaId = cataloged != null ? cataloged.schemas.get(0).id : 0;
+        this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
     }
 
     @Override
@@ -48,12 +53,7 @@ public class TestValidator implements ValueValidator, FragmentValidator
         int index,
         int length)
     {
-        int padding = 0;
-        if (appendPrefix)
-        {
-            padding = MAX_PADDING_LEN; // TODO: fetch this from catalog
-        }
-        return padding;
+        return handler != null ? handler.maxPadding() : 0;
     }
 
     @Override
@@ -88,15 +88,14 @@ public class TestValidator implements ValueValidator, FragmentValidator
         boolean valid = length == this.length;
         if (valid)
         {
-            if (appendPrefix)
+            int enrichedLength = handler != null ? handler.enrich(schemaId, next) : 0;
+            if (read)
             {
-                prefixRO.wrap(prefix);
-                next.accept(prefixRO, 0, prefix.length);
-                next.accept(data, index, length);
+                next.accept(data, index + enrichedLength, length - enrichedLength);
             }
             else
             {
-                next.accept(data, index + prefix.length, length - prefix.length);
+                next.accept(data, index, length);
             }
         }
         return valid ? length : -1;

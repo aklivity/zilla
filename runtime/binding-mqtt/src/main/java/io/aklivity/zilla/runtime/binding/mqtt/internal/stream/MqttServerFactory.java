@@ -4713,9 +4713,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             String topic,
             OctetsFW payload)
         {
-            final ValueValidator contentValueValidator = supplyValidator.apply(topic);
-            return contentValueValidator == null ||
-                contentValueValidator.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
+            final ValueValidator validator = supplyValidator.apply(topic);
+            return validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
         }
 
         private final class Subscription

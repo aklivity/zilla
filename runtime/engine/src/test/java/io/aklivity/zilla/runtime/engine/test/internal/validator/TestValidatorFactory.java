@@ -75,6 +75,6 @@ public class TestValidatorFactory implements ValidatorFactorySpi
         ValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new TestValidator(TestValidatorConfig.class.cast(config));
+        return new TestValidator(TestValidatorConfig.class.cast(config), supplyCatalog);
     }
 }

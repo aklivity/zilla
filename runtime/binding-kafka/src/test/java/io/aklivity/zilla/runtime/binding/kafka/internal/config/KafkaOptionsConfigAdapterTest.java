@@ -159,8 +159,6 @@ public class KafkaOptionsConfigAdapterTest
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null,
                     TestValidatorConfig.builder()
                         .length(0)
-                        .append(false)
-                        .prefix(new byte[0])
                         .build())),
                 new KafkaSaslConfig("plain", "username", "password"));
 

@@ -20,6 +20,7 @@ catalogs:
   test0:
     type: test
     options:
+      id: 1
       schema: |
         {
           "fields": [
@@ -36,6 +37,7 @@ catalogs:
           "namespace": "io.aklivity.example",
           "type": "record"
         }
+      exclude: true
 bindings:
   app0:
     type: kafka
@@ -52,9 +54,11 @@ bindings:
         - name: test
           value:
             type: test
+            capability: read
             length: 18
-            id: 1
-            padding: 1
+            catalog:
+              test0:
+                - id: 1
     routes:
       - exit: app1
         when:

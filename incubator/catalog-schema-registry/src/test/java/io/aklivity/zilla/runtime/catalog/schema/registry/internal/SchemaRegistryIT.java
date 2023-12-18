@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,6 +33,7 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryIT
 {
@@ -152,5 +155,24 @@ public class SchemaRegistryIT
         assertEquals(schemaId, 9);
         assertThat(schema, not(nullValue()));
         assertEquals(expected, schema);
+    }
+
+    @Test
+    public void shouldVerifyMaxPadding()
+    {
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        assertEquals(5, catalog.maxPadding());
+    }
+
+    @Test
+    public void shouldVerifyEnrichedData()
+    {
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        MutableDirectBuffer value = new UnsafeBuffer(new byte[ 5]);
+        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+
+        assertEquals(value.capacity(), catalog.enrich(1, ValueConsumer.NOP));
     }
 }

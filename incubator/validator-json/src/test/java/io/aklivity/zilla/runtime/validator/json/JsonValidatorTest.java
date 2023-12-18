@@ -90,7 +90,11 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -109,7 +113,12 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(ARRAY_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
@@ -135,7 +144,11 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -159,7 +172,12 @@ public class JsonValidatorTest
     @Test
     public void shouldWriteValidJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(OBJECT_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
@@ -183,7 +201,12 @@ public class JsonValidatorTest
     @Test
     public void shouldWriteValidFragmentJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(OBJECT_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 
@@ -209,7 +232,11 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidFragmentJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonReadValidator validator = new JsonReadValidator(config, handler);
 
@@ -231,7 +258,11 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(ARRAY_SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonWriteValidator validator = new JsonWriteValidator(config, handler);
 

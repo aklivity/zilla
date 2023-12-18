@@ -14,12 +14,9 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -30,10 +27,6 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonWriteValidator extends JsonValidator implements ValueValidator, FragmentValidator
 {
-    private static final int SCHEMA_REGISTRY_PADDING_LEN = 5;
-
-    private final MutableDirectBuffer prefixRO = new UnsafeBuffer(new byte[5]);
-
     public JsonWriteValidator(
         JsonValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
@@ -47,12 +40,7 @@ public class JsonWriteValidator extends JsonValidator implements ValueValidator,
         int index,
         int length)
     {
-        int padding = 0;
-        if (appendSchemaId)
-        {
-            padding = SCHEMA_REGISTRY_PADDING_LEN; // TODO: fetch this from catalog
-        }
-        return padding;
+        return handler.maxPadding();
     }
 
     @Override
@@ -87,19 +75,12 @@ public class JsonWriteValidator extends JsonValidator implements ValueValidator,
         int valLength = -1;
 
         int schemaId = catalog != null && catalog.id > 0
-                ? catalog.id
-                : handler.resolve(subject, catalog.version);
+            ? catalog.id
+            : handler.resolve(subject, catalog.version);
 
         if (validate(schemaId, data, index, length))
         {
-            valLength = length;
-            if (appendSchemaId)
-            {
-                valLength += 5;
-                prefixRO.putByte(0, MAGIC_BYTE);
-                prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-                next.accept(prefixRO, 0, 5);
-            }
+            valLength = length + handler.enrich(schemaId, next);
             next.accept(data, index, length);
         }
         return valLength;

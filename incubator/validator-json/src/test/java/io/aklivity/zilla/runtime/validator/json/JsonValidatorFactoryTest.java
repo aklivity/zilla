@@ -39,7 +39,11 @@ public class JsonValidatorFactoryTest
                     .name("test0")
                     .build()
                 .build();
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         JsonValidatorFactory factory = new JsonValidatorFactory();
 
         // WHEN
@@ -58,7 +62,11 @@ public class JsonValidatorFactoryTest
                     .name("test0")
                     .build()
                 .build();
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         JsonValidatorFactory factory = new JsonValidatorFactory();
 
         // WHEN

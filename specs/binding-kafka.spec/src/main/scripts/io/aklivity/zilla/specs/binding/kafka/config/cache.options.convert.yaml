@@ -20,6 +20,8 @@ catalogs:
   test0:
     type: test
     options:
+      id: 1
+      embed: true
       schema: |
         {
           "fields": [
@@ -53,9 +55,9 @@ bindings:
           value:
             type: test
             length: 13
-            append: true
-            id: 1
-            padding: 2
+            catalog:
+              test0:
+                - id: 1
     routes:
       - exit: app1
         when:

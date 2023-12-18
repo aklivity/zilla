@@ -40,8 +40,13 @@ public class ValidatorFactoryTest
         // GIVEN
         ValidatorConfig config = TestValidatorConfig.builder()
                 .length(0)
-                .append(false)
-                .prefix(new byte[0])
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .id(1)
+                        .build()
+                    .build()
+                .read(true)
                 .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
@@ -60,8 +65,13 @@ public class ValidatorFactoryTest
         // GIVEN
         ValidatorConfig config = TestValidatorConfig.builder()
                 .length(0)
-                .append(false)
-                .prefix(new byte[0])
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .id(1)
+                        .build()
+                    .build()
+                .read(false)
                 .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
@@ -80,8 +90,13 @@ public class ValidatorFactoryTest
         // GIVEN
         ValidatorConfig config = TestValidatorConfig.builder()
                 .length(0)
-                .append(false)
-                .prefix(new byte[0])
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .id(1)
+                        .build()
+                    .build()
+                .read(false)
                 .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();
@@ -100,8 +115,13 @@ public class ValidatorFactoryTest
         // GIVEN
         ValidatorConfig config = TestValidatorConfig.builder()
                 .length(0)
-                .append(false)
-                .prefix(new byte[0])
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .id(1)
+                        .build()
+                    .build()
+                .read(false)
                 .build();
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         ValidatorFactory factory = ValidatorFactory.instantiate();

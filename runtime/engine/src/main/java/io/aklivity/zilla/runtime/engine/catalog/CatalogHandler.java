@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
-    String TEST = "test"; // Added for unit test & IT purpose
-    String SCHEMA_REGISTRY = "schema-registry";
-    String INLINE = "inline";
-
-    String type();
+    int NO_ENRICHMENT = 0;
+    int ZERO_PADDING = 0;
 
     int register(
         String subject,
@@ -35,4 +34,16 @@ public interface CatalogHandler
     int resolve(
         String subject,
         String version);
+
+    default int enrich(
+        int schemaId,
+        ValueConsumer next)
+    {
+        return NO_ENRICHMENT;
+    }
+
+    default int maxPadding()
+    {
+        return ZERO_PADDING;
+    }
 }

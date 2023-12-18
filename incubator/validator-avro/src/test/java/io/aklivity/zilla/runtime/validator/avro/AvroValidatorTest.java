@@ -70,7 +70,12 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .exclude(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
@@ -86,7 +91,12 @@ public class AvroValidatorTest
     @Test
     public void shouldWriteValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .embed(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroWriteValidator validator = new AvroWriteValidator(avroConfig, handler);
 
@@ -106,7 +116,11 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyInvalidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
@@ -120,7 +134,11 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyMagicBytes()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
@@ -134,7 +152,11 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyInvalidSchemaId()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
@@ -148,7 +170,12 @@ public class AvroValidatorTest
     @Test
     public void shouldReadAvroEventExpectJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .exclude(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidatorConfig config = AvroValidatorConfig.builder()
                 .format("json")
@@ -185,7 +212,12 @@ public class AvroValidatorTest
     @Test
     public void shouldWriteJsonEventExpectAvro()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidatorConfig config = AvroValidatorConfig.builder()
                 .format("json")
@@ -221,7 +253,12 @@ public class AvroValidatorTest
     @Test
     public void shouldWriteValidFragmentAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroWriteValidator validator = new AvroWriteValidator(avroConfig, handler);
 
@@ -244,7 +281,12 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyValidFragmentAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
@@ -263,7 +305,12 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyMaxPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .embed(true)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidatorConfig config = AvroValidatorConfig.builder()
                 .format("json")

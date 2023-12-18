@@ -25,6 +25,9 @@ public final class TestCatalogOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private String schema;
+    private boolean embed;
+    private boolean exclude;
+    private int id;
 
     TestCatalogOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -46,9 +49,30 @@ public final class TestCatalogOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestCatalogOptionsConfigBuilder<T> embed(
+        boolean embed)
+    {
+        this.embed = embed;
+        return this;
+    }
+
+    public TestCatalogOptionsConfigBuilder<T> exclude(
+        boolean exclude)
+    {
+        this.exclude = exclude;
+        return this;
+    }
+
+    public TestCatalogOptionsConfigBuilder<T> id(
+        int id)
+    {
+        this.id = id;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestCatalogOptionsConfig(schema));
+        return mapper.apply(new TestCatalogOptionsConfig(id, schema, embed, exclude));
     }
 }

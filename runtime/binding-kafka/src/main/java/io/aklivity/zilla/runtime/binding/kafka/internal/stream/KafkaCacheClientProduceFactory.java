@@ -497,6 +497,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final int partitionId;
+        private final ValueValidator validateKey;
+        private final FragmentValidator validateValue;
 
         private long initialId;
         private long replyId;
@@ -504,8 +506,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCacheClientBudget budget;
         private KafkaCacheRoute cacheRoute;
         private String topicName;
-        private final ValueValidator validateKey;
-        private final FragmentValidator validateValue;
 
         private int state;
 

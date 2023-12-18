@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.SCHEMA_REGISTRY;
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.TEST;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,7 +44,9 @@ public abstract class AvroValidator
 {
     protected static final byte MAGIC_BYTE = 0x0;
     protected static final String FORMAT_JSON = "json";
+
     private static final InputStream EMPTY_STREAM = new ByteArrayInputStream(new byte[0]);
+    private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
 
     protected final DirectBuffer valueRO;
     protected final SchemaConfig catalog;
@@ -57,18 +56,14 @@ public abstract class AvroValidator
     protected final BinaryDecoder decoder;
     protected final String subject;
     protected final String format;
-    protected final boolean appendSchemaId;
-    protected GenericDatumReader<GenericRecord> reader;
-    protected GenericDatumWriter<GenericRecord> writer;
-    protected GenericRecord record;
-    protected ByteArrayOutputStream encoded;
-    protected DirectBufferInputStream in;
+    protected final ByteArrayOutputStream encoded;
+    protected final DirectBufferInputStream in;
 
-    protected final Int2ObjectCache<Schema> schemas;
-    protected final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
-    protected final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
-    protected final Int2ObjectCache<GenericRecord> records;
-    protected final Int2IntHashMap paddings;
+    private final Int2ObjectCache<Schema> schemas;
+    private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
+    private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
+    private final Int2ObjectCache<GenericRecord> records;
+    private final Int2IntHashMap paddings;
 
     protected AvroValidator(
         AvroValidatorConfig config,
@@ -92,94 +87,9 @@ public abstract class AvroValidator
         this.valueRO = new UnsafeBuffer();
         this.encoded = new ByteArrayOutputStream();
         this.in = new DirectBufferInputStream();
-        this.appendSchemaId = SCHEMA_REGISTRY.equals(handler.type()) || TEST.equals(handler.type());
     }
 
-    private Schema resolveSchema(
-        int schemaId)
-    {
-        Schema schema = null;
-        String schemaStr = handler.resolve(schemaId);
-        if (schemaStr != null)
-        {
-            schema = new Schema.Parser().parse(schemaStr);
-        }
-        return schema;
-    }
-
-    private int calculatePadding(
-        Schema schema)
-    {
-        int padding = 2;
-
-        for (Schema.Field field : schema.getFields())
-        {
-            if (field.schema().getType().equals(Schema.Type.RECORD))
-            {
-                padding += calculatePadding(field.schema());
-            }
-            else
-            {
-                padding += field.name().getBytes().length + 6;
-            }
-        }
-
-        return padding;
-    }
-
-    protected int supplyPadding(
-        int schemaId)
-    {
-        int padding = 0;
-        Schema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
-        if (schema != null)
-        {
-            padding = calculatePadding(schema);
-            paddings.put(schemaId, padding);
-        }
-        return padding;
-    }
-
-    protected GenericDatumReader<GenericRecord> supplyReader(
-        int schemaId)
-    {
-        reader = null;
-        Schema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
-        if (schema != null)
-        {
-            reader = new GenericDatumReader<GenericRecord>(schema);
-            readers.put(schemaId, reader);
-        }
-        return reader;
-    }
-
-    protected GenericDatumWriter<GenericRecord> supplyWriter(
-        int schemaId)
-    {
-        writer = null;
-        Schema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
-        if (schema != null)
-        {
-            writer = new GenericDatumWriter<GenericRecord>(schema);
-            writers.put(schemaId, writer);
-        }
-        return writer;
-    }
-
-    protected GenericRecord supplyRecord(
-        int schemaId)
-    {
-        record = null;
-        Schema schema = schemas.computeIfAbsent(schemaId, this::resolveSchema);
-        if (schema != null)
-        {
-            record = new GenericData.Record(schema);
-            records.put(schemaId, record);
-        }
-        return record;
-    }
-
-    protected boolean validate(
+    protected final boolean validate(
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -188,8 +98,9 @@ public abstract class AvroValidator
         boolean status = false;
         try
         {
-            record = records.computeIfAbsent(schemaId, this::supplyRecord);
+            GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
+            GenericDatumReader<GenericRecord> reader = readers.computeIfAbsent(schemaId, this::supplyReader);
             reader.read(record, decoderFactory.binaryDecoder(in, decoder));
             status = true;
         }
@@ -198,5 +109,103 @@ public abstract class AvroValidator
             ex.printStackTrace();
         }
         return status;
+    }
+
+    protected final Schema supplySchema(
+        int schemaId)
+    {
+        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
+    }
+
+    protected final int supplyPadding(
+        int schemaId)
+    {
+        return paddings.computeIfAbsent(schemaId, id -> calculatePadding(supplySchema(id)));
+    }
+
+    protected final GenericDatumReader<GenericRecord> supplyReader(
+        int schemaId)
+    {
+        return readers.computeIfAbsent(schemaId, id -> createReader(supplySchema(id)));
+    }
+
+    protected final GenericDatumWriter<GenericRecord> supplyWriter(
+        int schemaId)
+    {
+        return writers.computeIfAbsent(schemaId, id -> createWriter(supplySchema(id)));
+    }
+
+    protected final GenericRecord supplyRecord(
+        int schemaId)
+    {
+        return records.computeIfAbsent(schemaId, id -> createRecord(supplySchema(schemaId)));
+    }
+
+    private GenericDatumReader<GenericRecord> createReader(
+        Schema schema)
+    {
+        GenericDatumReader<GenericRecord> reader = null;
+        if (schema != null)
+        {
+            reader = new GenericDatumReader<GenericRecord>(schema);
+        }
+        return reader;
+    }
+
+    private GenericDatumWriter<GenericRecord> createWriter(
+        Schema schema)
+    {
+        GenericDatumWriter<GenericRecord> writer = null;
+        if (schema != null)
+        {
+            writer = new GenericDatumWriter<GenericRecord>(schema);
+        }
+        return writer;
+    }
+
+    private GenericRecord createRecord(
+        Schema schema)
+    {
+        GenericRecord record = null;
+        if (schema != null)
+        {
+            record = new GenericData.Record(schema);
+        }
+        return record;
+    }
+
+    private Schema resolveSchema(
+        int schemaId)
+    {
+        Schema schema = null;
+        String schemaText = handler.resolve(schemaId);
+        if (schemaText != null)
+        {
+            schema = new Schema.Parser().parse(schemaText);
+        }
+        return schema;
+    }
+
+    private int calculatePadding(
+        Schema schema)
+    {
+        int padding = 0;
+
+        if (schema != null)
+        {
+            padding = 2;
+            for (Schema.Field field : schema.getFields())
+            {
+                if (field.schema().getType().equals(Schema.Type.RECORD))
+                {
+                    padding += calculatePadding(field.schema());
+                }
+                else
+                {
+                    padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                }
+            }
+        }
+        return padding;
     }
 }

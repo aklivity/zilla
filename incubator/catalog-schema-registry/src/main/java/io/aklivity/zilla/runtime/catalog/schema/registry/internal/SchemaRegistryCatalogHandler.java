@@ -18,21 +18,29 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.zip.CRC32C;
 
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
+    private static final byte MAGIC_BYTE = 0x0;
+    private static final int ENRICHED_LENGTH = 5;
+    private static final int MAX_PADDING_LEN = 5;
 
+    private final MutableDirectBuffer prefixRO;
     private final HttpClient client;
     private final String baseUrl;
     private final RegisterSchemaRequest request;
@@ -49,12 +57,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.crc32c = new CRC32C();
         this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIdCache = new Int2ObjectCache<>(1, 1024, i -> {});
-    }
-
-    @Override
-    public String type()
-    {
-        return SCHEMA_REGISTRY;
+        this.prefixRO = new UnsafeBuffer(new byte[5]);
     }
 
     @Override
@@ -128,6 +131,23 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             }
         }
         return schemaId;
+    }
+
+    @Override
+    public int enrich(
+        int schemaId,
+        ValueConsumer next)
+    {
+        prefixRO.putByte(0, MAGIC_BYTE);
+        prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
+        next.accept(prefixRO, 0, 5);
+        return ENRICHED_LENGTH;
+    }
+
+    @Override
+    public int maxPadding()
+    {
+        return MAX_PADDING_LEN;
     }
 
     private String sendHttpRequest(
