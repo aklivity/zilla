@@ -3332,16 +3332,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight mqttResetEx = EMPTY_OCTETS;
             if (error != -1)
             {
-                MqttResetExFW.Builder mqttResetBuilder =
+                mqttResetEx =
                     mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
-                    .reasonCode(MQTT_REASON_CODES.get(kafkaResetEx.error()));
-                final String16FW reason = MQTT_REASONS.get(kafkaResetEx.error());
-                if (reason != null)
-                {
-                    mqttResetBuilder.reason(reason);
-                }
-                mqttResetEx = mqttResetBuilder.build();
+                    .reasonCode(MQTT_REASON_CODES.get(error))
+                    .reason(MQTT_REASONS.get(error))
+                    .build();
             }
             delegate.doMqttReset(traceId, mqttResetEx);
         }
