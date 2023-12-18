@@ -427,15 +427,26 @@ scope kafka
             case 9: kafka::stream::KafkaGroupOffsetOffsetDataEx offsetFetch;
         }
 
+        struct KafkaGroupOffsetCommitTopicPartition
+        {
+            string16 topic;
+            KafkaOffset progress;
+        }
+
         struct KafkaGroupOffsetCommitDataEx
         {
-            KafkaOffset progress;
+            KafkaGroupOffsetCommitTopicPartition[] topics;
+        }
+
+        struct KafkaGroupOffsetOffsetTopicPartition
+        {
+            string16 topic;
+            KafkaTopicPartitionOffset[] partitions;
         }
 
         struct KafkaGroupOffsetOffsetDataEx
         {
-              string16 topic;
-              KafkaTopicPartitionOffset[] partitions;
+              KafkaGroupOffsetOffsetTopicPartition[] topics;
         }
 
         struct KafkaConsumerBeginEx
