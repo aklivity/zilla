@@ -37,7 +37,6 @@ catalogs:
           "namespace": "io.aklivity.example",
           "type": "record"
         }
-      exclude: true
 bindings:
   app0:
     type: kafka

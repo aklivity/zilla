@@ -23,7 +23,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryEncoder;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -91,13 +90,13 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
         {
             if (FORMAT_JSON.equals(format))
             {
-                byte[] record = serializeJsonRecord(schemaId, data, index, length);
-
-                int recordLength = record.length;
+                int recordLength = encoded.position();
+                serializeJsonRecord(schemaId, data, index, length);
+                recordLength = encoded.position() - recordLength;
                 if (recordLength > 0)
                 {
                     valLength = recordLength + handler.enrich(schemaId, next);
-                    valueRO.wrap(record);
+                    valueRO.wrap(encoded.buffer());
                     next.accept(valueRO, 0, recordLength);
                 }
             }
@@ -110,13 +109,12 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
         return valLength;
     }
 
-    private byte[] serializeJsonRecord(
+    private void serializeJsonRecord(
         int schemaId,
         DirectBuffer buffer,
         int index,
         int length)
     {
-        encoded.reset();
         try
         {
             Schema schema = supplySchema(schemaId);
@@ -125,15 +123,14 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
             GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
             record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
-            BinaryEncoder out = encoderFactory.binaryEncoder(encoded, null);
-            writer.write(record, out);
-            out.flush();
+            encoderFactory.binaryEncoder(encoded, encoder);
+            writer.write(record, encoder);
+            encoder.flush();
             encoded.close();
         }
         catch (IOException | AvroRuntimeException ex)
         {
             ex.printStackTrace();
         }
-        return encoded.toByteArray();
     }
 }

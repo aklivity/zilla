@@ -27,6 +27,7 @@ public enum StringEncoding
             int length)
         {
             final int limit = index + length;
+            validate:
             while (index < limit)
             {
                 final int charByte0 = data.getByte(index);
@@ -34,11 +35,12 @@ public enum StringEncoding
                     ? Integer.numberOfLeadingZeros((~charByte0 & 0xff) << 24)
                     : 1;
 
-                for (int j = 1; j < charByteCount; j++)
+                final int charByteLimit = index + charByteCount;
+                for (int charByteIndex = index + 1; charByteIndex < charByteLimit; charByteIndex++)
                 {
-                    if (index + j >= limit || (data.getByte(index + j) & 0b11000000) != 0b10000000)
+                    if (charByteIndex >= limit || (data.getByte(charByteIndex) & 0b11000000) != 0b10000000)
                     {
-                        break;
+                        break validate;
                     }
                 }
                 index += charByteCount;

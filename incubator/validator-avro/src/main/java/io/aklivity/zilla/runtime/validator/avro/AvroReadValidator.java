@@ -127,12 +127,13 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             int payloadIndex = index + progress;
             if (FORMAT_JSON.equals(format))
             {
-                byte[] record = deserializeRecord(schemaId, data, payloadIndex, payloadLength);
-                int recordLength = record.length;
+                int recordLength = encoded.position();
+                deserializeRecord(schemaId, data, payloadIndex, payloadLength);
+                recordLength = encoded.position() - recordLength;
                 if (recordLength > 0)
                 {
                     valLength = recordLength;
-                    valueRO.wrap(record);
+                    valueRO.wrap(encoded.buffer());
                     next.accept(valueRO, 0, valLength);
                 }
             }
@@ -145,13 +146,12 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         return valLength;
     }
 
-    private byte[] deserializeRecord(
+    private void deserializeRecord(
         int schemaId,
         DirectBuffer buffer,
         int index,
         int length)
     {
-        encoded.reset();
         try
         {
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
@@ -169,6 +169,5 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         {
             ex.printStackTrace();
         }
-        return encoded.toByteArray();
     }
 }

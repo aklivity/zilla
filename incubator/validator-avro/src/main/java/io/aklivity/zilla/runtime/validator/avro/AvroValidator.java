@@ -18,13 +18,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
+import org.agrona.io.ExpandableDirectBufferOutputStream;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -32,6 +35,7 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 
@@ -45,7 +49,8 @@ public abstract class AvroValidator
     protected static final byte MAGIC_BYTE = 0x0;
     protected static final String FORMAT_JSON = "json";
 
-    private static final InputStream EMPTY_STREAM = new ByteArrayInputStream(new byte[0]);
+    private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
+    private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
 
     protected final DirectBuffer valueRO;
@@ -54,9 +59,10 @@ public abstract class AvroValidator
     protected final DecoderFactory decoderFactory;
     protected final EncoderFactory encoderFactory;
     protected final BinaryDecoder decoder;
+    protected final BinaryEncoder encoder;
     protected final String subject;
     protected final String format;
-    protected final ByteArrayOutputStream encoded;
+    protected final ExpandableDirectBufferOutputStream encoded;
     protected final DirectBufferInputStream in;
 
     private final Int2ObjectCache<Schema> schemas;
@@ -70,8 +76,9 @@ public abstract class AvroValidator
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.decoderFactory = DecoderFactory.get();
-        this.decoder = decoderFactory.binaryDecoder(EMPTY_STREAM, null);
+        this.decoder = decoderFactory.binaryDecoder(EMPTY_INPUT_STREAM, null);
         this.encoderFactory = EncoderFactory.get();
+        this.encoder = encoderFactory.binaryEncoder(EMPTY_OUTPUT_STREAM, null);
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.handler = supplyCatalog.apply(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
@@ -85,7 +92,7 @@ public abstract class AvroValidator
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
         this.valueRO = new UnsafeBuffer();
-        this.encoded = new ByteArrayOutputStream();
+        this.encoded = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
     }
 
@@ -100,7 +107,7 @@ public abstract class AvroValidator
         {
             GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
-            GenericDatumReader<GenericRecord> reader = readers.computeIfAbsent(schemaId, this::supplyReader);
+            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             reader.read(record, decoderFactory.binaryDecoder(in, decoder));
             status = true;
         }
@@ -126,24 +133,25 @@ public abstract class AvroValidator
     protected final GenericDatumReader<GenericRecord> supplyReader(
         int schemaId)
     {
-        return readers.computeIfAbsent(schemaId, id -> createReader(supplySchema(id)));
+        return readers.computeIfAbsent(schemaId, this::createReader);
     }
 
     protected final GenericDatumWriter<GenericRecord> supplyWriter(
         int schemaId)
     {
-        return writers.computeIfAbsent(schemaId, id -> createWriter(supplySchema(id)));
+        return writers.computeIfAbsent(schemaId, this::createWriter);
     }
 
     protected final GenericRecord supplyRecord(
         int schemaId)
     {
-        return records.computeIfAbsent(schemaId, id -> createRecord(supplySchema(schemaId)));
+        return records.computeIfAbsent(schemaId, this::createRecord);
     }
 
     private GenericDatumReader<GenericRecord> createReader(
-        Schema schema)
+        int schemaId)
     {
+        Schema schema = supplySchema(schemaId);
         GenericDatumReader<GenericRecord> reader = null;
         if (schema != null)
         {
@@ -153,8 +161,9 @@ public abstract class AvroValidator
     }
 
     private GenericDatumWriter<GenericRecord> createWriter(
-        Schema schema)
+        int schemaId)
     {
+        Schema schema = supplySchema(schemaId);
         GenericDatumWriter<GenericRecord> writer = null;
         if (schema != null)
         {
@@ -164,8 +173,9 @@ public abstract class AvroValidator
     }
 
     private GenericRecord createRecord(
-        Schema schema)
+        int schemaId)
     {
+        Schema schema = supplySchema(schemaId);
         GenericRecord record = null;
         if (schema != null)
         {

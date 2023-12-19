@@ -26,7 +26,6 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String SCHEMA = "schema";
     private static final String EMBED = "embed";
-    private static final String EXCLUDE = "exclude";
     private static final String ID = "id";
 
     @Override
@@ -76,10 +75,6 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 
             config.embed(object.containsKey(EMBED)
                 ? object.getBoolean(EMBED)
-                : false);
-
-            config.exclude(object.containsKey(EXCLUDE)
-                ? object.getBoolean(EXCLUDE)
                 : false);
         }
         return config.build();

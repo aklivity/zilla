@@ -73,7 +73,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .exclude(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -173,7 +172,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .exclude(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -207,6 +205,8 @@ public class AvroValidatorTest
 
         int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -248,6 +248,8 @@ public class AvroValidatorTest
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
         int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test

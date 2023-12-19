@@ -20,8 +20,6 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
-    int NO_ENRICHMENT = 0;
-    int ZERO_PADDING = 0;
 
     int register(
         String subject,
@@ -39,11 +37,11 @@ public interface CatalogHandler
         int schemaId,
         ValueConsumer next)
     {
-        return NO_ENRICHMENT;
+        return 0;
     }
 
     default int maxPadding()
     {
-        return ZERO_PADDING;
+        return 0;
     }
 }

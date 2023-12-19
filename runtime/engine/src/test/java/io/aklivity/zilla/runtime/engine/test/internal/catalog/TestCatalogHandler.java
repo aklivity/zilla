@@ -26,15 +26,14 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestCatalogHandler implements CatalogHandler
 {
-    private static final int MAX_PADDING_LEN = 10;
+    private static final int MAX_PADDING_LENGTH = 10;
     private static final byte MAGIC_BYTE = 0x0;
-    private static final int ENRICHED_LENGTH = 5;
+    private static final int PREFIX_LENGTH = 5;
 
     private final String schema;
     private final MutableDirectBuffer prefixRO;
     private final int id;
     private final boolean embed;
-    private final boolean exclude;
 
     public TestCatalogHandler(
         TestCatalogOptionsConfig config)
@@ -43,7 +42,6 @@ public class TestCatalogHandler implements CatalogHandler
         this.prefixRO = new UnsafeBuffer(new byte[5]);
         this.id = config.id;
         this.embed = config.embed;
-        this.exclude = config.exclude;
     }
 
     @Override
@@ -56,12 +54,8 @@ public class TestCatalogHandler implements CatalogHandler
         {
             prefixRO.putByte(0, MAGIC_BYTE);
             prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-            next.accept(prefixRO, 0, 5);
-            length = ENRICHED_LENGTH;
-        }
-        else if (exclude)
-        {
-            length = ENRICHED_LENGTH;
+            next.accept(prefixRO, 0, PREFIX_LENGTH);
+            length = PREFIX_LENGTH;
         }
         return length;
     }
@@ -69,7 +63,7 @@ public class TestCatalogHandler implements CatalogHandler
     @Override
     public int maxPadding()
     {
-        return MAX_PADDING_LEN;
+        return MAX_PADDING_LENGTH;
     }
 
     @Override

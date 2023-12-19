@@ -98,7 +98,7 @@ public abstract class JsonValidator
     private JsonProvider supplyProvider(
         int schemaId)
     {
-        return providers.computeIfAbsent(schemaId, id -> createProvider(supplySchema(id)));
+        return providers.computeIfAbsent(schemaId, this::createProvider);
     }
 
     private JsonSchema resolveSchema(
@@ -117,8 +117,9 @@ public abstract class JsonValidator
     }
 
     private JsonProvider createProvider(
-        JsonSchema schema)
+        int schemaId)
     {
+        JsonSchema schema = supplySchema(schemaId);
         JsonProvider provider = null;
         if (schema != null)
         {

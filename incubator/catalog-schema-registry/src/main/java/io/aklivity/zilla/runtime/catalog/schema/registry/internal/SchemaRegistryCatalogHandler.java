@@ -38,7 +38,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
     private static final byte MAGIC_BYTE = 0x0;
     private static final int ENRICHED_LENGTH = 5;
-    private static final int MAX_PADDING_LEN = 5;
+    private static final int MAX_PADDING_LENGTH = 5;
 
     private final MutableDirectBuffer prefixRO;
     private final HttpClient client;
@@ -147,7 +147,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     @Override
     public int maxPadding()
     {
-        return MAX_PADDING_LEN;
+        return MAX_PADDING_LENGTH;
     }
 
     private String sendHttpRequest(

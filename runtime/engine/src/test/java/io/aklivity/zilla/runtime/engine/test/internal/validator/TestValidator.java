@@ -15,8 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
+import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -29,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestValidator implements ValueValidator, FragmentValidator
 {
+    private static final byte MAGIC_BYTE = 0x0;
     private final int length;
     private final int schemaId;
     private final boolean read;
@@ -88,13 +91,23 @@ public class TestValidator implements ValueValidator, FragmentValidator
         boolean valid = length == this.length;
         if (valid)
         {
-            int enrichedLength = handler != null ? handler.enrich(schemaId, next) : 0;
             if (read)
             {
-                next.accept(data, index + enrichedLength, length - enrichedLength);
+                int progress = 0;
+                if (data.getByte(index) == MAGIC_BYTE)
+                {
+                    progress += BitUtil.SIZE_OF_BYTE;
+                    data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+                    progress += BitUtil.SIZE_OF_INT;
+                }
+                next.accept(data, index + progress, length - progress);
             }
             else
             {
+                if (handler != null)
+                {
+                    handler.enrich(schemaId, next);
+                }
                 next.accept(data, index, length);
             }
         }
