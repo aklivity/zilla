@@ -127,14 +127,13 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             int payloadIndex = index + progress;
             if (FORMAT_JSON.equals(format))
             {
-                int recordLength = encoded.position();
+                int initialPosition = encoded.position();
                 deserializeRecord(schemaId, data, payloadIndex, payloadLength);
-                recordLength = encoded.position() - recordLength;
+                int recordLength = encoded.position() - initialPosition;
                 if (recordLength > 0)
                 {
+                    next.accept(encoded.buffer(), initialPosition, recordLength);
                     valLength = recordLength;
-                    valueRO.wrap(encoded.buffer());
-                    next.accept(valueRO, 0, valLength);
                 }
             }
             else if (validate(schemaId, data, payloadIndex, payloadLength))

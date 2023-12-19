@@ -90,14 +90,13 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
         {
             if (FORMAT_JSON.equals(format))
             {
-                int recordLength = encoded.position();
+                int initialPosition = encoded.position();
                 serializeJsonRecord(schemaId, data, index, length);
-                recordLength = encoded.position() - recordLength;
+                int recordLength = encoded.position() - initialPosition;
                 if (recordLength > 0)
                 {
                     valLength = recordLength + handler.enrich(schemaId, next);
-                    valueRO.wrap(encoded.buffer());
-                    next.accept(valueRO, 0, recordLength);
+                    next.accept(encoded.buffer(), initialPosition, recordLength);
                 }
             }
             else if (validate(schemaId, data, index, length))

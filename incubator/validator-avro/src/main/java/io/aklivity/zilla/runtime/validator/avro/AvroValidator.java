@@ -25,7 +25,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 import org.apache.avro.AvroRuntimeException;
@@ -53,7 +52,6 @@ public abstract class AvroValidator
     private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
 
-    protected final DirectBuffer valueRO;
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final DecoderFactory decoderFactory;
@@ -91,7 +89,6 @@ public abstract class AvroValidator
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
-        this.valueRO = new UnsafeBuffer();
         this.encoded = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
     }
