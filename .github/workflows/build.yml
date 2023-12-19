@@ -34,7 +34,7 @@ jobs:
     - name: Build with Maven
       run: ./mvnw -B -U -nsu -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
     - name: Conditional Artifact Upload
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: zilla-dump
