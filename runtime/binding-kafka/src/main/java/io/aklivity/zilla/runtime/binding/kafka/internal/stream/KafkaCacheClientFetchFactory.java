@@ -1327,8 +1327,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                           reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, filters, key, deltaType, ancestor, fragment,
-                                          reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
+                    doClientReplyDataInit(traceId, headers, deferred, timestamp, ownerId, filters, key, deltaType,
+                                          ancestor, fragment, reserved, length, flags, partitionId, partitionOffset,
+                                          stableOffset, latestOffset);
                     break;
                 case FLAG_NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
@@ -1403,6 +1404,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
         private void doClientReplyDataInit(
             long traceId,
+            ArrayFW<KafkaHeaderFW> headers,
             int deferred,
             long timestamp,
             long producerId,
@@ -1434,7 +1436,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                      .key(k -> k.length(key.length())
                                                 .value(key.value()))
                                      .delta(d -> d.type(t -> t.set(deltaType))
-                                                  .ancestorOffset(ancestorOffset)))
+                                                  .ancestorOffset(ancestorOffset))
+                                     .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                                        .name(h.name())
+                                        .valueLen(h.valueLen())
+                                        .value(h.value())))))
                         .build()
                         .sizeof()));
 
