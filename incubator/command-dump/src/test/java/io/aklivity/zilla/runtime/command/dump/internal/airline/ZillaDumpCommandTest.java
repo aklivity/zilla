@@ -36,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
 import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
@@ -60,6 +61,39 @@ public class ZillaDumpCommandTest
         RingBuffer streams = streamsLayout.streamsBuffer();
         MutableDirectBuffer frameBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
+        SignalFW signal1 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0)
+            .routedId(0)
+            .streamId(0)
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000001L)
+            .traceId(0x0000000000000000L)
+            .cancelId(0x0000000000007701L)
+            .signalId(0x00007702)
+            .contextId(0x00007703)
+            .build();
+        streams.write(SignalFW.TYPE_ID, signal1.buffer(), 0, signal1.sizeof());
+
+        String hello = "Hello World!";
+        byte[] helloBytes = hello.getBytes(StandardCharsets.UTF_8);
+        SignalFW signal2 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0)
+            .routedId(0)
+            .streamId(0)
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000002L)
+            .traceId(0x0000000000000000L)
+            .cancelId(0x0000000000007801L)
+            .signalId(0x00007802)
+            .contextId(0x00007803)
+            .payload(new OctetsFW().wrap(new UnsafeBuffer(helloBytes), 0, helloBytes.length))
+            .build();
+        streams.write(SignalFW.TYPE_ID, signal2.buffer(), 0, signal2.sizeof());
+
         BeginFW begin1 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -67,7 +101,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000001L)
+            .timestamp(0x0000000000000002L)
             .traceId(0x0000000000000003L)
             .affinity(0x0000000000000005L)
             .build();
@@ -80,7 +114,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(65536)
-            .timestamp(0x0000000000000002L)
+            .timestamp(0x0000000000000003L)
             .traceId(0x0000000000000003L)
             .budgetId(0)
             .padding(0)
@@ -94,7 +128,7 @@ public class ZillaDumpCommandTest
             .sequence(1)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000003L)
+            .timestamp(0x0000000000000004L)
             .traceId(0x0000000000000003L)
             .affinity(0)
             .build();
@@ -107,7 +141,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(65536)
-            .timestamp(0x0000000000000004L)
+            .timestamp(0x0000000000000005L)
             .traceId(0x0000000000000003L)
             .budgetId(0)
             .padding(0)
@@ -145,7 +179,7 @@ public class ZillaDumpCommandTest
             .sequence(123)
             .acknowledge(456)
             .maximum(777)
-            .timestamp(0x0000000000000005L)
+            .timestamp(0x0000000000000006L)
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
@@ -167,7 +201,7 @@ public class ZillaDumpCommandTest
             .sequence(123)
             .acknowledge(456)
             .maximum(777)
-            .timestamp(0x0000000000000005L)
+            .timestamp(0x0000000000000007L)
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
@@ -182,6 +216,8 @@ public class ZillaDumpCommandTest
             .sequence(701)
             .acknowledge(702)
             .maximum(7777)
+            .timestamp(0x0000000000000008L)
+            .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end1.buffer(), 0, end1.sizeof());
 
@@ -192,6 +228,8 @@ public class ZillaDumpCommandTest
             .sequence(703)
             .acknowledge(704)
             .maximum(4444)
+            .timestamp(0x0000000000000009L)
+            .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end2.buffer(), 0, end2.sizeof());
     }

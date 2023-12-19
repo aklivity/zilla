@@ -8,7 +8,7 @@ Zilla Frame
     Protocol Type ID: 0x99f321bc
     Protocol Type: tls
     Worker: 0
-    Offset: 0x00000170
+    Offset: 0x00000240
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
