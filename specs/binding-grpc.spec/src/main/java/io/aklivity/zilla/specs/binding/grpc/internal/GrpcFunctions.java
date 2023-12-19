@@ -18,8 +18,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
@@ -33,6 +36,7 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
@@ -45,6 +49,22 @@ public final class GrpcFunctions
     private static final int BYTES_WIRE_TYPE = 2;
     private static final int START_GROUP_WIRE_TYPE = 3;
     private static final int END_GROUP_WIRE_TYPE = 4;
+
+    @Function
+    public static String randomString(
+        int length)
+    {
+        Random random = ThreadLocalRandom.current();
+        byte[] result = new byte[length];
+        String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
+        for (int i = 0; i < length; i++)
+        {
+            result[i] = (byte) alphabet.charAt(random.nextInt(alphabet.length()));
+        }
+
+        return new String(result, StandardCharsets.UTF_8);
+    }
 
     @Function
     public static GrpcMessageBuilder message()
@@ -80,6 +100,12 @@ public final class GrpcFunctions
     public static GrpcAbortExBuilder abortEx()
     {
         return new GrpcAbortExBuilder();
+    }
+
+    @Function
+    public static GrpcDataExBuilder dataEx()
+    {
+        return new GrpcDataExBuilder();
     }
 
     public static final class GrpcBeginExBuilder
@@ -316,6 +342,39 @@ public final class GrpcFunctions
         }
     }
 
+    public static final class GrpcDataExBuilder
+    {
+        private final GrpcDataExFW.Builder dataExRW;
+
+        private GrpcDataExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.dataExRW = new GrpcDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public GrpcDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public GrpcDataExBuilder deferred(
+            int deferred)
+        {
+            dataExRW.deferred(deferred);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final GrpcDataExFW dataEx = dataExRW.build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
     public static final class GrpcAbortExBuilder
     {
         private final GrpcAbortExFW.Builder abortExRW;
@@ -386,7 +445,7 @@ public final class GrpcFunctions
     {
         private final Varuint32FW.Builder keyRW;
         private final Varuint32FW.Builder lenRW;
-        private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 200]);
 
         private int messageBufferLimit = 5;
 
@@ -432,7 +491,7 @@ public final class GrpcFunctions
     {
         private final Varuint32FW.Builder keyRW;
         private final Varuint32FW.Builder lenRW;
-        private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 200]);
         private int messageBufferLimit = 0;
 
         private ProtobufBuilder()

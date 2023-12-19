@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
 import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
+import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.randomBytes;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -36,6 +37,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 
 public class GrpcFunctionsTest
@@ -54,6 +56,15 @@ public class GrpcFunctionsTest
 
         assertNotNull(function);
         assertSame(GrpcFunctions.class, function.getDeclaringClass());
+    }
+
+    @Test
+    public void shouldRandomizeBytes() throws Exception
+    {
+        final byte[] bytes = randomBytes(42);
+
+        assertNotNull(bytes);
+        assertEquals(42, bytes.length);
     }
 
     @Test
@@ -140,6 +151,20 @@ public class GrpcFunctionsTest
     }
 
     @Test
+    public void shouldGenerateDataExtension()
+    {
+        byte[] build = GrpcFunctions.dataEx()
+            .typeId(0x01)
+            .deferred(10)
+            .build();
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        GrpcDataExFW dataEx = new GrpcDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+
+        assertEquals(10, dataEx.deferred());
+    }
+
+    @Test
     public void shouldGenerateGrpcMessage()
     {
         byte[] message = GrpcFunctions.message().string(1, "value").build();
@@ -155,5 +180,12 @@ public class GrpcFunctionsTest
             .build();
         byte[] expected = {10, 5, 118, 97, 108, 117, 101};
         assertArrayEquals(expected, message);
+    }
+
+    @Test
+    public void  shouldGenerateRandomString()
+    {
+        String randomString = GrpcFunctions.randomString(10);
+        assertEquals(10, randomString.length());
     }
 }
