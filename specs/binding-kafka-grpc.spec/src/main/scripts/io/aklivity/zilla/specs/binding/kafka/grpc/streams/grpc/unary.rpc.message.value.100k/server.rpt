@@ -1,0 +1,51 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property randomValue ${grpc:randomString(100000)}
+
+accept "zilla://streams/grpc0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+accepted
+
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .service("example.EchoService")
+                           .method("EchoUnary")
+                           .build()}
+connected
+
+read zilla:data.ext ${grpc:dataEx()
+                              .typeId(zilla:id("grpc"))
+                              .deferred(91817)
+                              .build()}
+read ${grpc:protobuf()
+           .string(1, randomValue)
+           .build()}
+
+read closed
+
+write zilla:data.ext ${grpc:dataEx()
+                              .typeId(zilla:id("grpc"))
+                              .deferred(91817)
+                              .build()}
+write ${grpc:protobuf()
+            .string(1, randomValue)
+            .build()}
+write flush
+
+write close

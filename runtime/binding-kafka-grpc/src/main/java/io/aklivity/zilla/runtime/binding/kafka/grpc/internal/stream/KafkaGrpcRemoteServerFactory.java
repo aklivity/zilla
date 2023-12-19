@@ -112,6 +112,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
+    private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
@@ -423,7 +424,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     }
 
                     flushGrpcClientData(grpcClient, traceId, authorization, helper.service, helper.method,
-                        helper.partitionId, helper.partitionOffset, flags, reserved, payload);
+                        helper.partitionId, helper.partitionOffset, helper.deferred, flags, reserved, payload);
                 }
                 else if (helper.correlationId != null)
                 {
@@ -436,7 +437,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 if (grpcClient != null)
                 {
                     flushGrpcClientData(grpcClient, traceId, authorization, null, null,
-                        helper.partitionId, helper.partitionOffset, flags, reserved, payload);
+                        helper.partitionId, helper.partitionOffset, helper.deferred, flags, reserved, payload);
                 }
             }
 
@@ -480,6 +481,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 final long messageAuthorization = queueMessage.authorization();
                 final int partitionId = queueMessage.partitionId();
                 final long partitionOffset = queueMessage.partitionOffset();
+                final int deferred = queueMessage.deferred();
                 final int flags = queueMessage.flags();
                 final int reserved = queueMessage.reserved();
                 final int valueLength = queueMessage.valueLength();
@@ -496,7 +498,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                         newGrpcClient(traceId, authorization, service, method, helper.replyTo, messageCorrelationId);
 
                     final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
-                        partitionId, partitionOffset, flags, payload);
+                        partitionId, partitionOffset, deferred, flags, payload);
 
                     if (progress == valueLength)
                     {
@@ -511,7 +513,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     {
                         final int remainingPayload = queuedMessageSize - progress;
                         queueGrpcMessage(traceId, authorization, partitionId, partitionOffset, lastCorrelationId,
-                            service, method, flags, reserved, payload, remainingPayload);
+                            service, method, helper.deferred, flags, reserved, payload, remainingPayload);
                         final int remainingMessageOffset = grpcQueueSlotOffset - progressOffset;
                         grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remainingMessageOffset);
                         grpcQueueSlotOffset -= queuedMessageSize;
@@ -537,12 +539,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW method,
             int partitionId,
             long partitionOffset,
+            int deferred,
             int flags,
             int reserved,
             OctetsFW payload)
         {
             final int progress = grpcClient.onKafkaData(traceId, authorization, partitionId, partitionOffset,
-                flags, payload);
+                deferred, flags, payload);
             int length = payload != null ? payload.sizeof() : 0;
             final int remaining = length - progress;
 
@@ -558,7 +561,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 flags = progress == 0 ? flags : DATA_FLAG_CON;
                 payload = payload == null ? emptyRO : payload;
                 queueGrpcMessage(traceId, authorization, partitionId, partitionOffset,
-                    grpcClient.correlationId, service, method, flags, reserved, payload, remaining);
+                    grpcClient.correlationId, service, method, deferred, flags, reserved, payload, remaining);
             }
         }
 
@@ -570,6 +573,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW correlationId,
             OctetsFW service,
             OctetsFW method,
+            int deferred,
             int flags,
             int reserved,
             OctetsFW payload,
@@ -586,6 +590,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .authorization(authorization)
                 .partitionId(partitionId)
                 .partitionOffset(partitionOffset)
+                .deferred(deferred)
                 .flags(flags)
                 .reserved(reserved)
                 .value(payload.buffer(), payload.offset(), length)
@@ -1558,6 +1563,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             int partitionId,
             long partitionOffset,
+            int deferred,
             int flags,
             OctetsFW payload)
         {
@@ -1568,12 +1574,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, length + initialPad,
-                    newFlags, payload.value(), 0, length);
-
-                server.doKafkaCommitOffset(traceId, authorization, partitionId, partitionOffset);
+                    deferred, newFlags, payload.value(), 0, length);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
+                    server.doKafkaCommitOffset(traceId, authorization, partitionId, partitionOffset);
                     state = KafkaGrpcState.closingInitial(state);
                 }
             }
@@ -1641,13 +1646,20 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             long budgetId,
             int reserved,
+            int deferred,
             int flags,
             DirectBuffer buffer,
             int offset,
             int length)
         {
+            GrpcDataExFW dataEx = grpcDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .deferred(deferred)
+                .build();
+
             doData(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, reserved, flags, buffer, offset, length, emptyRO);
+                traceId, authorization, budgetId, reserved, flags, buffer, offset, length, dataEx);
 
             initialSeq += reserved;
 
