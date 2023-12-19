@@ -176,6 +176,17 @@ local fields = {
     ext_proxy_info_secure = ProtoField.string("zilla.proxy_ext.info_secure", "Value", base.NONE),
     ext_proxy_info_secure_type = ProtoField.uint8("zilla.proxy_ext.info_secure_type", "Secure Type", base.HEX,
         ext_proxy_secure_info_types),
+
+    -- http extension
+    --     headers
+    ext_http_headers_array_length = ProtoField.uint8("zilla.http_ext.headers_array_length", "Length", base.DEC),
+    ext_http_headers_array_size = ProtoField.uint8("zilla.http_ext.headers_array_size", "Size", base.DEC),
+    ext_http_header_name_length = ProtoField.uint8("zilla.http_ext.header_name_length", "Length", base.DEC),
+    ext_http_header_name = ProtoField.string("zilla.http_ext.header_name", "Name", base.NONE),
+    ext_http_header_value_length = ProtoField.uint16("zilla.http_ext.header_value_length", "Length", base.DEC),
+    ext_http_header_value = ProtoField.string("zilla.http_ext.header_value", "Value", base.NONE),
+    --    promise id
+    ext_http_promise_id = ProtoField.uint64("zilla.promise_id", "Promise ID", base.HEX),
 }
 
 zilla_protocol.fields = fields;
@@ -300,7 +311,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     if frame_type_id == BEGIN_ID then
         local slice_affinity = buffer(frame_offset + 72, 8)
         subtree:add_le(fields.affinity, slice_affinity)
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 80)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 80, frame_type_id)
     end
 
     -- data
@@ -333,7 +344,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
             payload_subtree:add(fields.payload, slice_payload)
         end
 
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + payload_length)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + payload_length, frame_type_id)
 
         local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
         if dissector then
@@ -343,12 +354,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- end
     if frame_type_id == END_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
     end
 
     -- abort
     if frame_type_id == ABORT_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
     end
 
     -- flush
@@ -357,12 +368,12 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         local slice_reserved = buffer(frame_offset + 80, 4)
         subtree:add_le(fields.budget_id, slice_budget_id)
         subtree:add_le(fields.reserved, slice_reserved)
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 84)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 84, frame_type_id)
     end
 
     -- reset
     if frame_type_id == RESET_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
     end
 
     -- window
@@ -405,7 +416,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
 
     -- challenge
     if frame_type_id == CHALLENGE_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72)
+        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
     end
 end
 
@@ -476,7 +487,7 @@ function resolve_http_dissector(payload)
     end
 end
 
-function handle_extension(buffer, subtree, pinfo, info, offset)
+function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
     if buffer:len() > offset then
         local slice_stream_type_id = buffer(offset, 4)
         local stream_type_id = slice_stream_type_id:le_uint();
@@ -489,6 +500,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset)
 
         if stream_type_id == PROXY_ID then
             handle_proxy_extension(buffer, extension_subtree, offset + 4)
+        elseif stream_type_id == HTTP_ID then
+            handle_http_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -650,6 +663,43 @@ function add_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_
     subtree:add(field_type, slice_type_id)
     subtree:add_le(field_length, slice_length)
     subtree:add(field_text, slice_text)
+end
+
+function handle_http_extension(buffer, extension_subtree, offset, frame_type_id)
+    if frame_type_id == BEGIN_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
+        dissect_and_add_http_headers(buffer, extension_subtree, offset, "Headers", "Header")
+    elseif frame_type_id == END_ID then
+        dissect_and_add_http_headers(buffer, extension_subtree, offset, "Trailers", "Trailer")
+    elseif frame_type_id == FLUSH_ID then
+        slice_promise_id = buffer(offset, 8)
+        extension_subtree:add_le(fields.ext_http_promise_id, slice_promise_id)
+        dissect_and_add_http_headers(buffer, extension_subtree, offset + 8, "Promises", "Promise")
+    end
+end
+
+function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_name, singular_name)
+    local slice_headers_array_length = buffer(offset, 4)
+    local slice_headers_array_size = buffer(offset + 4, 4)
+    local headers_array_length = slice_headers_array_length:le_int()
+    local headers_array_size = slice_headers_array_size:le_int()
+    local length = 8
+    local label = string.format("%s (%d items)", plural_name, headers_array_size)
+    local headers_array_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), label)
+    headers_array_subtree:add_le(fields.ext_http_headers_array_length, slice_headers_array_length)
+    headers_array_subtree:add_le(fields.ext_http_headers_array_size, slice_headers_array_size)
+    local item_offset = offset + length
+    for i = 1, headers_array_size do
+        local name_length, slice_name_length, slice_name = dissect_length_value(buffer, item_offset, 1)
+        local value_offset = item_offset + name_length
+        local value_length, slice_value_length, slice_value = dissect_length_value(buffer, value_offset, 2)
+        local label = string.format("%s: %s: %s", singular_name, slice_name:string(), slice_value:string())
+        local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset, name_length + value_length), label)
+        subtree:add_le(fields.ext_http_header_name_length, slice_name_length)
+        subtree:add(fields.ext_http_header_name, slice_name)
+        subtree:add_le(fields.ext_http_header_value_length, slice_value_length)
+        subtree:add(fields.ext_http_header_value, slice_value)
+        item_offset = item_offset + name_length + value_length
+    end
 end
 
 local data_dissector = DissectorTable.get("tcp.port")
