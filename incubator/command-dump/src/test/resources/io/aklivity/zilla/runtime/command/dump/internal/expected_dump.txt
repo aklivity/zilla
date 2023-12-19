@@ -328,17 +328,103 @@ Hypertext Transfer Protocol
     File Data: 13 bytes
 Line-based text data: text/plain (1 lines)
 
-Frame 10: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 10: 237 bytes on wire (1896 bits), 237 bytes captured (1896 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 570, Ack: 625, Len: 163
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000420
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000004
+    Initial ID: 0x0000000000000005
+    Reply ID: 0x0000000000000004
+    Direction: REP
+    Sequence: 301
+    Acknowledge: 302
+    Maximum: 3344
+    Timestamp: 0x0000000000000008
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000003300
+    Reserved: 13059
+
+Frame 11: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 625, Ack: 570, Len: 151
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 625, Ack: 733, Len: 151
+Zilla Frame
+    Frame Type ID: 0x00000004
+    Frame Type: ABORT
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000478
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000005
+    Initial ID: 0x0000000000000005
+    Reply ID: 0x0000000000000004
+    Direction: INI
+    Sequence: 401
+    Acknowledge: 402
+    Maximum: 4477
+    Timestamp: 0x0000000000000009
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+
+Frame 12: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::7, Dst: fe80::6
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 151
+Zilla Frame
+    Frame Type ID: 0x40000001
+    Frame Type: RESET
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x000004c8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000006
+    Initial ID: 0x0000000000000007
+    Reply ID: 0x0000000000000006
+    Direction: REP
+    Sequence: 501
+    Acknowledge: 502
+    Maximum: 5577
+    Timestamp: 0x000000000000000a
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+
+Frame 13: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 776, Ack: 733, Len: 151
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x00000420
+    Offset: 0x00000518
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -352,21 +438,21 @@ Zilla Frame
     Sequence: 701
     Acknowledge: 702
     Maximum: 7777
-    Timestamp: 0x0000000000000008
+    Timestamp: 0x000000000000000b
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 11: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 14: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 570, Ack: 776, Len: 151
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 733, Ack: 927, Len: 151
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x00000470
+    Offset: 0x00000568
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -380,7 +466,7 @@ Zilla Frame
     Sequence: 703
     Acknowledge: 704
     Maximum: 4444
-    Timestamp: 0x0000000000000009
+    Timestamp: 0x000000000000000c
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 

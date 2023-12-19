@@ -34,8 +34,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
@@ -51,6 +54,7 @@ public class ZillaDumpCommandTest
     private ZillaDumpCommand command;
 
     @BeforeAll
+    @SuppressWarnings("checkstyle:methodlength")
     public static void generateStreamsBuffer()
     {
         StreamsLayout streamsLayout = new StreamsLayout.Builder()
@@ -209,6 +213,44 @@ public class ZillaDumpCommandTest
             .build();
         streams.write(DataFW.TYPE_ID, data2.buffer(), 0, data2.sizeof());
 
+        FlushFW flush1 = new FlushFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000004L) // REP
+            .sequence(301)
+            .acknowledge(302)
+            .maximum(3344)
+            .timestamp(0x0000000000000008L)
+            .traceId(0x0000000000000003L)
+            .budgetId(0x0000000000003300L)
+            .reserved(0x00003303)
+            .build();
+        streams.write(FlushFW.TYPE_ID, flush1.buffer(), 0, flush1.sizeof());
+
+        AbortFW abort1 = new AbortFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000005L) // INI
+            .sequence(401)
+            .acknowledge(402)
+            .maximum(4477)
+            .timestamp(0x0000000000000009L)
+            .traceId(0x0000000000000003L)
+            .build();
+        streams.write(AbortFW.TYPE_ID, abort1.buffer(), 0, abort1.sizeof());
+
+        ResetFW reset1 = new ResetFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000006L) // REP
+            .sequence(501)
+            .acknowledge(502)
+            .maximum(5577)
+            .timestamp(0x000000000000000aL)
+            .traceId(0x0000000000000003L)
+            .build();
+        streams.write(ResetFW.TYPE_ID, reset1.buffer(), 0, reset1.sizeof());
+
         EndFW end1 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -216,7 +258,7 @@ public class ZillaDumpCommandTest
             .sequence(701)
             .acknowledge(702)
             .maximum(7777)
-            .timestamp(0x0000000000000008L)
+            .timestamp(0x000000000000000bL)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end1.buffer(), 0, end1.sizeof());
@@ -228,7 +270,7 @@ public class ZillaDumpCommandTest
             .sequence(703)
             .acknowledge(704)
             .maximum(4444)
-            .timestamp(0x0000000000000009L)
+            .timestamp(0x000000000000000cL)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end2.buffer(), 0, end2.sizeof());
