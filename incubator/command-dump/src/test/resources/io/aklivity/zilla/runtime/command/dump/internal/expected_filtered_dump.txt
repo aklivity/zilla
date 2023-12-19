@@ -22,7 +22,7 @@ Zilla Frame
     Sequence: 71
     Acknowledge: 72
     Maximum: 73
-    Timestamp: 0x0000000000004201
+    Timestamp: 0x0000000000000007
     Trace ID: 0x0000000000004202
     Authorization: 0x0000000000004203
     Affinity: 0x0000000000004204
