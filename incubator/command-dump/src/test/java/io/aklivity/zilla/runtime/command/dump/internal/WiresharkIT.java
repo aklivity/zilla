@@ -41,7 +41,7 @@ import org.testcontainers.utility.DockerImageName;
 @TestInstance(PER_CLASS)
 public class WiresharkIT
 {
-    private static final String TSHARK_DOCKER_IMAGE = "mytshark:4.2.0"; // TODO: Ati - image name
+    private static final String TSHARK_DOCKER_IMAGE = "kreinerattila/tshark:4.2.0";
     private static final String COMMAND = "sleep infinity";
     private static final WaitStrategy WAIT_STRATEGY = Wait.forSuccessfulCommand("echo 42");
 
