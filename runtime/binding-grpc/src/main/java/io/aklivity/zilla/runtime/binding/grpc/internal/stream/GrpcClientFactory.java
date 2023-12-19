@@ -813,11 +813,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 messageDeferred = messageLength - payloadSize;
 
                 Flyweight dataEx = messageDeferred > 0 ?
-                    grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    grpcDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
                         .deferred(messageDeferred)
                         .build() : EMPTY_OCTETS;
-
 
                 int flags = messageDeferred > 0 ? DATA_FLAG_INIT : DATA_FLAG_INIT | DATA_FLAG_FIN;
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
@@ -918,7 +917,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             initialMax = maximum;
             state = GrpcState.openInitial(state);
 
-            assert initialAck <= initialMax;
+            assert initialAck <= initialSeq;
 
             delegate.doAppWindow(traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING,
                 initialAck, initialMax);
