@@ -30,6 +30,5 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read notify WAIT_TIME_ELAPSED
 read closed
 write close

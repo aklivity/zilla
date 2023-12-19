@@ -1514,7 +1514,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                             if (expireInterval != -1)
                             {
-                                b.expiryInterval((int) expireInterval / 1000);
+                                b.expiryInterval((int) expireInterval);
                             }
                             if (helper.contentType != null)
                             {
@@ -2254,7 +2254,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             b.subscriptionIds(subscriptionIdsRW.build());
                             if (expireInterval != -1)
                             {
-                                b.expiryInterval((int) expireInterval / 1000);
+                                b.expiryInterval((int) expireInterval);
                             }
                             if (helper.contentType != null)
                             {

@@ -611,9 +611,6 @@ public class MqttKafkaSubscribeProxyIT
         "${kafka}/subscribe.expire.message/server"})
     public void shouldExpireMessage() throws Exception
     {
-        k3po.start();
-        Thread.sleep(1500);
-        k3po.notifyBarrier("WAIT_TIME_ELAPSED");
         k3po.finish();
     }
 
@@ -625,9 +622,6 @@ public class MqttKafkaSubscribeProxyIT
         "${kafka}/subscribe.expire.message.fragmented/server"})
     public void shouldExpireMessageFragmented() throws Exception
     {
-        k3po.start();
-        Thread.sleep(1500);
-        k3po.notifyBarrier("WAIT_TIME_ELAPSED");
         k3po.finish();
     }
 }
