@@ -80,13 +80,13 @@ public class WiresharkIT
     }
 
     @Test
-    public void shouldMatchExpectedOutputWithoutFilter() throws Exception
+    public void shouldMatchExpectedOutput() throws Exception
     {
         // GIVEN
-        String pcapFileName = "expected_dump_without_filter.pcap";
+        String pcapFileName = "expected_dump.pcap";
         String containerPath = String.format("/opt/%s", pcapFileName);
         copyResource(pcapFileName, tshark, containerPath);
-        String expectedText = Files.readString(resourceToPath("expected_dump_without_filter.txt"));
+        String expectedText = Files.readString(resourceToPath("expected_dump.txt"));
 
         // WHEN
         Container.ExecResult result = tshark.execInContainer("tshark", "-O", "zilla", "-r", containerPath);
@@ -97,13 +97,13 @@ public class WiresharkIT
     }
 
     @Test
-    public void shouldMatchExpectedOutputWithFilter() throws Exception
+    public void shouldMatchExpectedFilteredOutput() throws Exception
     {
         // GIVEN
-        String pcapFileName = "expected_dump_with_kafka_filter.pcap";
+        String pcapFileName = "expected_filtered_dump.pcap";
         String containerPath = String.format("/opt/%s", pcapFileName);
         copyResource(pcapFileName, tshark, containerPath);
-        String expectedText = Files.readString(resourceToPath("expected_dump_with_kafka_filter.txt"));
+        String expectedText = Files.readString(resourceToPath("expected_filtered_dump.txt"));
 
         // WHEN
         Container.ExecResult result = tshark.execInContainer("tshark", "-O", "zilla", "-r", containerPath);
