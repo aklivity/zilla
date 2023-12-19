@@ -89,7 +89,7 @@ public class WiresharkIT
         String expectedText = Files.readString(resourceToPath("expected_dump.txt"));
 
         // WHEN
-        Container.ExecResult result = tshark.execInContainer("tshark", "-O", "zilla", "-r", containerPath);
+        Container.ExecResult result = tshark.execInContainer("tshark", "-O", "zilla,http", "-r", containerPath);
 
         // THEN
         assertThat(result.getExitCode(), equalTo(0));

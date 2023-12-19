@@ -193,6 +193,24 @@ Zilla Frame
         Length: 130
         Payload
 Hypertext Transfer Protocol
+    POST / HTTP/1.1\n
+        [Expert Info (Chat/Sequence): POST / HTTP/1.1\n]
+            [POST / HTTP/1.1\n]
+            [Severity level: Chat]
+            [Group: Sequence]
+        Request Method: POST
+        Request URI: /
+        Request Version: HTTP/1.1
+    Host: localhost:8080\n
+    User-Agent: curl/7.85.0\n
+    Accept: */*\n
+    Content-Type: text/plain\n
+    Content-Length: 12\n
+        [Content length: 12]
+    \n
+    [Full request URI: http://localhost:8080/]
+    [HTTP request 1/1]
+    File Data: 12 bytes
 Line-based text data: text/plain (1 lines)
 
 Frame 7: 316 bytes on wire (2528 bits), 316 bytes captured (2528 bits)
@@ -235,6 +253,24 @@ Zilla Frame
         Length: 74
         Payload
 Hypertext Transfer Protocol
+    HTTP/1.1 200 OK\n
+        [Expert Info (Chat/Sequence): HTTP/1.1 200 OK\n]
+            [HTTP/1.1 200 OK\n]
+            [Severity level: Chat]
+            [Group: Sequence]
+        Response Version: HTTP/1.1
+        Status Code: 200
+        [Status Code Description: OK]
+        Response Phrase: OK
+    Content-Type: text/plain\n
+    Content-Length: 13\n
+        [Content length: 13]
+    \n
+    [HTTP response 1/1]
+    [Time since request: 0.000000000 seconds]
+    [Request in frame: 6]
+    [Request URI: http://localhost:8080/]
+    File Data: 13 bytes
 Line-based text data: text/plain (1 lines)
 
 Frame 8: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
