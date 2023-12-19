@@ -181,11 +181,4 @@ public class GrpcFunctionsTest
         byte[] expected = {10, 5, 118, 97, 108, 117, 101};
         assertArrayEquals(expected, message);
     }
-
-    @Test
-    public void  shouldGenerateRandomString()
-    {
-        String randomString = GrpcFunctions.randomString(10);
-        assertEquals(10, randomString.length());
-    }
 }

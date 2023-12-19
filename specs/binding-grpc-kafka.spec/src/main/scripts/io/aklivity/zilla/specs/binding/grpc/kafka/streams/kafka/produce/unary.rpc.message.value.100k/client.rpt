@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property randomValue ${grpc:randomString(100000)}
+property string100k ${core:randomString(102400)}
 
 connect "zilla://streams/kafka0"
     option zilla:window 8192
@@ -35,7 +35,7 @@ write zilla:data.ext ${kafka:dataEx()
                                  .typeId(zilla:id("kafka"))
                                  .merged()
                                    .produce()
-                                     .deferred(91817)
+                                     .deferred(94217)
                                      .partition(-1, -1)
                                      .key("test")
                                      .header("zilla:identity", "test")
@@ -46,7 +46,7 @@ write zilla:data.ext ${kafka:dataEx()
                                      .build()
                                  .build()}
 write ${grpc:protobuf()
-            .string(1, randomValue)
+            .string(1, string100k)
             .build()}
 write flush
 
@@ -94,7 +94,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .fetch()
-                              .deferred(91817)
+                              .deferred(94217)
                               .partition(0, 1, 2)
                               .progress(0, 2)
                               .progress(1, 1)
@@ -102,7 +102,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .build()
                            .build()}
 read ${grpc:protobuf()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()

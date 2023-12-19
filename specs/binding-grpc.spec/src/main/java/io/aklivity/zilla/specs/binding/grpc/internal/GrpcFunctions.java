@@ -18,11 +18,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
@@ -49,22 +46,6 @@ public final class GrpcFunctions
     private static final int BYTES_WIRE_TYPE = 2;
     private static final int START_GROUP_WIRE_TYPE = 3;
     private static final int END_GROUP_WIRE_TYPE = 4;
-
-    @Function
-    public static String randomString(
-        int length)
-    {
-        Random random = ThreadLocalRandom.current();
-        byte[] result = new byte[length];
-        String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
-        for (int i = 0; i < length; i++)
-        {
-            result[i] = (byte) alphabet.charAt(random.nextInt(alphabet.length()));
-        }
-
-        return new String(result, StandardCharsets.UTF_8);
-    }
 
     @Function
     public static GrpcMessageBuilder message()

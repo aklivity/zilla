@@ -38,7 +38,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .fetch()
-                               .deferred(91817)
+                               .deferred(94217)
                                .partition(0, 1, 2)
                                .progress(0, 2)
                                .progress(1, 1)
@@ -51,7 +51,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read ${grpc:protobuf()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
@@ -109,14 +109,14 @@ write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .produce()
-                               .deferred(91817)
+                               .deferred(94217)
                                .partition(-1, -1)
                                .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                .build()
                            .build()}
 write ${grpc:protobuf()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 write flush
 

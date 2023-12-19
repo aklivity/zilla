@@ -32,7 +32,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 connected
 
 read ${grpc:message()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 
 read closed
@@ -46,7 +46,7 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 
 write ${grpc:message()
-            .string(1, randomValue)
+            .string(1, string100k)
             .build()}
 write flush
 

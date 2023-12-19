@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property randomValue ${grpc:randomString(200000)}
+property string100k ${core:randomString(102400)}
 
 connect "zilla://streams/grpc0"
     option zilla:window 8192
@@ -33,17 +33,17 @@ connected
 
 write zilla:data.ext ${grpc:dataEx()
                               .typeId(zilla:id("grpc"))
-                              .deferred(91817)
+                              .deferred(94217)
                               .build()}
 write ${grpc:protobuf()
-            .string(1, randomValue)
+            .string(1, string100k)
             .build()}
 write flush
 
 write close
 
 read ${grpc:protobuf()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 
 read closed

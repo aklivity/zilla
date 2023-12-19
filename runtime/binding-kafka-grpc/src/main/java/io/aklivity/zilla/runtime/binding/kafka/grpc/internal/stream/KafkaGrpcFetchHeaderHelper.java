@@ -34,7 +34,6 @@ public final class KafkaGrpcFetchHeaderHelper
     private final OctetsFW replyToRO = new OctetsFW();
     private final OctetsFW correlatedIdRO = new OctetsFW();
 
-    public int deferred;
     public int partitionId;
     public long partitionOffset;
 
@@ -72,7 +71,6 @@ public final class KafkaGrpcFetchHeaderHelper
             final Array32FW<KafkaHeaderFW> headers = kafkaMergedFetchDataEx.headers();
             final KafkaOffsetFW partition = kafkaMergedFetchDataEx.partition();
 
-            deferred = kafkaMergedFetchDataEx.deferred();
             partitionId = partition.partitionId();
             partitionOffset = partition.partitionOffset();
 

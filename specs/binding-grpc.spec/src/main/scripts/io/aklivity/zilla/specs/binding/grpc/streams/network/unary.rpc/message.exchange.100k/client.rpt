@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property randomValue ${grpc:randomString(100000)}
+property string100k ${core:randomString(102400)}
 
 connect "zilla://streams/net0"
   option zilla:window 8192
@@ -33,7 +33,7 @@ write zilla:begin.ext ${http:beginEx()
 connected
 
 write ${grpc:message()
-            .string(1, randomValue)
+            .string(1, string100k)
             .build()}
 write flush
 
@@ -47,7 +47,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .build()}
 
 read ${grpc:message()
-           .string(1, randomValue)
+           .string(1, string100k)
            .build()}
 
 read zilla:end.ext ${http:endEx()

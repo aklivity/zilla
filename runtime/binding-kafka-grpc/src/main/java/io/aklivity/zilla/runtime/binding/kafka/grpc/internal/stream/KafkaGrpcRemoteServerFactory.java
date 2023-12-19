@@ -397,6 +397,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert replyAck <= replySeq;
 
+            int deferred = 0;
+
             if ((flags & DATA_FLAG_INIT) != 0x00)
             {
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
@@ -404,6 +406,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     extension.get(kafkaDataExRO::tryWrap) : null;
 
                 helper.visit(kafkaDataEx);
+                deferred = kafkaDataEx.merged().fetch().deferred();
             }
 
             if ((flags & DATA_FLAG_INIT) != 0x00 && payload != null)
@@ -424,7 +427,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     }
 
                     flushGrpcClientData(grpcClient, traceId, authorization, helper.service, helper.method,
-                        helper.partitionId, helper.partitionOffset, helper.deferred, flags, reserved, payload);
+                        helper.partitionId, helper.partitionOffset, deferred, flags, reserved, payload);
                 }
                 else if (helper.correlationId != null)
                 {
@@ -437,7 +440,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 if (grpcClient != null)
                 {
                     flushGrpcClientData(grpcClient, traceId, authorization, null, null,
-                        helper.partitionId, helper.partitionOffset, helper.deferred, flags, reserved, payload);
+                        helper.partitionId, helper.partitionOffset, deferred, flags, reserved, payload);
                 }
             }
 
@@ -513,7 +516,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     {
                         final int remainingPayload = queuedMessageSize - progress;
                         queueGrpcMessage(traceId, authorization, partitionId, partitionOffset, lastCorrelationId,
-                            service, method, helper.deferred, flags, reserved, payload, remainingPayload);
+                            service, method, deferred, flags, reserved, payload, remainingPayload);
                         final int remainingMessageOffset = grpcQueueSlotOffset - progressOffset;
                         grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remainingMessageOffset);
                         grpcQueueSlotOffset -= queuedMessageSize;
