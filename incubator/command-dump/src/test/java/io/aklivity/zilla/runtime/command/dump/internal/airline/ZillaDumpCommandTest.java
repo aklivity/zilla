@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.String8FW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
@@ -81,8 +81,7 @@ public class ZillaDumpCommandTest
             .build();
         streams.write(SignalFW.TYPE_ID, signal1.buffer(), 0, signal1.sizeof());
 
-        String hello = "Hello World!";
-        byte[] helloBytes = hello.getBytes(StandardCharsets.UTF_8);
+        DirectBuffer helloBuf = new String8FW("Hello World!").value();
         SignalFW signal2 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0)
             .routedId(0)
@@ -95,7 +94,7 @@ public class ZillaDumpCommandTest
             .cancelId(0x0000000000007801L)
             .signalId(0x00007802)
             .contextId(0x00007803)
-            .payload(new OctetsFW().wrap(new UnsafeBuffer(helloBytes), 0, helloBytes.length))
+            .payload(helloBuf, 0, helloBuf.capacity())
             .build();
         streams.write(SignalFW.TYPE_ID, signal2.buffer(), 0, signal2.sizeof());
 
@@ -176,7 +175,7 @@ public class ZillaDumpCommandTest
             "Content-Length: 12\n" +
             "\n" +
             "Hello, world";
-        byte[] request1Bytes = request1.getBytes(StandardCharsets.UTF_8);
+        DirectBuffer request1buf = new String8FW(request1).value();
         DataFW data1 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -188,7 +187,7 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
-            .payload(new OctetsFW().wrap(new UnsafeBuffer(request1Bytes), 0, request1Bytes.length))
+            .payload(request1buf, 0, request1buf.capacity())
             .build();
         streams.write(DataFW.TYPE_ID, data1.buffer(), 0, data1.sizeof());
 
@@ -198,7 +197,7 @@ public class ZillaDumpCommandTest
             "Content-Length: 13\n" +
             "\n" +
             "Hello, World!";
-        byte[] response1Bytes = response1.getBytes(StandardCharsets.UTF_8);
+        DirectBuffer response1buf = new String8FW(response1).value();
         DataFW data2 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -210,7 +209,7 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
-            .payload(new OctetsFW().wrap(new UnsafeBuffer(response1Bytes), 0, response1Bytes.length))
+            .payload(response1buf, 0, response1buf.capacity())
             .build();
         streams.write(DataFW.TYPE_ID, data2.buffer(), 0, data2.sizeof());
 
