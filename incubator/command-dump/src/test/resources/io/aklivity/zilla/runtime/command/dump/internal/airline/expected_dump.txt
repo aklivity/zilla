@@ -17,7 +17,7 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 0
     Timestamp: 0x0000000000000001
-    Trace ID: 0x0000000000000000
+    Trace ID: 0x0000000000000001
     Authorization: 0x0000000000000000
     Cancel ID: 0x0000000000007701
     Signal ID: 30466
@@ -25,7 +25,61 @@ Zilla Frame
     Payload
         Length: -1
 
-Frame 2: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
+Frame 2: 198 bytes on wire (1584 bits), 198 bytes captured (1584 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80:0:0:1::1, Dst: fe80:0:0:1::
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 124
+Zilla Frame
+    Frame Type ID: 0x40000003
+    Frame Type: SIGNAL
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 1
+    Offset: 0x00000000
+    Origin ID: 0x0000000000000000
+    Routed ID: 0x0000000000000000
+    Stream ID: 0x0000000000000000
+    Direction: 
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000001
+    Trace ID: 0x0100000000000001
+    Authorization: 0x0000000000000000
+    Cancel ID: 0x0000000000008801
+    Signal ID: 34818
+    Context ID: 34819
+    Payload
+        Length: -1
+
+Frame 3: 198 bytes on wire (1584 bits), 198 bytes captured (1584 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80:0:0:2::1, Dst: fe80:0:0:2::
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 124
+Zilla Frame
+    Frame Type ID: 0x40000003
+    Frame Type: SIGNAL
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 2
+    Offset: 0x00000000
+    Origin ID: 0x0000000000000000
+    Routed ID: 0x0000000000000000
+    Stream ID: 0x0000000000000000
+    Direction: 
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000001
+    Trace ID: 0x0200000000000001
+    Authorization: 0x0000000000000000
+    Cancel ID: 0x0000000000008801
+    Signal ID: 39170
+    Context ID: 39171
+    Payload
+        Length: -1
+
+Frame 4: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::1, Dst: fe80::
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 125, Ack: 1, Len: 136
@@ -53,7 +107,65 @@ Zilla Frame
         Length: 12
         Payload
 
-Frame 3: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
+Frame 5: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:101:0:0:4, Dst: fe80::1:101:0:0:5
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 159
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 1
+    Offset: 0x00000060
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0101000000000005
+    Initial ID: 0x0101000000000005
+    Reply ID: 0x0101000000000004
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000002
+    Trace ID: 0x0100000000000003
+    Authorization: 0x0000000000000000
+    Affinity: 0x0101000000000005
+
+Frame 6: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::2:202:0:0:4, Dst: fe80::2:202:0:0:5
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 159
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 2
+    Offset: 0x00000060
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0202000000000005
+    Initial ID: 0x0202000000000005
+    Reply ID: 0x0202000000000004
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000002
+    Trace ID: 0x0200000000000003
+    Authorization: 0x0000000000000000
+    Affinity: 0x0202000000000005
+
+Frame 7: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 159
@@ -82,7 +194,63 @@ Zilla Frame
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000005
 
-Frame 4: 242 bytes on wire (1936 bits), 242 bytes captured (1936 bits)
+Frame 8: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:101:0:0:5, Dst: fe80::1:101:0:0:4
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 159, Len: 151
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 1
+    Offset: 0x000000b8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0101000000000004
+    Initial ID: 0x0101000000000005
+    Reply ID: 0x0101000000000004
+    Direction: REP
+    Sequence: 703
+    Acknowledge: 704
+    Maximum: 4444
+    Timestamp: 0x0000000000000003
+    Trace ID: 0x0100000000000003
+    Authorization: 0x0000000000000000
+
+Frame 9: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::2:202:0:0:5, Dst: fe80::2:202:0:0:4
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 159, Len: 151
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 2
+    Offset: 0x000000b8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0202000000000004
+    Initial ID: 0x0202000000000005
+    Reply ID: 0x0202000000000004
+    Direction: REP
+    Sequence: 703
+    Acknowledge: 704
+    Maximum: 4444
+    Timestamp: 0x0000000000000003
+    Trace ID: 0x0200000000000003
+    Authorization: 0x0000000000000000
+
+Frame 10: 242 bytes on wire (1936 bits), 242 bytes captured (1936 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 159, Ack: 1, Len: 168
@@ -116,7 +284,7 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/65536
 
-Frame 5: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
+Frame 11: 233 bytes on wire (1864 bits), 233 bytes captured (1864 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 327, Len: 159
@@ -145,7 +313,7 @@ Zilla Frame
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
 
-Frame 6: 242 bytes on wire (1936 bits), 242 bytes captured (1936 bits)
+Frame 12: 242 bytes on wire (1936 bits), 242 bytes captured (1936 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 160, Ack: 327, Len: 168
@@ -179,7 +347,7 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/65536
 
-Frame 7: 232 bytes on wire (1856 bits), 232 bytes captured (1856 bits)
+Frame 13: 232 bytes on wire (1856 bits), 232 bytes captured (1856 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::76, Dst: fe80::77
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 158
@@ -208,7 +376,7 @@ Zilla Frame
     Authorization: 0x0000000000004203
     Affinity: 0x0000000000004204
 
-Frame 8: 372 bytes on wire (2976 bits), 372 bytes captured (2976 bits)
+Frame 14: 372 bytes on wire (2976 bits), 372 bytes captured (2976 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 327, Ack: 328, Len: 298
@@ -268,7 +436,7 @@ Hypertext Transfer Protocol
     File Data: 12 bytes
 Line-based text data: text/plain (1 lines)
 
-Frame 9: 316 bytes on wire (2528 bits), 316 bytes captured (2528 bits)
+Frame 15: 316 bytes on wire (2528 bits), 316 bytes captured (2528 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 328, Ack: 625, Len: 242
@@ -323,12 +491,12 @@ Hypertext Transfer Protocol
     \n
     [HTTP response 1/1]
     [Time since request: 0.000000000 seconds]
-    [Request in frame: 8]
+    [Request in frame: 14]
     [Request URI: http://localhost:8080/]
     File Data: 13 bytes
 Line-based text data: text/plain (1 lines)
 
-Frame 10: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 16: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 570, Ack: 625, Len: 151
@@ -356,7 +524,7 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000007742
 
-Frame 11: 295 bytes on wire (2360 bits), 295 bytes captured (2360 bits)
+Frame 17: 295 bytes on wire (2360 bits), 295 bytes captured (2360 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 625, Ack: 721, Len: 221
@@ -485,7 +653,7 @@ HyperText Transfer Protocol 2
             Index: 28
         [Full request URI: https://localhost:7143/]
 
-Frame 12: 289 bytes on wire (2312 bits), 289 bytes captured (2312 bits)
+Frame 18: 289 bytes on wire (2312 bits), 289 bytes captured (2312 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 721, Ack: 846, Len: 215
@@ -586,9 +754,9 @@ HyperText Transfer Protocol 2
             Representation: Literal Header Field without Indexing - Indexed Name
             Index: 28
         [Time since request: 0.000000000 seconds]
-        [Request in frame: 11]
+        [Request in frame: 17]
 
-Frame 13: 254 bytes on wire (2032 bits), 254 bytes captured (2032 bits)
+Frame 19: 254 bytes on wire (2032 bits), 254 bytes captured (2032 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 936, Ack: 846, Len: 180
@@ -628,7 +796,7 @@ Zilla Frame
         Length: 12
         Payload
 
-Frame 14: 237 bytes on wire (1896 bits), 237 bytes captured (1896 bits)
+Frame 20: 237 bytes on wire (1896 bits), 237 bytes captured (1896 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1116, Ack: 846, Len: 163
@@ -658,7 +826,7 @@ Zilla Frame
     Budget ID: 0x0000000000003300
     Reserved: 13059
 
-Frame 15: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 21: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 846, Ack: 1279, Len: 151
@@ -686,7 +854,7 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 16: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 22: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::7, Dst: fe80::6
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 151
@@ -714,7 +882,7 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 17: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 23: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 997, Ack: 1279, Len: 151
@@ -742,7 +910,7 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 18: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 24: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1279, Ack: 1148, Len: 151
@@ -770,7 +938,7 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 19: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
+Frame 25: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 206
@@ -812,7 +980,7 @@ Zilla Frame
             Length: 4
             Size: 0
 
-Frame 20: 342 bytes on wire (2736 bits), 342 bytes captured (2736 bits)
+Frame 26: 342 bytes on wire (2736 bits), 342 bytes captured (2736 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 268
@@ -895,7 +1063,7 @@ Zilla Frame
             Length: 3
             Value: key
 
-Frame 21: 284 bytes on wire (2272 bits), 284 bytes captured (2272 bits)
+Frame 27: 284 bytes on wire (2272 bits), 284 bytes captured (2272 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 210
@@ -937,7 +1105,7 @@ Zilla Frame
             Length: 4
             Size: 0
 
-Frame 22: 464 bytes on wire (3712 bits), 464 bytes captured (3712 bits)
+Frame 28: 464 bytes on wire (3712 bits), 464 bytes captured (3712 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 390
@@ -977,7 +1145,7 @@ Zilla Frame
             Length: 4
             Size: 0
 
-Frame 23: 247 bytes on wire (1976 bits), 247 bytes captured (1976 bits)
+Frame 29: 247 bytes on wire (1976 bits), 247 bytes captured (1976 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 173
@@ -1014,7 +1182,7 @@ Zilla Frame
             Length: 4
             Size: 0
 
-Frame 24: 286 bytes on wire (2288 bits), 286 bytes captured (2288 bits)
+Frame 30: 286 bytes on wire (2288 bits), 286 bytes captured (2288 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 212
@@ -1064,7 +1232,7 @@ Zilla Frame
             Length: 6
             Value: /hello
 
-Frame 25: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Frame 31: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 212, Ack: 1, Len: 204
@@ -1113,7 +1281,7 @@ Zilla Frame
             Length: 6
             Value: /hello
 
-Frame 26: 298 bytes on wire (2384 bits), 298 bytes captured (2384 bits)
+Frame 32: 298 bytes on wire (2384 bits), 298 bytes captured (2384 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::11, Dst: fe80::10
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 416, Len: 224
@@ -1165,7 +1333,7 @@ Zilla Frame
             Length: 6
             Value: /hello
 
-Frame 27: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Frame 33: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::11, Dst: fe80::10
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 225, Ack: 416, Len: 204
@@ -1214,7 +1382,7 @@ Zilla Frame
             Length: 6
             Value: /hello
 
-Frame 28: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Frame 34: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 416, Ack: 429, Len: 204
