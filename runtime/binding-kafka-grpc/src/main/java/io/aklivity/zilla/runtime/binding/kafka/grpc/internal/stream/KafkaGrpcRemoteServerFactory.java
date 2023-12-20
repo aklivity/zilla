@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -61,6 +63,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.Window
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -127,6 +130,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Function<Long, String> supplyNamespace;
     private final LongPredicate activate;
     private final LongConsumer deactivate;
@@ -150,6 +154,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
+        this.supplyDebitor = context::supplyDebitor;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
         this.activate = activate;
@@ -1312,6 +1317,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private long initialBud;
         private int initialPad;
         private int initialCap;
+        private int initialAuth;
+
+        private BudgetDebitor initialDeb;
+        private long initialDebIndex = NO_DEBITOR_INDEX;
+
 
         private int state;
 
@@ -1538,13 +1548,27 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
+            initialAuth = padding;
             initialPad = padding;
             initialCap = capabilities;
             state = KafkaGrpcState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
-            server.flushGrpcMessagesIfBuffered(traceId, authorization, correlationId);
+            if (initialBud != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(budgetId);
+                initialDebIndex = initialDeb.acquire(budgetId, replyId, this::flushMessage);
+            }
+
+            if (initialBud != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                cleanup(traceId, authorization);
+            }
+            else
+            {
+                flushMessage(traceId);
+            }
         }
 
         private void onKafkaReset(
@@ -1572,11 +1596,20 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             final int payloadLength = payload != null ? payload.sizeof() : 0;
             final int length = Math.min(Math.max(initialWindow() - initialPad, 0), payloadLength);
+            int reserved = length + initialPad;
 
-            if (length > 0)
+            deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
+
+            int claimed = length;
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                claimed = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, deferred);
+            }
+
+            if (claimed == reserved)
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
-                doGrpcData(traceId, authorization, initialBud, length + initialPad,
+                doGrpcData(traceId, authorization, initialBud, reserved,
                     deferred, newFlags, payload.value(), 0, length);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
@@ -1732,6 +1765,12 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 doReset(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, grpcResetEx);
             }
+        }
+
+        private void flushMessage(
+            long traceId)
+        {
+            server.flushGrpcMessagesIfBuffered(traceId, initialAuth, correlationId);
         }
     }
 

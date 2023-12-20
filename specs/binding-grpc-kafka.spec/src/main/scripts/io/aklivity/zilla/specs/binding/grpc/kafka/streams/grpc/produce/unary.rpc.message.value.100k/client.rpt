@@ -42,6 +42,10 @@ write flush
 
 write close
 
+read zilla:data.ext ${grpc:dataEx()
+                              .typeId(zilla:id("grpc"))
+                              .deferred(94217)
+                              .build()}
 read ${grpc:protobuf()
            .string(1, string100k)
            .build()}

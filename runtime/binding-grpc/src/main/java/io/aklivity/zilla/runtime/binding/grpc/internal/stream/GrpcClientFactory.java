@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
@@ -87,7 +86,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
 
@@ -95,7 +93,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
@@ -106,8 +103,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final HttpEndExFW endExRO = new HttpEndExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
-    private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
-    private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();

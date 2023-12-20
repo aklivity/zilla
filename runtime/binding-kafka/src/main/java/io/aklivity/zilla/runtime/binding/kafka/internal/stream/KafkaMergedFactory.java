@@ -1721,7 +1721,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             int maxInitialNoAck = 0;
             int maxInitialPad = 0;
-            int maxInitialMax = 0;
+            int minInitialMax = 0;
 
             // TODO: sync on write, not sync on read
             if (!produceStreams.isEmpty())
@@ -1731,21 +1731,27 @@ public final class KafkaMergedFactory implements BindingHandler
                 initialMaxRW.value = Integer.MAX_VALUE;
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
-                produceStreams.forEach(p -> initialMaxRW.value = Math.max(p.initialMax, initialMaxRW.value));
+                produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
+
+                if (producer != null)
+                {
+                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
+                }
+
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
-                maxInitialMax = initialMaxRW.value;
+                minInitialMax = initialMaxRW.value;
             }
 
             final long newInitialAck = Math.max(initialSeq - maxInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || maxInitialMax > initialMax ||
+            if (newInitialAck > initialAck || minInitialMax > initialMax ||
                 !KafkaState.initialOpened(state) && !hasProduceCapability(capabilities))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                initialMax = maxInitialMax;
+                initialMax = minInitialMax;
 
                 state = KafkaState.openedInitial(state);
 
