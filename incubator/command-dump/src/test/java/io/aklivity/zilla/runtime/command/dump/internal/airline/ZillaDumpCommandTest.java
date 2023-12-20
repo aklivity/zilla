@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
@@ -54,6 +55,7 @@ public class ZillaDumpCommandTest
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
     private static final int PROXY_TYPE_ID = 5;
+    private static final int HTTP_TYPE_ID = 3;
 
     @TempDir
     private File tempDir;
@@ -475,6 +477,107 @@ public class ZillaDumpCommandTest
             .extension(proxyBeginEx5, 0, proxyBeginEx5.capacity())
             .build();
         streams.write(BeginFW.TYPE_ID, begin7.buffer(), 0, begin7.sizeof());
+
+        // http extension
+        DirectBuffer httpBeginEx1 = new UnsafeBuffer(HttpFunctions.beginEx()
+            .typeId(HTTP_TYPE_ID)
+            .header(":scheme", "http")
+            .header(":method", "GET")
+            .header(":path", "/hello")
+            .build());
+        BeginFW begin8 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000011L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000018L)
+            .traceId(0x0000000000000011L)
+            .affinity(0x0000000000000000L)
+            .extension(httpBeginEx1, 0, httpBeginEx1.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin8.buffer(), 0, begin8.sizeof());
+
+        DirectBuffer httpChallengeEx1 = new UnsafeBuffer(HttpFunctions.challengeEx()
+            .typeId(HTTP_TYPE_ID)
+            .header(":scheme", "http")
+            .header(":method", "GET")
+            .header(":path", "/hello")
+            .build());
+        ChallengeFW challenge2 = new ChallengeFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000011L) // INI
+            .sequence(201)
+            .acknowledge(202)
+            .maximum(22222)
+            .timestamp(0x0000000000000019L)
+            .traceId(0x0000000000000011L)
+            .authorization(0x0000000000007742L)
+            .extension(httpChallengeEx1, 0, httpChallengeEx1.capacity())
+            .build();
+        streams.write(ChallengeFW.TYPE_ID, challenge2.buffer(), 0, challenge2.sizeof());
+
+        DirectBuffer httpFlushEx1 = new UnsafeBuffer(HttpFunctions.flushEx()
+            .typeId(HTTP_TYPE_ID)
+            .promiseId(0x0000000000000042L)
+            .promise(":scheme", "http")
+            .promise(":method", "GET")
+            .promise(":path", "/hello")
+            .build());
+        FlushFW flush2 = new FlushFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000010L) // REP
+            .sequence(301)
+            .acknowledge(302)
+            .maximum(3344)
+            .timestamp(0x0000000000000020L)
+            .traceId(0x0000000000000011L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(httpFlushEx1, 0, httpFlushEx1.capacity())
+            .build();
+        streams.write(FlushFW.TYPE_ID, flush2.buffer(), 0, flush2.sizeof());
+
+        DirectBuffer httpResetEx1 = new UnsafeBuffer(HttpFunctions.resetEx()
+            .typeId(HTTP_TYPE_ID)
+            .header(":scheme", "http")
+            .header(":method", "GET")
+            .header(":path", "/hello")
+            .build());
+        ResetFW reset2 = new ResetFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000010L) // REP
+            .sequence(501)
+            .acknowledge(502)
+            .maximum(5577)
+            .timestamp(0x0000000000000021L)
+            .traceId(0x0000000000000011L)
+            .extension(httpResetEx1, 0, httpResetEx1.capacity())
+            .build();
+        streams.write(ResetFW.TYPE_ID, reset2.buffer(), 0, reset2.sizeof());
+
+        DirectBuffer httpEndEx1 = new UnsafeBuffer(HttpFunctions.endEx()
+            .typeId(HTTP_TYPE_ID)
+            .trailer(":scheme", "http")
+            .trailer(":method", "GET")
+            .trailer(":path", "/hello")
+            .build());
+        EndFW end3 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000011L) // INI
+            .sequence(742)
+            .acknowledge(427)
+            .maximum(60000)
+            .timestamp(0x0000000000000022L)
+            .traceId(0x0000000000000011L)
+            .extension(httpEndEx1, 0, httpEndEx1.capacity())
+            .build();
+        streams.write(EndFW.TYPE_ID, end3.buffer(), 0, end3.sizeof());
     }
 
     @BeforeEach

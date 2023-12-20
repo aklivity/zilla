@@ -1014,3 +1014,252 @@ Zilla Frame
             Length: 4
             Size: 0
 
+Frame 24: 286 bytes on wire (2288 bits), 286 bytes captured (2288 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 212
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000b18
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000011
+    Initial ID: 0x0000000000000011
+    Reply ID: 0x0000000000000010
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000018
+    Trace ID: 0x0000000000000011
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: http
+        Stream Type ID: 0x4620b68a
+        Stream Type: http
+        Headers (3 items)
+            Length: 45
+            Size: 3
+        Header: :scheme: http
+            Length: 7
+            Name: :scheme
+            Length: 4
+            Value: http
+        Header: :method: GET
+            Length: 7
+            Name: :method
+            Length: 3
+            Value: GET
+        Header: :path: /hello
+            Length: 5
+            Name: :path
+            Length: 6
+            Value: /hello
+
+Frame 25: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 212, Ack: 1, Len: 204
+Zilla Frame
+    Frame Type ID: 0x40000004
+    Frame Type: CHALLENGE
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000ba8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000011
+    Initial ID: 0x0000000000000011
+    Reply ID: 0x0000000000000010
+    Direction: INI
+    Sequence: 201
+    Acknowledge: 202
+    Maximum: 22222
+    Timestamp: 0x0000000000000019
+    Trace ID: 0x0000000000000011
+    Authorization: 0x0000000000007742
+    Extension: http
+        Stream Type ID: 0x4620b68a
+        Stream Type: http
+        Headers (3 items)
+            Length: 45
+            Size: 3
+        Header: :scheme: http
+            Length: 7
+            Name: :scheme
+            Length: 4
+            Value: http
+        Header: :method: GET
+            Length: 7
+            Name: :method
+            Length: 3
+            Value: GET
+        Header: :path: /hello
+            Length: 5
+            Name: :path
+            Length: 6
+            Value: /hello
+
+Frame 26: 298 bytes on wire (2384 bits), 298 bytes captured (2384 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::11, Dst: fe80::10
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 416, Len: 224
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000c30
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000010
+    Initial ID: 0x0000000000000011
+    Reply ID: 0x0000000000000010
+    Direction: REP
+    Sequence: 301
+    Acknowledge: 302
+    Maximum: 3344
+    Timestamp: 0x0000000000000020
+    Trace ID: 0x0000000000000011
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: http
+        Stream Type ID: 0x4620b68a
+        Stream Type: http
+        Promise ID: 0x0000000000000042
+        Promises (3 items)
+            Length: 45
+            Size: 3
+        Promise: :scheme: http
+            Length: 7
+            Name: :scheme
+            Length: 4
+            Value: http
+        Promise: :method: GET
+            Length: 7
+            Name: :method
+            Length: 3
+            Value: GET
+        Promise: :path: /hello
+            Length: 5
+            Name: :path
+            Length: 6
+            Value: /hello
+
+Frame 27: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::11, Dst: fe80::10
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 225, Ack: 416, Len: 204
+Zilla Frame
+    Frame Type ID: 0x40000001
+    Frame Type: RESET
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000cc8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000010
+    Initial ID: 0x0000000000000011
+    Reply ID: 0x0000000000000010
+    Direction: REP
+    Sequence: 501
+    Acknowledge: 502
+    Maximum: 5577
+    Timestamp: 0x0000000000000021
+    Trace ID: 0x0000000000000011
+    Authorization: 0x0000000000000000
+    Extension: http
+        Stream Type ID: 0x4620b68a
+        Stream Type: http
+        Headers (3 items)
+            Length: 45
+            Size: 3
+        Header: :scheme: http
+            Length: 7
+            Name: :scheme
+            Length: 4
+            Value: http
+        Header: :method: GET
+            Length: 7
+            Name: :method
+            Length: 3
+            Value: GET
+        Header: :path: /hello
+            Length: 5
+            Name: :path
+            Length: 6
+            Value: /hello
+
+Frame 28: 278 bytes on wire (2224 bits), 278 bytes captured (2224 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::10, Dst: fe80::11
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 416, Ack: 429, Len: 204
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000d50
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000011
+    Initial ID: 0x0000000000000011
+    Reply ID: 0x0000000000000010
+    Direction: INI
+    Sequence: 742
+    Acknowledge: 427
+    Maximum: 60000
+    Timestamp: 0x0000000000000022
+    Trace ID: 0x0000000000000011
+    Authorization: 0x0000000000000000
+    Extension: http
+        Stream Type ID: 0x4620b68a
+        Stream Type: http
+        Trailers (3 items)
+            Length: 45
+            Size: 3
+        Trailer: :scheme: http
+            Length: 7
+            Name: :scheme
+            Length: 4
+            Value: http
+        Trailer: :method: GET
+            Length: 7
+            Name: :method
+            Length: 3
+            Value: GET
+        Trailer: :path: /hello
+            Length: 5
+            Name: :path
+            Length: 6
+            Value: /hello
+
