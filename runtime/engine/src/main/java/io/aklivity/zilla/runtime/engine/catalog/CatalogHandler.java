@@ -15,11 +15,34 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
+
+    @FunctionalInterface
+    interface Read
+    {
+        int accept(
+            DirectBuffer data,
+            int payloadIndex,
+            int payloadLength,
+            ValueConsumer next,
+            int schemaId);
+    }
+
+    @FunctionalInterface
+    interface Write
+    {
+        void accept(
+            DirectBuffer data,
+            int payloadIndex,
+            int payloadLength);
+    }
 
     int register(
         String subject,
@@ -33,12 +56,29 @@ public interface CatalogHandler
         String subject,
         String version);
 
-    default int enrich(
+    int resolve(
+        DirectBuffer data,
+        int index,
+        int length,
+        SchemaConfig catalog,
+        String subject);
+
+    int decode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        SchemaConfig catalog,
+        String subject,
+        Read read);
+
+    int encode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
         int schemaId,
-        ValueConsumer next)
-    {
-        return 0;
-    }
+        Write write);
 
     default int maxPadding()
     {

@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,6 +33,8 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryIT
@@ -170,9 +172,63 @@ public class SchemaRegistryIT
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[ 5]);
-        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
+        final CatalogHandler.Write write = (data, index, length) -> {};
 
-        assertEquals(value.capacity(), catalog.enrich(1, ValueConsumer.NOP));
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(5, catalog.encode(data, 0, data.capacity(),
+            ValueConsumer.NOP, 1, write));
+    }
+
+    @Test
+    public void shouldResolveSchemaIdAndProcessData()
+    {
+        SchemaConfig schema = SchemaConfig.builder()
+            .strategy("strategy")
+            .subject(null)
+            .version("version")
+            .id(42)
+            .build();
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        final CatalogHandler.Read read = (data, index, length, next, schemaId) -> length;
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, schema, "test-value", read);
+
+        assertEquals(data.capacity() - 5, valLength);
+    }
+
+    @Test
+    public void shouldResolveSchemaIdFromData()
+    {
+        SchemaConfig schema = SchemaConfig.builder()
+            .strategy("strategy")
+            .subject(null)
+            .version("version")
+            .id(42)
+            .build();
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        int schemaId = catalog.resolve(data, 0, data.capacity(), schema, "test-value");
+
+        assertEquals(9, schemaId);
     }
 }

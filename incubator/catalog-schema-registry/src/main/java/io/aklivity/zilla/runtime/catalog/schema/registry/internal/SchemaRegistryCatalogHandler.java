@@ -22,13 +22,16 @@ import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.zip.CRC32C;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.BitUtil;
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
@@ -36,11 +39,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
-    private static final byte MAGIC_BYTE = 0x0;
-    private static final int ENRICHED_LENGTH = 5;
     private static final int MAX_PADDING_LENGTH = 5;
+    private static final byte MAGIC_BYTE = 0x0;
 
-    private final MutableDirectBuffer prefixRO;
+    private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+
     private final HttpClient client;
     private final String baseUrl;
     private final RegisterSchemaRequest request;
@@ -57,7 +61,6 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.crc32c = new CRC32C();
         this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIdCache = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.prefixRO = new UnsafeBuffer(new byte[5]);
     }
 
     @Override
@@ -134,14 +137,61 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public int enrich(
-        int schemaId,
-        ValueConsumer next)
+    public int decode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        SchemaConfig catalog,
+        String subject,
+        Read read)
     {
-        prefixRO.putByte(0, MAGIC_BYTE);
-        prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
-        next.accept(prefixRO, 0, 5);
-        return ENRICHED_LENGTH;
+        int schemaId = 0;
+        int progress = 0;
+        int valLength = -1;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+            progress += BitUtil.SIZE_OF_INT;
+        }
+
+        if (schemaId > NO_SCHEMA_ID)
+        {
+            valLength = read.accept(data, index + progress, length - progress, next, schemaId);
+        }
+        return valLength;
+    }
+
+    @Override
+    public int resolve(
+        DirectBuffer data,
+        int index,
+        int length,
+        SchemaConfig catalog,
+        String subject)
+    {
+        int schemaId = 0;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+        }
+        return schemaId;
+    }
+
+    @Override
+    public int encode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        int schemaId,
+        Write write)
+    {
+        SchemaRegistryPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
+        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
+        write.accept(data, index, length);
+        return prefix.sizeof();
     }
 
     @Override

@@ -80,8 +80,7 @@ public class JsonWriteValidator extends JsonValidator implements ValueValidator,
 
         if (validate(schemaId, data, index, length))
         {
-            valLength = length + handler.enrich(schemaId, next);
-            next.accept(data, index, length);
+            valLength = length + handler.encode(data, index, length, next, schemaId, next::accept);
         }
         return valLength;
     }

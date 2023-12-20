@@ -84,26 +84,18 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
 
-        GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-
-        if (reader != null)
+        if (FORMAT_JSON.equals(format))
         {
-            if (FORMAT_JSON.equals(format))
+            serializeJsonRecord(schemaId, data, index, length);
+            int recordLength = encoded.position();
+            if (recordLength > 0)
             {
-                int initialPosition = encoded.position();
-                serializeJsonRecord(schemaId, data, index, length);
-                int recordLength = encoded.position() - initialPosition;
-                if (recordLength > 0)
-                {
-                    valLength = recordLength + handler.enrich(schemaId, next);
-                    next.accept(encoded.buffer(), initialPosition, recordLength);
-                }
+                valLength = recordLength + handler.encode(encoded.buffer(), 0, recordLength, next, schemaId, next::accept);
             }
-            else if (validate(schemaId, data, index, length))
-            {
-                valLength = length + handler.enrich(schemaId, next);
-                next.accept(data, index, length);
-            }
+        }
+        else if (validate(schemaId, data, index, length))
+        {
+            valLength = length + handler.encode(data, index, length, next, schemaId, next::accept);
         }
         return valLength;
     }
@@ -119,13 +111,16 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
             Schema schema = supplySchema(schemaId);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
-            GenericRecord record = supplyRecord(schemaId);
-            in.wrap(buffer, index, length);
-            record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
-            encoderFactory.binaryEncoder(encoded, encoder);
-            writer.write(record, encoder);
-            encoder.flush();
-            encoded.close();
+            if (reader != null)
+            {
+                GenericRecord record = supplyRecord(schemaId);
+                in.wrap(buffer, index, length);
+                record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
+                encoded.wrap(encoded.buffer());
+                encoderFactory.binaryEncoder(encoded, encoder);
+                writer.write(record, encoder);
+                encoder.flush();
+            }
         }
         catch (IOException | AvroRuntimeException ex)
         {

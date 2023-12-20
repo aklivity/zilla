@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import java.nio.ByteOrder;
 
+import org.agrona.BitUtil;
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
@@ -45,19 +48,24 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public int enrich(
+    public int encode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
         int schemaId,
-        ValueConsumer next)
+        Write write)
     {
-        int length = 0;
+        int valLength = 0;
         if (embed)
         {
             prefixRO.putByte(0, MAGIC_BYTE);
             prefixRO.putInt(1, schemaId, ByteOrder.BIG_ENDIAN);
             next.accept(prefixRO, 0, PREFIX_LENGTH);
-            length = PREFIX_LENGTH;
+            write.accept(data, index, length);
+            valLength = PREFIX_LENGTH;
         }
-        return length;
+        return valLength;
     }
 
     @Override
@@ -88,5 +96,64 @@ public class TestCatalogHandler implements CatalogHandler
         int schemaId)
     {
         return schema;
+    }
+
+    @Override
+    public int decode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        SchemaConfig catalog,
+        String subject,
+        Read read)
+    {
+        int schemaId;
+        int progress = 0;
+        int valLength = -1;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+            progress += BitUtil.SIZE_OF_INT;
+        }
+        else if (catalog != null && catalog.id != NO_SCHEMA_ID)
+        {
+            schemaId = catalog.id;
+        }
+        else
+        {
+            schemaId = resolve(subject, catalog.version);
+        }
+
+        if (schemaId > NO_SCHEMA_ID)
+        {
+            valLength = read.accept(data, index + progress, length - progress, next, schemaId);
+        }
+        return valLength;
+    }
+
+    @Override
+    public int resolve(
+        DirectBuffer data,
+        int index,
+        int length,
+        SchemaConfig catalog,
+        String subject)
+    {
+        int schemaId;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+        }
+        else if (catalog.id != NO_SCHEMA_ID)
+        {
+            schemaId = catalog.id;
+        }
+        else
+        {
+            schemaId = resolve(subject, catalog.version);
+        }
+        return schemaId;
     }
 }

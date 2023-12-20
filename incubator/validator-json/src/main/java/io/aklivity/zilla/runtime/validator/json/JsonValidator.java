@@ -37,8 +37,6 @@ import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public abstract class JsonValidator
 {
-    protected static final byte MAGIC_BYTE = 0x0;
-
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;

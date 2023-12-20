@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
-import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
@@ -31,11 +30,11 @@ import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class TestValidator implements ValueValidator, FragmentValidator
 {
-    private static final byte MAGIC_BYTE = 0x0;
     private final int length;
     private final int schemaId;
     private final boolean read;
     private final CatalogHandler handler;
+    private final SchemaConfig schema;
 
     public TestValidator(
         TestValidatorConfig config,
@@ -46,7 +45,8 @@ public class TestValidator implements ValueValidator, FragmentValidator
         CatalogedConfig cataloged = config.cataloged != null && !config.cataloged.isEmpty()
             ? config.cataloged.get(0)
             : null;
-        schemaId = cataloged != null ? cataloged.schemas.get(0).id : 0;
+        schema = cataloged != null ? cataloged.schemas.get(0) : null;
+        schemaId = schema != null ? schema.id : 0;
         this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
     }
 
@@ -93,22 +93,22 @@ public class TestValidator implements ValueValidator, FragmentValidator
         {
             if (read)
             {
-                int progress = 0;
-                if (data.getByte(index) == MAGIC_BYTE)
+                CatalogHandler.Read read = (buffer, bufferIndex, bufferLength, consumer, schemaId) ->
                 {
-                    progress += BitUtil.SIZE_OF_BYTE;
-                    data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
-                    progress += BitUtil.SIZE_OF_INT;
+                    next.accept(buffer, bufferIndex, bufferLength);
+                    return bufferLength;
+                };
+                if (handler != null)
+                {
+                    length = handler.decode(data, index, length, next, schema, null, read);
                 }
-                next.accept(data, index + progress, length - progress);
             }
             else
             {
                 if (handler != null)
                 {
-                    handler.enrich(schemaId, next);
+                    length = length + handler.encode(data, index, length, next, schemaId, next::accept);
                 }
-                next.accept(data, index, length);
             }
         }
         return valid ? length : -1;

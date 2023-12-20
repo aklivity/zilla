@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public abstract class AvroValidator
 {
-    protected static final byte MAGIC_BYTE = 0x0;
     protected static final String FORMAT_JSON = "json";
 
     private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
@@ -105,8 +104,11 @@ public abstract class AvroValidator
             GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-            reader.read(record, decoderFactory.binaryDecoder(in, decoder));
-            status = true;
+            if (reader != null)
+            {
+                reader.read(record, decoderFactory.binaryDecoder(in, decoder));
+                status = true;
+            }
         }
         catch (IOException | AvroRuntimeException ex)
         {
