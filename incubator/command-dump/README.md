@@ -5,7 +5,7 @@ The `dump` command creates a `pcap` file that can be opened by Wireshark using t
 This is the command to build a multi-arch `tshark` image and push it to a docker repository:
 
 ```bash
-cd <zilla-source>/incubator/command-dump/src/test/resources/io/aklivity/zilla/runtime/command/dump/internal
+cd <zilla-source>/incubator/command-dump/src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline
 docker buildx create --name container --driver=docker-container
 docker buildx build --tag <repository>/tshark:<version> --platform linux/arm64/v8,linux/amd64 --builder container --push .
 ```

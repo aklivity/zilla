@@ -15,12 +15,14 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -47,7 +49,8 @@ import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
 public class ZillaDumpCommandTest
 {
-    private static String baseDir = "src/test/resources/io/aklivity/zilla/runtime/command/dump/internal";
+    private static final Path ENGINE_PATH =
+        Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
 
     @TempDir
     private File tempDir;
@@ -59,7 +62,7 @@ public class ZillaDumpCommandTest
     public static void generateStreamsBuffer()
     {
         StreamsLayout streamsLayout = new StreamsLayout.Builder()
-            .path(Paths.get(baseDir, "engine").resolve("data0"))
+            .path(ENGINE_PATH.resolve("data0"))
             .streamsCapacity(8 * 1024)
             .readonly(false)
             .build();
@@ -295,7 +298,7 @@ public class ZillaDumpCommandTest
         command = new ZillaDumpCommand();
         command.verbose = true;
         command.continuous = false;
-        command.properties = List.of(String.format("zilla.engine.directory=%s", Paths.get(baseDir, "engine")));
+        command.properties = List.of(String.format("zilla.engine.directory=%s", ENGINE_PATH));
         command.output = Paths.get(tempDir.getPath(), "actual.pcap");
     }
 
@@ -303,25 +306,24 @@ public class ZillaDumpCommandTest
     public void shouldWritePcap() throws IOException
     {
         // GIVEN
-        File expectedDump = new File(baseDir + "/expected_dump.pcap");
-        byte[] expected = Files.readAllBytes(expectedDump.toPath());
+        byte[] expected = getResourceAsBytes("expected_dump.pcap");
 
         // WHEN
         command.run();
 
         // THEN
         File[] files = tempDir.listFiles();
-        assertEquals(1, files.length);
+        assert files != null;
         byte[] actual = Files.readAllBytes(files[0].toPath());
-        assertArrayEquals(expected, actual);
+        assertThat(files.length, equalTo(1));
+        assertThat(actual, equalTo(expected));
     }
 
     @Test
     public void shouldWriteFilteredPcap() throws IOException
     {
         // GIVEN
-        File expectedDump = new File(baseDir + "/expected_filtered_dump.pcap");
-        byte[] expected = Files.readAllBytes(expectedDump.toPath());
+        byte[] expected = getResourceAsBytes("expected_filtered_dump.pcap");
 
         // WHEN
         command.bindings = singletonList("example.north_tls_server");
@@ -329,8 +331,21 @@ public class ZillaDumpCommandTest
 
         // THEN
         File[] files = tempDir.listFiles();
-        assertEquals(1, files.length);
+        assert files != null;
         byte[] actual = Files.readAllBytes(files[0].toPath());
-        assertArrayEquals(expected, actual);
+        assertThat(files.length, equalTo(1));
+        assertThat(actual, equalTo(expected));
+    }
+
+    private static byte[] getResourceAsBytes(
+        String resourceName) throws IOException
+    {
+        byte[] bytes;
+        try (InputStream is = ZillaDumpCommandTest.class.getResourceAsStream(resourceName))
+        {
+            assert is != null;
+            bytes = is.readAllBytes();
+        }
+        return bytes;
     }
 }

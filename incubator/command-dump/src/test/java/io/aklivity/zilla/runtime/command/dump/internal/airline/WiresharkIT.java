@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.internal;
+package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -70,7 +70,7 @@ public class WiresharkIT
         }
         assert tshark.isRunning();
         System.out.printf("Container %s (%s) is running!%n", tshark.getContainerName(), tshark.getContainerId());
-        copyResource("airline/zilla.lua", tshark, "/home/tshark/.local/lib/wireshark/plugins/zilla.lua");
+        copyResource("zilla.lua", tshark, "/home/tshark/.local/lib/wireshark/plugins/zilla.lua");
     }
 
     @AfterAll

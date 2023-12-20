@@ -91,8 +91,8 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/engine/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine/*</exclude>
           </excludes>
         </configuration>
       </plugin>
