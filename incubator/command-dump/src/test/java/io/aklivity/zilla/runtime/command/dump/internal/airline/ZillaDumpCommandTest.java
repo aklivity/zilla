@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
@@ -52,6 +53,7 @@ public class ZillaDumpCommandTest
 {
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
+    private static final int PROXY_TYPE_ID = 5;
 
     @TempDir
     private File tempDir;
@@ -60,7 +62,7 @@ public class ZillaDumpCommandTest
 
     @BeforeAll
     @SuppressWarnings("checkstyle:methodlength")
-    public static void generateStreamsBuffer()
+    public static void generateStreamsBuffer() throws Exception
     {
         StreamsLayout streamsLayout = new StreamsLayout.Builder()
             .path(ENGINE_PATH.resolve("data0"))
@@ -346,6 +348,133 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end2.buffer(), 0, end2.sizeof());
+
+        // proxy extension
+        DirectBuffer proxyBeginEx1 = new UnsafeBuffer(ProxyFunctions.beginEx()
+            .typeId(PROXY_TYPE_ID)
+            .addressInet()
+                .protocol("stream")
+                .source("192.168.0.77")
+                .destination("192.168.0.42")
+                .sourcePort(12345)
+                .destinationPort(442)
+                .build()
+            .build());
+        BeginFW begin3 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x0000000000000009L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x00000000000000013L)
+            .traceId(0x0000000000000009L)
+            .affinity(0x0000000000000000L)
+            .extension(proxyBeginEx1, 0, proxyBeginEx1.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin3.buffer(), 0, begin3.sizeof());
+
+        DirectBuffer proxyBeginEx2 = new UnsafeBuffer(ProxyFunctions.beginEx()
+            .typeId(PROXY_TYPE_ID)
+            .addressInet4()
+                .protocol("stream")
+                .source("192.168.0.1")
+                .destination("192.168.0.254")
+                .sourcePort(32768)
+                .destinationPort(443)
+                .build()
+            .info()
+                .alpn("alpn")
+                .authority("authority")
+                .identity(BitUtil.fromHex("12345678"))
+                .namespace("namespace")
+                .secure()
+                    .version("TLSv1.3")
+                    .name("name")
+                    .cipher("cipher")
+                    .signature("signature")
+                    .key("key")
+                    .build()
+                .build()
+            .build());
+        BeginFW begin4 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x0000000000000009L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x00000000000000014L)
+            .traceId(0x0000000000000009L)
+            .affinity(0x0000000000000000L)
+            .extension(proxyBeginEx2, 0, proxyBeginEx2.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin4.buffer(), 0, begin4.sizeof());
+
+        DirectBuffer proxyBeginEx3 = new UnsafeBuffer(ProxyFunctions.beginEx()
+            .typeId(PROXY_TYPE_ID)
+            .addressInet6()
+                .protocol("stream")
+                .source("fd12:3456:789a:1::1")
+                .destination("fd12:3456:789a:1::fe")
+                .sourcePort(32768)
+                .destinationPort(443)
+                .build()
+            .build());
+        BeginFW begin5 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x0000000000000009L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x00000000000000015L)
+            .traceId(0x0000000000000009L)
+            .affinity(0x0000000000000000L)
+            .extension(proxyBeginEx3, 0, proxyBeginEx3.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin5.buffer(), 0, begin5.sizeof());
+
+        DirectBuffer proxyBeginEx4 = new UnsafeBuffer(ProxyFunctions.beginEx()
+            .typeId(PROXY_TYPE_ID)
+            .addressUnix()
+                .protocol("datagram")
+                .source("unix-source")
+                .destination("unix-destination")
+                .build()
+            .build());
+        BeginFW begin6 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x0000000000000009L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x00000000000000016L)
+            .traceId(0x0000000000000009L)
+            .affinity(0x0000000000000000L)
+            .extension(proxyBeginEx4, 0, proxyBeginEx4.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin6.buffer(), 0, begin6.sizeof());
+
+        DirectBuffer proxyBeginEx5 = new UnsafeBuffer(ProxyFunctions.beginEx()
+            .typeId(PROXY_TYPE_ID)
+            .addressNone()
+                .build()
+            .build());
+        BeginFW begin7 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x0000000000000009L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x00000000000000017L)
+            .traceId(0x0000000000000009L)
+            .affinity(0x0000000000000000L)
+            .extension(proxyBeginEx5, 0, proxyBeginEx5.capacity())
+            .build();
+        streams.write(BeginFW.TYPE_ID, begin7.buffer(), 0, begin7.sizeof());
     }
 
     @BeforeEach

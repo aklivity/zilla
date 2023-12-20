@@ -770,3 +770,247 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
+Frame 19: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 206
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000007a0
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x0000000000000009
+    Initial ID: 0x0000000000000009
+    Reply ID: 0x0000000000000008
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000013
+    Trace ID: 0x0000000000000009
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: INET
+            Family: INET (0)
+            Protocol: STREAM (0)
+            Source: 192.168.0.77
+            Source Port: 12345
+            Destination: 192.168.0.42
+            Destination Port: 442
+        Info (0 items)
+            Length: 4
+            Size: 0
+
+Frame 20: 342 bytes on wire (2736 bits), 342 bytes captured (2736 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 268
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000828
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x0000000000000009
+    Initial ID: 0x0000000000000009
+    Reply ID: 0x0000000000000008
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000014
+    Trace ID: 0x0000000000000009
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: INET4
+            Family: INET4 (1)
+            Protocol: STREAM (0)
+            Source: 192.168.0.1
+            Source Port: 32768
+            Destination: 192.168.0.254
+            Destination Port: 443
+        Info (9 items)
+            Length: 86
+            Size: 9
+        Info: ALPN: alpn
+            Type: ALPN (0x01)
+            Length: 4
+            Value: alpn
+        Info: AUTHORITY: authority
+            Type: AUTHORITY (0x02)
+            Length: 9
+            Value: authority
+        Info: IDENTITY: 0x12345678
+            Type: IDENTITY (0x05)
+            Length: 4
+            Value: 12345678
+        Info: NAMESPACE: namespace
+            Type: NAMESPACE (0x30)
+            Length: 9
+            Value: namespace
+        Info: SECURE: VERSION: TLSv1.3
+            Type: SECURE (0x20)
+            Secure Type: VERSION (0x21)
+            Length: 7
+            Value: TLSv1.3
+        Info: SECURE: NAME: name
+            Type: SECURE (0x20)
+            Secure Type: NAME (0x22)
+            Length: 4
+            Value: name
+        Info: SECURE: CIPHER: cipher
+            Type: SECURE (0x20)
+            Secure Type: CIPHER (0x23)
+            Length: 6
+            Value: cipher
+        Info: SECURE: SIGNATURE: signature
+            Type: SECURE (0x20)
+            Secure Type: SIGNATURE (0x24)
+            Length: 9
+            Value: signature
+        Info: SECURE: KEY: key
+            Type: SECURE (0x20)
+            Secure Type: KEY (0x25)
+            Length: 3
+            Value: key
+
+Frame 21: 284 bytes on wire (2272 bits), 284 bytes captured (2272 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 210
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000008e8
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x0000000000000009
+    Initial ID: 0x0000000000000009
+    Reply ID: 0x0000000000000008
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000015
+    Trace ID: 0x0000000000000009
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: INET6
+            Family: INET6 (2)
+            Protocol: STREAM (0)
+            Source: fd12:3456:789a:1::1
+            Source Port: 32768
+            Destination: fd12:3456:789a:1::fe
+            Destination Port: 443
+        Info (0 items)
+            Length: 4
+            Size: 0
+
+Frame 22: 464 bytes on wire (3712 bits), 464 bytes captured (3712 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 390
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000970
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x0000000000000009
+    Initial ID: 0x0000000000000009
+    Reply ID: 0x0000000000000008
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000016
+    Trace ID: 0x0000000000000009
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: UNIX
+            Family: UNIX (3)
+            Protocol: DATAGRAM (1)
+            Source: unix-source
+            Destination: unix-destination
+        Info (0 items)
+            Length: 4
+            Size: 0
+
+Frame 23: 247 bytes on wire (1976 bits), 247 bytes captured (1976 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::8, Dst: fe80::9
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 173
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000ab0
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x0000000000000009
+    Initial ID: 0x0000000000000009
+    Reply ID: 0x0000000000000008
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000017
+    Trace ID: 0x0000000000000009
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: NONE
+            Family: NONE (4)
+        Info (0 items)
+            Length: 4
+            Size: 0
+
