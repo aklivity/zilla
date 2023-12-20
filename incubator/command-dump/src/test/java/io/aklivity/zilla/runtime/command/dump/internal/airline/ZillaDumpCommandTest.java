@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.command.dump.internal.airline;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.aklivity.zilla.runtime.command.dump.internal.types.String8FW;
@@ -50,6 +52,7 @@ import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
+@TestInstance(PER_CLASS)
 public class ZillaDumpCommandTest
 {
     private static final int WORKERS = 3;
@@ -59,6 +62,16 @@ public class ZillaDumpCommandTest
     private static final int PROXY_TYPE_ID = 5;
     private static final int HTTP_TYPE_ID = 3;
 
+    private final BeginFW.Builder beginRW = new BeginFW.Builder();
+    private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final EndFW.Builder endRW = new EndFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
+    private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final WindowFW.Builder windowRW = new WindowFW.Builder();
+    private final SignalFW.Builder signalRW = new SignalFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+
     @TempDir
     private File tempDir;
 
@@ -66,7 +79,7 @@ public class ZillaDumpCommandTest
 
     @BeforeAll
     @SuppressWarnings("checkstyle:methodlength")
-    public static void generateStreamsBuffer() throws Exception
+    public void generateStreamsBuffer() throws Exception
     {
         RingBuffer[] streams = new RingBuffer[WORKERS];
         for (int i = 0; i < WORKERS; i++)
@@ -81,7 +94,7 @@ public class ZillaDumpCommandTest
         MutableDirectBuffer frameBuffer = new UnsafeBuffer(new byte[STREAMS_CAPACITY]);
 
         // worker 0
-        SignalFW signal1 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        SignalFW signal1 = signalRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0)
             .routedId(0)
             .streamId(0)
@@ -97,7 +110,7 @@ public class ZillaDumpCommandTest
         streams[0].write(SignalFW.TYPE_ID, signal1.buffer(), 0, signal1.sizeof());
 
         DirectBuffer helloBuf = new String8FW("Hello World!").value();
-        SignalFW signal2 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        SignalFW signal2 = signalRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0)
             .routedId(0)
             .streamId(0)
@@ -113,7 +126,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(SignalFW.TYPE_ID, signal2.buffer(), 0, signal2.sizeof());
 
-        BeginFW begin1 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin1 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -126,7 +139,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin1.buffer(), 0, begin1.sizeof());
 
-        WindowFW window1 = new WindowFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        WindowFW window1 = windowRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -140,7 +153,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(WindowFW.TYPE_ID, window1.buffer(), 0, window1.sizeof());
 
-        BeginFW begin2 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin2 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -153,7 +166,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin2.buffer(), 0, begin2.sizeof());
 
-        WindowFW window2 = new WindowFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        WindowFW window2 = windowRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -167,7 +180,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(WindowFW.TYPE_ID, window2.buffer(), 0, window2.sizeof());
 
-        BeginFW filteredBegin = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW filteredBegin = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000cL) // north_tls_server
             .streamId(0x0000000000000077L) // INI
@@ -191,7 +204,7 @@ public class ZillaDumpCommandTest
             "\n" +
             "Hello, world";
         DirectBuffer http1requestBuf = new String8FW(http1request).value();
-        DataFW data1 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data1 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -213,7 +226,7 @@ public class ZillaDumpCommandTest
             "\n" +
             "Hello, World!";
         DirectBuffer http1responseBuf = new String8FW(http1response).value();
-        DataFW data2 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data2 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -228,7 +241,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data2.buffer(), 0, data2.sizeof());
 
-        ChallengeFW challenge1 = new ChallengeFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        ChallengeFW challenge1 = challengeRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -245,7 +258,7 @@ public class ZillaDumpCommandTest
         byte[] h2request = BitUtil.fromHex(
             "00002c0104000000018387418aa0e41d139d09b8e85a67847a8825b650c3cb85717f53032a2f2a5f87497ca58ae819aa0f0d023132");
         DirectBuffer h2requestBuf = new UnsafeBuffer(h2request);
-        DataFW data3 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data3 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -264,7 +277,7 @@ public class ZillaDumpCommandTest
         byte[] h2response = BitUtil.fromHex(
             "000026010400000001880f2b0a6375726c2f382e312e320f04032a2f2a0f100a746578742f706c61696e0f0d023132");
         DirectBuffer h2responseBuf = new UnsafeBuffer(h2response);
-        DataFW data4 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data4 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -280,7 +293,7 @@ public class ZillaDumpCommandTest
         streams[0].write(DataFW.TYPE_ID, data4.buffer(), 0, data4.sizeof());
 
         DirectBuffer hello2Buf = new String8FW("Hello World!").value();
-        DataFW data5 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data5 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -295,7 +308,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data5.buffer(), 0, data5.sizeof());
 
-        FlushFW flush1 = new FlushFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush1 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -309,7 +322,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(FlushFW.TYPE_ID, flush1.buffer(), 0, flush1.sizeof());
 
-        AbortFW abort1 = new AbortFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        AbortFW abort1 = abortRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -321,7 +334,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(AbortFW.TYPE_ID, abort1.buffer(), 0, abort1.sizeof());
 
-        ResetFW reset1 = new ResetFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        ResetFW reset1 = resetRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000006L) // REP
@@ -333,7 +346,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(ResetFW.TYPE_ID, reset1.buffer(), 0, reset1.sizeof());
 
-        EndFW end1 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        EndFW end1 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000005L) // INI
@@ -345,7 +358,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(EndFW.TYPE_ID, end1.buffer(), 0, end1.sizeof());
 
-        EndFW end2 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        EndFW end2 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000004L) // REP
@@ -368,7 +381,7 @@ public class ZillaDumpCommandTest
                 .destinationPort(442)
                 .build()
             .build());
-        BeginFW begin3 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin3 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
             .streamId(0x0000000000000009L) // INI
@@ -405,7 +418,7 @@ public class ZillaDumpCommandTest
                     .build()
                 .build()
             .build());
-        BeginFW begin4 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin4 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
             .streamId(0x0000000000000009L) // INI
@@ -429,7 +442,7 @@ public class ZillaDumpCommandTest
                 .destinationPort(443)
                 .build()
             .build());
-        BeginFW begin5 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin5 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
             .streamId(0x0000000000000009L) // INI
@@ -451,7 +464,7 @@ public class ZillaDumpCommandTest
                 .destination("unix-destination")
                 .build()
             .build());
-        BeginFW begin6 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin6 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
             .streamId(0x0000000000000009L) // INI
@@ -470,7 +483,7 @@ public class ZillaDumpCommandTest
             .addressNone()
                 .build()
             .build());
-        BeginFW begin7 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin7 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
             .streamId(0x0000000000000009L) // INI
@@ -491,7 +504,7 @@ public class ZillaDumpCommandTest
             .header(":method", "GET")
             .header(":path", "/hello")
             .build());
-        BeginFW begin8 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin8 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000011L) // INI
@@ -511,7 +524,7 @@ public class ZillaDumpCommandTest
             .header(":method", "GET")
             .header(":path", "/hello")
             .build());
-        ChallengeFW challenge2 = new ChallengeFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        ChallengeFW challenge2 = challengeRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000011L) // INI
@@ -532,7 +545,7 @@ public class ZillaDumpCommandTest
             .promise(":method", "GET")
             .promise(":path", "/hello")
             .build());
-        FlushFW flush2 = new FlushFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush2 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000010L) // REP
@@ -553,7 +566,7 @@ public class ZillaDumpCommandTest
             .header(":method", "GET")
             .header(":path", "/hello")
             .build());
-        ResetFW reset2 = new ResetFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        ResetFW reset2 = resetRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000010L) // REP
@@ -572,7 +585,7 @@ public class ZillaDumpCommandTest
             .trailer(":method", "GET")
             .trailer(":path", "/hello")
             .build());
-        EndFW end3 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        EndFW end3 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0000000000000011L) // INI
@@ -586,7 +599,7 @@ public class ZillaDumpCommandTest
         streams[0].write(EndFW.TYPE_ID, end3.buffer(), 0, end3.sizeof());
 
         // worker 1
-        SignalFW signal3 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        SignalFW signal3 = signalRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0)
             .routedId(0)
             .streamId(0)
@@ -601,7 +614,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[1].write(SignalFW.TYPE_ID, signal3.buffer(), 0, signal3.sizeof());
 
-        BeginFW begin9 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin9 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0101000000000005L) // INI
@@ -614,7 +627,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[1].write(BeginFW.TYPE_ID, begin9.buffer(), 0, begin9.sizeof());
 
-        EndFW end4 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        EndFW end4 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0101000000000004L) // REP
@@ -627,7 +640,7 @@ public class ZillaDumpCommandTest
         streams[1].write(EndFW.TYPE_ID, end4.buffer(), 0, end4.sizeof());
 
         // worker 2
-        SignalFW signal4 = new SignalFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        SignalFW signal4 = signalRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0)
             .routedId(0)
             .streamId(0)
@@ -642,7 +655,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[2].write(SignalFW.TYPE_ID, signal4.buffer(), 0, signal4.sizeof());
 
-        BeginFW begin10 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        BeginFW begin10 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0202000000000005L) // INI
@@ -655,7 +668,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[2].write(BeginFW.TYPE_ID, begin10.buffer(), 0, begin10.sizeof());
 
-        EndFW end5 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+        EndFW end5 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
             .streamId(0x0202000000000004L) // REP
