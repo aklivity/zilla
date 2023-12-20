@@ -356,17 +356,289 @@ Zilla Frame
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000007742
 
-Frame 11: 237 bytes on wire (1896 bits), 237 bytes captured (1896 bits)
+Frame 11: 295 bytes on wire (2360 bits), 295 bytes captured (2360 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 625, Ack: 721, Len: 221
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000470
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000005
+    Initial ID: 0x0000000000000005
+    Reply ID: 0x0000000000000004
+    Direction: INI
+    Sequence: 123
+    Acknowledge: 456
+    Maximum: 777
+    Timestamp: 0x000000000000000b
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000004405
+    Reserved: 16902
+    Progress: 16569
+    Progress/Maximum: 16569/777
+    Payload
+        Length: 53
+        Payload
+HyperText Transfer Protocol 2
+    Stream: HEADERS, Stream ID: 1, Length 44, POST /
+        Length: 44
+        Type: HEADERS (1)
+        Flags: 0x04, End Headers
+            00.0 ..0. = Unused: 0x00
+            ..0. .... = Priority: False
+            .... 0... = Padded: False
+            .... .1.. = End Headers: True
+            .... ...0 = End Stream: False
+        0... .... .... .... .... .... .... .... = Reserved: 0x0
+        .000 0000 0000 0000 0000 0000 0000 0001 = Stream Identifier: 1
+        [Pad Length: 0]
+        Header Block Fragment: 8387418aa0e41d139d09b8e85a67847a8825b650c3cb85717f53032a2f2a5f87497ca58ae819aa0f0d023132
+        [Header Length: 184]
+        [Header Count: 8]
+        Header: :method: POST
+            Name Length: 7
+            Name: :method
+            Value Length: 4
+            Value: POST
+            :method: POST
+            [Unescaped: POST]
+            Representation: Indexed Header Field
+            Index: 3
+        Header: :scheme: https
+            Name Length: 7
+            Name: :scheme
+            Value Length: 5
+            Value: https
+            :scheme: https
+            [Unescaped: https]
+            Representation: Indexed Header Field
+            Index: 7
+        Header: :authority: localhost:7143
+            Name Length: 10
+            Name: :authority
+            Value Length: 14
+            Value: localhost:7143
+            :authority: localhost:7143
+            [Unescaped: localhost:7143]
+            Representation: Literal Header Field with Incremental Indexing - Indexed Name
+            Index: 1
+        Header: :path: /
+            Name Length: 5
+            Name: :path
+            Value Length: 1
+            Value: /
+            :path: /
+            [Unescaped: /]
+            Representation: Indexed Header Field
+            Index: 4
+        Header: user-agent: curl/8.1.2
+            Name Length: 10
+            Name: user-agent
+            Value Length: 10
+            Value: curl/8.1.2
+            user-agent: curl/8.1.2
+            [Unescaped: curl/8.1.2]
+            Representation: Literal Header Field with Incremental Indexing - Indexed Name
+            Index: 58
+        Header: accept: */*
+            Name Length: 6
+            Name: accept
+            Value Length: 3
+            Value: */*
+            accept: */*
+            [Unescaped: */*]
+            Representation: Literal Header Field with Incremental Indexing - Indexed Name
+            Index: 19
+        Header: content-type: text/plain
+            Name Length: 12
+            Name: content-type
+            Value Length: 10
+            Value: text/plain
+            content-type: text/plain
+            [Unescaped: text/plain]
+            Representation: Literal Header Field with Incremental Indexing - Indexed Name
+            Index: 31
+        Header: content-length: 12
+            Name Length: 14
+            Name: content-length
+            Value Length: 2
+            Value: 12
+            content-length: 12
+            [Unescaped: 12]
+            Representation: Literal Header Field without Indexing - Indexed Name
+            Index: 28
+        [Full request URI: https://localhost:7143/]
+
+Frame 12: 289 bytes on wire (2312 bits), 289 bytes captured (2312 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 721, Ack: 625, Len: 163
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 721, Ack: 846, Len: 215
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000508
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000004
+    Initial ID: 0x0000000000000005
+    Reply ID: 0x0000000000000004
+    Direction: REP
+    Sequence: 123
+    Acknowledge: 456
+    Maximum: 777
+    Timestamp: 0x000000000000000c
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000004405
+    Reserved: 16902
+    Progress: 16569
+    Progress/Maximum: 16569/777
+    Payload
+        Length: 47
+        Payload
+HyperText Transfer Protocol 2
+    Stream: HEADERS, Stream ID: 1, Length 38, 200 OK
+        Length: 38
+        Type: HEADERS (1)
+        Flags: 0x04, End Headers
+            00.0 ..0. = Unused: 0x00
+            ..0. .... = Priority: False
+            .... 0... = Padded: False
+            .... .1.. = End Headers: True
+            .... ...0 = End Stream: False
+        0... .... .... .... .... .... .... .... = Reserved: 0x0
+        .000 0000 0000 0000 0000 0000 0000 0001 = Stream Identifier: 1
+        [Pad Length: 0]
+        Header Block Fragment: 880f2b0a6375726c2f382e312e320f04032a2f2a0f100a746578742f706c61696e0f0d023132
+        [Header Length: 117]
+        [Header Count: 5]
+        Header: :status: 200 OK
+            Name Length: 7
+            Name: :status
+            Value Length: 3
+            Value: 200
+            :status: 200
+            [Unescaped: 200]
+            Representation: Indexed Header Field
+            Index: 8
+        Header: user-agent: curl/8.1.2
+            Name Length: 10
+            Name: user-agent
+            Value Length: 10
+            Value: curl/8.1.2
+            user-agent: curl/8.1.2
+            [Unescaped: curl/8.1.2]
+            Representation: Literal Header Field without Indexing - Indexed Name
+            Index: 58
+        Header: accept: */*
+            Name Length: 6
+            Name: accept
+            Value Length: 3
+            Value: */*
+            accept: */*
+            [Unescaped: */*]
+            Representation: Literal Header Field without Indexing - Indexed Name
+            Index: 19
+        Header: content-type: text/plain
+            Name Length: 12
+            Name: content-type
+            Value Length: 10
+            Value: text/plain
+            content-type: text/plain
+            [Unescaped: text/plain]
+            Representation: Literal Header Field without Indexing - Indexed Name
+            Index: 31
+        Header: content-length: 12
+            Name Length: 14
+            Name: content-length
+            Value Length: 2
+            Value: 12
+            content-length: 12
+            [Unescaped: 12]
+            Representation: Literal Header Field without Indexing - Indexed Name
+            Index: 28
+        [Time since request: 0.000000000 seconds]
+        [Request in frame: 11]
+
+Frame 13: 254 bytes on wire (2032 bits), 254 bytes captured (2032 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 936, Ack: 846, Len: 180
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x8ab62046
+    Protocol Type: http
+    Worker: 0
+    Offset: 0x00000598
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000d
+    Routed Namespace: example
+    Routed Binding: north_http_server
+    Stream ID: 0x0000000000000004
+    Initial ID: 0x0000000000000005
+    Reply ID: 0x0000000000000004
+    Direction: REP
+    Sequence: 123
+    Acknowledge: 456
+    Maximum: 777
+    Timestamp: 0x000000000000000d
+    Trace ID: 0x0000000000000003
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000004405
+    Reserved: 16902
+    Progress: 16569
+    Progress/Maximum: 16569/777
+    Payload
+        Length: 12
+        Payload
+
+Frame 14: 237 bytes on wire (1896 bits), 237 bytes captured (1896 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1116, Ack: 846, Len: 163
 Zilla Frame
     Frame Type ID: 0x00000005
     Frame Type: FLUSH
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x00000470
+    Offset: 0x00000608
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -380,23 +652,23 @@ Zilla Frame
     Sequence: 301
     Acknowledge: 302
     Maximum: 3344
-    Timestamp: 0x000000000000000b
+    Timestamp: 0x000000000000000e
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000003300
     Reserved: 13059
 
-Frame 12: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 15: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 625, Ack: 884, Len: 151
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 846, Ack: 1279, Len: 151
 Zilla Frame
     Frame Type ID: 0x00000004
     Frame Type: ABORT
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x000004c8
+    Offset: 0x00000660
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -410,11 +682,11 @@ Zilla Frame
     Sequence: 401
     Acknowledge: 402
     Maximum: 4477
-    Timestamp: 0x000000000000000c
+    Timestamp: 0x000000000000000f
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 13: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 16: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::7, Dst: fe80::6
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 151
@@ -424,7 +696,7 @@ Zilla Frame
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x00000518
+    Offset: 0x000006b0
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -438,21 +710,21 @@ Zilla Frame
     Sequence: 501
     Acknowledge: 502
     Maximum: 5577
-    Timestamp: 0x000000000000000d
+    Timestamp: 0x0000000000000010
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 14: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 17: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::4, Dst: fe80::5
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 776, Ack: 884, Len: 151
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 997, Ack: 1279, Len: 151
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x00000568
+    Offset: 0x00000700
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -466,21 +738,21 @@ Zilla Frame
     Sequence: 701
     Acknowledge: 702
     Maximum: 7777
-    Timestamp: 0x000000000000000e
+    Timestamp: 0x0000000000000011
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 
-Frame 15: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
+Frame 18: 225 bytes on wire (1800 bits), 225 bytes captured (1800 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::5, Dst: fe80::4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 884, Ack: 927, Len: 151
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1279, Ack: 1148, Len: 151
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x8ab62046
     Protocol Type: http
     Worker: 0
-    Offset: 0x000005b8
+    Offset: 0x00000750
     Origin ID: 0x000000090000000b
     Origin Namespace: example
     Origin Binding: north_tcp_server
@@ -494,7 +766,7 @@ Zilla Frame
     Sequence: 703
     Acknowledge: 704
     Maximum: 4444
-    Timestamp: 0x000000000000000f
+    Timestamp: 0x0000000000000012
     Trace ID: 0x0000000000000003
     Authorization: 0x0000000000000000
 

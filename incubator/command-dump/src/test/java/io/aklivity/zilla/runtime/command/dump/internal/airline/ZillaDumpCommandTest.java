@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -169,7 +170,7 @@ public class ZillaDumpCommandTest
             .build();
         streams.write(BeginFW.TYPE_ID, filteredBegin.buffer(), 0, filteredBegin.sizeof());
 
-        String request1 =
+        String http1request =
             "POST / HTTP/1.1\n" +
             "Host: localhost:8080\n" +
             "User-Agent: curl/7.85.0\n" +
@@ -178,7 +179,7 @@ public class ZillaDumpCommandTest
             "Content-Length: 12\n" +
             "\n" +
             "Hello, world";
-        DirectBuffer request1buf = new String8FW(request1).value();
+        DirectBuffer http1requestBuf = new String8FW(http1request).value();
         DataFW data1 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -190,17 +191,17 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
-            .payload(request1buf, 0, request1buf.capacity())
+            .payload(http1requestBuf, 0, http1requestBuf.capacity())
             .build();
         streams.write(DataFW.TYPE_ID, data1.buffer(), 0, data1.sizeof());
 
-        String response1 =
+        String http1response =
             "HTTP/1.1 200 OK\n" +
             "Content-Type: text/plain\n" +
             "Content-Length: 13\n" +
             "\n" +
             "Hello, World!";
-        DirectBuffer response1buf = new String8FW(response1).value();
+        DirectBuffer http1responseBuf = new String8FW(http1response).value();
         DataFW data2 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -212,7 +213,7 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000004205L)
             .reserved(0x00004206)
-            .payload(response1buf, 0, response1buf.capacity())
+            .payload(http1responseBuf, 0, http1responseBuf.capacity())
             .build();
         streams.write(DataFW.TYPE_ID, data2.buffer(), 0, data2.sizeof());
 
@@ -229,6 +230,61 @@ public class ZillaDumpCommandTest
             .build();
         streams.write(ChallengeFW.TYPE_ID, challenge1.buffer(), 0, challenge1.sizeof());
 
+        // POST https://localhost:7142/
+        byte[] h2request = BitUtil.fromHex(
+            "00002c0104000000018387418aa0e41d139d09b8e85a67847a8825b650c3cb85717f53032a2f2a5f87497ca58ae819aa0f0d023132");
+        DirectBuffer h2requestBuf = new UnsafeBuffer(h2request);
+        DataFW data3 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000005L) // INI
+            .sequence(123)
+            .acknowledge(456)
+            .maximum(777)
+            .timestamp(0x000000000000000bL)
+            .traceId(0x0000000000000003L)
+            .budgetId(0x0000000000004405L)
+            .reserved(0x00004206)
+            .payload(h2requestBuf, 0, h2requestBuf.capacity())
+            .build();
+        streams.write(DataFW.TYPE_ID, data3.buffer(), 0, data3.sizeof());
+
+        // 200 OK
+        byte[] h2response = BitUtil.fromHex(
+            "000026010400000001880f2b0a6375726c2f382e312e320f04032a2f2a0f100a746578742f706c61696e0f0d023132");
+        DirectBuffer h2responseBuf = new UnsafeBuffer(h2response);
+        DataFW data4 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000004L) // REP
+            .sequence(123)
+            .acknowledge(456)
+            .maximum(777)
+            .timestamp(0x000000000000000cL)
+            .traceId(0x0000000000000003L)
+            .budgetId(0x0000000000004405L)
+            .reserved(0x00004206)
+            .payload(h2responseBuf, 0, h2responseBuf.capacity())
+            .build();
+        streams.write(DataFW.TYPE_ID, data4.buffer(), 0, data4.sizeof());
+
+        // Hello World
+        DirectBuffer hello2Buf = new String8FW("Hello World!").value();
+        DataFW data5 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000dL) // north_http_server
+            .streamId(0x0000000000000004L) // REP
+            .sequence(123)
+            .acknowledge(456)
+            .maximum(777)
+            .timestamp(0x000000000000000dL)
+            .traceId(0x0000000000000003L)
+            .budgetId(0x0000000000004405L)
+            .reserved(0x00004206)
+            .payload(hello2Buf, 0, hello2Buf.capacity())
+            .build();
+        streams.write(DataFW.TYPE_ID, data5.buffer(), 0, data5.sizeof());
+
         FlushFW flush1 = new FlushFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000dL) // north_http_server
@@ -236,7 +292,7 @@ public class ZillaDumpCommandTest
             .sequence(301)
             .acknowledge(302)
             .maximum(3344)
-            .timestamp(0x000000000000000bL)
+            .timestamp(0x000000000000000eL)
             .traceId(0x0000000000000003L)
             .budgetId(0x0000000000003300L)
             .reserved(0x00003303)
@@ -250,7 +306,7 @@ public class ZillaDumpCommandTest
             .sequence(401)
             .acknowledge(402)
             .maximum(4477)
-            .timestamp(0x000000000000000cL)
+            .timestamp(0x000000000000000fL)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(AbortFW.TYPE_ID, abort1.buffer(), 0, abort1.sizeof());
@@ -262,7 +318,7 @@ public class ZillaDumpCommandTest
             .sequence(501)
             .acknowledge(502)
             .maximum(5577)
-            .timestamp(0x000000000000000dL)
+            .timestamp(0x0000000000000010L)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(ResetFW.TYPE_ID, reset1.buffer(), 0, reset1.sizeof());
@@ -274,7 +330,7 @@ public class ZillaDumpCommandTest
             .sequence(701)
             .acknowledge(702)
             .maximum(7777)
-            .timestamp(0x000000000000000eL)
+            .timestamp(0x0000000000000011L)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end1.buffer(), 0, end1.sizeof());
@@ -286,7 +342,7 @@ public class ZillaDumpCommandTest
             .sequence(703)
             .acknowledge(704)
             .maximum(4444)
-            .timestamp(0x000000000000000fL)
+            .timestamp(0x0000000000000012L)
             .traceId(0x0000000000000003L)
             .build();
         streams.write(EndFW.TYPE_ID, end2.buffer(), 0, end2.sizeof());
