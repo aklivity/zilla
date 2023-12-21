@@ -2228,7 +2228,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long routedId;
         private final long replyId;
         private final long initialId;
-        private long budgetId;
+        private long initialBudgetId;
         private int state;
 
         private long initialSeq;
@@ -2298,7 +2298,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.routedId = pool.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.budgetId = 0;
+            this.initialBudgetId = 0;
             this.decoder = decodeHttp11EmptyLines;
             this.localSettings = new Http2Settings();
             this.remoteSettings = new Http2Settings();
@@ -2414,9 +2414,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
 
                 assert !HttpState.initialOpened(state);
-                this.budgetId = supplyBudgetId.getAsLong();
+                initialBudgetId = supplyBudgetId.getAsLong();
                 assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
-                requestSharedBudgetIndex = creditor.acquire(budgetId);
+                requestSharedBudgetIndex = creditor.acquire(initialBudgetId);
 
                 doEncodeHttp2Preface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
@@ -4749,7 +4749,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.openInitial(state);
 
                 doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, requestAuth, client.budgetId, client.initialPad);
+                    traceId, requestAuth, client.initialBudgetId, client.initialPad);
             }
         }
 
@@ -4972,7 +4972,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     assert requestMax >= 0;
 
                     doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
-                            client.budgetId, requestPad);
+                            client.initialBudgetId, requestPad);
                 }
             }
         }

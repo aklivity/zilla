@@ -520,7 +520,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     else if (progress > 0)
                     {
                         final int remainingPayload = queuedMessageSize - progress;
-                        queueGrpcMessage(traceId, authorization, partitionId, partitionOffset, lastCorrelationId,
+                        queueGrpcMessage(traceId, authorization, partitionId, partitionOffset, messageCorrelationId,
                             service, method, deferred, flags, reserved, payload, remainingPayload);
                         final int remainingMessageOffset = grpcQueueSlotOffset - progressOffset;
                         grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remainingMessageOffset);
@@ -611,7 +611,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
             else
             {
-                queueMessageBuilder.value(payload.buffer(), payload.offset(), length);
+                queueMessageBuilder.value(payload.value(), payload.sizeof() - length, length);
             }
 
             final GrpcQueueMessageFW queueMessage = queueMessageBuilder.build();
@@ -1598,7 +1598,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             final int payloadLength = payload != null ? payload.sizeof() : 0;
             final int length = Math.min(Math.max(initialWindow() - initialPad, 0), payloadLength);
+            final int reservedMin = Math.min(payloadLength, 1024) + initialPad;
             final int reserved = length + initialPad;
+
             deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
 
             int claimed = reserved;
@@ -1607,11 +1609,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 claimed = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, deferred);
             }
 
-            if (length > 0 && claimed == reserved)
+            final int flushableBytes = Math.max(claimed - initialPad, 0);
+
+            if (length > 0 && claimed > 0)
             {
-                final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
+                final int newFlags = payloadLength ==  flushableBytes ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, reserved,
-                    deferred, newFlags, payload.value(), 0, length);
+                    deferred, newFlags, payload.value(), 0, flushableBytes);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
@@ -1627,7 +1631,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 doGrpcEnd(traceId, authorization);
             }
 
-            return length;
+            return flushableBytes;
         }
 
         private void onKafkaEnd(
