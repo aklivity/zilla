@@ -338,13 +338,24 @@ public class GrpcClientFactory implements GrpcStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
-            final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
-            final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
-            delegate.doNetData(traceId, authorization, budgetId, reserved, deferred, flags, payload);
+            if (initialSeq > initialAck + initialMax)
+            {
+                delegate.doNetAbort(traceId, authorization);
+                delegate.doNetReset(traceId, authorization);
+
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization, EMPTY_OCTETS);
+            }
+            else
+            {
+                final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
+                final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
+                delegate.doNetData(traceId, authorization, budgetId, reserved, deferred, flags, payload);
+            }
         }
 
         private void onAppEnd(
