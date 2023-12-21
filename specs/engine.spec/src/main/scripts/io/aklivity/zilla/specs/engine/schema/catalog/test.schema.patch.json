@@ -35,10 +35,6 @@
                             {
                                 "type": "string"
                             },
-                            "embed":
-                            {
-                                "type": "boolean"
-                            },
                             "id":
                             {
                                 "type": "integer"

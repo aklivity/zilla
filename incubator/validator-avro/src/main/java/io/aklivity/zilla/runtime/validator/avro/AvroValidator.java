@@ -59,7 +59,7 @@ public abstract class AvroValidator
     protected final BinaryEncoder encoder;
     protected final String subject;
     protected final String format;
-    protected final ExpandableDirectBufferOutputStream encoded;
+    protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
 
     private final Int2ObjectCache<Schema> schemas;
@@ -88,7 +88,7 @@ public abstract class AvroValidator
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
-        this.encoded = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
     }
 

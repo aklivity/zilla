@@ -34,7 +34,6 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryIT
@@ -164,15 +163,13 @@ public class SchemaRegistryIT
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
-        assertEquals(5, catalog.maxPadding());
+        assertEquals(5, catalog.encodePadding());
     }
 
     @Test
-    public void shouldVerifyEnrichedData()
+    public void shouldVerifyEncodedData()
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
-
-        final CatalogHandler.Write write = (data, index, length) -> {};
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -180,23 +177,15 @@ public class SchemaRegistryIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(5, catalog.encode(data, 0, data.capacity(),
-            ValueConsumer.NOP, 1, write));
+        assertEquals(18, catalog.encode(1, data, 0, data.capacity(),
+            ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
     }
 
     @Test
     public void shouldResolveSchemaIdAndProcessData()
     {
-        SchemaConfig schema = SchemaConfig.builder()
-            .strategy("strategy")
-            .subject(null)
-            .version("version")
-            .id(42)
-            .build();
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
-
-        final CatalogHandler.Read read = (data, index, length, next, schemaId) -> length;
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -204,7 +193,7 @@ public class SchemaRegistryIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, schema, "test-value", read);
+        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
         assertEquals(data.capacity() - 5, valLength);
     }
@@ -212,13 +201,6 @@ public class SchemaRegistryIT
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        SchemaConfig schema = SchemaConfig.builder()
-            .strategy("strategy")
-            .subject(null)
-            .version("version")
-            .id(42)
-            .build();
-
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
@@ -227,7 +209,7 @@ public class SchemaRegistryIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        int schemaId = catalog.resolve(data, 0, data.capacity(), schema, "test-value");
+        int schemaId = catalog.resolve(data, 0, data.capacity());
 
         assertEquals(9, schemaId);
     }

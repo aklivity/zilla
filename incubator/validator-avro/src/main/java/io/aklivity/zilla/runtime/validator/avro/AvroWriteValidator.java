@@ -41,12 +41,12 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
     }
 
     @Override
-    public int maxPadding(
+    public int padding(
         DirectBuffer data,
         int index,
         int length)
     {
-        return handler.maxPadding();
+        return handler.encodePadding();
     }
 
     @Override
@@ -86,25 +86,21 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
 
         if (FORMAT_JSON.equals(format))
         {
-            serializeJsonRecord(schemaId, data, index, length);
-            int recordLength = encoded.position();
-            if (recordLength > 0)
-            {
-                valLength = recordLength + handler.encode(encoded.buffer(), 0, recordLength, next, schemaId, next::accept);
-            }
+            valLength = handler.encode(schemaId, data, index, length, next, this::serializeJsonRecord);
         }
         else if (validate(schemaId, data, index, length))
         {
-            valLength = length + handler.encode(data, index, length, next, schemaId, next::accept);
+            valLength = handler.encode(schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
         }
         return valLength;
     }
 
-    private void serializeJsonRecord(
+    private int serializeJsonRecord(
         int schemaId,
         DirectBuffer buffer,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
         try
         {
@@ -115,16 +111,18 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
             {
                 GenericRecord record = supplyRecord(schemaId);
                 in.wrap(buffer, index, length);
-                encoded.wrap(encoded.buffer());
+                expandable.wrap(expandable.buffer());
                 record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
-                encoderFactory.binaryEncoder(encoded, encoder);
+                encoderFactory.binaryEncoder(expandable, encoder);
                 writer.write(record, encoder);
                 encoder.flush();
+                next.accept(expandable.buffer(), 0, expandable.position());
             }
         }
         catch (IOException | AvroRuntimeException ex)
         {
             ex.printStackTrace();
         }
+        return expandable.position();
     }
 }

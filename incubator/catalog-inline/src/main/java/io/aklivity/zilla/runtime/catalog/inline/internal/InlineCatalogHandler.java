@@ -19,13 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32C;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class InlineCatalogHandler implements CatalogHandler
 {
@@ -65,67 +61,6 @@ public class InlineCatalogHandler implements CatalogHandler
     {
         String key = subject + version;
         return schemaIds.containsKey(key) ? schemaIds.get(key) : NO_SCHEMA_ID;
-    }
-
-    @Override
-    public int decode(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next,
-        SchemaConfig catalog,
-        String subject,
-        Read read)
-    {
-        int schemaId;
-        int valLength = -1;
-        if (catalog.id != NO_SCHEMA_ID)
-        {
-            schemaId = catalog.id;
-        }
-        else
-        {
-            schemaId = resolve(subject, catalog.version);
-        }
-
-        if (schemaId > NO_SCHEMA_ID)
-        {
-            valLength = read.accept(data, index, length, next, schemaId);
-        }
-        return valLength;
-    }
-
-    @Override
-    public int resolve(
-        DirectBuffer data,
-        int index,
-        int length,
-        SchemaConfig catalog,
-        String subject)
-    {
-        int schemaId;
-        if (catalog.id != NO_SCHEMA_ID)
-        {
-            schemaId = catalog.id;
-        }
-        else
-        {
-            schemaId = resolve(subject, catalog.version);
-        }
-        return schemaId;
-    }
-
-    @Override
-    public int encode(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next,
-        int schemaId,
-        Write write)
-    {
-        write.accept(data, index, length);
-        return 0;
     }
 
     private int generateCRC32C(

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public interface CatalogHandler
@@ -25,23 +24,37 @@ public interface CatalogHandler
     int NO_SCHEMA_ID = 0;
 
     @FunctionalInterface
-    interface Read
+    interface Decoder
     {
+        Decoder IDENTITY = (schemaId, data, index, length, next) ->
+        {
+            next.accept(data, index, length);
+            return length;
+        };
+
         int accept(
+            int schemaId,
             DirectBuffer data,
-            int payloadIndex,
-            int payloadLength,
-            ValueConsumer next,
-            int schemaId);
+            int index,
+            int length,
+            ValueConsumer next);
     }
 
     @FunctionalInterface
-    interface Write
+    interface Encoder
     {
-        void accept(
+        Encoder IDENTITY = (schemaId, data, index, length, next) ->
+        {
+            next.accept(data, index, length);
+            return length;
+        };
+
+        int accept(
+            int schemaId,
             DirectBuffer data,
-            int payloadIndex,
-            int payloadLength);
+            int index,
+            int length,
+            ValueConsumer next);
     }
 
     int register(
@@ -56,31 +69,36 @@ public interface CatalogHandler
         String subject,
         String version);
 
-    int resolve(
+    default int resolve(
         DirectBuffer data,
         int index,
-        int length,
-        SchemaConfig catalog,
-        String subject);
+        int length)
+    {
+        return NO_SCHEMA_ID;
+    }
 
-    int decode(
+    default int decode(
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next,
-        SchemaConfig catalog,
-        String subject,
-        Read read);
+        Decoder decoder)
+    {
+        return decoder.accept(NO_SCHEMA_ID, data, index, length, next);
+    }
 
-    int encode(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next,
+    default int encode(
         int schemaId,
-        Write write);
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Encoder encoder)
+    {
+        return encoder.accept(schemaId, data, index, length, next);
+    }
 
-    default int maxPadding()
+    default int encodePadding()
     {
         return 0;
     }

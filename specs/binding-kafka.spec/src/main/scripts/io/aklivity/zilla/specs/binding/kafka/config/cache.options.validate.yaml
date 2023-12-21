@@ -54,7 +54,7 @@ bindings:
           value:
             type: test
             capability: read
-            length: 18
+            length: 13
             catalog:
               test0:
                 - id: 1

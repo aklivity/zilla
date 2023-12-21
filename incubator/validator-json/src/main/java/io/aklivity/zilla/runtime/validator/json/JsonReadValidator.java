@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -63,17 +65,30 @@ public class JsonReadValidator extends JsonValidator implements ValueValidator, 
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, catalog, subject, this::validatePayload);
+        return handler.decode(data, index, length, next, this::decodePayload);
     }
 
-    private int validatePayload(
+    private int decodePayload(
+        int schemaId,
         DirectBuffer data,
         int index,
         int length,
-        ValueConsumer next,
-        int schemaId)
+        ValueConsumer next)
     {
         int valLength = -1;
+
+        if (schemaId == NO_SCHEMA_ID)
+        {
+            if (catalog.id != NO_SCHEMA_ID)
+            {
+                schemaId = catalog.id;
+            }
+            else
+            {
+                schemaId = handler.resolve(subject, catalog.version);
+            }
+        }
+
         if (validate(schemaId, data, index, length))
         {
             next.accept(data, index, length);

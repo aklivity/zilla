@@ -400,7 +400,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (validateValue != FragmentValidator.NONE)
         {
-            int convertedPadding = validateValue.maxPadding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = validateValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -629,7 +629,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (validateValue != FragmentValidator.NONE)
         {
-            int convertedPadding = validateValue.maxPadding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = validateValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();

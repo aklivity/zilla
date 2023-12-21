@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import java.io.IOException;
 import java.util.function.LongFunction;
 
@@ -42,7 +44,7 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
     }
 
     @Override
-    public int maxPadding(
+    public int padding(
         DirectBuffer data,
         int index,
         int length)
@@ -50,7 +52,20 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         int padding = 0;
         if (FORMAT_JSON.equals(format))
         {
-            padding = supplyPadding(handler.resolve(data, index, length, catalog, subject));
+            int schemaId = handler.resolve(data, index, length);
+
+            if (schemaId == NO_SCHEMA_ID)
+            {
+                if (catalog.id != NO_SCHEMA_ID)
+                {
+                    schemaId = catalog.id;
+                }
+                else
+                {
+                    schemaId = handler.resolve(subject, catalog.version);
+                }
+            }
+            padding = supplyPadding(schemaId);
         }
         return padding;
     }
@@ -84,24 +99,37 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, catalog, subject, this::validatePayload);
+        return handler.decode(data, index, length, next, this::decodePayload);
     }
 
-    private int validatePayload(
+    private int decodePayload(
+        int schemaId,
         DirectBuffer data,
         int index,
         int length,
-        ValueConsumer next,
-        int schemaId)
+        ValueConsumer next)
     {
         int valLength = -1;
+
+        if (schemaId == NO_SCHEMA_ID)
+        {
+            if (catalog.id != NO_SCHEMA_ID)
+            {
+                schemaId = catalog.id;
+            }
+            else
+            {
+                schemaId = handler.resolve(subject, catalog.version);
+            }
+        }
+
         if (FORMAT_JSON.equals(format))
         {
             deserializeRecord(schemaId, data, index, length);
-            int recordLength = encoded.position();
+            int recordLength = expandable.position();
             if (recordLength > 0)
             {
-                next.accept(encoded.buffer(), 0, recordLength);
+                next.accept(expandable.buffer(), 0, recordLength);
                 valLength = recordLength;
             }
         }
@@ -127,10 +155,10 @@ public class AvroReadValidator extends AvroValidator implements ValueValidator, 
             {
                 GenericRecord record = supplyRecord(schemaId);
                 in.wrap(buffer, index, length);
-                encoded.wrap(encoded.buffer());
+                expandable.wrap(expandable.buffer());
                 record = reader.read(record, decoderFactory.binaryDecoder(in, decoder));
                 Schema schema = record.getSchema();
-                JsonEncoder out = encoderFactory.jsonEncoder(schema, encoded);
+                JsonEncoder out = encoderFactory.jsonEncoder(schema, expandable);
                 writer.write(record, out);
                 out.flush();
             }

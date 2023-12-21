@@ -31,7 +31,6 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaR
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
@@ -137,16 +136,28 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public int resolve(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int schemaId = NO_SCHEMA_ID;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+        }
+        return schemaId;
+    }
+
+    @Override
     public int decode(
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next,
-        SchemaConfig catalog,
-        String subject,
-        Read read)
+        Decoder decoder)
     {
-        int schemaId = 0;
+        int schemaId = NO_SCHEMA_ID;
         int progress = 0;
         int valLength = -1;
         if (data.getByte(index) == MAGIC_BYTE)
@@ -158,44 +169,27 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         if (schemaId > NO_SCHEMA_ID)
         {
-            valLength = read.accept(data, index + progress, length - progress, next, schemaId);
+            valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
         }
         return valLength;
     }
 
     @Override
-    public int resolve(
-        DirectBuffer data,
-        int index,
-        int length,
-        SchemaConfig catalog,
-        String subject)
-    {
-        int schemaId = 0;
-        if (data.getByte(index) == MAGIC_BYTE)
-        {
-            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
-        }
-        return schemaId;
-    }
-
-    @Override
     public int encode(
+        int schemaId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next,
-        int schemaId,
-        Write write)
+        Encoder encoder)
     {
         SchemaRegistryPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
         next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
-        write.accept(data, index, length);
-        return prefix.sizeof();
+        return prefix.sizeof() + encoder.accept(schemaId, data, index, length, next);
     }
 
     @Override
-    public int maxPadding()
+    public int encodePadding()
     {
         return MAX_PADDING_LENGTH;
     }

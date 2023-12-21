@@ -80,11 +80,10 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH,
-            validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -93,7 +92,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
-                .embed(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -104,12 +102,7 @@ public class AvroValidatorTest
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
             0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-
-        byte[] expectedBytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        DirectBuffer expected = new UnsafeBuffer();
-        expected.wrap(expectedBytes);
-        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -125,43 +118,7 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
-        data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
-    public void shouldVerifyMagicBytes()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = "Invalid Event".getBytes();
-        data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
-    public void shouldVerifyInvalidSchemaId()
-    {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
@@ -190,7 +147,7 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
@@ -215,7 +172,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -234,7 +190,7 @@ public class AvroValidatorTest
 
         DirectBuffer expected = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         expected.wrap(bytes, 0, bytes.length);
 
@@ -258,7 +214,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -270,14 +225,9 @@ public class AvroValidatorTest
             0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        byte[] expectedBytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        DirectBuffer expected = new UnsafeBuffer();
-        expected.wrap(expectedBytes);
-
         assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
 
-        assertEquals(expected.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 
     @Test
@@ -286,7 +236,6 @@ public class AvroValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -294,23 +243,21 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
         assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
 
-        assertEquals(data.capacity() - SCHEMA_ID_PREFIX_LENGTH,
-            validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyMaxPaddingLength()
+    public void shouldVerifyPaddingLength()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -329,11 +276,11 @@ public class AvroValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(22, validator.maxPadding(data, 0, data.capacity()));
+        assertEquals(0, validator.padding(data, 0, data.capacity()));
 
     }
 }

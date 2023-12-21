@@ -51,12 +51,12 @@ public class TestValidator implements ValueValidator, FragmentValidator
     }
 
     @Override
-    public int maxPadding(
+    public int padding(
         DirectBuffer data,
         int index,
         int length)
     {
-        return handler != null ? handler.maxPadding() : 0;
+        return handler.encodePadding();
     }
 
     @Override
@@ -91,25 +91,7 @@ public class TestValidator implements ValueValidator, FragmentValidator
         boolean valid = length == this.length;
         if (valid)
         {
-            if (read)
-            {
-                CatalogHandler.Read read = (buffer, bufferIndex, bufferLength, consumer, schemaId) ->
-                {
-                    next.accept(buffer, bufferIndex, bufferLength);
-                    return bufferLength;
-                };
-                if (handler != null)
-                {
-                    length = handler.decode(data, index, length, next, schema, null, read);
-                }
-            }
-            else
-            {
-                if (handler != null)
-                {
-                    length = length + handler.encode(data, index, length, next, schemaId, next::accept);
-                }
-            }
+            next.accept(data, index, length);
         }
         return valid ? length : -1;
     }

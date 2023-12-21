@@ -116,7 +116,6 @@ public class JsonValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -134,11 +133,7 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
-        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
-        value.putBytes(5, bytes);
-
-        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -175,7 +170,6 @@ public class JsonValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -191,11 +185,7 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
-        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
-        value.putBytes(5, bytes);
-
-        assertEquals(value.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -204,7 +194,6 @@ public class JsonValidatorTest
         CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
-                .embed(true)
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
@@ -220,13 +209,9 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
-        value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
-        value.putBytes(5, bytes);
-
         assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
 
-        assertEquals(value.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 
     @Test

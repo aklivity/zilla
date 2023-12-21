@@ -28,7 +28,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public class InlineIT
@@ -64,16 +63,7 @@ public class InlineIT
     @Test
     public void shouldResolveSchemaIdAndProcessData()
     {
-        SchemaConfig schema = SchemaConfig.builder()
-            .strategy("strategy")
-            .subject(null)
-            .version("version")
-            .id(42)
-            .build();
-
         InlineCatalogHandler catalog = new InlineCatalogHandler(config);
-
-        final CatalogHandler.Read read = (data, index, length, next, schemaId) -> length;
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -85,42 +75,15 @@ public class InlineIT
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, schema, "test-value", read);
+        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
         assertEquals(data.capacity(), valLength);
     }
 
     @Test
-    public void shouldResolveSchemaIdViaSchemaConfig()
-    {
-        SchemaConfig schema = SchemaConfig.builder()
-                .strategy("strategy")
-                .subject(null)
-                .version("version")
-                .id(42)
-                .build();
-
-        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
-        DirectBuffer data = new UnsafeBuffer();
-        String payload =
-                "{" +
-                    "\"id\": \"123\"," +
-                    "\"status\": \"OK\"" +
-                "}";
-        byte[] bytes = payload.getBytes();
-        data.wrap(bytes, 0, bytes.length);
-
-        int schemaId = catalog.resolve(data, 0, data.capacity(), schema, "test-value");
-
-        assertEquals(42, schemaId);
-    }
-
-    @Test
-    public void shouldVerifyEnrichedData()
+    public void shouldVerifyEncodedData()
     {
         InlineCatalogHandler catalog = new InlineCatalogHandler(config);
-
-        final CatalogHandler.Write write = (data, index, length) -> {};
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -128,7 +91,7 @@ public class InlineIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(0, catalog.encode(data, 0, data.capacity(),
-                ValueConsumer.NOP, 1, write));
+        assertEquals(13, catalog.encode(1, data, 0, data.capacity(),
+                ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
     }
 }

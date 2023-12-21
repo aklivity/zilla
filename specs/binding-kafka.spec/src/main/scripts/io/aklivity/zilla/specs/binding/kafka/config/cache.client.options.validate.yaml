@@ -21,7 +21,6 @@ catalogs:
     type: test
     options:
       id: 1
-      embed: true
       schema: |
         {
           "fields": [
