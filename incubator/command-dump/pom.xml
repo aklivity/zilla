@@ -103,7 +103,8 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.pcap</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.txt</exclude>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine/*</exclude>
           </excludes>
         </configuration>
