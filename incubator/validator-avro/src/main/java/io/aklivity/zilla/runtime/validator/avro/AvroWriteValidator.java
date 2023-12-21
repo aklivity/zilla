@@ -115,8 +115,8 @@ public class AvroWriteValidator extends AvroValidator implements ValueValidator,
             {
                 GenericRecord record = supplyRecord(schemaId);
                 in.wrap(buffer, index, length);
-                record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
                 encoded.wrap(encoded.buffer());
+                record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
                 encoderFactory.binaryEncoder(encoded, encoder);
                 writer.write(record, encoder);
                 encoder.flush();
