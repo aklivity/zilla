@@ -2239,6 +2239,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replySeq;
         private long replyAck;
         private long replyAuth;
+        private int replyPad;
 
         private int decodedStreamId;
         private byte decodedFlags;
@@ -2842,10 +2843,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            if (exchange != null && !HttpState.replyClosed(exchange.state))
-            {
-                doNetworkWindow(traceId, budgetId, exchange.responsePad, decodeSlotReserved);
-            }
+            doNetworkWindow(traceId, budgetId, replyPad, decodeSlotReserved);
         }
 
         private void onDecodeHttp11HeadersError(
@@ -4896,6 +4894,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             responseAuth = authorization;
             responseBud = budgetId;
             responsePad = padding;
+
+            client.replyPad = Math.max(responsePad, client.replyPad);
 
             assert responseAck <= responseSeq;
 

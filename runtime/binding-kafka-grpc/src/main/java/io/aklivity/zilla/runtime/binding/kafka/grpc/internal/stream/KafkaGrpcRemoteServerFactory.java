@@ -508,7 +508,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
                         partitionId, partitionOffset, deferred, flags, payload);
 
-                    if (progress == valueLength)
+                    if (payload == null || progress == valueLength)
                     {
                         replyReserved -= reserved;
                         final int remaining = grpcQueueSlotOffset - progressOffset;
@@ -567,7 +567,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 payload == null && !KafkaGrpcState.initialClosing(grpcClient.state))
             {
                 flags = progress == 0 ? flags : DATA_FLAG_CON;
-                payload = payload == null ? emptyRO : payload;
                 queueGrpcMessage(traceId, authorization, partitionId, partitionOffset,
                     grpcClient.correlationId, service, method, deferred, flags, reserved, payload, remaining);
             }
@@ -587,9 +586,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW payload,
             int length)
         {
-            acquireQueueSlotIfNecessary();
+            if (grpcQueueSlot == NO_SLOT)
+            {
+                grpcQueueSlot = bufferPool.acquire(initialId);
+            }
+
             final MutableDirectBuffer grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
-            final GrpcQueueMessageFW queueMessage = queueMessageRW
+            GrpcQueueMessageFW.Builder queueMessageBuilder = queueMessageRW
                 .wrap(grpcQueueBuffer, grpcQueueSlotOffset, grpcQueueBuffer.capacity())
                 .correlationId(correlationId)
                 .service(service)
@@ -600,9 +603,18 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .partitionOffset(partitionOffset)
                 .deferred(deferred)
                 .flags(flags)
-                .reserved(reserved)
-                .value(payload.buffer(), payload.offset(), length)
-                .build();
+                .reserved(reserved);
+
+            if (payload == null)
+            {
+                queueMessageBuilder.value(payload);
+            }
+            else
+            {
+                queueMessageBuilder.value(payload.buffer(), payload.offset(), length);
+            }
+
+            final GrpcQueueMessageFW queueMessage = queueMessageBuilder.build();
 
             grpcQueueSlotOffset = queueMessage.limit();
         }
@@ -637,21 +649,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-        private void acquireQueueSlotIfNecessary()
-        {
-            if (grpcQueueSlot == NO_SLOT)
-            {
-                grpcQueueSlot = bufferPool.acquire(initialId);
-            }
-        }
-
         private void onKafkaEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
             final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1596,17 +1598,16 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             final int payloadLength = payload != null ? payload.sizeof() : 0;
             final int length = Math.min(Math.max(initialWindow() - initialPad, 0), payloadLength);
-            int reserved = length + initialPad;
-
+            final int reserved = length + initialPad;
             deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
 
-            int claimed = length;
-            if (initialDebIndex != NO_DEBITOR_INDEX)
+            int claimed = reserved;
+            if (payloadLength > 0 && initialDebIndex != NO_DEBITOR_INDEX)
             {
                 claimed = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, deferred);
             }
 
-            if (claimed == reserved)
+            if (length > 0 && claimed == reserved)
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, reserved,
@@ -1619,8 +1620,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 }
             }
 
-            if ((payload == null || payload.equals(emptyRO)) &&
-                KafkaGrpcState.initialClosing(state))
+            if (payload == null && KafkaGrpcState.initialClosing(state))
             {
                 server.doKafkaCommitOffset(traceId, authorization, partitionId, partitionOffset);
 
@@ -1688,8 +1688,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             int offset,
             int length)
         {
-            GrpcDataExFW dataEx = grpcDataExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
+            GrpcDataExFW dataEx = grpcDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(grpcTypeId)
                 .deferred(deferred)
                 .build();
