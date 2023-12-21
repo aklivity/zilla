@@ -43,7 +43,6 @@ public class AvroValidatorTest
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
-    private static final int SCHEMA_ID_PREFIX_LENGTH = 5;
 
     private final AvroValidatorConfig avroConfig = AvroValidatorConfig.builder()
             .catalog()
@@ -280,7 +279,7 @@ public class AvroValidatorTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(0, validator.padding(data, 0, data.capacity()));
+        assertEquals(22, validator.padding(data, 0, data.capacity()));
 
     }
 }
