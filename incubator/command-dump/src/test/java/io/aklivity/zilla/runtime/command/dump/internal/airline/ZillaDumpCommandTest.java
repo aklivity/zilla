@@ -190,8 +190,8 @@ public class ZillaDumpCommandTest
         streams[0].write(WindowFW.TYPE_ID, window2.buffer(), 0, window2.sizeof());
 
         BeginFW filteredBegin = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-            .originId(0x000000090000000bL) // north_tcp_server
-            .routedId(0x000000090000000cL) // north_tls_server
+            .originId(0x000000090000000dL) // north_http_server
+            .routedId(0x000000090000000eL) // north_http_kafka_mapping
             .streamId(0x0000000000000077L) // INI
             .sequence(71)
             .acknowledge(72)
@@ -1124,7 +1124,7 @@ public class ZillaDumpCommandTest
         byte[] expected = getResourceAsBytes("expected_filtered_dump.pcap");
 
         // WHEN
-        command.bindings = singletonList("example.north_tls_server");
+        command.bindings = singletonList("example.north_http_kafka_mapping");
         command.run();
 
         // THEN
