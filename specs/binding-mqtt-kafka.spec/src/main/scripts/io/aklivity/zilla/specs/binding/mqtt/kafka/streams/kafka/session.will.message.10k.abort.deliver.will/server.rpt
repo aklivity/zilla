@@ -289,7 +289,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .produce()
-                               .deferred(0)
+                               .deferred(2330)
                                .partition(-1, -1)
                                .key("client-1#will-1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
                                .hashKey("client-1")
@@ -422,7 +422,7 @@ write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .fetch()
-                               .deferred(0)
+                               .deferred(2114)
                                .partition(-1, -1)
                                .key("client-1#will-1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
                                .build()
@@ -436,13 +436,13 @@ write ${mqtt:will()
             .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
             .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
             .correlation("info")
-            .payload(10240)
+            .payloadSize(10240)
         .build()}
-write ${kafka:randomBytes(8192)}
+${kafka:randomBytes(8054)}
 write flush
 
 write option zilla:flags "fin"
-write ${kafka:randomBytes(2048)}
+write ${kafka:randomBytes(2186)}
 write flush
 
 read closed
@@ -469,7 +469,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .produce()
-                               .deferred(0)
+                               .deferred(2186)
                                .partition(-1, -1)
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")

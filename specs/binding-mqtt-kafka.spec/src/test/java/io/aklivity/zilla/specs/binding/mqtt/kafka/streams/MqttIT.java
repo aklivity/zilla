@@ -585,6 +585,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.10k.abort.deliver.will/client",
+        "${mqtt}/session.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.normal.disconnect/client",
         "${mqtt}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception

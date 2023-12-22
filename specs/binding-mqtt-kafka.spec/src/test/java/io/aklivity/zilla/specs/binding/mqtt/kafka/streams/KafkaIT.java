@@ -694,6 +694,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.10k.abort.deliver.will/client",
+        "${kafka}/session.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.normal.disconnect/client",
         "${kafka}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
