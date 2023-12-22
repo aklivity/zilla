@@ -45,11 +45,11 @@ write ${mqtt:will()
                .correlation("info")
                .payloadSize(10240)
                .build()}
-${mqtt:randomBytes(7000)}
+${mqtt:randomBytes(8050)}
 write flush
 
 write option zilla:flags "fin"
-write ${mqtt:randomBytes(3240)}
+write ${mqtt:randomBytes(2190)}
 write flush
 
 

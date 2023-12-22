@@ -2190,9 +2190,10 @@ public final class MqttClientFactory implements MqttStreamFactory
                             .value(propertyBuffer, 0, propertiesSize0))
                         .build();
 
-                doNetworkData(traceId, authorization, 0L, publish);
-                //TODO: only 1 doNetworkData
-                doNetworkData(traceId, authorization, 0L, payload);
+                int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                limit += payload.sizeof();
+                doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
             }
             else
             {
@@ -2317,13 +2318,13 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
 
             final int propertiesSize0 = propertiesSize;
-            final int willSize = will != null ? will.sizeof() : 0;
+            final int willSize = will != null ? will.sizeof() + willPayload.sizeof() : 0;
             flags |= will != null ? (WILL_FLAG_MASK | ((willMessage.flags() & RETAIN_MASK) != 0 ? WILL_RETAIN_MASK : 0)) : 0;
 
             final MqttConnectV5FW connect =
                 mqttConnectV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x10)
-                    .remainingLength(11 + propertiesSize0 + clientId.length() + 2 + willSize + willPayload.sizeof())
+                    .remainingLength(11 + propertiesSize0 + clientId.length() + 2 + willSize)
                     .protocolName(MQTT_PROTOCOL_NAME)
                     .protocolVersion(MQTT_PROTOCOL_VERSION)
                     .flags(flags)
@@ -2336,7 +2337,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             doNetworkData(traceId, authorization, 0L, connect);
             if (will != null)
             {
-                doNetworkData(traceId, authorization, 0L, willMessageBuffer, 0, will.sizeof() + willPayload.sizeof());
+                doNetworkData(traceId, authorization, 0L, willMessageBuffer, 0, willSize);
             }
         }
 

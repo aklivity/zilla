@@ -4062,9 +4062,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .topicName(topicName)
                             .build();
 
-                    doNetworkData(traceId, authorization, 0L, publish);
-                    //TODO: only 1 doNetworkData
-                    doNetworkData(traceId, authorization, 0L, payload);
+                    int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    limit += payload.sizeof();
+                    doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
                 else
                 {
@@ -4077,9 +4078,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .packetId(packetId)
                             .build();
 
-                    doNetworkData(traceId, authorization, 0L, publish);
-                    //TODO: only 1 doNetworkData
-                    doNetworkData(traceId, authorization, 0L, payload);
+                    int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    limit += payload.sizeof();
+                    doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
             }
             else
@@ -4199,9 +4201,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 .value(propertyBuffer, 0, propertiesSize0))
                             .build();
 
-                    doNetworkData(traceId, authorization, 0L, publish);
-                    //TODO: only 1 doNetworkData
-                    doNetworkData(traceId, authorization, 0L, payload);
+                    int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    limit += payload.sizeof();
+                    doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
                 else
                 {
@@ -4216,9 +4219,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 .value(propertyBuffer, 0, propertiesSize0))
                             .build();
 
-                    doNetworkData(traceId, authorization, 0L, publish);
-                    //TODO: only 1 doNetworkData
-                    doNetworkData(traceId, authorization, 0L, payload);
+                    int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    limit += payload.sizeof();
+                    doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
             }
             else
