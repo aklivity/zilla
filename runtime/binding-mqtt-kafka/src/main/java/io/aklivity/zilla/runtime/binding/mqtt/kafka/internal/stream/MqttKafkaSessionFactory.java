@@ -918,10 +918,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long traceId,
             long budgetId,
-            int padding,
+            long budget,
             int capabilities)
         {
-            initialAck = session.initialAck - padding;
+            initialAck = Math.min(budget, initialSeq);
             initialMax = session.initialMax;
 
             doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -2905,8 +2905,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final boolean wasOpen = MqttKafkaState.initialOpened(state);
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
+            assert acknowledge >= initialAck;
+            assert maximum >= initialMax;
 
             initialAck = acknowledge;
             initialMax = maximum;
@@ -2934,7 +2934,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 sendExpirySignal(authorization, traceId, expirySignal); // expire later
             }
 
-            delegate.doMqttWindow(authorization, traceId, budgetId, padding + delegate.sessionPadding, capabilities);
+            int budget = initialMax - (int)(initialSeq - initialAck);
+            long tempSessionPadding = Math.min(budget, delegate.sessionPadding);
+            delegate.sessionPadding -= tempSessionPadding;
+            long mqttAck = budget - tempSessionPadding;
+            delegate.doMqttWindow(authorization, traceId, budgetId, mqttAck, capabilities);
         }
 
         private void cancelWillSignal(
