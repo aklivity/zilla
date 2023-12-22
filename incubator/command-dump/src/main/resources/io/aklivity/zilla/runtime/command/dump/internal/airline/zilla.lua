@@ -49,6 +49,7 @@ HTTP_ID = 0x8ab62046
 KAFKA_ID = 0x084b20e1
 MQTT_ID = 0xd0d41a76
 PROXY_ID = 0x8dcea850
+SSE_ID = 0x03409e2e
 TLS_ID = 0x99f321bc
 
 local flags_types = {
@@ -98,7 +99,7 @@ local fields = {
     protocol_type = ProtoField.string("zilla.protocol_type", "Protocol Type", base.NONE),
     stream_type_id = ProtoField.uint32("zilla.stream_type_id", "Stream Type ID", base.HEX),
     stream_type = ProtoField.string("zilla.stream_type", "Stream Type", base.NONE),
-    worker = ProtoField.uint32("zilla.worker", "Worker", base.DEC),
+    worker = ProtoField.int32("zilla.worker", "Worker", base.DEC),
     offset = ProtoField.uint32("zilla.offset", "Offset", base.HEX),
 
     -- labels
@@ -144,8 +145,8 @@ local fields = {
 
     -- signal frame
     cancel_id = ProtoField.uint64("zilla.cancel_id", "Cancel ID", base.HEX),
-    signal_id = ProtoField.int32("zilla.signal_id", "Signal ID", base.DEC),
-    context_id = ProtoField.int32("zilla.context_id", "Context ID", base.DEC),
+    signal_id = ProtoField.uint32("zilla.signal_id", "Signal ID", base.HEX),
+    context_id = ProtoField.uint32("zilla.context_id", "Context ID", base.HEX),
 
     -- proxy extension
     --     address
@@ -170,10 +171,10 @@ local fields = {
     proxy_ext_address_unix_destination = ProtoField.string("zilla.proxy_ext.address_unix_destination", "Destination",
         base.NONE),
     --     info
-    proxy_ext_info_array_length = ProtoField.uint8("zilla.proxy_ext.info_array_length", "Length", base.DEC),
-    proxy_ext_info_array_size = ProtoField.uint8("zilla.proxy_ext.info_array_size", "Size", base.DEC),
+    proxy_ext_info_array_length = ProtoField.int8("zilla.proxy_ext.info_array_length", "Length", base.DEC),
+    proxy_ext_info_array_size = ProtoField.int8("zilla.proxy_ext.info_array_size", "Size", base.DEC),
     proxy_ext_info_type = ProtoField.uint8("zilla.proxy_ext.info_type", "Type", base.HEX, proxy_ext_info_types),
-    proxy_ext_info_length = ProtoField.uint16("zilla.proxy_ext.info_length", "Length", base.DEC),
+    proxy_ext_info_length = ProtoField.int16("zilla.proxy_ext.info_length", "Length", base.DEC),
     proxy_ext_info_alpn = ProtoField.string("zilla.proxy_ext.info_alpn", "Value", base.NONE),
     proxy_ext_info_authority = ProtoField.string("zilla.proxy_ext.info_authority", "Value", base.NONE),
     proxy_ext_info_identity = ProtoField.bytes("zilla.proxy_ext.info_identity", "Value", base.NONE),
@@ -184,37 +185,52 @@ local fields = {
 
     -- http extension
     --     headers
-    http_ext_headers_array_length = ProtoField.uint8("zilla.http_ext.headers_array_length", "Length", base.DEC),
-    http_ext_headers_array_size = ProtoField.uint8("zilla.http_ext.headers_array_size", "Size", base.DEC),
-    http_ext_header_name_length = ProtoField.uint8("zilla.http_ext.header_name_length", "Length", base.DEC),
+    http_ext_headers_array_length = ProtoField.int8("zilla.http_ext.headers_array_length", "Length", base.DEC),
+    http_ext_headers_array_size = ProtoField.int8("zilla.http_ext.headers_array_size", "Size", base.DEC),
+    http_ext_header_name_length = ProtoField.int8("zilla.http_ext.header_name_length", "Length", base.DEC),
     http_ext_header_name = ProtoField.string("zilla.http_ext.header_name", "Name", base.NONE),
-    http_ext_header_value_length = ProtoField.uint16("zilla.http_ext.header_value_length", "Length", base.DEC),
+    http_ext_header_value_length = ProtoField.int16("zilla.http_ext.header_value_length", "Length", base.DEC),
     http_ext_header_value = ProtoField.string("zilla.http_ext.header_value", "Value", base.NONE),
     --    promise id
     http_ext_promise_id = ProtoField.uint64("zilla.promise_id", "Promise ID", base.HEX),
 
     -- grpc extension
-    grpc_ext_scheme_length = ProtoField.uint16("zilla.grpc_ext.scheme_length", "Length", base.DEC),
+    grpc_ext_scheme_length = ProtoField.int16("zilla.grpc_ext.scheme_length", "Length", base.DEC),
     grpc_ext_scheme = ProtoField.string("zilla.grpc_ext.scheme", "Scheme", base.NONE),
-    grpc_ext_authority_length = ProtoField.uint16("zilla.grpc_ext.authority_length", "Length", base.DEC),
+    grpc_ext_authority_length = ProtoField.int16("zilla.grpc_ext.authority_length", "Length", base.DEC),
     grpc_ext_authority = ProtoField.string("zilla.grpc_ext.authority", "Authority", base.NONE),
-    grpc_ext_service_length = ProtoField.uint16("zilla.grpc_ext.service_length", "Length", base.DEC),
+    grpc_ext_service_length = ProtoField.int16("zilla.grpc_ext.service_length", "Length", base.DEC),
     grpc_ext_service = ProtoField.string("zilla.grpc_ext.service", "Service", base.NONE),
-    grpc_ext_method_length = ProtoField.uint16("zilla.grpc_ext.method_length", "Length", base.DEC),
+    grpc_ext_method_length = ProtoField.int16("zilla.grpc_ext.method_length", "Length", base.DEC),
     grpc_ext_method = ProtoField.string("zilla.grpc_ext.method", "Method", base.NONE),
-    grpc_ext_deferred = ProtoField.uint32("zilla.grpc_ext.deferred", "Deferred", base.DEC),
-    grpc_ext_status_length = ProtoField.uint16("zilla.grpc_ext.status_length", "Length", base.DEC),
+    grpc_ext_deferred = ProtoField.int32("zilla.grpc_ext.deferred", "Deferred", base.DEC),
+    grpc_ext_status_length = ProtoField.int16("zilla.grpc_ext.status_length", "Length", base.DEC),
     grpc_ext_status = ProtoField.string("zilla.grpc_ext.status", "Status", base.NONE),
     --    metadata
-    grpc_ext_metadata_array_length = ProtoField.uint8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC),
-    grpc_ext_metadata_array_size = ProtoField.uint8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC),
-    grpc_ext_metadata_type = ProtoField.uint32("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types),
+    grpc_ext_metadata_array_length = ProtoField.int8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC),
+    grpc_ext_metadata_array_size = ProtoField.int8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC),
+    grpc_ext_metadata_type = ProtoField.uint8("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types),
     grpc_ext_metadata_name_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (Varint)", base.NONE),
-    grpc_ext_metadata_name_length = ProtoField.uint32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC),
+    grpc_ext_metadata_name_length = ProtoField.int32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC),
     grpc_ext_metadata_name = ProtoField.string("zilla.grpc_ext.metadata_name", "Name", base.NONE),
     grpc_ext_metadata_value_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (Varint)", base.NONE),
-    grpc_ext_metadata_value_length = ProtoField.uint32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC),
+    grpc_ext_metadata_value_length = ProtoField.int32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC),
     grpc_ext_metadata_value = ProtoField.string("zilla.grpc_ext.metadata_value", "Value", base.NONE),
+
+    -- sse extension
+    sse_ext_scheme_length = ProtoField.int16("zilla.sse_ext.scheme_length", "Length", base.DEC),
+    sse_ext_scheme = ProtoField.string("zilla.sse_ext.scheme", "Scheme", base.NONE),
+    sse_ext_authority_length = ProtoField.int16("zilla.sse_ext.authority_length", "Length", base.DEC),
+    sse_ext_authority = ProtoField.string("zilla.sse_ext.authority", "Scheme", base.NONE),
+    sse_ext_path_length = ProtoField.int16("zilla.sse_ext.path_length", "Length", base.DEC),
+    sse_ext_path = ProtoField.string("zilla.sse_ext.path", "Scheme", base.NONE),
+    sse_ext_last_id_length = ProtoField.int8("zilla.sse_ext.last_id_length", "Length", base.DEC),
+    sse_ext_last_id = ProtoField.string("zilla.sse_ext.last_id", "Last ID", base.NONE),
+    sse_ext_timestamp = ProtoField.uint64("zilla.sse_ext.timestamp", "Timestamp", base.HEX),
+    sse_ext_id_length = ProtoField.int8("zilla.sse_ext.id_length", "Length", base.DEC),
+    sse_ext_id = ProtoField.string("zilla.sse_ext.id", "ID", base.NONE),
+    sse_ext_type_length = ProtoField.int8("zilla.sse_ext.type_length", "Length", base.DEC),
+    sse_ext_type = ProtoField.string("zilla.sse_ext.type", "Type", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -471,6 +487,7 @@ function resolve_type(type_id)
     elseif type_id == KAFKA_ID then type = "kafka"
     elseif type_id == MQTT_ID  then type = "mqtt"
     elseif type_id == PROXY_ID then type = "proxy"
+    elseif type_id == SSE_ID   then type = "sse"
     elseif type_id == TLS_ID   then type = "tls"
     end
     return type
@@ -532,6 +549,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
             handle_http_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         elseif stream_type_id == GRPC_ID then
             handle_grpc_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+        elseif stream_type_id == SSE_ID then
+            handle_sse_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -677,7 +696,7 @@ end
 
 function dissect_length_value(buffer, item_offset, length_length)
     local slice_length = buffer(item_offset, length_length)
-    local length = slice_length:le_int()
+    local length = math.max(slice_length:le_int(), 0)
     local slice_value = buffer(item_offset + length_length, length)
     local item_length = length + length_length
     return item_length, slice_length, slice_value
@@ -710,7 +729,6 @@ end
 function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_name, singular_name)
     local slice_headers_array_length = buffer(offset, 4)
     local slice_headers_array_size = buffer(offset + 4, 4)
-    local headers_array_length = slice_headers_array_length:le_int()
     local headers_array_size = slice_headers_array_size:le_int()
     local length = 8
     local label = string.format("%s (%d items)", plural_name, headers_array_size)
@@ -842,6 +860,51 @@ function decode_varint32(buffer, offset)
     result = bit.bxor(result, bit.band(unsigned, bit.lshift(1, 31)))
     local length = pos - offset + 1
     return result, buffer(offset, length), length
+end
+
+function handle_sse_extension(buffer, extension_subtree, offset, frame_type_id)
+    if frame_type_id == BEGIN_ID then
+        -- scheme
+        local scheme_offset = offset
+        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
+        add_simple_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s", slice_scheme_length,
+            slice_scheme_text, fields.sse_ext_scheme_length, fields.sse_ext_scheme)
+        -- authority
+        local authority_offset = scheme_offset + scheme_length
+        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
+        add_simple_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s", slice_authority_length,
+            slice_authority_text, fields.sse_ext_authority_length, fields.sse_ext_authority)
+        -- path
+        local path_offset = authority_offset + authority_length
+        local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
+        add_simple_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s", slice_path_length,
+            slice_path_text, fields.sse_ext_path_length, fields.sse_ext_path)
+        -- last_id
+        local last_id_offset = path_offset + path_length
+        local last_id_length, slice_last_id_length, slice_last_id_text = dissect_length_value(buffer, last_id_offset, 1)
+        add_simple_string_as_subtree(buffer(last_id_offset, last_id_length), extension_subtree, "Last ID: %s", slice_last_id_length,
+            slice_last_id_text, fields.sse_ext_last_id_length, fields.sse_ext_last_id)
+    elseif frame_type_id == DATA_ID then
+        -- timestamp
+        local timestamp_offset = offset
+        local timestamp_length = 8
+        local slice_timestamp = buffer(timestamp_offset, timestamp_length)
+        extension_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+        -- id
+        local id_offset = timestamp_offset + timestamp_length
+        local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, id_offset, 1)
+        add_simple_string_as_subtree(buffer(id_offset, id_length), extension_subtree, "ID: %s", slice_id_length,
+            slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
+        -- type
+        local type_offset = id_offset + id_length
+        local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 1)
+        add_simple_string_as_subtree(buffer(type_offset, type_length), extension_subtree, "Type: %s", slice_type_length,
+            slice_type_text, fields.sse_ext_type_length, fields.sse_ext_type)
+    elseif frame_type_id == END_ID then
+        local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, offset, 1)
+        add_simple_string_as_subtree(buffer(offset, id_length), extension_subtree, "Id: %s", slice_id_length,
+            slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
+    end
 end
 
 local data_dissector = DissectorTable.get("tcp.port")

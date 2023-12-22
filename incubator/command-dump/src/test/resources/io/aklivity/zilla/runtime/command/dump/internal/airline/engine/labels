@@ -25,3 +25,5 @@ cache_server
 client
 north_grpc_server
 north_grpc_kafka_mapping
+north_sse_server
+south_sse_client

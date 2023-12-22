@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
+import io.aklivity.zilla.specs.binding.sse.internal.SseFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
@@ -58,12 +59,13 @@ import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 public class ZillaDumpCommandTest
 {
     private static final int WORKERS = 3;
-    private static final int STREAMS_CAPACITY = 8 * 1024;
+    private static final int STREAMS_CAPACITY = 16 * 1024;
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
     private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
     private static final int PROXY_TYPE_ID = 5;
+    private static final int SSE_TYPE_ID = 7;
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -733,7 +735,10 @@ public class ZillaDumpCommandTest
         streams[0].write(BeginFW.TYPE_ID, begin12.buffer(), 0, begin12.sizeof());
 
         // data frame with extension, without payload, payload length is -1
-        DirectBuffer grpcDataEx1 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 42, 0, 0, 0});
+        DirectBuffer grpcDataEx1 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            42, 0, 0, 0             // int32 deferred
+        });
         DataFW data6 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -751,7 +756,10 @@ public class ZillaDumpCommandTest
 
         // data frame with extension, without payload, payload length is 0
         DirectBuffer grpcDataPayload1 = new UnsafeBuffer();
-        DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 77, 0, 0, 0});
+        DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            77, 0, 0, 0             // int32 deferred
+        });
         DataFW data7 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -770,7 +778,10 @@ public class ZillaDumpCommandTest
 
         // data frame with extension, with payload
         DirectBuffer grpcDataPayload2 = new UnsafeBuffer("Hello World!".getBytes(StandardCharsets.UTF_8));
-        DirectBuffer grpcDataEx3 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 88, 0, 0, 0});
+        DirectBuffer grpcDataEx3 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            88, 0, 0, 0             // int32 deferred
+        });
         DataFW data8 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -820,6 +831,110 @@ public class ZillaDumpCommandTest
             .extension(grpcResetEx1, 0, grpcResetEx1.capacity())
             .build();
         streams[0].write(ResetFW.TYPE_ID, reset3.buffer(), 0, reset3.sizeof());
+
+        // sse extension
+        DirectBuffer sseBeginEx1 = new UnsafeBuffer(SseFunctions.beginEx()
+            .typeId(SSE_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .path("/hello")
+            .lastId(null)  // length will be -1
+            .build());
+        BeginFW begin13 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000015L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002aL)
+            .traceId(0x0000000000000015L)
+            .affinity(0x0000000000000000L)
+            .extension(sseBeginEx1, 0, sseBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin13.buffer(), 0, begin13.sizeof());
+
+        DirectBuffer sseBeginEx2 = new UnsafeBuffer(SseFunctions.beginEx()
+            .typeId(SSE_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .path("/hello")
+            .lastId("lastId")
+            .build());
+        BeginFW begin14 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002bL)
+            .traceId(0x0000000000000015L)
+            .affinity(0x0000000000000000L)
+            .extension(sseBeginEx2, 0, sseBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin14.buffer(), 0, begin14.sizeof());
+
+        DirectBuffer sseDataEx1 = new UnsafeBuffer(SseFunctions.dataEx()
+            .typeId(SSE_TYPE_ID)
+            .timestamp(0x000000000000002cL)
+            .id("id")
+            .type("type")
+            .build());
+        DataFW data9 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000015L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002cL)
+            .traceId(0x0000000000000015L)
+            .budgetId(0x0000000000000015L)
+            .reserved(0x00000042)
+            .extension(sseDataEx1, 0, sseDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data9.buffer(), 0, data9.sizeof());
+
+        DirectBuffer ssePayload1 = new UnsafeBuffer("Hello SSE!".getBytes(StandardCharsets.UTF_8));
+        DirectBuffer sseDataEx2 = new UnsafeBuffer(SseFunctions.dataEx()
+            .typeId(SSE_TYPE_ID)
+            .timestamp(0x000000000000002dL)
+            .id(null) // length will be -1
+            .type("fortytwo")
+            .build());
+        DataFW data10 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002dL)
+            .traceId(0x0000000000000015L)
+            .budgetId(0x0000000000000015L)
+            .reserved(0x00000042)
+            .payload(ssePayload1, 0, ssePayload1.capacity())
+            .extension(sseDataEx2, 0, sseDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data10.buffer(), 0, data10.sizeof());
+
+        DirectBuffer sseEndEx1 = new UnsafeBuffer(SseFunctions.endEx()
+            .typeId(SSE_TYPE_ID)
+            .id("sse-end-id")
+            .build());
+        EndFW end6 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002eL)
+            .traceId(0x0000000000000015L)
+            .extension(sseEndEx1, 0, sseEndEx1.capacity())
+            .build();
+        streams[0].write(EndFW.TYPE_ID, end6.buffer(), 0, end6.sizeof());
     }
 
     @BeforeEach
