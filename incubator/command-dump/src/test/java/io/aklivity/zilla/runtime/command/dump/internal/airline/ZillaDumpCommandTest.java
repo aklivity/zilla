@@ -263,7 +263,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(ChallengeFW.TYPE_ID, challenge1.buffer(), 0, challenge1.sizeof());
 
-        // POST https://localhost:7142/
+        // data frame with h2 request payload: POST https://localhost:7142/
         byte[] h2request = BitUtil.fromHex(
             "00002c0104000000018387418aa0e41d139d09b8e85a67847a8825b650c3cb85717f53032a2f2a5f87497ca58ae819aa0f0d023132");
         DirectBuffer h2requestBuf = new UnsafeBuffer(h2request);
@@ -282,7 +282,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data3.buffer(), 0, data3.sizeof());
 
-        // 200 OK
+        // data frame with h2 response payload: 200 OK
         byte[] h2response = BitUtil.fromHex(
             "000026010400000001880f2b0a6375726c2f382e312e320f04032a2f2a0f100a746578742f706c61696e0f0d023132");
         DirectBuffer h2responseBuf = new UnsafeBuffer(h2response);
@@ -1089,11 +1089,11 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin18.buffer(), 0, begin18.sizeof());
 
-        // data frame with tls payload
+        // data frame with tls payload: TLSv1.3 Server Hello
         DirectBuffer tlsPayload1 = new UnsafeBuffer(BitUtil.fromHex(
             "160303007a020000760303328f126a2dc67b1d107023f088ca43560c8b1535c9d7e1be8b217b60b8cefa32209d830c3919be" +
             "a4f53b3ace6b5f6837c9914c982f1421d3e162606c3eb5907c16130200002e002b0002030400330024001d00201c00c791d3" +
-            "e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e")); // TLSv1.3 Server Hello
+            "e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e"));
         DataFW data13 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000cL) // north_tls_server
@@ -1109,8 +1109,8 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data13.buffer(), 0, data13.sizeof());
 
-        // data frame with mqtt payload
-        DirectBuffer mqttPayload1 = new UnsafeBuffer(BitUtil.fromHex("101000044d5154540502003c032100140000")); // mqtt Connect Command
+        // data frame with mqtt payload: mqtt Connect Command
+        DirectBuffer mqttPayload1 = new UnsafeBuffer(BitUtil.fromHex("101000044d5154540502003c032100140000"));
         DataFW data14 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x0000000900000022L) // north_mqtt_server
@@ -1126,10 +1126,10 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data14.buffer(), 0, data14.sizeof());
 
-        // data frames with kafka payload
+        // data frame with kafka payload: Kafka (Fetch v5 Request)
         DirectBuffer kafkaPayload1 = new UnsafeBuffer(BitUtil.fromHex(
             "00000051000100050000000100057a696c6c61ffffffff0000000000000001032000000000000001000f6974656d732d7265" +
-            "73706f6e73657300000001000000000000000000000000ffffffffffffffff03200000")); // Kafka (Fetch v5 Request)
+            "73706f6e73657300000001000000000000000000000000ffffffffffffffff03200000"));
         DataFW data15 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
@@ -1145,9 +1145,10 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data15.buffer(), 0, data15.sizeof());
 
+        // data frame with kafka payload: Kafka (Fetch v5 Response)
         DirectBuffer kafkaPayload2 = new UnsafeBuffer(BitUtil.fromHex(
             "00000047000000010000000000000001000f6974656d732d726573706f6e7365730000000100000000000000000000000000" +
-            "0000000000000000000000000000000000ffffffff00000000")); // Kafka (Fetch v5 Response)
+            "0000000000000000000000000000000000ffffffff00000000"));
         DataFW data16 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
