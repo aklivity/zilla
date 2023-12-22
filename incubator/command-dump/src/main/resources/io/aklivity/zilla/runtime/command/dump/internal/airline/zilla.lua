@@ -85,6 +85,11 @@ local proxy_ext_secure_info_types = {
     [0x25] = "KEY",
 }
 
+local grpc_types = {
+    [0] = "TEXT",
+    [1] = "BASE64"
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -187,6 +192,29 @@ local fields = {
     http_ext_header_value = ProtoField.string("zilla.http_ext.header_value", "Value", base.NONE),
     --    promise id
     http_ext_promise_id = ProtoField.uint64("zilla.promise_id", "Promise ID", base.HEX),
+
+    -- grpc extension
+    grpc_ext_scheme_length = ProtoField.uint16("zilla.grpc_ext.scheme_length", "Length", base.DEC),
+    grpc_ext_scheme = ProtoField.string("zilla.grpc_ext.scheme", "Scheme", base.NONE),
+    grpc_ext_authority_length = ProtoField.uint16("zilla.grpc_ext.authority_length", "Length", base.DEC),
+    grpc_ext_authority = ProtoField.string("zilla.grpc_ext.authority", "Authority", base.NONE),
+    grpc_ext_service_length = ProtoField.uint16("zilla.grpc_ext.service_length", "Length", base.DEC),
+    grpc_ext_service = ProtoField.string("zilla.grpc_ext.service", "Service", base.NONE),
+    grpc_ext_method_length = ProtoField.uint16("zilla.grpc_ext.method_length", "Length", base.DEC),
+    grpc_ext_method = ProtoField.string("zilla.grpc_ext.method", "Method", base.NONE),
+    grpc_ext_deferred = ProtoField.uint32("zilla.grpc_ext.deferred", "Deferred", base.DEC),
+    grpc_ext_status_length = ProtoField.uint16("zilla.grpc_ext.status_length", "Length", base.DEC),
+    grpc_ext_status = ProtoField.string("zilla.grpc_ext.status", "Status", base.NONE),
+    --    metadata
+    grpc_ext_metadata_array_length = ProtoField.uint8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC),
+    grpc_ext_metadata_array_size = ProtoField.uint8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC),
+    grpc_ext_metadata_type = ProtoField.uint32("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types),
+    grpc_ext_metadata_name_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (Varint)", base.NONE),
+    grpc_ext_metadata_name_length = ProtoField.uint32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC),
+    grpc_ext_metadata_name = ProtoField.string("zilla.grpc_ext.metadata_name", "Name", base.NONE),
+    grpc_ext_metadata_value_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (Varint)", base.NONE),
+    grpc_ext_metadata_value_length = ProtoField.uint32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC),
+    grpc_ext_metadata_value = ProtoField.string("zilla.grpc_ext.metadata_value", "Value", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -502,6 +530,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
             handle_proxy_extension(buffer, extension_subtree, offset + 4)
         elseif stream_type_id == HTTP_ID then
             handle_http_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+        elseif stream_type_id == GRPC_ID then
+            handle_grpc_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -601,12 +631,12 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         item_offset = item_offset + 1
         if type == "ALPN" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 1)
-            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_alpn)
             item_offset = item_offset + item_length
         elseif type == "AUTHORITY" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
-            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_authority)
             item_offset = item_offset + item_length
         elseif type == "IDENTITY" then
@@ -638,7 +668,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
             item_offset = item_offset + item_length
         elseif type == "NAMESPACE" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
-            add_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_namespace)
             item_offset = item_offset + item_length
         end
@@ -653,7 +683,7 @@ function dissect_length_value(buffer, item_offset, length_length)
     return item_length, slice_length, slice_value
 end
 
-function add_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_length, slice_text, field_type, field_length,
+function add_proxy_string_as_subtree(buffer, tree, label_format, slice_type_id, slice_length, slice_text, field_type, field_length,
         field_text)
     local type_id = slice_type_id:le_int()
     local type = proxy_ext_info_types[type_id]
@@ -700,6 +730,118 @@ function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_
         subtree:add(fields.http_ext_header_value, slice_value)
         item_offset = item_offset + name_length + value_length
     end
+end
+
+function handle_grpc_extension(buffer, extension_subtree, offset, frame_type_id)
+    if frame_type_id == BEGIN_ID then
+        -- scheme
+        local scheme_offset = offset
+        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
+        add_simple_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s", slice_scheme_length,
+            slice_scheme_text, fields.grpc_ext_scheme_length, fields.grpc_ext_scheme)
+        -- authority
+        local authority_offset = scheme_offset + scheme_length
+        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
+        add_simple_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s", slice_authority_length,
+            slice_authority_text, fields.grpc_ext_authority_length, fields.grpc_ext_authority)
+        -- service
+        local service_offset = authority_offset + authority_length
+        local service_length, slice_service_length, slice_service_text = dissect_length_value(buffer, service_offset, 2)
+        add_simple_string_as_subtree(buffer(service_offset, service_length), extension_subtree, "Service: %s", slice_service_length,
+            slice_service_text, fields.grpc_ext_service_length, fields.grpc_ext_service)
+        -- method
+        local method_offset = service_offset + service_length
+        local method_length, slice_method_length, slice_method_text = dissect_length_value(buffer, method_offset, 2)
+        add_simple_string_as_subtree(buffer(method_offset, method_length), extension_subtree, "Method: %s", slice_method_length,
+            slice_method_text, fields.grpc_ext_method_length, fields.grpc_ext_method)
+        -- metadata array
+        local metadata_array_offset = method_offset + method_length
+        local slice_metadata_array_length = buffer(metadata_array_offset, 4)
+        local slice_metadata_array_size = buffer(metadata_array_offset + 4, 4)
+        local metadata_array_length = slice_metadata_array_length:le_int()
+        local metadata_array_size = slice_metadata_array_size:le_int()
+        local length = 8
+        local label = string.format("Metadata (%d items)", metadata_array_size)
+        local metadata_array_subtree = extension_subtree:add(zilla_protocol, buffer(metadata_array_offset, length), label)
+        metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_length, slice_metadata_array_length)
+        metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_size, slice_metadata_array_size)
+        local item_offset = metadata_array_offset + length
+        for i = 1, metadata_array_size do
+            local record_length = dissect_and_add_grpc_metadata(buffer, extension_subtree, item_offset)
+            item_offset = item_offset + record_length
+        end
+    elseif frame_type_id == DATA_ID then
+        local slice_deferred = buffer(offset, 4)
+        extension_subtree:add_le(fields.grpc_ext_deferred, slice_deferred)
+    elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID then
+        local status_length, slice_status_length, slice_status_text = dissect_length_value(buffer, offset, 2)
+        add_simple_string_as_subtree(buffer(offset, status_length), extension_subtree, "Status: %s", slice_status_length,
+            slice_status_text, fields.grpc_ext_status_length, fields.grpc_ext_status)
+    end
+end
+
+function add_simple_string_as_subtree(buffer, tree, label_format, slice_length, slice_text, field_length, field_text)
+    local text = slice_text:string()
+    local label = string.format(label_format, text)
+    local subtree = tree:add(zilla_protocol, buffer, label)
+    subtree:add_le(field_length, slice_length)
+    subtree:add(field_text, slice_text)
+end
+
+function dissect_and_add_grpc_metadata(buffer, extension_subtree, metadata_offset)
+    local offset = metadata_offset
+    -- type
+    local slice_type_id = buffer(offset, 1)
+    local type = grpc_types[slice_type_id:le_int()]
+    offset = offset + 1
+    -- name_length
+    local name_length, slice_name_length_varint, length_name_length = decode_varint32(buffer, offset)
+    offset = offset + length_name_length
+    -- name
+    local slice_name = buffer(offset, name_length)
+    local name = slice_name:string()
+    offset = offset + name_length
+    -- value_length
+    local value_length, slice_value_length_varint, length_value_length = decode_varint32(buffer, offset)
+    offset = offset + length_value_length
+    -- value
+    local slice_value = buffer(offset, value_length)
+    local value = slice_value:string()
+    -- add subtree
+    local record_length = 1 + length_name_length + name_length + length_value_length + value_length
+    local label = string.format("Metadata: [%s] %s: %s", type, name, value)
+    local metadata_subtree = extension_subtree:add(zilla_protocol, buffer(metadata_offset, record_length), label)
+    metadata_subtree:add(fields.grpc_ext_metadata_type, slice_type_id)
+    metadata_subtree:add(fields.grpc_ext_metadata_name_length_varint, slice_name_length_varint)
+    metadata_subtree:add(fields.grpc_ext_metadata_name_length, name_length)
+    metadata_subtree:add(fields.grpc_ext_metadata_name, slice_name)
+    metadata_subtree:add(fields.grpc_ext_metadata_value_length_varint, slice_value_length_varint)
+    metadata_subtree:add(fields.grpc_ext_metadata_value_length, value_length)
+    metadata_subtree:add(fields.grpc_ext_metadata_value, slice_value)
+    return record_length
+end
+
+function decode_varint32(buffer, offset)
+    local value = 0
+    local i = 0
+    local pos = offset
+    local b = buffer(pos, 1):le_int()
+
+    while bit.band(b, 0x80) ~= 0 do
+        value = bit.bor(value, bit.lshift(bit.band(b, 0x7F), i))
+        i = i + 7
+        if i > 35 then
+            error("varint32 value too long")
+        end
+        pos = pos + 1
+        b = buffer(pos, 1):le_int()
+    end
+
+    local unsigned = bit.bor(value, bit.lshift(b, i))
+    local result = bit.rshift(bit.bxor(bit.rshift(bit.lshift(unsigned, 31), 31), unsigned), 1)
+    result = bit.bxor(result, bit.band(unsigned, bit.lshift(1, 31)))
+    local length = pos - offset + 1
+    return result, buffer(offset, length), length
 end
 
 local data_dissector = DissectorTable.get("tcp.port")

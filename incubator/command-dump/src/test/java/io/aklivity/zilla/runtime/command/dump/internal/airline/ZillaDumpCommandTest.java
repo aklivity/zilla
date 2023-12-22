@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,6 +48,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
@@ -59,8 +61,9 @@ public class ZillaDumpCommandTest
     private static final int STREAMS_CAPACITY = 8 * 1024;
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
-    private static final int PROXY_TYPE_ID = 5;
+    private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
+    private static final int PROXY_TYPE_ID = 5;
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -679,6 +682,144 @@ public class ZillaDumpCommandTest
             .traceId(0x0200000000000003L)
             .build();
         streams[2].write(EndFW.TYPE_ID, end5.buffer(), 0, end5.sizeof());
+
+        // worker 0
+        // grpc extension
+        DirectBuffer grpcBeginEx1 = new UnsafeBuffer(GrpcFunctions.beginEx()
+            .typeId(GRPC_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .service("example.EchoService")
+            .method("EchoUnary")
+            .metadata("grpc-accept-encoding", "gzip")
+            .metadata("metadata-2", "hello")
+            .metadata("BASE64", "metadata-3", "4242")
+            .build());
+        BeginFW begin11 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000013L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000023L)
+            .traceId(0x0000000000000013L)
+            .affinity(0x0000000000000000L)
+            .extension(grpcBeginEx1, 0, grpcBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin11.buffer(), 0, begin11.sizeof());
+
+        DirectBuffer grpcBeginEx2 = new UnsafeBuffer(GrpcFunctions.beginEx()
+            .typeId(GRPC_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .service("example.EchoService")
+            .method("EchoUnary")
+            .metadata("long field", "Z".repeat(200))
+            .metadata("metadata-2", "hello")
+            .build());
+        BeginFW begin12 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000012L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000024L)
+            .traceId(0x0000000000000013L)
+            .affinity(0x0000000000000000L)
+            .extension(grpcBeginEx2, 0, grpcBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin12.buffer(), 0, begin12.sizeof());
+
+        // data frame with extension, without payload, payload length is -1
+        DirectBuffer grpcDataEx1 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 42, 0, 0, 0});
+        DataFW data6 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000013L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000025L)
+            .traceId(0x0000000000000013L)
+            .budgetId(0x0000000000000013L)
+            .reserved(0x00000042)
+            .extension(grpcDataEx1, 0, grpcDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data6.buffer(), 0, data6.sizeof());
+
+        // data frame with extension, without payload, payload length is 0
+        DirectBuffer grpcDataPayload1 = new UnsafeBuffer();
+        DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 77, 0, 0, 0});
+        DataFW data7 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000012L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000026L)
+            .traceId(0x0000000000000013L)
+            .budgetId(0x0000000000000013L)
+            .reserved(0x00000042)
+            .payload(grpcDataPayload1, 0, grpcDataPayload1.capacity())
+            .extension(grpcDataEx2, 0, grpcDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data7.buffer(), 0, data7.sizeof());
+
+        // data frame with extension, with payload
+        DirectBuffer grpcDataPayload2 = new UnsafeBuffer("Hello World!".getBytes(StandardCharsets.UTF_8));
+        DirectBuffer grpcDataEx3 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 88, 0, 0, 0});
+        DataFW data8 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000013L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000027L)
+            .traceId(0x0000000000000013L)
+            .budgetId(0x0000000000000013L)
+            .reserved(0x00000042)
+            .payload(grpcDataPayload2, 0, grpcDataPayload2.capacity())
+            .extension(grpcDataEx3, 0, grpcDataEx3.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data8.buffer(), 0, data8.sizeof());
+
+        DirectBuffer grpcAbortEx1 = new UnsafeBuffer(GrpcFunctions.abortEx()
+            .typeId(GRPC_TYPE_ID)
+            .status("aborted")
+            .build());
+        AbortFW abort2 = abortRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000013L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000028L)
+            .traceId(0x0000000000000013L)
+            .extension(grpcAbortEx1, 0, grpcAbortEx1.capacity())
+            .build();
+        streams[0].write(AbortFW.TYPE_ID, abort2.buffer(), 0, abort2.sizeof());
+
+        DirectBuffer grpcResetEx1 = new UnsafeBuffer(GrpcFunctions.abortEx()
+            .typeId(GRPC_TYPE_ID)
+            .status("reset")
+            .build());
+        ResetFW reset3 = resetRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001aL) // north_grpc_server
+            .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
+            .streamId(0x0000000000000012L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000029L)
+            .traceId(0x0000000000000013L)
+            .extension(grpcResetEx1, 0, grpcResetEx1.capacity())
+            .build();
+        streams[0].write(ResetFW.TYPE_ID, reset3.buffer(), 0, reset3.sizeof());
     }
 
     @BeforeEach

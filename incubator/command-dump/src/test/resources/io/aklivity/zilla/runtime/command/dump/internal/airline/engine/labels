@@ -23,3 +23,5 @@ http-kafka
 cache_client
 cache_server
 client
+north_grpc_server
+north_grpc_kafka_mapping

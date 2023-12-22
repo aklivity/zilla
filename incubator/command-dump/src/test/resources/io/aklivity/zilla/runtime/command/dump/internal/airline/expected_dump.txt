@@ -1431,3 +1431,335 @@ Zilla Frame
             Length: 6
             Value: /hello
 
+Frame 35: 369 bytes on wire (2952 bits), 369 bytes captured (2952 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::12, Dst: fe80::13
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 295
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00000dd8
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000013
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000023
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7153
+            Length: 14
+            Authority: localhost:7153
+        Service: example.EchoService
+            Length: 19
+            Service: example.EchoService
+        Method: EchoUnary
+            Length: 9
+            Method: EchoUnary
+        Metadata (3 items)
+            Length: 66
+            Size: 3
+        Metadata: [TEXT] grpc-accept-encoding: gzip
+            Type: TEXT (0)
+            Length (Varint): 28
+            Length: 20
+            Name: grpc-accept-encoding
+            Length (Varint): 08
+            Length: 4
+            Value: gzip
+        Metadata: [TEXT] metadata-2: hello
+            Type: TEXT (0)
+            Length (Varint): 14
+            Length: 10
+            Name: metadata-2
+            Length (Varint): 0a
+            Length: 5
+            Value: hello
+        Metadata: [BASE64] metadata-3: 4242
+            Type: BASE64 (1)
+            Length (Varint): 14
+            Length: 10
+            Name: metadata-3
+            Length (Varint): 08
+            Length: 4
+            Value: 4242
+
+Frame 36: 539 bytes on wire (4312 bits), 539 bytes captured (4312 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::13, Dst: fe80::12
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 295, Len: 465
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00000eb0
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000012
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000024
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7153
+            Length: 14
+            Authority: localhost:7153
+        Service: example.EchoService
+            Length: 19
+            Service: example.EchoService
+        Method: EchoUnary
+            Length: 9
+            Method: EchoUnary
+        Metadata (2 items)
+            Length: 236
+            Size: 2
+        Metadata: [TEXT] long field: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+            Type: TEXT (0)
+            Length (Varint): 14
+            Length: 10
+            Name: long field
+            Length (Varint): 9003
+            Length: 200
+            Value: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+        Metadata: [TEXT] metadata-2: hello
+            Type: TEXT (0)
+            Length (Varint): 14
+            Length: 10
+            Name: metadata-2
+            Length (Varint): 0a
+            Length: 5
+            Value: hello
+
+Frame 37: 258 bytes on wire (2064 bits), 258 bytes captured (2064 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::12, Dst: fe80::13
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 295, Ack: 466, Len: 184
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001030
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000013
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000025
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000013
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: -1
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Deferred: 42
+
+Frame 38: 258 bytes on wire (2064 bits), 258 bytes captured (2064 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::13, Dst: fe80::12
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 466, Ack: 479, Len: 184
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001098
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000012
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000026
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000013
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 0
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Deferred: 77
+
+Frame 39: 270 bytes on wire (2160 bits), 270 bytes captured (2160 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::12, Dst: fe80::13
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 479, Ack: 650, Len: 196
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001100
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000013
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000027
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000013
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 12
+        Payload
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Deferred: 88
+
+Frame 40: 246 bytes on wire (1968 bits), 246 bytes captured (1968 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::12, Dst: fe80::13
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 675, Ack: 650, Len: 172
+Zilla Frame
+    Frame Type ID: 0x00000004
+    Frame Type: ABORT
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001178
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000013
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000028
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Status: aborted
+            Length: 7
+            Status: aborted
+
+Frame 41: 244 bytes on wire (1952 bits), 244 bytes captured (1952 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::13, Dst: fe80::12
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 650, Ack: 847, Len: 170
+Zilla Frame
+    Frame Type ID: 0x40000001
+    Frame Type: RESET
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000011d8
+    Origin ID: 0x000000090000001a
+    Origin Namespace: example
+    Origin Binding: north_grpc_server
+    Routed ID: 0x000000090000001b
+    Routed Namespace: example
+    Routed Binding: north_grpc_kafka_mapping
+    Stream ID: 0x0000000000000012
+    Initial ID: 0x0000000000000013
+    Reply ID: 0x0000000000000012
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000029
+    Trace ID: 0x0000000000000013
+    Authorization: 0x0000000000000000
+    Extension: grpc
+        Stream Type ID: 0x3a58c7f9
+        Stream Type: grpc
+        Status: reset
+            Length: 5
+            Status: reset
+
