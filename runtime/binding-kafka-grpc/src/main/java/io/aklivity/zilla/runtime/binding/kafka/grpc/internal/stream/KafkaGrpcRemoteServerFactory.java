@@ -441,9 +441,14 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
             else
             {
-                GrpcClient grpcClient = grpcClients.get(lastCorrelationId);
-                if (grpcClient != null)
+                if (lastCorrelationId == null)
                 {
+                    doKafkaCommitOffset(traceId, authorization, helper.partitionId, helper.partitionOffset);
+                }
+                else
+                {
+                    GrpcClient grpcClient = grpcClients.get(lastCorrelationId);
+
                     flushGrpcClientData(grpcClient, traceId, authorization, null, null,
                         helper.partitionId, helper.partitionOffset, deferred, flags, reserved, payload);
                 }
@@ -1604,7 +1609,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
 
             int claimed = reserved;
-            if (payloadLength > 0 && initialDebIndex != NO_DEBITOR_INDEX)
+            if (length > 0 && initialDebIndex != NO_DEBITOR_INDEX)
             {
                 claimed = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, deferred);
             }

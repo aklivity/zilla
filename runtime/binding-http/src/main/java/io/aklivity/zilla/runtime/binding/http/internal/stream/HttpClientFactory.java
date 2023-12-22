@@ -2406,17 +2406,18 @@ public final class HttpClientFactory implements HttpStreamFactory
                 beginEx.infos().anyMatch(proxyInfo -> PROXY_ALPN_H2.equals(proxyInfo.alpn())) ||
                 pool.versions.size() == 1 && pool.versions.contains(HTTP_2))
             {
+                assert !HttpState.initialOpened(state);
+                initialBudgetId = supplyBudgetId.getAsLong();
+                assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
+                requestSharedBudgetIndex = creditor.acquire(initialBudgetId);
+
                 remoteSharedBudget = encodeMax;
+
                 for (HttpExchange exchange: pool.exchanges.values())
                 {
                     exchange.remoteBudget += encodeMax;
                     exchange.flushRequestWindow(traceId, 0);
                 }
-
-                assert !HttpState.initialOpened(state);
-                initialBudgetId = supplyBudgetId.getAsLong();
-                assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
-                requestSharedBudgetIndex = creditor.acquire(initialBudgetId);
 
                 doEncodeHttp2Preface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
@@ -4638,16 +4639,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
+            final int reserved = data.reserved();
 
             assert acknowledge <= sequence;
             assert sequence >= requestSeq;
 
-            requestSeq = sequence + data.reserved();
+            requestSeq = sequence + reserved;
             requestAuth = authorization;
 
             assert requestAck <= requestSeq;
+            client.requestSharedBudget -= reserved;
 
-            if (requestSeq > requestAck + encodeMax)
+            if (requestSeq > requestAck + requestMax)
             {
                 doRequestReset(traceId, authorization);
                 client.doNetworkAbort(traceId, authorization);
@@ -4656,7 +4659,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final int flags = data.flags();
                 final long budgetId = data.budgetId();
-                final int reserved = data.reserved();
                 final int length = data.length();
                 final OctetsFW payload = data.payload();
 
