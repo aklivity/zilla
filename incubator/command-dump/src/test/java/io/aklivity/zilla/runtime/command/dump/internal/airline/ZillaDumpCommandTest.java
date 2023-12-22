@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.filesystem.internal.FileSystemFunctions;
 import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
@@ -63,6 +64,7 @@ public class ZillaDumpCommandTest
     private static final int STREAMS_CAPACITY = 16 * 1024;
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
+    private static final int FILESYSTEM_TYPE_ID = 1;
     private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
     private static final int PROXY_TYPE_ID = 5;
@@ -1039,6 +1041,53 @@ public class ZillaDumpCommandTest
             .extension(wsEndEx1, 0, wsEndEx1.capacity())
             .build();
         streams[0].write(EndFW.TYPE_ID, end7.buffer(), 0, end7.sizeof());
+
+        // filesystem extension
+        DirectBuffer fileSystemBeginEx1 = new UnsafeBuffer(FileSystemFunctions.beginEx()
+            .typeId(FILESYSTEM_TYPE_ID)
+            .capabilities("READ_PAYLOAD", "READ_EXTENSION", "READ_CHANGES")
+            .path("/hello")
+            .type("type")
+            .payloadSize(42_000_000_000L)
+            .tag("tag")
+            .timeout(77)
+            .build());
+        BeginFW begin17 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000020L) // east_http_filesystem_mapping
+            .routedId(0x0000000900000021L) // east_filesystem_server
+            .streamId(0x0000000000000019L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000034L)
+            .traceId(0x0000000000000019L)
+            .affinity(0x0000000000000000L)
+            .extension(fileSystemBeginEx1, 0, fileSystemBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin17.buffer(), 0, begin17.sizeof());
+
+        DirectBuffer fileSystemBeginEx2 = new UnsafeBuffer(FileSystemFunctions.beginEx()
+            .typeId(FILESYSTEM_TYPE_ID)
+            .capabilities("READ_EXTENSION")
+            .path("/hello")
+            .type("type")
+            .payloadSize(0)
+            .tag("tag")
+            .timeout(0)
+            .build());
+        BeginFW begin18 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000020L) // east_http_filesystem_mapping
+            .routedId(0x0000000900000021L) // east_filesystem_server
+            .streamId(0x0000000000000018L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000035L)
+            .traceId(0x0000000000000019L)
+            .affinity(0x0000000000000000L)
+            .extension(fileSystemBeginEx2, 0, fileSystemBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin18.buffer(), 0, begin18.sizeof());
     }
 
     @BeforeEach

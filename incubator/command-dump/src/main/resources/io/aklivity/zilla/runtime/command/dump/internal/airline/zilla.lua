@@ -44,6 +44,7 @@ SIGNAL_ID = 0x40000003
 CHALLENGE_ID = 0x40000004
 
 AMQP_ID = 0x112dc182
+FILESYSTEM_ID = 0xe4e6aa9e
 GRPC_ID = 0xf9c7583a
 HTTP_ID = 0x8ab62046
 KAFKA_ID = 0x084b20e1
@@ -247,6 +248,23 @@ local fields = {
     ws_ext_code = ProtoField.int16("zilla.ws_ext.code", "Code", base.DEC),
     ws_ext_reason_length = ProtoField.int8("zilla.ws_ext.reason_length", "Length", base.DEC),
     ws_ext_reason = ProtoField.string("zilla.ws_ext.reason", "Reason", base.NONE),
+
+    -- filesystem extension
+    filesystem_ext_capabilities = ProtoField.uint32("zilla.filesystem_ext.capabilities", "Capabilities", base.HEX),
+    filesystem_ext_capabilities_read_payload = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_payload",
+        "READ_PAYLOAD", base.DEC, flags_types, 0x01),
+    filesystem_ext_capabilities_read_extension = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_extension",
+        "READ_EXTENSION", base.DEC, flags_types, 0x02),
+    filesystem_ext_capabilities_read_changes = ProtoField.uint32("zilla.filesystem_ext.capabilities_read_changes",
+        "READ_CHANGES", base.DEC, flags_types, 0x04),
+    filesystem_ext_path_length = ProtoField.int16("zilla.filesystem_ext.path_length", "Length", base.DEC),
+    filesystem_ext_path = ProtoField.string("zilla.filesystem_ext.path", "Path", base.NONE),
+    filesystem_ext_type_length = ProtoField.int16("zilla.filesystem_ext.type_length", "Length", base.DEC),
+    filesystem_ext_type = ProtoField.string("zilla.filesystem_ext.type", "Type", base.NONE),
+    filesystem_ext_payload_size = ProtoField.int64("zilla.filesystem_ext.payload_size", "Payload Size", base.DEC),
+    filesystem_ext_tag_length = ProtoField.int16("zilla.filesystem_ext.tag_length", "Length", base.DEC),
+    filesystem_ext_tag = ProtoField.string("zilla.filesystem_ext.tag", "Tag", base.NONE),
+    filesystem_ext_timeout = ProtoField.int64("zilla.filesystem_ext.timeout", "Timeout", base.DEC),
 }
 
 zilla_protocol.fields = fields;
@@ -497,15 +515,16 @@ end
 
 function resolve_type(type_id)
     local type = ""
-        if type_id == AMQP_ID  then type = "amqp"
-    elseif type_id == GRPC_ID  then type = "grpc"
-    elseif type_id == HTTP_ID  then type = "http"
-    elseif type_id == KAFKA_ID then type = "kafka"
-    elseif type_id == MQTT_ID  then type = "mqtt"
-    elseif type_id == PROXY_ID then type = "proxy"
-    elseif type_id == SSE_ID   then type = "sse"
-    elseif type_id == TLS_ID   then type = "tls"
-    elseif type_id == WS_ID    then type = "ws"
+        if type_id == AMQP_ID        then type = "amqp"
+    elseif type_id == FILESYSTEM_ID  then type = "filesystem"
+    elseif type_id == GRPC_ID        then type = "grpc"
+    elseif type_id == HTTP_ID        then type = "http"
+    elseif type_id == KAFKA_ID       then type = "kafka"
+    elseif type_id == MQTT_ID        then type = "mqtt"
+    elseif type_id == PROXY_ID       then type = "proxy"
+    elseif type_id == SSE_ID         then type = "sse"
+    elseif type_id == TLS_ID         then type = "tls"
+    elseif type_id == WS_ID          then type = "ws"
     end
     return type
 end
@@ -562,6 +581,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
 
         if stream_type_id == PROXY_ID then
             handle_proxy_extension(buffer, extension_subtree, offset + 4)
+        elseif stream_type_id == FILESYSTEM_ID then
+            handle_filesystem_extension(buffer, extension_subtree, offset + 4)
         elseif stream_type_id == HTTP_ID then
             handle_http_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         elseif stream_type_id == GRPC_ID then
@@ -579,6 +600,7 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
 end
 
 function handle_proxy_extension(buffer, extension_subtree, offset)
+    -- BEGIN frame
     -- address
     local slice_address_family = buffer(offset, 1)
     local address_family_id = slice_address_family:le_int()
@@ -971,6 +993,44 @@ function handle_ws_extension(buffer, extension_subtree, offset, frame_type_id)
         add_simple_string_as_subtree(buffer(reason_offset, reason_length), extension_subtree, "Reason: %s",
             slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
     end
+end
+
+function handle_filesystem_extension(buffer, extension_subtree, offset)
+    -- BEGIN frame
+    -- capabilities
+    local capabilities_offset = offset
+    local capabilities_length = 4
+    local slice_capabilities = buffer(capabilities_offset, capabilities_length)
+    local capabilities_label = string.format("Capabilities: 0x%08x", slice_capabilities:le_uint())
+    local capabilities_subtree = extension_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
+    capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_payload, slice_capabilities)
+    capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_extension, slice_capabilities)
+    capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_changes, slice_capabilities)
+    -- path
+    local path_offset = capabilities_offset + capabilities_length
+    local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
+    add_simple_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s",
+        slice_path_length, slice_path_text, fields.filesystem_ext_path_length, fields.filesystem_ext_path)
+    -- type
+    local type_offset = path_offset + path_length
+    local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 2)
+    add_simple_string_as_subtree(buffer(type_offset, type_length), extension_subtree, "Type: %s", slice_type_length,
+        slice_type_text, fields.filesystem_ext_type_length, fields.filesystem_ext_type)
+    -- payload_size
+    local payload_size_offset = type_offset + type_length
+    local payload_size_length = 8
+    local slice_payload_size = buffer(payload_size_offset, payload_size_length)
+    extension_subtree:add_le(fields.filesystem_ext_payload_size, slice_payload_size)
+    -- tag
+    local tag_offset = payload_size_offset + payload_size_length
+    local tag_length, slice_tag_length, slice_tag_text = dissect_length_value(buffer, tag_offset, 2)
+    add_simple_string_as_subtree(buffer(tag_offset, tag_length), extension_subtree, "Tag: %s", slice_tag_length,
+        slice_tag_text, fields.filesystem_ext_tag_length, fields.filesystem_ext_tag)
+    -- timeout
+    local timeout_offset = tag_offset + tag_length
+    local timeout_length = 8
+    local slice_timeout = buffer(timeout_offset, timeout_length)
+    extension_subtree:add_le(fields.filesystem_ext_timeout, slice_timeout)
 end
 
 local data_dissector = DissectorTable.get("tcp.port")

@@ -29,3 +29,5 @@ north_sse_server
 south_sse_client
 north_ws_server
 north_echo_server
+east_http_filesystem_mapping
+east_filesystem_server
