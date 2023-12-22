@@ -526,8 +526,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                     MqttWillMessageFW will = mqttWillRO.tryWrap(buffer, offset, limit);
                     this.delay = (int) Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis);
-                    final int expiryInterval = will.expiryInterval() == -1 ? -1 :
-                        (int) TimeUnit.SECONDS.toMillis(will.expiryInterval());
+                    final int expiryInterval = will.expiryInterval() == -1 ? -1 : will.expiryInterval();
                     final MqttWillMessageFW.Builder willMessageBuilder =
                         mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                             .topic(will.topic())

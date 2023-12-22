@@ -389,18 +389,18 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
 
-                if (mqttPublishDataEx.expiryInterval() != -1)
+            if (mqttPublishDataEx.expiryInterval() != -1)
+            {
+                final MutableDirectBuffer expiryBuffer = new UnsafeBuffer(new byte[4]);
+                expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval(), ByteOrder.BIG_ENDIAN);
+                kafkaHeadersRW.item(h ->
                 {
-                    final MutableDirectBuffer expiryBuffer = new UnsafeBuffer(new byte[4]);
-                    expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval() * 1000, ByteOrder.BIG_ENDIAN);
-                    kafkaHeadersRW.item(h ->
-                    {
-                        h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
-                        h.name(helper.kafkaTimeoutHeaderName);
-                        h.valueLen(4);
-                        h.value(expiryBuffer, 0, expiryBuffer.capacity());
-                    });
-                }
+                    h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
+                    h.name(helper.kafkaTimeoutHeaderName);
+                    h.valueLen(4);
+                    h.value(expiryBuffer, 0, expiryBuffer.capacity());
+                });
+            }
 
                 if (mqttPublishDataEx.contentType().length() != -1)
                 {

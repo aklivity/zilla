@@ -46,11 +46,10 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .header("zilla:filter", "sensor")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client")
-                                .header("zilla:content-type", "message")
                                 .header("zilla:format", "TEXT")
-                                .header("zilla:reply-to", "sensor/one")
-                                .header("zilla:correlation-id", "info")
                                 .build()
                             .build()}
 
-read "message"
+read "mess"
+
+read "age"

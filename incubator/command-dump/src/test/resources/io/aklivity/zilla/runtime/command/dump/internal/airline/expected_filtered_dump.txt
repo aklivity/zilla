@@ -1,0 +1,29 @@
+Frame 1: 232 bytes on wire (1856 bits), 232 bytes captured (1856 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::76, Dst: fe80::77
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 158
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000240
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000c
+    Routed Namespace: example
+    Routed Binding: north_tls_server
+    Stream ID: 0x0000000000000077
+    Initial ID: 0x0000000000000077
+    Reply ID: 0x0000000000000076
+    Direction: INI
+    Sequence: 71
+    Acknowledge: 72
+    Maximum: 73
+    Timestamp: 0x0000000000000007
+    Trace ID: 0x0000000000004202
+    Authorization: 0x0000000000004203
+    Affinity: 0x0000000000004204
+
