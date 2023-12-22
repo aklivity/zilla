@@ -84,7 +84,6 @@ write [0x00 0x00 0x04]                                      # length
       [0x00 0x00 0x00 0x01]                                 # stream_id=1
       [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
-
 # First http2 PUSH_PROMISE frame
 write [0x00 0x00 0x22]                          # length = 35
      [0x05]                                    # HTTP2 PUSH_PROMISE frame
