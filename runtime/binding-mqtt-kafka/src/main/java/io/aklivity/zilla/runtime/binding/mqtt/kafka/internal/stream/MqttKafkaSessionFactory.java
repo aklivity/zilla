@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_INT;
+import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -124,7 +125,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_DELIVER_WILL_MESSAGE = 1;
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
-    private static final int SIZE_OF_UUID = 38;
+    private static final int SIZE_OF_UUID = 36;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
@@ -468,8 +469,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             if (isSetWillFlag(sessionFlags))
             {
-                willPadding = SIZE_OF_UUID + SIZE_OF_UUID;
+                final int willSignalSize = 1 + clientId.sizeof() + SIZE_OF_INT + SIZE_OF_LONG + SIZE_OF_UUID + SIZE_OF_UUID +
+                    instanceId.instanceId().sizeof();
+                willPadding = willSignalSize + SIZE_OF_UUID + SIZE_OF_UUID;
             }
+            final int expirySignalSize = 1 + clientId.sizeof() + SIZE_OF_INT + SIZE_OF_LONG + instanceId.instanceId().sizeof();
+            willPadding += expirySignalSize;
 
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity);
         }
@@ -918,10 +923,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long traceId,
             long budgetId,
-            long budget,
+            long mqttAck,
             int capabilities)
         {
-            initialAck = Math.min(budget, initialSeq);
+            initialAck = Math.min(mqttAck, initialSeq);
             initialMax = session.initialMax;
 
             doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax,
