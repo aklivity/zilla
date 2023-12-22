@@ -70,7 +70,7 @@ public class PublishIT
     @Configuration("server.validator.yaml")
     @Specification({
         "${net}/publish.invalid.message/client",
-        "${app}/publish.invalid.message/server"})
+        "${app}/session.publish/server"})
     public void shouldPublishInvalidMessage() throws Exception
     {
         k3po.finish();
@@ -257,7 +257,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.invalid.payload.format/client",
-        "${app}/session.connect/server"})
+        "${app}/session.publish/server"})
     public void shouldRejectPublishInvalidPayloadFormat() throws Exception
     {
         k3po.finish();

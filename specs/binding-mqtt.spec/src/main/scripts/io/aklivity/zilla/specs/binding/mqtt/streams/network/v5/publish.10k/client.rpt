@@ -40,3 +40,8 @@ write [0x30 0x8d 0x50]               # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00]                         # properties
       ${mqtt:randomBytes(10240)}     # payload
+
+write [0x30 0x8d 0x50]               # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      [0x00]                         # properties
+      ${mqtt:randomBytes(10240)}     # payload

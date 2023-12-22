@@ -330,6 +330,16 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mqtt}/session.will.message.10k.abort.deliver.will/client",
+        "${kafka}/session.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
     public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception

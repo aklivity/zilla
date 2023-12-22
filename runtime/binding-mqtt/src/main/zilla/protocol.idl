@@ -116,14 +116,14 @@
         struct MqttWillV4
         {
             string16 topic;
-            Binary payload; //TODO: data fragmentation
+            uint16 payloadSize;
         }
 
         struct MqttWillV5
         {
             MqttProperties properties;
             string16 topic;
-            Binary payload; //TODO: data fragmentation
+            uint16 payloadSize;
         }
 
         struct MqttConnackV4 extends MqttPacketHeader
@@ -142,22 +142,18 @@
         struct MqttPublishV4 extends MqttPacketHeader
         {
             string16 topicName;
-            octets payload;
         }
 
         struct MqttPublishQosV4 extends MqttPacketHeader
         {
             string16 topicName;
             uint16 packetId;
-            //TODO: have a separate payload decoder -> remove payload from here
-            octets payload;
         }
 
         struct MqttPublishV5 extends MqttPacketHeader
         {
             string16 topicName;
             MqttProperties properties;
-            octets payload;
         }
 
         struct MqttPublishQosV5 extends MqttPacketHeader
@@ -165,7 +161,6 @@
             string16 topicName;
             uint16 packetId;
             MqttProperties properties;
-            octets payload;
         }
 
         struct MqttAckHeader extends MqttPacketHeader

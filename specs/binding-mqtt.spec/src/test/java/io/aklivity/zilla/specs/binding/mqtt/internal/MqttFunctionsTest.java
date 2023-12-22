@@ -1298,7 +1298,6 @@ public class MqttFunctionsTest
                 .willId("2")
                 .correlation("request-id-1")
                 .userProperty("name", "value")
-                .payload("client failed")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1318,8 +1317,6 @@ public class MqttFunctionsTest
             .matchFirst(h ->
                 "name".equals(h.key().asString()) &&
                     "value".equals(h.value().asString())));
-        assertEquals("client failed", willMessage.payload()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
     @Test
@@ -1331,7 +1328,6 @@ public class MqttFunctionsTest
             .flags("RETAIN")
             .responseTopic("response_topic")
             .correlationBytes("request-id-1".getBytes(UTF_8))
-            .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1344,8 +1340,6 @@ public class MqttFunctionsTest
         assertEquals("response_topic", willMessage.responseTopic().asString());
         assertEquals("request-id-1", willMessage.correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, willMessage.payload()
-            .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)).getBytes());
     }
 
     @Test

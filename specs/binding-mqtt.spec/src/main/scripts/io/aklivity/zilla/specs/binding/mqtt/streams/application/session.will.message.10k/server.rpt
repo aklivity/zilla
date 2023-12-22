@@ -23,25 +23,39 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .flags("CLEAN_START")
-                                .clientId("client")
+                                .flags("WILL", "CLEAN_START")
+                                .clientId("one")
                                 .build()
                              .build()}
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .flags("CLEAN_START")
+                                .flags("WILL", "CLEAN_START")
                                 .qosMax(2)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
+                                .clientId("one")
                                 .build()
                               .build()}
 
 connected
 
+
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("WILL")
+                                .build()
+                             .build()}
+read ${mqtt:will()
+               .topic("wills/one")
+               .payloadSize(10240)
+               .build()}
+read [0..10240]
+
 write zilla:data.empty
 write flush
 
-read aborted
+read closed
+write close

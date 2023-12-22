@@ -315,4 +315,26 @@ public class MqttKafkaPublishProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.10k/client",
+        "${kafka}/publish.10k/server"})
+    public void shouldSendMessageM10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.retained.10k/client",
+        "${kafka}/publish.retained.10k/server"})
+    public void shouldSendRetainedMessageM10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -58,26 +58,28 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
                                 .build()
-                             .build()}
+                            .build()}
+write ${mqtt:randomBytes(8192)}
+write flush
 
-write "message1"
+write option zilla:flags "fin"
+write ${mqtt:randomBytes(2048)}
+write flush
 
+write option zilla:flags "init"
 write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
                                 .build()
-                             .build()}
+                            .build()}
+write ${mqtt:randomBytes(8192)}
+write flush
 
-write "test"
-
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .build()
-                             .build()}
-
-write "message3"
+write option zilla:flags "fin"
+write ${mqtt:randomBytes(2048)}
+write flush

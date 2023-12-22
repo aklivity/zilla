@@ -154,6 +154,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.10k/client",
+        "${kafka}/publish.10k/server"})
+    public void shouldSendMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.retained.10k/client",
+        "${kafka}/publish.retained.10k/server"})
+    public void shouldSendRetainedMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.retained/client",
         "${kafka}/publish.retained/server"})
     public void shouldPublishRetainedMessage() throws Exception

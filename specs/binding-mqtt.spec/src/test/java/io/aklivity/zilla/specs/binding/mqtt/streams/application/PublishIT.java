@@ -234,4 +234,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.10k/client",
+        "${app}/publish.10k/server"})
+    public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

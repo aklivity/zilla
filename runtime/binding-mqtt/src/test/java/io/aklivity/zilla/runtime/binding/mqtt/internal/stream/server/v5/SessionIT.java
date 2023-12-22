@@ -153,13 +153,22 @@ public class SessionIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.will.message.normal.disconnect/client",
         "${app}/session.will.message.normal.disconnect/server"})
     public void shouldCloseSessionNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.10k/client",
+        "${app}/session.will.message.10k/server"})
+    public void shouldSendWillMessage10k() throws Exception
     {
         k3po.finish();
     }

@@ -62,5 +62,11 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .publish()
                                 .build()
                             .build()}
+read [0..10240]
 
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .build()
+                            .build()}
 read [0..10240]
