@@ -1799,10 +1799,10 @@ Zilla Frame
             Scheme: http
         Authority: localhost:7153
             Length: 14
-            Scheme: localhost:7153
+            Authority: localhost:7153
         Path: /hello
             Length: 6
-            Scheme: /hello
+            Path: /hello
         Last ID: 
             Length: -1
             Last ID: 
@@ -1843,10 +1843,10 @@ Zilla Frame
             Scheme: http
         Authority: localhost:7153
             Length: 14
-            Scheme: localhost:7153
+            Authority: localhost:7153
         Path: /hello
             Length: 6
-            Scheme: /hello
+            Path: /hello
         Last ID: lastId
             Length: 6
             Last ID: lastId
@@ -1983,4 +1983,215 @@ Zilla Frame
         Id: sse-end-id
             Length: 10
             ID: sse-end-id
+
+Frame 47: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001480
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002f
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Protocol: echo
+            Length: 4
+            Protocol: echo
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7114
+            Length: 14
+            Authority: localhost:7114
+        Path: /hello
+            Length: 6
+            Path: /hello
+
+Frame 48: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::17, Dst: fe80::16
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 194, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000014f8
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000016
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000030
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Protocol: echo
+            Length: 4
+            Protocol: echo
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7114
+            Length: 14
+            Authority: localhost:7114
+        Path: /hello
+            Length: 6
+            Path: /hello
+
+Frame 49: 246 bytes on wire (1968 bits), 246 bytes captured (1968 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 194, Ack: 195, Len: 172
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001570
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000031
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000017
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: -1
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Flags: 0x42
+
+Frame 50: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::17, Dst: fe80::16
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 195, Ack: 366, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000015d8
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000016
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000032
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000017
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 16
+        Payload
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Flags: 0x33
+        Info: 427744332107
+
+Frame 51: 236 bytes on wire (1888 bits), 236 bytes captured (1888 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 366, Ack: 389, Len: 162
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001650
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000033
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Code: 42
+        Reason: hello
+            Length: 5
+            Reason: hello
 

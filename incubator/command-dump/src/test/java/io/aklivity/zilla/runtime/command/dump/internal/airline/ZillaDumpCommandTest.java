@@ -52,6 +52,7 @@ import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.binding.sse.internal.SseFunctions;
+import io.aklivity.zilla.specs.binding.ws.internal.WsFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
@@ -66,6 +67,7 @@ public class ZillaDumpCommandTest
     private static final int HTTP_TYPE_ID = 3;
     private static final int PROXY_TYPE_ID = 5;
     private static final int SSE_TYPE_ID = 7;
+    private static final int WS_TYPE_ID = 8;
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -935,6 +937,108 @@ public class ZillaDumpCommandTest
             .extension(sseEndEx1, 0, sseEndEx1.capacity())
             .build();
         streams[0].write(EndFW.TYPE_ID, end6.buffer(), 0, end6.sizeof());
+
+        // ws extension
+        DirectBuffer wsBeginEx1 = new UnsafeBuffer(WsFunctions.beginEx()
+            .typeId(WS_TYPE_ID)
+            .protocol("echo")
+            .scheme("http")
+            .authority("localhost:7114")
+            .path("/hello")
+            .build());
+        BeginFW begin15 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002fL)
+            .traceId(0x0000000000000017L)
+            .affinity(0x0000000000000000L)
+            .extension(wsBeginEx1, 0, wsBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin15.buffer(), 0, begin15.sizeof());
+
+        DirectBuffer wsBeginEx2 = new UnsafeBuffer(WsFunctions.beginEx()
+            .typeId(WS_TYPE_ID)
+            .protocol("echo")
+            .scheme("http")
+            .authority("localhost:7114")
+            .path("/hello")
+            .build());
+        BeginFW begin16 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000016L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000030L)
+            .traceId(0x0000000000000017L)
+            .affinity(0x0000000000000000L)
+            .extension(wsBeginEx2, 0, wsBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin16.buffer(), 0, begin16.sizeof());
+
+        DirectBuffer wsDataEx1 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,    // int32 typeId
+            0x42,                   // uint8 flags
+        });
+        DataFW data11 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000031L)
+            .traceId(0x0000000000000017L)
+            .budgetId(0x0000000000000017L)
+            .reserved(0x00000042)
+            .extension(wsDataEx1, 0, wsDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data11.buffer(), 0, data11.sizeof());
+
+        DirectBuffer wsPayload1 = new UnsafeBuffer("Hello Websocket!".getBytes(StandardCharsets.UTF_8));
+        DirectBuffer wsDataEx2 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,                // int32 typeId
+            0x33,                               // uint8 flags
+            0x42, 0x77, 0x44, 0x33, 0x21, 0x07  // octets info
+        });
+        DataFW data12 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000016L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000032L)
+            .traceId(0x0000000000000017L)
+            .budgetId(0x0000000000000017L)
+            .reserved(0x00000042)
+            .payload(wsPayload1, 0, wsPayload1.capacity())
+            .extension(wsDataEx2, 0, wsDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data12.buffer(), 0, data12.sizeof());
+
+        DirectBuffer wsEndEx1 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,        // int32 typeId
+            42, 0,                      // int16 code
+            5, 'h', 'e', 'l', 'l', 'o'  // string8 reason
+        });
+        EndFW end7 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000033L)
+            .traceId(0x0000000000000017L)
+            .extension(wsEndEx1, 0, wsEndEx1.capacity())
+            .build();
+        streams[0].write(EndFW.TYPE_ID, end7.buffer(), 0, end7.sizeof());
     }
 
     @BeforeEach

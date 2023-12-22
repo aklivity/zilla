@@ -51,6 +51,7 @@ MQTT_ID = 0xd0d41a76
 PROXY_ID = 0x8dcea850
 SSE_ID = 0x03409e2e
 TLS_ID = 0x99f321bc
+WS_ID = 0x569dcde9
 
 local flags_types = {
     [0] = "Not set",
@@ -221,9 +222,9 @@ local fields = {
     sse_ext_scheme_length = ProtoField.int16("zilla.sse_ext.scheme_length", "Length", base.DEC),
     sse_ext_scheme = ProtoField.string("zilla.sse_ext.scheme", "Scheme", base.NONE),
     sse_ext_authority_length = ProtoField.int16("zilla.sse_ext.authority_length", "Length", base.DEC),
-    sse_ext_authority = ProtoField.string("zilla.sse_ext.authority", "Scheme", base.NONE),
+    sse_ext_authority = ProtoField.string("zilla.sse_ext.authority", "Authority", base.NONE),
     sse_ext_path_length = ProtoField.int16("zilla.sse_ext.path_length", "Length", base.DEC),
-    sse_ext_path = ProtoField.string("zilla.sse_ext.path", "Scheme", base.NONE),
+    sse_ext_path = ProtoField.string("zilla.sse_ext.path", "Path", base.NONE),
     sse_ext_last_id_length = ProtoField.int8("zilla.sse_ext.last_id_length", "Length", base.DEC),
     sse_ext_last_id = ProtoField.string("zilla.sse_ext.last_id", "Last ID", base.NONE),
     sse_ext_timestamp = ProtoField.uint64("zilla.sse_ext.timestamp", "Timestamp", base.HEX),
@@ -231,6 +232,21 @@ local fields = {
     sse_ext_id = ProtoField.string("zilla.sse_ext.id", "ID", base.NONE),
     sse_ext_type_length = ProtoField.int8("zilla.sse_ext.type_length", "Length", base.DEC),
     sse_ext_type = ProtoField.string("zilla.sse_ext.type", "Type", base.NONE),
+
+    -- ws extension
+    ws_ext_protocol_length = ProtoField.int8("zilla.ws_ext.protocol_length", "Length", base.DEC),
+    ws_ext_protocol = ProtoField.string("zilla.ws_ext.protocol", "Protocol", base.NONE),
+    ws_ext_scheme_length = ProtoField.int8("zilla.ws_ext.scheme_length", "Length", base.DEC),
+    ws_ext_scheme = ProtoField.string("zilla.ws_ext.scheme", "Scheme", base.NONE),
+    ws_ext_authority_length = ProtoField.int8("zilla.ws_ext.authority_length", "Length", base.DEC),
+    ws_ext_authority = ProtoField.string("zilla.ws_ext.authority", "Authority", base.NONE),
+    ws_ext_path_length = ProtoField.int8("zilla.ws_ext.path_length", "Length", base.DEC),
+    ws_ext_path = ProtoField.string("zilla.ws_ext.path", "Path", base.NONE),
+    ws_ext_flags = ProtoField.uint8("zilla.ws_ext.flags", "Flags", base.HEX),
+    ws_ext_info = ProtoField.bytes("zilla.ws_ext.info", "Info", base.NONE),
+    ws_ext_code = ProtoField.int16("zilla.ws_ext.code", "Code", base.DEC),
+    ws_ext_reason_length = ProtoField.int8("zilla.ws_ext.reason_length", "Length", base.DEC),
+    ws_ext_reason = ProtoField.string("zilla.ws_ext.reason", "Reason", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -489,6 +505,7 @@ function resolve_type(type_id)
     elseif type_id == PROXY_ID then type = "proxy"
     elseif type_id == SSE_ID   then type = "sse"
     elseif type_id == TLS_ID   then type = "tls"
+    elseif type_id == WS_ID    then type = "ws"
     end
     return type
 end
@@ -551,6 +568,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
             handle_grpc_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         elseif stream_type_id == SSE_ID then
             handle_sse_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+        elseif stream_type_id == WS_ID then
+            handle_ws_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -904,6 +923,53 @@ function handle_sse_extension(buffer, extension_subtree, offset, frame_type_id)
         local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, offset, 1)
         add_simple_string_as_subtree(buffer(offset, id_length), extension_subtree, "Id: %s", slice_id_length,
             slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
+    end
+end
+
+function handle_ws_extension(buffer, extension_subtree, offset, frame_type_id)
+    if frame_type_id == BEGIN_ID then
+        -- protocol
+        local protocol_offset = offset
+        local protocol_length, slice_protocol_length, slice_protocol_text = dissect_length_value(buffer, protocol_offset, 1)
+        add_simple_string_as_subtree(buffer(protocol_offset, protocol_length), extension_subtree, "Protocol: %s",
+            slice_protocol_length, slice_protocol_text, fields.ws_ext_protocol_length, fields.ws_ext_protocol)
+        -- scheme
+        local scheme_offset = protocol_offset + protocol_length
+        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 1)
+        add_simple_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s",
+            slice_scheme_length, slice_scheme_text, fields.ws_ext_scheme_length, fields.ws_ext_scheme)
+        -- authority
+        local authority_offset = scheme_offset + scheme_length
+        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 1)
+        add_simple_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s",
+            slice_authority_length, slice_authority_text, fields.ws_ext_authority_length, fields.ws_ext_authority)
+        -- path
+        local path_offset = authority_offset + authority_length
+        local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 1)
+        add_simple_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s",
+            slice_path_length, slice_path_text, fields.ws_ext_path_length, fields.ws_ext_path)
+    elseif frame_type_id == DATA_ID then
+        -- flags
+        local flags_offset = offset
+        local flags_length = 1
+        local slice_flags = buffer(flags_offset, flags_length)
+        extension_subtree:add(fields.ws_ext_flags, slice_flags)
+        -- info
+        local info_offset = flags_offset + flags_length
+        if (info_offset < buffer:len()) then
+            extension_subtree:add(fields.ws_ext_info, buffer(info_offset))
+        end
+    elseif frame_type_id == END_ID then
+        -- code
+        local code_offset = offset
+        local code_length = 2
+        local slice_code = buffer(code_offset, code_length)
+        extension_subtree:add_le(fields.ws_ext_code, slice_code)
+        -- reason
+        local reason_offset = code_offset + code_length
+        local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 1)
+        add_simple_string_as_subtree(buffer(reason_offset, reason_length), extension_subtree, "Reason: %s",
+            slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
     end
 end
 
