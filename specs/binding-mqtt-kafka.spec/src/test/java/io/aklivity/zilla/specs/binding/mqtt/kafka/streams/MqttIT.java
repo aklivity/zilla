@@ -757,4 +757,13 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${mqtt}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

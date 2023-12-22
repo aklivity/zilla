@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -133,6 +134,33 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
     public static final String GROUPID_SESSION_SUFFIX = "session";
+    public static final Int2IntHashMap MQTT_REASON_CODES;
+    public static final Int2ObjectHashMap<String16FW> MQTT_REASONS;
+    public static final int GROUP_AUTH_FAILED_ERROR_CODE = 30;
+    public static final int INVALID_DESCRIBE_CONFIG_ERROR_CODE = 35;
+    public static final int INVALID_SESSION_TIMEOUT_ERROR_CODE = 26;
+    public static final int MQTT_NOT_AUTHORIZED = 0x87;
+    public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
+    public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
+    private static final String16FW EMPTY_STRING = new String16FW("");
+
+    static
+    {
+        final Int2IntHashMap reasonCodes = new Int2IntHashMap(MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
+
+        reasonCodes.put(GROUP_AUTH_FAILED_ERROR_CODE, MQTT_NOT_AUTHORIZED);
+
+        MQTT_REASON_CODES = reasonCodes;
+    }
+
+    static
+    {
+        final Int2ObjectHashMap<String16FW> reasons = new Int2ObjectHashMap<>();
+
+        reasons.put(INVALID_SESSION_TIMEOUT_ERROR_CODE, new String16FW(MQTT_INVALID_SESSION_TIMEOUT_REASON));
+
+        MQTT_REASONS = reasons;
+    }
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -172,6 +200,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final MqttBeginExFW.Builder mqttSessionBeginExRW = new MqttBeginExFW.Builder();
+    private final MqttResetExFW.Builder mqttSessionResetExRW = new MqttResetExFW.Builder();
     private final String16FW binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
     private final String16FW textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
 
@@ -205,6 +234,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final InstanceId instanceId;
     private final boolean willAvailable;
     private final int reconnectDelay;
+    private final Int2ObjectHashMap<String16FW> qosLevels;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -246,6 +276,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
+        this.qosLevels = new Int2ObjectHashMap<>();
+        this.qosLevels.put(0, new String16FW("0"));
+        this.qosLevels.put(1, new String16FW("1"));
+        this.qosLevels.put(2, new String16FW("2"));
     }
 
     @Override
@@ -506,8 +540,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                     MqttWillMessageFW will = mqttWillRO.tryWrap(buffer, offset, limit);
                     this.delay = (int) Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis);
-                    final int expiryInterval = will.expiryInterval() == -1 ? -1 :
-                        (int) TimeUnit.SECONDS.toMillis(will.expiryInterval());
+                    final int expiryInterval = will.expiryInterval() == -1 ? -1 : will.expiryInterval();
                     final MqttWillMessageFW.Builder willMessageBuilder =
                         mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                             .topic(will.topic())
@@ -2069,6 +2102,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             will.properties().forEach(property ->
                 addHeader(property.key(), property.value()));
 
+            addHeader(helper.kafkaQosHeaderName, qosLevels.get(will.qos()));
+
             kafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -3300,10 +3335,25 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
+
+            Flyweight mqttResetEx = EMPTY_OCTETS;
+            if (error != -1)
+            {
+                mqttResetEx =
+                    mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .reasonCode(MQTT_REASON_CODES.get(error))
+                    .reason(MQTT_REASONS.get(error))
+                    .build();
+            }
+            delegate.doMqttReset(traceId, mqttResetEx);
         }
 
         private void doKafkaReset(

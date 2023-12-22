@@ -50,8 +50,50 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-proxy.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-grpc.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>1.19.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>1.19.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.36</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.36</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -67,8 +109,9 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/engine/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.pcap</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.txt</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine/*</exclude>
           </excludes>
         </configuration>
       </plugin>

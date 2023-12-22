@@ -1218,12 +1218,14 @@ public class MqttFunctionsTest
             .typeId(0)
             .serverRef("mqtt-1.example.com:1883")
             .reasonCode(0)
+            .reason("test")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0, mqttResetEx.typeId());
         assertEquals("mqtt-1.example.com:1883", mqttResetEx.serverRef().asString());
+        assertEquals("test", mqttResetEx.reason().asString());
         assertEquals(0, mqttResetEx.reasonCode());
     }
 

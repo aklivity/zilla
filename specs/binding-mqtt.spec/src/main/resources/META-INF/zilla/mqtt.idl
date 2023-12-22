@@ -227,6 +227,7 @@ scope mqtt
         {
             string16 serverRef = null;
             uint8 reasonCode = 0;
+            string16 reason = null;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

@@ -460,6 +460,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 

@@ -386,7 +386,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             if (mqttPublishDataEx.expiryInterval() != -1)
             {
                 final MutableDirectBuffer expiryBuffer = new UnsafeBuffer(new byte[4]);
-                expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval() * 1000, ByteOrder.BIG_ENDIAN);
+                expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval(), ByteOrder.BIG_ENDIAN);
                 kafkaHeadersRW.item(h ->
                 {
                     h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
