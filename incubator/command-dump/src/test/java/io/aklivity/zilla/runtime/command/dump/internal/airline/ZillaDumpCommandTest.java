@@ -1088,6 +1088,26 @@ public class ZillaDumpCommandTest
             .extension(fileSystemBeginEx2, 0, fileSystemBeginEx2.capacity())
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin18.buffer(), 0, begin18.sizeof());
+
+        // data frame with tls payload
+        DirectBuffer tlsPayload1 = new UnsafeBuffer(BitUtil.fromHex(
+            "160303007a020000760303328f126a2dc67b1d107023f088ca43560c8b1535c9d7e1be8b217b60b8cefa32209d830c3919be" +
+            "a4f53b3ace6b5f6837c9914c982f1421d3e162606c3eb5907c16130200002e002b0002030400330024001d00201c00c791d3" +
+            "e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e")); // TLSv1.3 Server Hello
+        DataFW data13 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000cL) // north_tls_server
+            .streamId(0x000000000000001aL) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000036L)
+            .traceId(0x000000000000001aL)
+            .budgetId(0x000000000000001aL)
+            .reserved(0x00000042)
+            .payload(tlsPayload1, 0, tlsPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data13.buffer(), 0, data13.sizeof());
     }
 
     @BeforeEach

@@ -2289,3 +2289,72 @@ Zilla Frame
             Tag: tag
         Timeout: 0
 
+Frame 54: 368 bytes on wire (2944 bits), 368 bytes captured (2944 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1b, Dst: fe80::1a
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 294
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x000017a8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000c
+    Routed Namespace: example
+    Routed Binding: north_tls_server
+    Stream ID: 0x000000000000001a
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000036
+    Trace ID: 0x000000000000001a
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001a
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 127
+        Payload
+Transport Layer Security
+    TLSv1.2 Record Layer: Handshake Protocol: Server Hello
+        Content Type: Handshake (22)
+        Version: TLS 1.2 (0x0303)
+        Length: 122
+        Handshake Protocol: Server Hello
+            Handshake Type: Server Hello (2)
+            Length: 118
+            Version: TLS 1.2 (0x0303)
+            Random: 328f126a2dc67b1d107023f088ca43560c8b1535c9d7e1be8b217b60b8cefa32
+            Session ID Length: 32
+            Session ID: 9d830c3919bea4f53b3ace6b5f6837c9914c982f1421d3e162606c3eb5907c16
+            Cipher Suite: TLS_AES_256_GCM_SHA384 (0x1302)
+            Compression Method: null (0)
+            Extensions Length: 46
+            Extension: supported_versions (len=2) TLS 1.3
+                Type: supported_versions (43)
+                Length: 2
+                Supported Version: TLS 1.3 (0x0304)
+            Extension: key_share (len=36) x25519
+                Type: key_share (51)
+                Length: 36
+                Key Share extension
+                    Key Share Entry: Group: x25519, Key Exchange length: 32
+                        Group: x25519 (29)
+                        Key Exchange Length: 32
+                        Key Exchange: 1c00c791d3e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e
+            [JA3S Fullstring: 771,4866,43-51]
+            [JA3S: 15af977ce25de452b96affa2addb1036]
+
