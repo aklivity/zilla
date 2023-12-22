@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_INT;
-import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -2047,7 +2046,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final MutableDirectBuffer dataBuffer = bufferPool.buffer(delegate.dataSlot);
             final int flags = dataBuffer.getInt(delegate.messageSlotOffset);
-            final MqttWillMessageFW will = mqttWillRO.wrap(dataBuffer, delegate.messageSlotOffset + SIZE_OF_INT, dataBuffer.capacity());
+            final MqttWillMessageFW will =
+                mqttWillRO.wrap(dataBuffer, delegate.messageSlotOffset + SIZE_OF_INT, dataBuffer.capacity());
 
             if ((flags & DATA_FLAG_FIN) != 0)
             {
