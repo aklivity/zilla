@@ -1125,6 +1125,43 @@ public class ZillaDumpCommandTest
             .payload(mqttPayload1, 0, mqttPayload1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data14.buffer(), 0, data14.sizeof());
+
+        // data frames with kafka payload
+        DirectBuffer kafkaPayload1 = new UnsafeBuffer(BitUtil.fromHex(
+            "00000051000100050000000100057a696c6c61ffffffff0000000000000001032000000000000001000f6974656d732d7265" +
+            "73706f6e73657300000001000000000000000000000000ffffffffffffffff03200000")); // Kafka (Fetch v5 Request)
+        DataFW data15 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x000000000000001dL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000038L)
+            .traceId(0x000000000000001dL)
+            .budgetId(0x000000000000001dL)
+            .reserved(0x00000088)
+            .payload(kafkaPayload1, 0, kafkaPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data15.buffer(), 0, data15.sizeof());
+
+        DirectBuffer kafkaPayload2 = new UnsafeBuffer(BitUtil.fromHex(
+            "00000047000000010000000000000001000f6974656d732d726573706f6e7365730000000100000000000000000000000000" +
+            "0000000000000000000000000000000000ffffffff00000000")); // Kafka (Fetch v5 Response)
+        DataFW data16 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x000000000000001cL) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000039L)
+            .traceId(0x000000000000001dL)
+            .budgetId(0x000000000000001dL)
+            .reserved(0x00000088)
+            .payload(kafkaPayload2, 0, kafkaPayload2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data16.buffer(), 0, data16.sizeof());
     }
 
     @BeforeEach

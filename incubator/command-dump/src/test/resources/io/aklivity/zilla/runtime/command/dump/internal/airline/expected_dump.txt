@@ -2421,3 +2421,117 @@ MQ Telemetry Transport Protocol, Connect Command
     Client ID Length: 0
     Client ID: 
 
+Frame 56: 328 bytes on wire (2624 bits), 328 bytes captured (2624 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1c, Dst: fe80::1d
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 1, Len: 254
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000018f8
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x000000000000001d
+    Initial ID: 0x000000000000001d
+    Reply ID: 0x000000000000001c
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000038
+    Trace ID: 0x000000000000001d
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001d
+    Reserved: 136
+    Progress: 136
+    Progress/Maximum: 136/0
+    Payload
+        Length: 85
+        Payload
+Kafka (Fetch v5 Request)
+    Length: 81
+    API Key: Fetch (1)
+    API Version: 5
+    Correlation ID: 1
+    Client ID: zilla
+    Replica ID: -1
+    Max Wait Time: 0
+    Min Bytes: 1
+    Max Bytes: 52428800
+    Isolation Level: Read Uncommitted (0)
+    Topic (1 partitions)
+        Topic Name: items-responses
+        Partition (ID=0, Offset=0)
+            Partition ID: 0
+            Offset: 0
+            Log Start Offset: -1
+            Max Bytes: 52428800
+
+Frame 57: 318 bytes on wire (2544 bits), 318 bytes captured (2544 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1d, Dst: fe80::1c
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 255, Len: 244
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000019b0
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x000000000000001c
+    Initial ID: 0x000000000000001d
+    Reply ID: 0x000000000000001c
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000039
+    Trace ID: 0x000000000000001d
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001d
+    Reserved: 136
+    Progress: 136
+    Progress/Maximum: 136/0
+    Payload
+        Length: 75
+        Payload
+Kafka (Fetch v5 Response)
+    Length: 71
+    Correlation ID: 1
+    [Request Frame: 56]
+    [API Key: Fetch (1)]
+    [API Version: 5]
+    Throttle time: 0
+    Topic (1 partitions)
+        Topic Name: items-responses
+        Partition (ID=0, Offset=0)
+            Partition ID: 0
+            Error: No Error (0)
+            Offset: 0
+            Last Stable Offset: 0
+            Log Start Offset: 0
+            Aborted Transactions
+
