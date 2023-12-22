@@ -89,7 +89,7 @@ public class WiresharkIT
         String expectedText = Files.readString(resourceToPath("expected_dump.txt"));
 
         // WHEN
-        String protocols = "zilla,http,http2,tls";
+        String protocols = "zilla,http,http2,tls,mqtt";
         Container.ExecResult result = tshark.execInContainer("tshark", "-O", protocols, "-r", containerPath);
 
         // THEN

@@ -2358,3 +2358,66 @@ Transport Layer Security
             [JA3S Fullstring: 771,4866,43-51]
             [JA3S: 15af977ce25de452b96affa2addb1036]
 
+Frame 55: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 295, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0xd0d41a76
+    Protocol Type: mqtt
+    Worker: 0
+    Offset: 0x00001888
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x0000000900000022
+    Routed Namespace: example
+    Routed Binding: north_mqtt_server
+    Stream ID: 0x000000000000001b
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000037
+    Trace ID: 0x000000000000001b
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001b
+    Reserved: 119
+    Progress: 119
+    Progress/Maximum: 119/0
+    Payload
+        Length: 18
+        Payload
+MQ Telemetry Transport Protocol, Connect Command
+    Header Flags: 0x10, Message Type: Connect Command
+        0001 .... = Message Type: Connect Command (1)
+        .... 0000 = Reserved: 0
+    Msg Len: 16
+    Protocol Name Length: 4
+    Protocol Name: MQTT
+    Version: MQTT v5.0 (5)
+    Connect Flags: 0x02, QoS Level: At most once delivery (Fire and Forget), Clean Session Flag
+        0... .... = User Name Flag: Not set
+        .0.. .... = Password Flag: Not set
+        ..0. .... = Will Retain: Not set
+        ...0 0... = QoS Level: At most once delivery (Fire and Forget) (0)
+        .... .0.. = Will Flag: Not set
+        .... ..1. = Clean Session Flag: Set
+        .... ...0 = (Reserved): Not set
+    Keep Alive: 60
+    Properties
+        Total Length: 3
+        ID: Receive Maximum (0x21)
+        Value: 20
+    Client ID Length: 0
+    Client ID: 
+

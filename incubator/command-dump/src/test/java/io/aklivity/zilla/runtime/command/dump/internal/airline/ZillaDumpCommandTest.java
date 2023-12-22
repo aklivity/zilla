@@ -1108,6 +1108,23 @@ public class ZillaDumpCommandTest
             .payload(tlsPayload1, 0, tlsPayload1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data13.buffer(), 0, data13.sizeof());
+
+        // data frame with mqtt payload
+        DirectBuffer mqttPayload1 = new UnsafeBuffer(BitUtil.fromHex("101000044d5154540502003c032100140000")); // mqtt Connect Command
+        DataFW data14 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x0000000900000022L) // north_mqtt_server
+            .streamId(0x000000000000001bL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000037L)
+            .traceId(0x000000000000001bL)
+            .budgetId(0x000000000000001bL)
+            .reserved(0x00000077)
+            .payload(mqttPayload1, 0, mqttPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data14.buffer(), 0, data14.sizeof());
     }
 
     @BeforeEach
