@@ -64,7 +64,6 @@ public class ZillaDumpCommandTest
     private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
     private static final int PROXY_TYPE_ID = 5;
-    private static final byte[] EMPTY_BYTES = {};
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -751,7 +750,7 @@ public class ZillaDumpCommandTest
         streams[0].write(DataFW.TYPE_ID, data6.buffer(), 0, data6.sizeof());
 
         // data frame with extension, without payload, payload length is 0
-        DirectBuffer grpcDataPayload1 = new UnsafeBuffer(EMPTY_BYTES);
+        DirectBuffer grpcDataPayload1 = new UnsafeBuffer();
         DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 77, 0, 0, 0});
         DataFW data7 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
