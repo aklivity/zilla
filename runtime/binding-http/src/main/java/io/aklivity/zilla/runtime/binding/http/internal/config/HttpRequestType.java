@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class HttpRequestType
 {
@@ -43,10 +43,10 @@ public final class HttpRequestType
     public final Matcher queryMatcher;
 
     // validators
-    public final Map<String8FW, Validator> headers;
-    public final Map<String, Validator> pathParams;
-    public final Map<String, Validator> queryParams;
-    public final Validator content;
+    public final Map<String8FW, ValueValidator> headers;
+    public final Map<String, ValueValidator> pathParams;
+    public final Map<String, ValueValidator> queryParams;
+    public final ValueValidator content;
 
     private HttpRequestType(
         String path,
@@ -54,10 +54,10 @@ public final class HttpRequestType
         List<String> contentType,
         Matcher pathMatcher,
         Matcher queryMatcher,
-        Map<String8FW, Validator> headers,
-        Map<String, Validator> pathParams,
-        Map<String, Validator> queryParams,
-        Validator content)
+        Map<String8FW, ValueValidator> headers,
+        Map<String, ValueValidator> pathParams,
+        Map<String, ValueValidator> queryParams,
+        ValueValidator content)
     {
         this.path = path;
         this.method = method;
@@ -80,10 +80,10 @@ public final class HttpRequestType
         private String path;
         private HttpRequestConfig.Method method;
         private List<String> contentType;
-        private Map<String8FW, Validator> headers;
-        private Map<String, Validator> pathParams;
-        private Map<String, Validator> queryParams;
-        private Validator content;
+        private Map<String8FW, ValueValidator> headers;
+        private Map<String, ValueValidator> pathParams;
+        private Map<String, ValueValidator> queryParams;
+        private ValueValidator content;
 
         public Builder path(
             String path)
@@ -107,28 +107,28 @@ public final class HttpRequestType
         }
 
         public Builder headers(
-            Map<String8FW, Validator> headers)
+            Map<String8FW, ValueValidator> headers)
         {
             this.headers = headers;
             return this;
         }
 
         public Builder pathParams(
-            Map<String, Validator> pathParams)
+            Map<String, ValueValidator> pathParams)
         {
             this.pathParams = pathParams;
             return this;
         }
 
         public Builder queryParams(
-            Map<String, Validator> queryParams)
+            Map<String, ValueValidator> queryParams)
         {
             this.queryParams = queryParams;
             return this;
         }
 
         public Builder content(
-            Validator content)
+            ValueValidator content)
         {
             this.content = content;
             return this;

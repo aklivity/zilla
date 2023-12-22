@@ -22,13 +22,14 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public final class JsonValidatorConfig extends ValidatorConfig
 {
-    public final List<CatalogedConfig> catalogs;
+    public final String subject;
 
     JsonValidatorConfig(
-        List<CatalogedConfig> catalogs)
+        List<CatalogedConfig> cataloged,
+        String subject)
     {
-        super("json");
-        this.catalogs = catalogs;
+        super("json", cataloged);
+        this.subject = subject;
     }
 
     public static <T> JsonValidatorConfigBuilder<T> builder(

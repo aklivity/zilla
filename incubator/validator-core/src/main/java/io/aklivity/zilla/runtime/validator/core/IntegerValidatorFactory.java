@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.validator.core;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
 public class IntegerValidatorFactory implements ValidatorFactorySpi
@@ -39,10 +39,39 @@ public class IntegerValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return create(config);
+    }
+
+    @Override
+    public ValueValidator createValueWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return create(config);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return create(config);
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return create(config);
+    }
+
+    private IntegerValidator create(
+        ValidatorConfig config)
     {
         return new IntegerValidator(IntegerValidatorConfig.class.cast(config));
     }

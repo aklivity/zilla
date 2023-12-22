@@ -36,6 +36,7 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
     private static final String JSON = "json";
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT_NAME = "subject";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -49,13 +50,13 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
     public JsonValue adaptToJson(
         ValidatorConfig config)
     {
-        JsonValidatorConfig validatorConfig = (JsonValidatorConfig) config;
+        JsonValidatorConfig jsonConfig = (JsonValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
         validator.add(TYPE_NAME, JSON);
-        if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
+        if (jsonConfig.cataloged != null && !jsonConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : validatorConfig.catalogs)
+            for (CatalogedConfig catalog : jsonConfig.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -74,26 +75,28 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
         JsonValue value)
     {
         JsonObject object = (JsonObject) value;
-        ValidatorConfig result = null;
-        if (object.containsKey(CATALOG_NAME))
-        {
-            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
-            List<CatalogedConfig> catalogs = new LinkedList<>();
-            for (String catalogName: catalogsJson.keySet())
-            {
-                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                List<SchemaConfig> schemas = new LinkedList<>();
-                for (JsonValue item : schemasJson)
-                {
-                    JsonObject schemaJson = (JsonObject) item;
-                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
-                    schemas.add(schemaElement);
-                }
-                catalogs.add(new CatalogedConfig(catalogName, schemas));
-            }
 
-            result = new JsonValidatorConfig(catalogs);
+        assert object.containsKey(CATALOG_NAME);
+
+        JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+        List<CatalogedConfig> catalogs = new LinkedList<>();
+        for (String catalogName: catalogsJson.keySet())
+        {
+            JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+            List<SchemaConfig> schemas = new LinkedList<>();
+            for (JsonValue item : schemasJson)
+            {
+                JsonObject schemaJson = (JsonObject) item;
+                SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                schemas.add(schemaElement);
+            }
+            catalogs.add(new CatalogedConfig(catalogName, schemas));
         }
-        return result;
+
+        String subject = object.containsKey(SUBJECT_NAME)
+                ? object.getString(SUBJECT_NAME)
+                : null;
+
+        return new JsonValidatorConfig(catalogs, subject);
     }
 }

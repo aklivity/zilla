@@ -16,38 +16,55 @@ package io.aklivity.zilla.runtime.validator.core;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
-public class IntegerValidator implements Validator
+public class IntegerValidator implements ValueValidator, FragmentValidator
 {
-    public IntegerValidator(IntegerValidatorConfig config)
+    public IntegerValidator(
+        IntegerValidatorConfig config)
     {
     }
 
     @Override
-    public boolean read(
+    public int validate(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
-        return validate(data, index, length);
+        return validateComplete(data, index, length, next);
     }
 
     @Override
-    public boolean write(
+    public int validate(
+        int flags,
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        FragmentConsumer next)
     {
-        return validate(data, index, length);
+        return (flags & FLAGS_FIN) != 0x00
+            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+            : 0;
     }
 
-    private boolean validate(
+    private int validateComplete(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
-        return length == 4;
+        boolean valid = length == 4;
+
+        if (valid)
+        {
+            next.accept(data, index, length);
+        }
+
+        return valid ? length : -1;
     }
 }

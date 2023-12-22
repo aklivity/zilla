@@ -13,20 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.runtime.engine.validator.function;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import org.agrona.DirectBuffer;
 
-public class KafkaTopicType
+@FunctionalInterface
+public interface ValueConsumer
 {
-    public final Validator key;
-    public final Validator value;
+    ValueConsumer NOP = (buffer, index, length) -> {};
 
-    public KafkaTopicType(
-        Validator key,
-        Validator value)
-    {
-        this.key = key;
-        this.value = value;
-    }
+    void accept(
+        DirectBuffer buffer,
+        int index,
+        int length);
 }

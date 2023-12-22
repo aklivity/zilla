@@ -15,10 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
@@ -26,6 +33,10 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
     private static final String TEST = "test";
+    private static final String LENGTH = "length";
+    private static final String CAPABILITY = "capability";
+    private static final String READ = "read";
+    private static final String CATALOG_NAME = "catalog";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -43,9 +54,37 @@ public class TestValidatorConfigAdapter implements ValidatorConfigAdapterSpi, Js
     }
 
     @Override
-    public ValidatorConfig adaptFromJson(
+    public TestValidatorConfig adaptFromJson(
         JsonValue value)
     {
-        return TestValidatorConfig.builder().build();
+        JsonObject object = (JsonObject) value;
+
+        int length = object.containsKey(LENGTH)
+            ? object.getInt(LENGTH)
+            : 0;
+
+        boolean read = object.containsKey(CAPABILITY)
+            ? object.getString(CAPABILITY).equals(READ)
+            : false;
+
+        List<CatalogedConfig> catalogs = new LinkedList<>();
+        if (object.containsKey(CATALOG_NAME))
+        {
+            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+            for (String catalogName: catalogsJson.keySet())
+            {
+                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+                List<SchemaConfig> schemas = new LinkedList<>();
+                for (JsonValue item : schemasJson)
+                {
+                    JsonObject schemaJson = (JsonObject) item;
+                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                    schemas.add(schemaElement);
+                }
+                catalogs.add(new CatalogedConfig(catalogName, schemas));
+            }
+        }
+
+        return new TestValidatorConfig(length, catalogs, read);
     }
 }

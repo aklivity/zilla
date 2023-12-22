@@ -24,21 +24,32 @@ bindings:
       requests:
         - path: /hello
           method: GET
-          content: test
+          content:
+            type: test
+            length: 13
         - path: /valid/{category}/{id}
           method: POST
           content-type:
             - text/plain
           headers:
-            code: test
+            code:
+              type: test
+              length: 13
           params:
             path:
-              category: test
-              id: test
+              category:
+                type: test
+                length: 13
+              id:
+                type: test
+                length: 13
             query:
-              page: test
+              page:
+                type: test
+                length: 13
           content:
             type: test
+            length: 13
       versions:
         - h2
     routes:

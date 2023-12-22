@@ -15,13 +15,11 @@
 package io.aklivity.zilla.runtime.validator.avro;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.Properties;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -34,10 +32,10 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.internal.LabelManager;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroValidatorTest
@@ -56,9 +54,6 @@ public class AvroValidatorTest
                         .build()
                 .build()
             .build();
-
-    private LabelManager labels;
-    private ToLongFunction<String> resolveId;
     private CatalogContext context;
 
     @Before
@@ -67,8 +62,6 @@ public class AvroValidatorTest
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
         Configuration config = new Configuration(properties);
-        labels = new LabelManager(config.directory());
-        resolveId = name -> name != null ? NamespacedId.id(1, labels.supplyLabelId(name)) : 0L;
         Catalog catalog = new TestCatalog(config);
         context = catalog.supply(mock(EngineContext.class));
     }
@@ -76,57 +69,217 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteValidAvroEvent()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroWriteValidator validator = new AvroWriteValidator(avroConfig, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
+            0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldVerifyInvalidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyMagicBytes()
+    public void shouldReadAvroEventExpectJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroReadValidator validator = new AvroReadValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = "Invalid Event".getBytes();
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+
+        String json =
+                "{" +
+                    "\"id\":\"id0\"," +
+                    "\"status\":\"positive\"" +
+                "}";
+
+        DirectBuffer expected = new UnsafeBuffer();
+        expected.wrap(json.getBytes(), 0, json.getBytes().length);
+
+        int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
+        assertEquals(expected.capacity(), progress);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyInvalidSchemaId()
+    public void shouldWriteJsonEventExpectAvro()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroWriteValidator validator = new AvroWriteValidator(config, handler);
+
+        DirectBuffer expected = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        expected.wrap(bytes, 0, bytes.length);
+
+        String payload =
+                "{" +
+                    "\"id\":\"id0\"," +
+                    "\"status\":\"positive\"" +
+                "}";
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(payload.getBytes(), 0, payload.getBytes().length);
+        int progress = validator.validate(data, 0, data.capacity(), ValueConsumer.NOP);
+        assertEquals(expected.capacity(), progress);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteValidFragmentAvroEvent()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroWriteValidator validator = new AvroWriteValidator(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x79, 0x06, 0x69, 0x64, 0x30, 0x10};
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
+            0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.read(data, 0, data.capacity()));
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidFragmentAvroEvent()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroReadValidator validator = new AvroReadValidator(avroConfig, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyPaddingLength()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(9)
+                .schema(SCHEMA)
+                .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        AvroValidatorConfig config = AvroValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        AvroReadValidator validator = new AvroReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(22, validator.padding(data, 0, data.capacity()));
+
     }
 }

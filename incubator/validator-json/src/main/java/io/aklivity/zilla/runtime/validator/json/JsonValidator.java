@@ -14,123 +14,115 @@
  */
 package io.aklivity.zilla.runtime.validator.json;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.StringReader;
-import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Int2ObjectCache;
+import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
+import org.leadpony.justify.api.JsonValidatingException;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
-public class JsonValidator implements Validator
+public abstract class JsonValidator
 {
+    protected final SchemaConfig catalog;
+    protected final CatalogHandler handler;
+    protected final String subject;
+
+    private final Int2ObjectCache<JsonSchema> schemas;
+    private final Int2ObjectCache<JsonProvider> providers;
     private final JsonProvider schemaProvider;
-    private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final JsonValidationService service;
     private final JsonParserFactory factory;
-    private final List<CatalogedConfig> catalogs;
-    private final SchemaConfig catalog;
-    private final CatalogHandler handler;
+    private DirectBufferInputStream in;
 
     public JsonValidator(
         JsonValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        this.handlersById = new Long2ObjectHashMap<>();
         this.schemaProvider = JsonProvider.provider();
         this.service = JsonValidationService.newInstance();
         this.factory = schemaProvider.createParserFactory(null);
-        this.catalogs = config.catalogs.stream().map(c ->
-        {
-            c.id = resolveId.applyAsLong(c.name);
-            handlersById.put(c.id, supplyCatalog.apply(c.id));
-            return c;
-        }).collect(Collectors.toList());
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
-        this.handler = handlersById.get(catalogs.get(0).id);
+        CatalogedConfig cataloged = config.cataloged.get(0);
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
+        this.handler = supplyCatalog.apply(cataloged.id);
+        this.subject = catalog != null && catalog.subject != null
+                ? catalog.subject
+                : config.subject;
+        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.in = new DirectBufferInputStream();
     }
 
-    @Override
-    public boolean read(
-        DirectBuffer data,
+    protected final boolean validate(
+        int schemaId,
+        DirectBuffer buffer,
         int index,
         int length)
-    {
-        return validate(data, index, length);
-    }
-
-    @Override
-    public boolean write(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        return validate(data, index, length);
-    }
-
-    private boolean validate(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        String schema = null;
-        int schemaId = catalog != null ? catalog.id : 0;
-
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-
-        if (schemaId > 0)
-        {
-            schema = handler.resolve(schemaId);
-        }
-        else if (catalog != null)
-        {
-            schemaId = handler.resolve(catalog.subject, catalog.version);
-            if (schemaId != 0)
-            {
-                schema = handler.resolve(schemaId);
-            }
-        }
-
-        return schema != null && validate(schema, payloadBytes);
-    }
-
-    private boolean validate(
-        String schema,
-        byte[] payloadBytes)
     {
         boolean status = false;
         try
         {
-            JsonParser schemaParser = factory.createParser(new StringReader(schema));
-            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            JsonSchema jsonSchema = reader.read();
-            JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
-            InputStream input = new ByteArrayInputStream(payloadBytes);
-            provider.createReader(input).readValue();
+            JsonProvider provider = supplyProvider(schemaId);
+            in.wrap(buffer, index, length);
+            provider.createReader(in).readValue();
             status = true;
         }
-        catch (Exception e)
+        catch (JsonValidatingException ex)
         {
+            ex.printStackTrace();
         }
         return status;
+    }
+
+    private JsonSchema supplySchema(
+        int schemaId)
+    {
+        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
+    }
+
+    private JsonProvider supplyProvider(
+        int schemaId)
+    {
+        return providers.computeIfAbsent(schemaId, this::createProvider);
+    }
+
+    private JsonSchema resolveSchema(
+        int schemaId)
+    {
+        JsonSchema schema = null;
+        String schemaText = handler.resolve(schemaId);
+        if (schemaText != null)
+        {
+            JsonParser schemaParser = factory.createParser(new StringReader(schemaText));
+            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+            schema = reader.read();
+        }
+
+        return schema;
+    }
+
+    private JsonProvider createProvider(
+        int schemaId)
+    {
+        JsonSchema schema = supplySchema(schemaId);
+        JsonProvider provider = null;
+        if (schema != null)
+        {
+            provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
+        }
+        return provider;
     }
 }

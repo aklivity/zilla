@@ -36,7 +36,8 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     private static final String AVRO = "avro";
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
-    private static final String SUBJECT = "subject";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String FORMAT = "format";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -52,11 +53,17 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
     {
         AvroValidatorConfig validatorConfig = (AvroValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
+
+        if (validatorConfig.format != null)
+        {
+            validator.add(FORMAT, validatorConfig.format);
+        }
+
         validator.add(TYPE_NAME, AVRO);
-        if (validatorConfig.catalogs != null && !validatorConfig.catalogs.isEmpty())
+        if (validatorConfig.cataloged != null && !validatorConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : validatorConfig.catalogs)
+            for (CatalogedConfig catalog : validatorConfig.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -75,30 +82,32 @@ public final class AvroValidatorConfigAdapter implements ValidatorConfigAdapterS
         JsonValue value)
     {
         JsonObject object = (JsonObject) value;
-        ValidatorConfig result = null;
-        if (object.containsKey(CATALOG_NAME))
+
+        assert object.containsKey(CATALOG_NAME);
+
+        JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+        List<CatalogedConfig> catalogs = new LinkedList<>();
+        for (String catalogName: catalogsJson.keySet())
         {
-            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
-            List<CatalogedConfig> catalogs = new LinkedList<>();
-            for (String catalogName: catalogsJson.keySet())
+            JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+            List<SchemaConfig> schemas = new LinkedList<>();
+            for (JsonValue item : schemasJson)
             {
-                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                List<SchemaConfig> schemas = new LinkedList<>();
-                for (JsonValue item : schemasJson)
-                {
-                    JsonObject schemaJson = (JsonObject) item;
-                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
-                    schemas.add(schemaElement);
-                }
-                catalogs.add(new CatalogedConfig(catalogName, schemas));
+                JsonObject schemaJson = (JsonObject) item;
+                SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                schemas.add(schemaElement);
             }
-
-            String subject = object.containsKey(SUBJECT)
-                    ? object.getString(SUBJECT)
-                    : null;
-
-            result = new AvroValidatorConfig(catalogs, subject);
+            catalogs.add(new CatalogedConfig(catalogName, schemas));
         }
-        return result;
+
+        String subject = object.containsKey(SUBJECT_NAME)
+                ? object.getString(SUBJECT_NAME)
+                : null;
+
+        String expect = object.containsKey(FORMAT)
+                ? object.getString(FORMAT)
+                : null;
+
+        return new AvroValidatorConfig(catalogs, subject, expect);
     }
 }

@@ -14,37 +14,44 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.nio.charset.StandardCharsets;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.validator.core.config.LongValidatorConfig;
-
-public class LongValidatorTest
+public class StringEncodingTest
 {
-    private final LongValidatorConfig config = new LongValidatorConfig();
-    private final LongValidator validator = new LongValidator(config);
-
     @Test
-    public void shouldVerifyValidLong()
+    public void shouldVerifyValidUTF8()
     {
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
+        byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+
+        assertTrue(StringEncoding.UTF_8.validate(data, 0, bytes.length));
     }
 
     @Test
-    public void shouldVerifyInvalidLong()
+    public void shouldVerifyValidUTF16()
     {
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0, 0, 0, 42};
+        byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_8);
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+
+        assertTrue(StringEncoding.UTF_8.validate(data, 0, bytes.length));
+    }
+
+    @Test
+    public void shouldVerifyStringEncodingOf()
+    {
+        assertEquals(StringEncoding.UTF_8, StringEncoding.of("utf_8"));
+        assertEquals(StringEncoding.UTF_16, StringEncoding.of("utf_16"));
+        assertEquals(StringEncoding.INVALID, StringEncoding.of("invalid_encoding"));
     }
 }

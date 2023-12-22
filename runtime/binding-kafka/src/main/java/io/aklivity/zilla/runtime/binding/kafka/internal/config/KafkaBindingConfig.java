@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class KafkaBindingConfig
 {
@@ -40,7 +42,10 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final Map<String, KafkaTopicType> topics;
+    public final Map<String, FragmentValidator> fragmentReaders;
+    public final Map<String, FragmentValidator> fragmentWriters;
+    public final Map<String, ValueValidator> valueReaders;
+    public final Map<String, ValueValidator> valueWriters;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -52,13 +57,38 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.topics = options != null &&
-                options.topics != null
-                    ? options.topics.stream()
-                    .collect(Collectors.toMap(t -> t.name, t -> new KafkaTopicType(
-                    t.key != null ? context.createValidator(t.key, resolveId) : null,
-                    t.value != null ? context.createValidator(t.value, resolveId) : null
-                    ))) : null;
+        this.valueReaders = options != null && options.topics != null
+                ? options.topics.stream()
+                .collect(Collectors.toMap(
+                    t -> t.name,
+                    t -> t.key != null
+                        ? context.createValueReader(t.key)
+                        : ValueValidator.NONE))
+                : null;
+        this.valueWriters = options != null && options.topics != null
+                ? options.topics.stream()
+                .collect(Collectors.toMap(
+                    t -> t.name,
+                    t -> t.key != null
+                        ? context.createValueWriter(t.key)
+                        : ValueValidator.NONE))
+                : null;
+        this.fragmentReaders = options != null && options.topics != null
+                ? options.topics.stream()
+                .collect(Collectors.toMap(
+                    t -> t.name,
+                    t -> t.value != null
+                        ? context.createFragmentReader(t.value)
+                        : FragmentValidator.NONE))
+                : null;
+        this.fragmentWriters = options != null && options.topics != null
+                ? options.topics.stream()
+                .collect(Collectors.toMap(
+                    t -> t.name,
+                    t -> t.value != null
+                        ? context.createFragmentWriter(t.value)
+                        : FragmentValidator.NONE))
+                : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -110,5 +140,29 @@ public final class KafkaBindingConfig
     {
         KafkaTopicConfig config = topic(topic);
         return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
+    }
+
+    public ValueValidator resolveValueReader(
+        String topic)
+    {
+        return valueReaders != null ? valueReaders.getOrDefault(topic, ValueValidator.NONE) : ValueValidator.NONE;
+    }
+
+    public ValueValidator resolveValueWriter(
+        String topic)
+    {
+        return valueWriters != null ? valueWriters.getOrDefault(topic, ValueValidator.NONE) : ValueValidator.NONE;
+    }
+
+    public FragmentValidator resolveFragmentReader(
+        String topic)
+    {
+        return fragmentReaders != null ? fragmentReaders.getOrDefault(topic, FragmentValidator.NONE) : FragmentValidator.NONE;
+    }
+
+    public FragmentValidator resolveFragmentWriter(
+        String topic)
+    {
+        return fragmentWriters != null ? fragmentWriters.getOrDefault(topic, FragmentValidator.NONE) : FragmentValidator.NONE;
     }
 }

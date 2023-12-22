@@ -14,134 +14,207 @@
  */
 package io.aklivity.zilla.runtime.validator.avro;
 
-import java.nio.ByteBuffer;
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.collections.Int2IntHashMap;
+import org.agrona.collections.Int2ObjectCache;
+import org.agrona.io.DirectBufferInputStream;
+import org.agrona.io.ExpandableDirectBufferOutputStream;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Parser;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.DatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
-public final class AvroValidator implements Validator
+public abstract class AvroValidator
 {
-    private static final byte MAGIC_BYTE = 0x0;
+    protected static final String FORMAT_JSON = "json";
 
-    private final List<CatalogedConfig> catalogs;
-    private final SchemaConfig catalog;
-    private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final CatalogHandler handler;
-    private final DecoderFactory decoder;
-    private final String subject;
-    private DatumReader reader;
-    private Parser parser;
+    private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
+    private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
+    private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
 
-    public AvroValidator(
+    protected final SchemaConfig catalog;
+    protected final CatalogHandler handler;
+    protected final DecoderFactory decoderFactory;
+    protected final EncoderFactory encoderFactory;
+    protected final BinaryDecoder decoder;
+    protected final BinaryEncoder encoder;
+    protected final String subject;
+    protected final String format;
+    protected final ExpandableDirectBufferOutputStream expandable;
+    protected final DirectBufferInputStream in;
+
+    private final Int2ObjectCache<Schema> schemas;
+    private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
+    private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
+    private final Int2ObjectCache<GenericRecord> records;
+    private final Int2IntHashMap paddings;
+
+    protected AvroValidator(
         AvroValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        this.handlersById = new Long2ObjectHashMap<>();
-        this.decoder = DecoderFactory.get();
-        this.catalogs = config.catalogs.stream().map(c ->
-        {
-            c.id = resolveId.applyAsLong(c.name);
-            handlersById.put(c.id, supplyCatalog.apply(c.id));
-            return c;
-        }).collect(Collectors.toList());
-        this.handler = handlersById.get(catalogs.get(0).id);
-        this.parser = new Schema.Parser();
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
-        this.subject = config.subject;
+        this.decoderFactory = DecoderFactory.get();
+        this.decoder = decoderFactory.binaryDecoder(EMPTY_INPUT_STREAM, null);
+        this.encoderFactory = EncoderFactory.get();
+        this.encoder = encoderFactory.binaryEncoder(EMPTY_OUTPUT_STREAM, null);
+        CatalogedConfig cataloged = config.cataloged.get(0);
+        this.handler = supplyCatalog.apply(cataloged.id);
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
+        this.format = config.format;
+        this.subject = catalog != null && catalog.subject != null
+                ? catalog.subject
+                : config.subject;
+        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.readers = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.records = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.paddings = new Int2IntHashMap(-1);
+        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.in = new DirectBufferInputStream();
     }
 
-    @Override
-    public boolean read(
-        DirectBuffer data,
+    protected final boolean validate(
+        int schemaId,
+        DirectBuffer buffer,
         int index,
         int length)
-    {
-        boolean status = false;
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-        ByteBuffer byteBuf = ByteBuffer.wrap(payloadBytes);
-
-        if (byteBuf.get() == MAGIC_BYTE)
-        {
-            int schemaId = byteBuf.getInt();
-            int valLength = length - 1 - 4;
-            byte[] valBytes = new byte[valLength];
-            data.getBytes(length - valLength, valBytes);
-
-            String schema = handler.resolve(schemaId);
-
-            if (schema != null && validate(schema, valBytes))
-            {
-                status = true;
-            }
-        }
-        return status;
-    }
-
-    @Override
-    public boolean write(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        boolean status = false;
-        String schema = null;
-        int schemaId = catalog != null ? catalog.id : 0;
-
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
-
-        if (schemaId > 0)
-        {
-            schema = handler.resolve(schemaId);
-        }
-        else if (catalog != null && "topic".equals(catalog.strategy))
-        {
-            schemaId = handler.resolve(subject, catalog.version);
-            if (schemaId > 0)
-            {
-                schema = handler.resolve(schemaId);
-            }
-        }
-
-        if (schema != null && validate(schema, payloadBytes))
-        {
-            status = true;
-        }
-
-        return status;
-    }
-
-    private boolean validate(
-        String schema,
-        byte[] payloadBytes)
     {
         boolean status = false;
         try
         {
-            reader = new GenericDatumReader(parser.parse(schema));
-            reader.read(null, decoder.binaryDecoder(payloadBytes, null));
-            status = true;
+            GenericRecord record = supplyRecord(schemaId);
+            in.wrap(buffer, index, length);
+            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+            if (reader != null)
+            {
+                reader.read(record, decoderFactory.binaryDecoder(in, decoder));
+                status = true;
+            }
         }
-        catch (Exception e)
+        catch (IOException | AvroRuntimeException ex)
         {
+            ex.printStackTrace();
         }
         return status;
+    }
+
+    protected final Schema supplySchema(
+        int schemaId)
+    {
+        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
+    }
+
+    protected final int supplyPadding(
+        int schemaId)
+    {
+        return paddings.computeIfAbsent(schemaId, id -> calculatePadding(supplySchema(id)));
+    }
+
+    protected final GenericDatumReader<GenericRecord> supplyReader(
+        int schemaId)
+    {
+        return readers.computeIfAbsent(schemaId, this::createReader);
+    }
+
+    protected final GenericDatumWriter<GenericRecord> supplyWriter(
+        int schemaId)
+    {
+        return writers.computeIfAbsent(schemaId, this::createWriter);
+    }
+
+    protected final GenericRecord supplyRecord(
+        int schemaId)
+    {
+        return records.computeIfAbsent(schemaId, this::createRecord);
+    }
+
+    private GenericDatumReader<GenericRecord> createReader(
+        int schemaId)
+    {
+        Schema schema = supplySchema(schemaId);
+        GenericDatumReader<GenericRecord> reader = null;
+        if (schema != null)
+        {
+            reader = new GenericDatumReader<GenericRecord>(schema);
+        }
+        return reader;
+    }
+
+    private GenericDatumWriter<GenericRecord> createWriter(
+        int schemaId)
+    {
+        Schema schema = supplySchema(schemaId);
+        GenericDatumWriter<GenericRecord> writer = null;
+        if (schema != null)
+        {
+            writer = new GenericDatumWriter<GenericRecord>(schema);
+        }
+        return writer;
+    }
+
+    private GenericRecord createRecord(
+        int schemaId)
+    {
+        Schema schema = supplySchema(schemaId);
+        GenericRecord record = null;
+        if (schema != null)
+        {
+            record = new GenericData.Record(schema);
+        }
+        return record;
+    }
+
+    private Schema resolveSchema(
+        int schemaId)
+    {
+        Schema schema = null;
+        String schemaText = handler.resolve(schemaId);
+        if (schemaText != null)
+        {
+            schema = new Schema.Parser().parse(schemaText);
+        }
+        return schema;
+    }
+
+    private int calculatePadding(
+        Schema schema)
+    {
+        int padding = 0;
+
+        if (schema != null)
+        {
+            padding = 2;
+            for (Schema.Field field : schema.getFields())
+            {
+                if (field.schema().getType().equals(Schema.Type.RECORD))
+                {
+                    padding += calculatePadding(field.schema());
+                }
+                else
+                {
+                    padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                }
+            }
+        }
+        return padding;
     }
 }

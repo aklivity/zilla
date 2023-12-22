@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.validator;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -28,8 +27,20 @@ public interface ValidatorFactorySpi
 
     URL schema();
 
-    Validator create(
+    ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog);
+
+    ValueValidator createValueWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog);
+
+    FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog);
+
+    FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog);
+
 }

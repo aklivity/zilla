@@ -15,35 +15,85 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator;
 
+import java.util.function.LongFunction;
+
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-public class TestValidator implements Validator
+public class TestValidator implements ValueValidator, FragmentValidator
 {
-    @Override
-    public boolean read(
-        DirectBuffer data,
-        int index,
-        int length)
+    private final int length;
+    private final int schemaId;
+    private final boolean read;
+    private final CatalogHandler handler;
+    private final SchemaConfig schema;
+
+    public TestValidator(
+        TestValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
-        return validate(data, index, length);
+        this.length = config.length;
+        this.read = config.read;
+        CatalogedConfig cataloged = config.cataloged != null && !config.cataloged.isEmpty()
+            ? config.cataloged.get(0)
+            : null;
+        schema = cataloged != null ? cataloged.schemas.get(0) : null;
+        schemaId = schema != null ? schema.id : 0;
+        this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
     }
 
     @Override
-    public boolean write(
+    public int padding(
         DirectBuffer data,
         int index,
         int length)
     {
-        return validate(data, index, length);
+        return handler.encodePadding();
     }
 
-    private boolean validate(
+    @Override
+    public int validate(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
-        return length == 13;
+        return validateComplete(data, index, length, next);
+    }
+
+    @Override
+    public int validate(
+        int flags,
+        DirectBuffer data,
+        int index,
+        int length,
+        FragmentConsumer next)
+    {
+        return (flags & FLAGS_FIN) != 0x00
+                ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
+                : 0;
+    }
+
+    private int validateComplete(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        boolean valid = length == this.length;
+        if (valid)
+        {
+            next.accept(data, index, length);
+        }
+        return valid ? length : -1;
     }
 }
+

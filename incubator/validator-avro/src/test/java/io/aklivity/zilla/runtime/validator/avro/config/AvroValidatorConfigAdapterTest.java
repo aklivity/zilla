@@ -44,6 +44,7 @@ public class AvroValidatorConfigAdapterTest
         // GIVEN
         String json =
             "{" +
+                "\"format\":\"json\"," +
                 "\"type\": \"avro\"," +
                 "\"catalog\":" +
                 "{" +
@@ -69,19 +70,20 @@ public class AvroValidatorConfigAdapterTest
 
         // THEN
         assertThat(validator, not(nullValue()));
+        assertThat(validator.format, equalTo("json"));
         assertThat(validator.type, equalTo("avro"));
-        assertThat(validator.catalogs.size(), equalTo(1));
-        assertThat(validator.catalogs.get(0).name, equalTo("test0"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).strategy, equalTo("topic"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(1).subject, equalTo("cat"));
-        assertThat(validator.catalogs.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(2).version, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(2).id, equalTo(42));
+        assertThat(validator.cataloged.size(), equalTo(1));
+        assertThat(validator.cataloged.get(0).name, equalTo("test0"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).id, equalTo(0));
+        assertThat(validator.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).strategy, nullValue());
+        assertThat(validator.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).id, equalTo(0));
+        assertThat(validator.cataloged.get(0).schemas.get(2).strategy, nullValue());
+        assertThat(validator.cataloged.get(0).schemas.get(2).version, nullValue());
+        assertThat(validator.cataloged.get(0).schemas.get(2).id, equalTo(42));
     }
 
     @Test
@@ -90,6 +92,7 @@ public class AvroValidatorConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
+                "\"format\":\"json\"," +
                 "\"type\":\"avro\"," +
                 "\"catalog\":" +
                 "{" +
@@ -110,6 +113,7 @@ public class AvroValidatorConfigAdapterTest
                 "}" +
             "}";
         AvroValidatorConfig validator = AvroValidatorConfig.builder()
+            .format("json")
             .catalog()
                 .name("test0")
                     .schema()

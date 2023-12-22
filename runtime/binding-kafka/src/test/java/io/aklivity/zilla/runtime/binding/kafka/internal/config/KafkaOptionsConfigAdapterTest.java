@@ -156,7 +156,10 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new TestValidatorConfig())),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null,
+                    TestValidatorConfig.builder()
+                        .length(0)
+                        .build())),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);

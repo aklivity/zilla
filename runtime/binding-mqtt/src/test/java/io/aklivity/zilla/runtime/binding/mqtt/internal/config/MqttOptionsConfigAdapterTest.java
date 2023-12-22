@@ -103,7 +103,10 @@ public class MqttOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         List<MqttTopicConfig> topics = new ArrayList<>();
-        topics.add(new MqttTopicConfig("sensor/one", new TestValidatorConfig()));
+        topics.add(new MqttTopicConfig("sensor/one",
+            TestValidatorConfig.builder()
+                .length(0)
+                .build()));
 
         MqttOptionsConfig options = new MqttOptionsConfig(
                 new MqttAuthorizationConfig(

@@ -122,4 +122,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateCacheOptionsValidate()
+    {
+        JsonObject config = schema.validate("cache.client.options.validate.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

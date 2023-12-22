@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.validator.core;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
 public class IntegerValidatorTest
@@ -35,7 +36,7 @@ public class IntegerValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(validator.read(data, 0, data.capacity()));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -45,6 +46,19 @@ public class IntegerValidatorTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(validator.write(data, 0, data.capacity()));
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidFragmentInteger()
+    {
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0, 0, 0, 42};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(0, validator.validate(0x00, data, 0, data.capacity(), FragmentConsumer.NOP));
+
+        assertEquals(data.capacity(), validator.validate(0x01, data, 0, data.capacity(), FragmentConsumer.NOP));
     }
 }

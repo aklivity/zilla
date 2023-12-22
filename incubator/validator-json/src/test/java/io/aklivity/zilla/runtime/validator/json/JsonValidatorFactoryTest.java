@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
@@ -26,13 +25,13 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public class JsonValidatorFactoryTest
 {
     @Test
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
         // GIVEN
         ValidatorConfig validator = JsonValidatorConfig.builder()
@@ -40,14 +39,40 @@ public class JsonValidatorFactoryTest
                     .name("test0")
                     .build()
                 .build();
-        ToLongFunction<String> resolveId = i -> 0L;
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         JsonValidatorFactory factory = new JsonValidatorFactory();
 
         // WHEN
-        Validator jsonValidator = factory.create(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(jsonValidator, instanceOf(JsonValidator.class));
+        assertThat(reader, instanceOf(JsonReadValidator.class));
+    }
+
+    @Test
+    public void shouldCreateWriteValidator()
+    {
+        // GIVEN
+        ValidatorConfig validator = JsonValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
+        JsonValidatorFactory factory = new JsonValidatorFactory();
+
+        // WHEN
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(JsonWriteValidator.class));
     }
 }

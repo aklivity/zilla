@@ -60,7 +60,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -132,8 +131,9 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -863,11 +863,31 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public Validator createValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId)
+    public ValueValidator createValueReader(
+        ValidatorConfig validator)
     {
-        return validatorFactory.create(validator, resolveId, this::supplyCatalog);
+        return validatorFactory.createValueReader(validator, this::supplyCatalog);
+    }
+
+    @Override
+    public ValueValidator createValueWriter(
+        ValidatorConfig validator)
+    {
+        return validatorFactory.createValueWriter(validator, this::supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig validator)
+    {
+        return validatorFactory.createFragmentReader(validator, this::supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig validator)
+    {
+        return validatorFactory.createFragmentWriter(validator, this::supplyCatalog);
     }
 
     private void onSystemMessage(

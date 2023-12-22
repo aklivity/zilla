@@ -17,15 +17,19 @@ package io.aklivity.zilla.runtime.engine.validator;
 
 import org.agrona.DirectBuffer;
 
-public interface Validator
-{
-    boolean read(
-        DirectBuffer data,
-        int index,
-        int length);
+import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
-    boolean write(
+public interface ValueValidator
+{
+    ValueValidator NONE = (data, index, length, next) ->
+    {
+        next.accept(data, index, length);
+        return length;
+    };
+
+    int validate(
         DirectBuffer data,
         int index,
-        int length);
+        int length,
+        ValueConsumer next);
 }

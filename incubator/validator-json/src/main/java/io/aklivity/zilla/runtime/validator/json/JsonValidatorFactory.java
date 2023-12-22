@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.validator.json;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
 public final class JsonValidatorFactory implements ValidatorFactorySpi
@@ -38,11 +38,48 @@ public final class JsonValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new JsonValidator(JsonValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return createReader(config, supplyCatalog);
+    }
+
+    @Override
+    public ValueValidator createValueWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createWriter(config, supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createReader(config, supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createWriter(config, supplyCatalog);
+    }
+
+    private JsonReadValidator createReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new JsonReadValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
+    }
+
+    private JsonWriteValidator createWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new JsonWriteValidator(JsonValidatorConfig.class.cast(config), supplyCatalog);
     }
 }

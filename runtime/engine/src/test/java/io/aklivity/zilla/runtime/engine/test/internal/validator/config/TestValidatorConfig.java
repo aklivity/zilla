@@ -15,15 +15,25 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.validator.config;
 
+import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class TestValidatorConfig extends ValidatorConfig
 {
-    public TestValidatorConfig()
+    public final int length;
+    public final boolean read;
+
+    public TestValidatorConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read)
     {
-        super("test");
+        super("test", cataloged);
+        this.length = length;
+        this.read = read;
     }
 
     public static <T> TestValidatorConfigBuilder<T> builder(

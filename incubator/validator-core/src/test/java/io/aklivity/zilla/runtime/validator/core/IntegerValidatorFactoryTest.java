@@ -19,31 +19,78 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.core.config.IntegerValidatorConfig;
 
 public class IntegerValidatorFactoryTest
 {
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCreate()
+    public void shouldCreateValueReader()
     {
         // GIVEN
         ValidatorConfig validator = new IntegerValidatorConfig();
-        ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
         IntegerValidatorFactory factory = new IntegerValidatorFactory();
 
         // WHEN
-        Validator integerValidator = factory.create(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(integerValidator, instanceOf(IntegerValidator.class));
+        assertThat(reader, instanceOf(IntegerValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateValueWriter()
+    {
+        // GIVEN
+        ValidatorConfig validator = new IntegerValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
+        // WHEN
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(IntegerValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentReader()
+    {
+        // GIVEN
+        ValidatorConfig validator = new IntegerValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
+        // WHEN
+        FragmentValidator reader = factory.createFragmentReader(validator, supplyCatalog);
+
+        // THEN
+        assertThat(reader, instanceOf(IntegerValidator.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldCreateFragmentWriter()
+    {
+        // GIVEN
+        ValidatorConfig validator = new IntegerValidatorConfig();
+        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        IntegerValidatorFactory factory = new IntegerValidatorFactory();
+
+        // WHEN
+        FragmentValidator writer = factory.createFragmentWriter(validator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(IntegerValidator.class));
     }
 }

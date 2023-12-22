@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.validator.avro;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public final class AvroValidatorFactory implements ValidatorFactorySpi
@@ -38,11 +38,48 @@ public final class AvroValidatorFactory implements ValidatorFactorySpi
     }
 
     @Override
-    public Validator create(
+    public ValueValidator createValueReader(
         ValidatorConfig config,
-        ToLongFunction<String> resolveId,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        return new AvroValidator(AvroValidatorConfig.class.cast(config), resolveId, supplyCatalog);
+        return createReader(config, supplyCatalog);
+    }
+
+    @Override
+    public ValueValidator createValueWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createWriter(config, supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createReader(config, supplyCatalog);
+    }
+
+    @Override
+    public FragmentValidator createFragmentWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return createWriter(config, supplyCatalog);
+    }
+
+    private AvroReadValidator createReader(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new AvroReadValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
+    }
+
+    private AvroWriteValidator createWriter(
+        ValidatorConfig config,
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        return new AvroWriteValidator(AvroValidatorConfig.class.cast(config), supplyCatalog);
     }
 }

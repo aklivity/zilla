@@ -17,35 +17,72 @@ package io.aklivity.zilla.runtime.validator.avro;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.validator.avro.config.AvroValidatorConfig;
 
 public class AvroValidatorFactoryTest
 {
     @Test
-    public void shouldCreate()
+    public void shouldCreateReadValidator()
     {
         // GIVEN
-        ValidatorConfig validator = new AvroValidatorConfig(List.of(new CatalogedConfig("test0", List.of())), "test-value");
-        ToLongFunction<String> resolveId = i -> 0L;
-        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(new TestCatalogOptionsConfig("schema0"));
+        ValidatorConfig validator = AvroValidatorConfig.builder()
+                .subject("test-value")
+                    .catalog()
+                    .name("test0")
+                        .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
         AvroValidatorFactory factory = new AvroValidatorFactory();
 
         // WHEN
-        Validator avroValidator = factory.create(validator, resolveId, supplyCatalog);
+        ValueValidator reader = factory.createValueReader(validator, supplyCatalog);
 
         // THEN
-        assertThat(avroValidator, instanceOf(AvroValidator.class));
+        assertThat(reader, instanceOf(AvroReadValidator.class));
+    }
+
+    @Test
+    public void shouldCreateWriteValidator()
+    {
+        // GIVEN
+        ValidatorConfig validator = AvroValidatorConfig.builder()
+                .subject("test-value")
+                    .catalog()
+                    .name("test0")
+                        .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> supplyCatalog = i -> new TestCatalogHandler(
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema("schema0")
+                .build());
+        AvroValidatorFactory factory = new AvroValidatorFactory();
+
+        // WHEN
+        ValueValidator writer = factory.createValueWriter(validator, supplyCatalog);
+
+        // THEN
+        assertThat(writer, instanceOf(AvroWriteValidator.class));
     }
 }

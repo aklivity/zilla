@@ -27,6 +27,7 @@ public class JsonValidatorConfigBuilder<T> extends ConfigBuilder<T, JsonValidato
     private final Function<JsonValidatorConfig, T> mapper;
 
     private List<CatalogedConfig> catalogs;
+    private String subject;
 
     JsonValidatorConfigBuilder(
         Function<JsonValidatorConfig, T> mapper)
@@ -46,6 +47,13 @@ public class JsonValidatorConfigBuilder<T> extends ConfigBuilder<T, JsonValidato
         return CatalogedConfig.builder(this::catalog);
     }
 
+    public JsonValidatorConfigBuilder<T> subject(
+        String subject)
+    {
+        this.subject = subject;
+        return this;
+    }
+
     public JsonValidatorConfigBuilder<T> catalog(
         CatalogedConfig catalog)
     {
@@ -60,6 +68,6 @@ public class JsonValidatorConfigBuilder<T> extends ConfigBuilder<T, JsonValidato
     @Override
     public T build()
     {
-        return mapper.apply(new JsonValidatorConfig(catalogs));
+        return mapper.apply(new JsonValidatorConfig(catalogs, subject));
     }
 }

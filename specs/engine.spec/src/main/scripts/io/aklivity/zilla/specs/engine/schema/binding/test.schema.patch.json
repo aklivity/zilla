@@ -31,7 +31,18 @@
                     {
                         "enum": [ "server", "proxy" ]
                     },
-                    "options": false
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object",
+                        "properties":
+                        {
+                            "value":
+                            {
+                                "$ref": "#/$defs/validator"
+                            }
+                        }
+                    }
                 },
                 "anyOf":
                 [

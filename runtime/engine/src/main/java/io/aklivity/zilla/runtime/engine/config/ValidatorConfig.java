@@ -15,13 +15,24 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import java.util.List;
+
 public abstract class ValidatorConfig
 {
     public final String type;
+    public final List<CatalogedConfig> cataloged;
 
     public ValidatorConfig(
         String type)
     {
+        this(type, null);
+    }
+
+    public ValidatorConfig(
+        String type,
+        List<CatalogedConfig> cataloged)
+    {
         this.type = type;
+        this.cataloged = cataloged;
     }
 }

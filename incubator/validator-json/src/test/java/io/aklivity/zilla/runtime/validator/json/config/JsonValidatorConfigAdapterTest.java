@@ -70,17 +70,17 @@ public class JsonValidatorConfigAdapterTest
         // THEN
         assertThat(validator, not(nullValue()));
         assertThat(validator.type, equalTo("json"));
-        assertThat(validator.catalogs.size(), equalTo(1));
-        assertThat(validator.catalogs.get(0).name, equalTo("test0"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).subject, equalTo("subject1"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(validator.catalogs.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(1).strategy, equalTo("topic"));
-        assertThat(validator.catalogs.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(validator.catalogs.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(validator.catalogs.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(2).version, nullValue());
-        assertThat(validator.catalogs.get(0).schemas.get(2).id, equalTo(42));
+        assertThat(validator.cataloged.size(), equalTo(1));
+        assertThat(validator.cataloged.get(0).name, equalTo("test0"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).subject, equalTo("subject1"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
+        assertThat(validator.cataloged.get(0).schemas.get(0).id, equalTo(0));
+        assertThat(validator.cataloged.get(0).schemas.get(1).strategy, equalTo("topic"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(validator.cataloged.get(0).schemas.get(1).id, equalTo(0));
+        assertThat(validator.cataloged.get(0).schemas.get(2).strategy, nullValue());
+        assertThat(validator.cataloged.get(0).schemas.get(2).version, nullValue());
+        assertThat(validator.cataloged.get(0).schemas.get(2).id, equalTo(42));
     }
 
     @Test
