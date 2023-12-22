@@ -27,8 +27,19 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
+                                    .headerNot("zilla:qos", "1")
+                                    .headerNot("zilla:qos", "2")
                                     .build()
                                 .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 0, 1, 1)
                                 .build()
                             .build()}
 
@@ -37,20 +48,23 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                              .fetch()
-                                .filters(1)
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("sensor/one")
-                                .header("zilla:filter", "sensor")
-                                .header("zilla:filter", "one")
-                                .header("zilla:local", "client")
-                                .header("zilla:content-type", "message")
-                                .header("zilla:format", "TEXT")
-                                .header("zilla:reply-to", "sensor/one")
-                                .header("zilla:correlation-id", "info")
-                                .build()
-                            .build()}
+                                .fetch()
+                                    .timestamp(timestamp)
+                                    .filters(1)
+                                    .partition(0, 2, 2)
+                                    .progress(0, 3)
+                                    .progress(1, 1)
+                                    .key("sensor/one")
+                                    .header("zilla:filter", "sensor")
+                                    .header("zilla:filter", "one")
+                                    .header("zilla:local", "client")
+                                    .headerInt("zilla:expiry", 1)
+                                    .header("zilla:format", "TEXT")
+                                    .build()
+                                .build()}
+read "mess"
 
-read "message"
+read "age"
+
+write close
+read closed

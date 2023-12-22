@@ -343,6 +343,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.one.message.fragmented/client",
+        "${kafka}/subscribe.one.message.fragmented/server"})
+    public void shouldReceiveOneMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.one.message.changed.topic.name/client",
         "${kafka}/subscribe.one.message.changed.topic.name/server"})
     public void shouldReceiveOneMessageWithChangedTopicName() throws Exception
@@ -382,6 +391,15 @@ public class KafkaIT
         "${kafka}/subscribe.retain/client",
         "${kafka}/subscribe.retain/server"})
     public void shouldReceiveRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retain.fragmented/client",
+        "${kafka}/subscribe.retain.fragmented/server"})
+    public void shouldReceiveRetainedFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -914,6 +932,24 @@ public class KafkaIT
         "${kafka}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
         "${kafka}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
     public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.expire.message.fragmented/client",
+        "${kafka}/subscribe.expire.message.fragmented/server"})
+    public void shouldExpireMessageFragmented() throws Exception
     {
         k3po.finish();
     }

@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
@@ -34,10 +36,12 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+write option zilla:flags "init"
+write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                               .fetch()
+                                .timestamp(kafka:timestamp())
                                 .filters(1)
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -46,11 +50,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .header("zilla:filter", "sensor")
                                 .header("zilla:filter", "one")
                                 .header("zilla:local", "client")
-                                .header("zilla:content-type", "message")
                                 .header("zilla:format", "TEXT")
-                                .header("zilla:reply-to", "sensor/one")
-                                .header("zilla:correlation-id", "info")
                                 .build()
                             .build()}
+write "mess"
+write flush
 
-read "message"
+write option zilla:flags "fin"
+write "age"
+write flush
