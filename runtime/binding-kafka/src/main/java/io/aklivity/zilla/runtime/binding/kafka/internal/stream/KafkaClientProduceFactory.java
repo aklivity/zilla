@@ -1313,6 +1313,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 stream.doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId);
             }
 
+            private long networkBytesReceived;
+
             private void onNetworkData(
                 DataFW data)
             {
@@ -1324,6 +1326,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert acknowledge <= sequence;
                 assert sequence >= replySeq;
 
+                networkBytesReceived += Math.max(data.length(), 0);
                 authorization = data.authorization();
                 replySeq = sequence + data.reserved();
 
@@ -1385,7 +1388,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n", topic, partitionId);
+                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n",
+                        topic, partitionId, network, networkBytesReceived);
                 }
 
                 state = KafkaState.closedReply(state);
@@ -1400,7 +1404,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n", topic, partitionId);
+                    System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n",
+                        topic, partitionId, networkBytesReceived);
                 }
 
                 state = KafkaState.closedInitial(state);
@@ -1477,6 +1482,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                                                             .destination(broker.host)
                                                                             .sourcePort(0)
                                                                             .destinationPort(broker.port)))
+                                                                    .infos(i -> i.item(ii -> ii.authority(broker.host)))
                                                                     .build()
                                                                     .sizeof());
                 }

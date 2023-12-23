@@ -181,6 +181,9 @@ write zilla:begin.ext ${proxy:beginEx()
                                  .sourcePort(0)
                                  .destinationPort(9092)
                                  .build()
+                               .info()
+                                 .authority("broker1.example.com")
+                                 .build()
                                .build()}
 
 connected
@@ -290,6 +293,9 @@ write zilla:begin.ext ${proxy:beginEx()
                                  .destination("broker2.example.com")
                                  .sourcePort(0)
                                  .destinationPort(9092)
+                                 .build()
+                               .info()
+                                 .authority("broker2.example.com")
                                  .build()
                                .build()}
 

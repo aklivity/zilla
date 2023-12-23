@@ -244,4 +244,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.invalid.session.timeout.after.connack/client",
+        "${app}/session.invalid.session.timeout.after.connack/server"})
+    public void shouldPropagateMqttReasonCodeAndStringAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.invalid.session.timeout.before.connack/client",
+        "${app}/session.invalid.session.timeout.before.connack/server"})
+    public void shouldPropagateMqttReasonCodeAndStringBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
