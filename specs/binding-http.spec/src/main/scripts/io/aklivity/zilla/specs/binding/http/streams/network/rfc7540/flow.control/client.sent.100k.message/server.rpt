@@ -62,6 +62,8 @@ read [0x00 0x00 0x00]                  # length = 0
      [0x01]                            # ACK
      [0x00 0x00 0x00 0x00]             # stream_id = 0
 
+write notify HTTP2_SETTINGS_ACK_RECEIVED
+
 read [0x00 0x40 0x00]                  # length = 16384
      [0x00]                            # HTTP2 DATA frame
      [0x00]                            # NO_END_STREAM

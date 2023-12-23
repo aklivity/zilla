@@ -3872,7 +3872,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
             final int initialSharedCredit = Math.min(requestSharedCredit, requestSharedBudgetDelta);
 
-            if (initialSharedCredit > 0)
+            if (initialSharedCredit > 0 && requestSharedBudgetIndex != NO_CREDITOR_INDEX)
             {
                 final long requestSharedPrevious =
                         creditor.credit(traceId, requestSharedBudgetIndex, initialSharedCredit);

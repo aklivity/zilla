@@ -100,13 +100,6 @@ read [0x00 0x00 0x04]                                      # length
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
      [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
-write [0x00 0x00 0x00]                  # length = 0
-      [0x04]                            # HTTP2 SETTINGS frame
-      [0x01]                            # ACK
-      [0x00 0x00 0x00 0x00]             # stream_id = 0
-write flush
-
-
 read [0x00 0x00 0x59]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
