@@ -557,6 +557,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private String leaderId;
         private String memberId;
         private String instanceId;
+        private String host;
+        private int port;
         private int timeout;
         private int generationId;
 
@@ -846,6 +848,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx != null ? kafkaBeginEx.group() : null;
 
             instanceId = kafkaGroupBeginEx.instanceId().asString();
+            host = kafkaGroupBeginEx.host().asString();
+            port = kafkaGroupBeginEx.port();
 
             state = KafkaState.openedReply(state);
 
@@ -1353,7 +1357,16 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             state = KafkaState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, EMPTY_OCTETS);
+                traceId, authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .consumer(c -> c
+                        .groupId(fanout.groupId)
+                        .consumerId(fanout.consumerId)
+                        .host(fanout.host)
+                        .port(fanout.port)
+                        .timeout(fanout.timeout)
+                        .topic(topic))
+                    .build().sizeof()));
         }
 
         private void doConsumerReplyData(
