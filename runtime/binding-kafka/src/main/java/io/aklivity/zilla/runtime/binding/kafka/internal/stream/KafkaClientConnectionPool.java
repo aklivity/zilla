@@ -78,7 +78,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private static final int SIGNAL_STREAM_WINDOW = 0x80000006;
     private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000007;
     private static final int SIGNAL_NEXT_REQUEST = 0x80000008;
-    private static final StringBuilder CLUSTER = new StringBuilder("");
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -173,7 +172,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
 
         MessageConsumer newStream = null;
-        CLUSTER.setLength(0);
+        final StringBuilder cluster = new StringBuilder();
 
         if (proxyBeginEx != null)
         {
@@ -181,21 +180,21 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             String host = inet.destination().asString();
             int port = inet.destinationPort();
 
-            CLUSTER.append(host);
-            CLUSTER.append(":");
-            CLUSTER.append(port);
+            cluster.append(host);
+            cluster.append(":");
+            cluster.append(port);
 
             if (proxyBeginEx.infos() != null)
             {
                 proxyBeginEx.infos().forEach(i ->
                 {
-                    CLUSTER.append(":");
-                    CLUSTER.append(i.authority().asString());
+                    cluster.append(":");
+                    cluster.append(i.authority().asString());
                 });
             }
         }
 
-        final KafkaClientConnection connection = connectionPool.computeIfAbsent(CLUSTER.toString(), s ->
+        final KafkaClientConnection connection = connectionPool.computeIfAbsent(cluster.toString(), s ->
             newConnection(originId, routedId, authorization));
         newStream = connection.newStream(msgTypeId, buffer, index, length, sender);
 
