@@ -1525,6 +1525,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         .groupId(groupId)
                         .protocol(protocol)
                         .instanceId(groupMembership.instanceId)
+                        .host(host)
+                        .port(port)
                         .timeout(timeout))
                     .build();
 
