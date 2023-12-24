@@ -4167,6 +4167,8 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .instanceId("client-1")
+                .host("localhost")
+                .port(9092)
                 .timeout(10)
                 .metadata("test".getBytes())
                 .build()
@@ -4180,6 +4182,9 @@ public class KafkaFunctionsTest
         final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
         assertEquals("test", groupBeginEx.groupId().asString());
         assertEquals("roundrobin", groupBeginEx.protocol().asString());
+        assertEquals("client-1", groupBeginEx.instanceId().asString());
+        assertEquals("localhost", groupBeginEx.host().asString());
+        assertEquals(9092, groupBeginEx.port());
         assertEquals(10, groupBeginEx.timeout());
     }
 
@@ -4285,6 +4290,8 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .instanceId("zilla")
+                .host("localhost")
+                .port(9092)
                 .timeout(10)
                 .metadata("meta".getBytes())
                 .build()
@@ -4299,6 +4306,8 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .protocol("roundrobin")
                 .instanceId("zilla")
+                .host("localhost")
+                .port(9092)
                 .timeout(10)
                 .metadataLen("meta".length())
                 .metadata(m -> m.set("test".getBytes())))
