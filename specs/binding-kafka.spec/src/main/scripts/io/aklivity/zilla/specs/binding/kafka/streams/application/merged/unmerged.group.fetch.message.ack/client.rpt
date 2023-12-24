@@ -135,6 +135,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .group()
                                    .groupId("client-1")
                                    .protocol("rebalance")
+                                   .host("localhost")
+                                   .port(9092)
                                    .timeout(30000)
                                    .build()
                                .build()}
