@@ -1528,6 +1528,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaOffsetFetchBeginExBuilder host(
+                String host)
+            {
+                offsetFetchBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder port(
+                int port)
+            {
+                offsetFetchBeginExRW.port(port);
+                return this;
+            }
+
             public KafkaOffsetFetchBeginExBuilder topic(
                 String topic)
             {

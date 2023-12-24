@@ -4243,6 +4243,8 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .offsetFetch()
             .groupId("test")
+            .host("localhost")
+            .port(9092)
             .topic("topic")
             .partition(0)
             .build()
@@ -4255,6 +4257,8 @@ public class KafkaFunctionsTest
 
         final KafkaOffsetFetchBeginExFW offsetFetchBeginEx = beginEx.offsetFetch();
         assertEquals("topic", offsetFetchBeginEx.topic().asString());
+        assertEquals("localhost", offsetFetchBeginEx.host().asString());
+        assertEquals(9092, offsetFetchBeginEx.port());
         assertEquals(1, offsetFetchBeginEx.partitions().fieldCount());
     }
 
