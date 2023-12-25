@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.9.63](https://github.com/aklivity/zilla/tree/0.9.63) (2023-12-25)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.62...0.9.63)
+
+**Implemented enhancements:**
+
+- Support MQTT message expiry in `mqtt-kafka` mapping [\#631](https://github.com/aklivity/zilla/issues/631)
+- Implement mqtt message expiry [\#640](https://github.com/aklivity/zilla/pull/640) ([bmaidics](https://github.com/bmaidics))
+- Improve server sent DISCONNECT reasonCodes [\#634](https://github.com/aklivity/zilla/pull/634) ([bmaidics](https://github.com/bmaidics))
+
+**Fixed bugs:**
+
+- OffsetFetch Request should connect to the coordinator instead of a random member of cluster [\#653](https://github.com/aklivity/zilla/issues/653)
+- Mqtt-kakfa will message bugfixes [\#644](https://github.com/aklivity/zilla/pull/644) ([bmaidics](https://github.com/bmaidics))
+
+**Closed issues:**
+
+- gRPC remote\_server gets duplicate messages [\#480](https://github.com/aklivity/zilla/issues/480)
+- Log compaction behavior with or without bootstrap is not consistent [\#389](https://github.com/aklivity/zilla/issues/389)
+
+**Merged pull requests:**
+
+- Fix static field [\#655](https://github.com/aklivity/zilla/pull/655) ([akrambek](https://github.com/akrambek))
+- OffsetFetch Request should connect to the coordinator instead of a random member of cluster  [\#654](https://github.com/aklivity/zilla/pull/654) ([akrambek](https://github.com/akrambek))
+- Add grpc extension parsing to the dump command [\#652](https://github.com/aklivity/zilla/pull/652) ([attilakreiner](https://github.com/attilakreiner))
+- Add end-to-end testing for the `dump` command [\#646](https://github.com/aklivity/zilla/pull/646) ([attilakreiner](https://github.com/attilakreiner))
+- Bump actions/upload-artifact from 3 to 4 [\#645](https://github.com/aklivity/zilla/pull/645) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github/codeql-action from 2 to 3 [\#643](https://github.com/aklivity/zilla/pull/643) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix `java.util.MissingFormatArgumentException` when using Kafka debugging. [\#639](https://github.com/aklivity/zilla/pull/639) ([voutilad](https://github.com/voutilad))
+- Json schema errors [\#638](https://github.com/aklivity/zilla/pull/638) ([vordimous](https://github.com/vordimous))
+- Add jumbograms and proxy extension parsing to dump command [\#635](https://github.com/aklivity/zilla/pull/635) ([attilakreiner](https://github.com/attilakreiner))
+- Bump ubuntu from jammy-20230916 to jammy-20231128 in /cloud/docker-image/src/main/docker/incubator [\#608](https://github.com/aklivity/zilla/pull/608) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20230916 to jammy-20231128 in /cloud/docker-image/src/main/docker/release [\#607](https://github.com/aklivity/zilla/pull/607) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.62](https://github.com/aklivity/zilla/tree/0.9.62) (2023-12-13)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.61...0.9.62)

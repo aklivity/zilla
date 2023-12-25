@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -93,7 +95,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
 
@@ -127,6 +129,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final KafkaOffsetFetchClientDecoder decodeReject = this::decodeReject;
 
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -142,6 +145,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -173,6 +177,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_FETCH;
         final KafkaOffsetFetchBeginExFW kafkaOffsetFetchBeginEx = kafkaBeginEx.offsetFetch();
         final String groupId = kafkaOffsetFetchBeginEx.groupId().asString();
+        final String host = kafkaOffsetFetchBeginEx.host().asString();
+        final int port = kafkaOffsetFetchBeginEx.port();
         final String topic = kafkaOffsetFetchBeginEx.topic().asString();
         IntHashSet partitions = new IntHashSet();
         kafkaOffsetFetchBeginEx.partitions().forEach(p -> partitions.add(p.partitionId()));
@@ -196,6 +202,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                     affinity,
                     resolvedId,
                     groupId,
+                    host,
+                    port,
                     topic,
                     partitions,
                     sasl)::onApplication;
@@ -757,6 +765,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long affinity,
             long resolvedId,
             String groupId,
+            String host,
+            int port,
             String topic,
             IntHashSet partitions,
             KafkaSaslConfig sasl)
@@ -767,7 +777,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId, topic, partitions, sasl);
+            this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId, host, port,
+                topic, partitions, sasl);
         }
 
         private void onApplication(
@@ -1020,6 +1031,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
         private final KafkaOffsetFetchStream delegate;
         private final String groupId;
+        private final String host;
+        private final int port;
         private final String topic;
         private final IntHashSet partitions;
         private final ObjectHashSet<KafkaPartitionOffset> topicPartitions;
@@ -1060,6 +1073,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long originId,
             long routedId,
             String groupId,
+            String host,
+            int port,
             String topic,
             IntHashSet partitions,
             KafkaSaslConfig sasl)
@@ -1067,6 +1082,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             super(sasl, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
+            this.host = host;
+            this.port = port;
             this.topic = topic;
             this.partitions = partitions;
             this.topicPartitions = new ObjectHashSet<>();
@@ -1274,8 +1291,19 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         {
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                .typeId(proxyTypeId)
+                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                    .source("0.0.0.0")
+                    .destination(host)
+                    .sourcePort(0)
+                    .destinationPort(port)))
+                .infos(i -> i.item(ii -> ii.authority(host)))
+                .build()
+                .sizeof());
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                traceId, authorization, affinity, extension);
         }
 
         @Override
