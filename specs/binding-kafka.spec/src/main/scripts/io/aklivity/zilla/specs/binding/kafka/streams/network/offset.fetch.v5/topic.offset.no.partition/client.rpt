@@ -47,5 +47,3 @@ read 26                                 # size
        0                                  # partitions
      3s                                  # error code
 
-read abort
-write abort
