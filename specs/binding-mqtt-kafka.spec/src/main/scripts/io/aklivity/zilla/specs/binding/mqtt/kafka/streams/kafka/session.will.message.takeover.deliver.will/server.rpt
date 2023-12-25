@@ -466,6 +466,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")
                                .header("zilla:format", "TEXT")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
 read "client-1 disconnected abruptly"

@@ -77,7 +77,8 @@
                                         "deltaType":
                                         {
                                             "type": "string",
-                                            "enum": [ "none", "json_patch" ]
+                                            "enum": [ "none", "json_patch" ],
+                                            "deprecated": true
                                         },
                                         "key":
                                         {
@@ -230,7 +231,8 @@
                                             "groupId":
                                             {
                                                 "title": "groupId",
-                                                "type": "string"
+                                                "type": "string",
+                                                "deprecated": true
                                             }
                                         },
                                         "additionalProperties": false
