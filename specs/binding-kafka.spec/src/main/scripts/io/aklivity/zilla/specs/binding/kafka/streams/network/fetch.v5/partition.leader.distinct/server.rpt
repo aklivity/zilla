@@ -68,9 +68,6 @@ write 150                                # size
       -1
       0
 
-accepted
-
-connected
 
 read 27                                 # size
      3s                                 # metadata
