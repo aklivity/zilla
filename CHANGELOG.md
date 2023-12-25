@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.64](https://github.com/aklivity/zilla/tree/0.9.64) (2023-12-25)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.63...0.9.64)
+
+**Merged pull requests:**
+
+- MQTT topic sharding [\#657](https://github.com/aklivity/zilla/pull/657) ([jfallows](https://github.com/jfallows))
+- Move everything except fetch and produce to use connection pool [\#656](https://github.com/aklivity/zilla/pull/656) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.63](https://github.com/aklivity/zilla/tree/0.9.63) (2023-12-25)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.62...0.9.63)
