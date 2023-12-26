@@ -1427,6 +1427,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
+
+                cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -1441,6 +1444,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 }
 
                 cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1881,6 +1885,15 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                     encodeSlotTraceId = 0;
+                }
+            }
+
+            private void cleanupBudgetIfNecessary()
+            {
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    initialDeb.release(initialDebIndex, initialBudgetId);
+                    initialDebIndex = NO_DEBITOR_INDEX;
                 }
             }
         }
