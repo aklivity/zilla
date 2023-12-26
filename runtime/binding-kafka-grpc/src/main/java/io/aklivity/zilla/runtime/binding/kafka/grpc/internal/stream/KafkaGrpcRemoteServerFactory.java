@@ -441,14 +441,14 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
             else
             {
-                if (lastCorrelationId == null)
+                GrpcClient grpcClient = lastCorrelationId == null ? null : grpcClients.get(lastCorrelationId);
+
+                if (grpcClient == null)
                 {
                     doKafkaCommitOffset(traceId, authorization, helper.partitionId, helper.partitionOffset);
                 }
                 else
                 {
-                    GrpcClient grpcClient = grpcClients.get(lastCorrelationId);
-
                     flushGrpcClientData(grpcClient, traceId, authorization, null, null,
                         helper.partitionId, helper.partitionOffset, deferred, flags, reserved, payload);
                 }
