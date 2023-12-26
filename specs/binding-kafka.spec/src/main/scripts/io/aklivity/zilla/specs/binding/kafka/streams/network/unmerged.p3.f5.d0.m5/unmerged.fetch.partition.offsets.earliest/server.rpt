@@ -46,7 +46,7 @@ read 238                                # size
          21s "max.compaction.lag.ms"
          25s "min.cleanable.dirty.ratio"
 
-write 365                               # size
+write 372                               # size
       ${requestId}
       0
       1                                 # resources
@@ -110,11 +110,6 @@ write 365                               # size
           [0x00]
           [0x00]
           [0x00]
-
-accepted
-
-
-connected
 
 read 26                                 # size
      3s                                 # metadata

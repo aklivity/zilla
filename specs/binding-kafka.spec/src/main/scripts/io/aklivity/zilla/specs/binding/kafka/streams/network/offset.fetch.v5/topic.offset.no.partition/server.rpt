@@ -44,5 +44,3 @@ write 26                                 # size
         0                                  # partitions
       3s                                  # error code
 
-write aborted
-read aborted

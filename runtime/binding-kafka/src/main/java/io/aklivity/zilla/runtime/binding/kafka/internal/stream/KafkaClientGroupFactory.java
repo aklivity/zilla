@@ -95,7 +95,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
@@ -172,7 +171,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
-    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
@@ -1405,7 +1403,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
-            final long authorizationId = flush.authorization();
+            final long budgetId = flush.budgetId();
             final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
@@ -1440,7 +1438,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     }
                 });
 
-                coordinatorClient.doJoinGroupRequest(traceId);
+                if (host != null)
+                {
+                    coordinatorClient.doJoinGroupRequest(traceId);
+                }
+                else
+                {
+                    clusterClient.doEncodeRequestIfNecessary(traceId, budgetId);
+                }
             }
             else
             {
@@ -1525,6 +1530,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         .groupId(groupId)
                         .protocol(protocol)
                         .instanceId(groupMembership.instanceId)
+                        .host(host)
+                        .port(port)
                         .timeout(timeout))
                     .build();
 
@@ -2709,6 +2716,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             final KafkaClientRoute clientRoute = supplyClientRoute.apply(routedId);
             final KafkaBrokerInfo broker = clientRoute.brokers.get(Long.parseLong(delegate.nodeId));
+
             if (broker != null)
             {
                 extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
@@ -4008,7 +4016,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 encoders.add(encodeJoinGroupRequest);
                 signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
-            else
+            else if (delegate.host != null)
             {
                 delegate.doStreamBeginIfNecessary(traceId, authorization);
             }
