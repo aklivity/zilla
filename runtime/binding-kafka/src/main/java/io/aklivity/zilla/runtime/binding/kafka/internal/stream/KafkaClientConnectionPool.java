@@ -89,7 +89,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
 
-    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();

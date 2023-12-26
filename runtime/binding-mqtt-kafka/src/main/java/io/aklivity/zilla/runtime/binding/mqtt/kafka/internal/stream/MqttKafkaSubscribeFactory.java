@@ -218,9 +218,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             List<MqttKafkaRouteConfig> bootstrap = binding.bootstrapRoutes();
+            String serverRef = binding.options.serverRef;
             bootstrap.forEach(r ->
             {
-                final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
+                final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r, serverRef);
                 bootstrapStreams.add(stream);
                 stream.doKafkaBeginAt(currentTimeMillis());
             });
@@ -831,6 +832,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String serverRef;
+
         private int state;
 
         private long initialSeq;
@@ -845,11 +848,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private KafkaMessagesBootstrap(
             long originId,
-            MqttKafkaRouteConfig route)
+            MqttKafkaRouteConfig route,
+            String serverRef)
         {
             this.originId = originId;
             this.routedId = route.id;
             this.topic = route.messages;
+            this.serverRef = serverRef;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -881,7 +886,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaBootstrapStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, topic);
+                initialMax, traceId, authorization, affinity, topic, serverRef);
         }
 
         private void doKafkaEnd(
@@ -2731,12 +2736,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW topic)
+        String16FW topic,
+        String serverRef)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .bootstrap(b -> b.topic(topic).groupId(MQTT_CLIENTS_GROUP_ID))
+                .bootstrap(b -> b
+                    .topic(topic)
+                    .groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null)
+                    .consumerId(serverRef))
                 .build();
 
 
