@@ -1046,7 +1046,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, h))))
                 .build();
 
-            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+            doKafkaData(traceId, authorization, delegate.initialBudetId, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
         }
     }
 
@@ -1322,7 +1322,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private long initialSeq;
         private long initialAck;
         private int initialMax;
-        private long initialBud;
+        private long initialBudetId;
         private int initialPad;
         private int initialCap;
         private int initialAuth;
@@ -1555,7 +1555,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             initialAck = acknowledge;
             initialMax = maximum;
-            initialBud = budgetId;
+            initialBudetId = budgetId;
             initialAuth = padding;
             initialPad = padding;
             initialCap = capabilities;
@@ -1563,13 +1563,14 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert initialAck <= initialSeq;
 
-            if (initialBud != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            if (initialBudetId != 0L && initialDebIndex == NO_DEBITOR_INDEX)
             {
                 initialDeb = supplyDebitor.apply(budgetId);
-                initialDebIndex = initialDeb.acquire(budgetId, replyId, this::flushMessage);
+                initialDebIndex = initialDeb.acquire(budgetId, initialId, this::flushMessage);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
             }
 
-            if (initialBud != 0L && initialDebIndex == NO_DEBITOR_INDEX)
+            if (initialBudetId != 0L && initialDebIndex == NO_DEBITOR_INDEX)
             {
                 cleanup(traceId, authorization);
             }
@@ -1620,7 +1621,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             if (length > 0 && claimed > 0)
             {
                 final int newFlags = payloadLength ==  flushableBytes ? flags : flags & DATA_FLAG_INIT;
-                doGrpcData(traceId, authorization, initialBud, reserved,
+                doGrpcData(traceId, authorization, initialBudetId, reserved,
                     deferred, newFlags, payload.value(), 0, flushableBytes);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
@@ -1677,7 +1678,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {
-                initialDeb.release(initialDebIndex, initialBud);
+                initialDeb.release(initialDebIndex, initialId);
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
