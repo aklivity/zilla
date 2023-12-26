@@ -1625,7 +1625,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             {
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    initialDeb.release(initialDebIndex, initialBudgetId);
+                    initialDeb.release(initialDebIndex, initialId);
                     initialDebIndex = NO_DEBITOR_INDEX;
                 }
             }

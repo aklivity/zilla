@@ -2418,7 +2418,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {
-                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDeb.release(initialDebIndex, initialId);
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
@@ -3169,7 +3169,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {
-                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDeb.release(initialDebIndex, initialId);
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
@@ -4530,7 +4530,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {
-                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDeb.release(initialDebIndex, initialId);
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
