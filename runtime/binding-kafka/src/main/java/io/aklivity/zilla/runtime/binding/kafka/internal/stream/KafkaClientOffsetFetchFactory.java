@@ -1366,6 +1366,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             state = KafkaState.closedInitial(state);
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
@@ -1382,6 +1383,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkResetIfNecessary(
@@ -1774,6 +1776,15 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialId);
+                initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
     }
