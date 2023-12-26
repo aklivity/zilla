@@ -293,6 +293,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             GrpcClient grpcClient = grpcClients.get(correlationId);
             if (grpcClient != null && KafkaGrpcState.closed(grpcClient.state))
             {
+                grpcClient.cleanupBudgetIfNecessary();
                 grpcClients.remove(correlationId);
             }
         }
@@ -1670,6 +1671,15 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             correlater.doKafkaReset(traceId, authorization);
 
             server.removeIfClosed(correlationId);
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialBud);
+                initialDebIndex = NO_DEBITOR_INDEX;
+            }
         }
 
         private void doGrpcBegin(
