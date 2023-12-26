@@ -26,6 +26,7 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String URL = "url";
     private static final String CONTEXT = "context";
+    private static final String CACHETTL = "cacheTTL";
 
     @Override
     public Kind kind()
@@ -58,6 +59,16 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
             catalog.add(CONTEXT, config.context);
         }
 
+        if (config.cacheTtl > 0)
+        {
+            catalog.add(CACHETTL, config.cacheTtl);
+        }
+        else
+        {
+            catalog.add(CACHETTL, 300);
+        }
+
+
         return catalog.build();
     }
 
@@ -77,6 +88,15 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
             if (object.containsKey(CONTEXT))
             {
                 options.context(object.getString(CONTEXT));
+            }
+
+            if (object.containsKey(CACHETTL))
+            {
+                options.cacheTtl(object.getInt(CACHETTL));
+            }
+            else
+            {
+                options.cacheTtl(300);
             }
         }
 

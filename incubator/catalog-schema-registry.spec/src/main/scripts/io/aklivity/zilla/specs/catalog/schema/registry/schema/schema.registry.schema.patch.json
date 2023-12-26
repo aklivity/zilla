@@ -39,6 +39,11 @@
                             {
                                 "type": "string",
                                 "default": "default"
+                            },
+                            "cacheTTL":
+                            {
+                                "type": "integer",
+                                "default": 300
                             }
                         },
                         "additionalProperties": false

@@ -45,8 +45,11 @@ public class SchemaRegistryCatalogFactoryTest
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(SchemaRegistryCatalogContext.class));
 
-        SchemaRegistryOptionsConfig catalogConfig =
-            new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        SchemaRegistryOptionsConfig catalogConfig = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .cacheTtl(300)
+            .build();
         CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);
         assertThat(handler, instanceOf(SchemaRegistryCatalogHandler.class));

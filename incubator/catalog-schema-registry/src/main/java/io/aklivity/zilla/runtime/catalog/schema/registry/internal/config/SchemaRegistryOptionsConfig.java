@@ -22,6 +22,7 @@ public class SchemaRegistryOptionsConfig extends OptionsConfig
 {
     public final String url;
     public final String context;
+    public final long cacheTtl;
 
     public static SchemaRegistryOptionsConfigBuilder<SchemaRegistryOptionsConfig> builder()
     {
@@ -36,9 +37,11 @@ public class SchemaRegistryOptionsConfig extends OptionsConfig
 
     public SchemaRegistryOptionsConfig(
         String url,
-        String context)
+        String context,
+        long cacheTtl)
     {
         this.url = url;
         this.context = context;
+        this.cacheTtl = cacheTtl;
     }
 }

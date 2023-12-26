@@ -25,6 +25,7 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
 
     private String url;
     private String context;
+    private long cacheTtl;
 
     SchemaRegistryOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -53,9 +54,16 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
         return this;
     }
 
+    public SchemaRegistryOptionsConfigBuilder<T> cacheTtl(
+        long cacheTtl)
+    {
+        this.cacheTtl = cacheTtl;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaRegistryOptionsConfig(url, context));
+        return mapper.apply(new SchemaRegistryOptionsConfig(url, context, cacheTtl));
     }
 }

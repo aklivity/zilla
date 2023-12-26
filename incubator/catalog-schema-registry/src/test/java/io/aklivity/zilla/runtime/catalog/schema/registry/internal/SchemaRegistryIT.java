@@ -51,7 +51,11 @@ public class SchemaRegistryIT
     @Before
     public void setup()
     {
-        config = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        config = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .cacheTtl(1)
+            .build();
     }
 
     @Test
