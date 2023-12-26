@@ -1659,7 +1659,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {
-                initialDeb.release(initialDebIndex, initialBudgetId);
+                initialDeb.release(initialDebIndex, initialId);
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }

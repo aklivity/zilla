@@ -1892,7 +1892,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    initialDeb.release(initialDebIndex, initialBudgetId);
+                    initialDeb.release(initialDebIndex, initialId);
                     initialDebIndex = NO_DEBITOR_INDEX;
                 }
             }
