@@ -125,4 +125,13 @@ public class KafkaProduceIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.message.value.100k/client",
+        "${kafka}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

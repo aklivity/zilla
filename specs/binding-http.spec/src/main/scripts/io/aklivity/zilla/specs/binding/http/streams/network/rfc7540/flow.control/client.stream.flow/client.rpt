@@ -19,15 +19,6 @@ connect "zilla://streams/net0"
         option zilla:transmission "duplex"
 connected
 
-# server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                   # length = 18
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x00]                             # flags = 0x00
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-     [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
 # client connection preface
 write "PRI * HTTP/2.0\r\n"
       "\r\n"
@@ -43,12 +34,8 @@ write [0x00 0x00 0x0c]                   # length = 12
       [0x00 0x04 0x00 0x00 0x00 0x3c]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 60
 write flush
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
-write [0x00 0x00 0x33]                                      # length = 33
+# ==================== HTTP2 stream-id=1  =================
+write [0x00 0x00 0x33]                                      # length = 51
       [0x01]                                                # HEADERS frame
       [0x04]                                                # END_HEADERS
       [0x00 0x00 0x00 0x01]                                 # stream_id = 1
@@ -67,31 +54,14 @@ write [0x00 0x00 0x0c]                  # length = 12
       "Hello, world"
 write flush
 
-# connection-level flow control
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x00]                                 # stream_id=0
-     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
-# stream-level flow control
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x01]                                 # stream_id=1
-     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
-
-# connection-level flow control
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x00]                                 # stream_id=0
-     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
-# stream-level flow control
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x01]                                 # stream_id=1
-     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
+# server connection preface - SETTINGS frame
+read [0x00 0x00 0x12]                   # length = 18
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x00]                             # flags = 0x00
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
+     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
 write [0x00 0x00 0x00]                  # length = 0
       [0x04]                            # HTTP2 SETTINGS frame
@@ -99,6 +69,36 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+
+# connection-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x00]                                 # stream_id=0
+     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
+# stream-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x01]                                 # stream_id=1
+     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
+
+# connection-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x00]                                 # stream_id=0
+     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
+# stream-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x01]                                 # stream_id=1
+     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
 read [0x00 0x00 0x59]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
