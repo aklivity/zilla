@@ -545,6 +545,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             doWindow(application, originId, routedId, initialId, initialSeq, this.initialAck, this.initialMax,
                 traceId, authorization, budgetId, padding);
+
+            assert initialSeq <= initialAck + initialMax;
         }
 
         private void doAppReset(
