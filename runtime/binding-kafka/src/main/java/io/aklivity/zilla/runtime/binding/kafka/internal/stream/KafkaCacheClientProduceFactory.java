@@ -1347,7 +1347,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
 
             // TODO: defer initialAck until previous DATA frames acked
-            final boolean incomplete = (dataFlags & FLAGS_FIN) != 0x00;
+            final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
             final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
             doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
         }
