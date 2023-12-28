@@ -1417,6 +1417,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExBuilder host(
+                String host)
+            {
+                groupBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaGroupBeginExBuilder port(
+                int port)
+            {
+                groupBeginExRW.port(port);
+                return this;
+            }
+
             public KafkaGroupBeginExBuilder timeout(
                 int timeout)
             {
@@ -1511,6 +1525,20 @@ public final class KafkaFunctions
                 String groupId)
             {
                 offsetFetchBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder host(
+                String host)
+            {
+                offsetFetchBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder port(
+                int port)
+            {
+                offsetFetchBeginExRW.port(port);
                 return this;
             }
 
@@ -5357,6 +5385,8 @@ public final class KafkaFunctions
             private String16FW groupId;
             private String16FW protocol;
             private String16FW instanceId;
+            private String16FW host;
+            private Integer port;
             private Integer timeout;
 
             private byte[] metadata;
@@ -5393,6 +5423,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder host(
+                String host)
+            {
+                this.host = new String16FW(host);
+                return this;
+            }
+
+            public KafkaGroupBeginExMatcherBuilder port(
+                int port)
+            {
+                this.port = port;
+                return this;
+            }
+
             public KafkaGroupBeginExMatcherBuilder metadata(
                 byte[] metadata)
             {
@@ -5413,6 +5457,8 @@ public final class KafkaFunctions
                     matchProtocol(groupBeginEx) &&
                     matchTimeout(groupBeginEx) &&
                     matchInstanceId(groupBeginEx) &&
+                    matchHost(groupBeginEx) &&
+                    matchPort(groupBeginEx) &&
                     matchMetadata(groupBeginEx);
             }
 
@@ -5438,6 +5484,18 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 return instanceId == null || instanceId.equals(groupBeginExFW.instanceId());
+            }
+
+            private boolean matchHost(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return host == null || host.equals(groupBeginExFW.host());
+            }
+
+            private boolean matchPort(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return port == null || port == groupBeginExFW.port();
             }
 
             private boolean matchMetadata(

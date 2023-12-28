@@ -3677,7 +3677,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     m.capabilities(c -> c.set(capabilities));
                     m.topic(sessionsTopicName);
-                    m.groupId(MQTT_CLIENTS_GROUP_ID);
+                    m.groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null);
                     m.consumerId(serverRef);
                     if (clientId != null)
                     {
@@ -3791,7 +3791,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .merged(m ->
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                         .topic(topic)
-                        .groupId(MQTT_CLIENTS_GROUP_ID)
+                        .groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null)
                         .consumerId(serverRef)
                         .partitionsItem(p ->
                             p.partitionId(KafkaOffsetType.HISTORICAL.value())
@@ -3899,7 +3899,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .merged(m ->
                     m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_AND_FETCH))
                         .topic(sessionsTopicName)
-                        .groupId(MQTT_CLIENTS_GROUP_ID)
+                        .groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null)
                         .consumerId(serverRef)
                         .filtersItem(f ->
                             f.conditionsItem(c -> c.header(h ->
