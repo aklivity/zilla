@@ -48,9 +48,12 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.filesystem.internal.FileSystemFunctions;
 import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
+import io.aklivity.zilla.specs.binding.sse.internal.SseFunctions;
+import io.aklivity.zilla.specs.binding.ws.internal.WsFunctions;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
@@ -58,12 +61,15 @@ import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 public class ZillaDumpCommandTest
 {
     private static final int WORKERS = 3;
-    private static final int STREAMS_CAPACITY = 8 * 1024;
+    private static final int STREAMS_CAPACITY = 16 * 1024;
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
+    private static final int FILESYSTEM_TYPE_ID = 1;
     private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
     private static final int PROXY_TYPE_ID = 5;
+    private static final int SSE_TYPE_ID = 7;
+    private static final int WS_TYPE_ID = 8;
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -184,8 +190,8 @@ public class ZillaDumpCommandTest
         streams[0].write(WindowFW.TYPE_ID, window2.buffer(), 0, window2.sizeof());
 
         BeginFW filteredBegin = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-            .originId(0x000000090000000bL) // north_tcp_server
-            .routedId(0x000000090000000cL) // north_tls_server
+            .originId(0x000000090000000dL) // north_http_server
+            .routedId(0x000000090000000eL) // north_http_kafka_mapping
             .streamId(0x0000000000000077L) // INI
             .sequence(71)
             .acknowledge(72)
@@ -257,7 +263,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(ChallengeFW.TYPE_ID, challenge1.buffer(), 0, challenge1.sizeof());
 
-        // POST https://localhost:7142/
+        // data frame with h2 request payload: POST https://localhost:7142/
         byte[] h2request = BitUtil.fromHex(
             "00002c0104000000018387418aa0e41d139d09b8e85a67847a8825b650c3cb85717f53032a2f2a5f87497ca58ae819aa0f0d023132");
         DirectBuffer h2requestBuf = new UnsafeBuffer(h2request);
@@ -276,7 +282,7 @@ public class ZillaDumpCommandTest
             .build();
         streams[0].write(DataFW.TYPE_ID, data3.buffer(), 0, data3.sizeof());
 
-        // 200 OK
+        // data frame with h2 response payload: 200 OK
         byte[] h2response = BitUtil.fromHex(
             "000026010400000001880f2b0a6375726c2f382e312e320f04032a2f2a0f100a746578742f706c61696e0f0d023132");
         DirectBuffer h2responseBuf = new UnsafeBuffer(h2response);
@@ -733,7 +739,10 @@ public class ZillaDumpCommandTest
         streams[0].write(BeginFW.TYPE_ID, begin12.buffer(), 0, begin12.sizeof());
 
         // data frame with extension, without payload, payload length is -1
-        DirectBuffer grpcDataEx1 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 42, 0, 0, 0});
+        DirectBuffer grpcDataEx1 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            42, 0, 0, 0             // int32 deferred
+        });
         DataFW data6 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -751,7 +760,10 @@ public class ZillaDumpCommandTest
 
         // data frame with extension, without payload, payload length is 0
         DirectBuffer grpcDataPayload1 = new UnsafeBuffer();
-        DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 77, 0, 0, 0});
+        DirectBuffer grpcDataEx2 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            77, 0, 0, 0             // int32 deferred
+        });
         DataFW data7 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -770,7 +782,10 @@ public class ZillaDumpCommandTest
 
         // data frame with extension, with payload
         DirectBuffer grpcDataPayload2 = new UnsafeBuffer("Hello World!".getBytes(StandardCharsets.UTF_8));
-        DirectBuffer grpcDataEx3 = new UnsafeBuffer(new byte[]{GRPC_TYPE_ID, 0, 0, 0, 88, 0, 0, 0});
+        DirectBuffer grpcDataEx3 = new UnsafeBuffer(new byte[]{
+            GRPC_TYPE_ID, 0, 0, 0,  // int32 typeId
+            88, 0, 0, 0             // int32 deferred
+        });
         DataFW data8 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000001aL) // north_grpc_server
             .routedId(0x000000090000001bL) // north_grpc_kafka_mapping
@@ -820,6 +835,334 @@ public class ZillaDumpCommandTest
             .extension(grpcResetEx1, 0, grpcResetEx1.capacity())
             .build();
         streams[0].write(ResetFW.TYPE_ID, reset3.buffer(), 0, reset3.sizeof());
+
+        // sse extension
+        DirectBuffer sseBeginEx1 = new UnsafeBuffer(SseFunctions.beginEx()
+            .typeId(SSE_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .path("/hello")
+            .lastId(null)  // length will be -1
+            .build());
+        BeginFW begin13 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000015L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002aL)
+            .traceId(0x0000000000000015L)
+            .affinity(0x0000000000000000L)
+            .extension(sseBeginEx1, 0, sseBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin13.buffer(), 0, begin13.sizeof());
+
+        DirectBuffer sseBeginEx2 = new UnsafeBuffer(SseFunctions.beginEx()
+            .typeId(SSE_TYPE_ID)
+            .scheme("http")
+            .authority("localhost:7153")
+            .path("/hello")
+            .lastId("lastId")
+            .build());
+        BeginFW begin14 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002bL)
+            .traceId(0x0000000000000015L)
+            .affinity(0x0000000000000000L)
+            .extension(sseBeginEx2, 0, sseBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin14.buffer(), 0, begin14.sizeof());
+
+        DirectBuffer sseDataEx1 = new UnsafeBuffer(SseFunctions.dataEx()
+            .typeId(SSE_TYPE_ID)
+            .timestamp(0x000000000000002cL)
+            .id("id")
+            .type("type")
+            .build());
+        DataFW data9 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000015L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002cL)
+            .traceId(0x0000000000000015L)
+            .budgetId(0x0000000000000015L)
+            .reserved(0x00000042)
+            .extension(sseDataEx1, 0, sseDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data9.buffer(), 0, data9.sizeof());
+
+        DirectBuffer ssePayload1 = new UnsafeBuffer("Hello SSE!".getBytes(StandardCharsets.UTF_8));
+        DirectBuffer sseDataEx2 = new UnsafeBuffer(SseFunctions.dataEx()
+            .typeId(SSE_TYPE_ID)
+            .timestamp(0x000000000000002dL)
+            .id(null) // length will be -1
+            .type("fortytwo")
+            .build());
+        DataFW data10 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002dL)
+            .traceId(0x0000000000000015L)
+            .budgetId(0x0000000000000015L)
+            .reserved(0x00000042)
+            .payload(ssePayload1, 0, ssePayload1.capacity())
+            .extension(sseDataEx2, 0, sseDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data10.buffer(), 0, data10.sizeof());
+
+        DirectBuffer sseEndEx1 = new UnsafeBuffer(SseFunctions.endEx()
+            .typeId(SSE_TYPE_ID)
+            .id("sse-end-id")
+            .build());
+        EndFW end6 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001cL) // north_sse_server
+            .routedId(0x000000090000001dL) // south_sse_client
+            .streamId(0x0000000000000014L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002eL)
+            .traceId(0x0000000000000015L)
+            .extension(sseEndEx1, 0, sseEndEx1.capacity())
+            .build();
+        streams[0].write(EndFW.TYPE_ID, end6.buffer(), 0, end6.sizeof());
+
+        // ws extension
+        DirectBuffer wsBeginEx1 = new UnsafeBuffer(WsFunctions.beginEx()
+            .typeId(WS_TYPE_ID)
+            .protocol("echo")
+            .scheme("http")
+            .authority("localhost:7114")
+            .path("/hello")
+            .build());
+        BeginFW begin15 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000002fL)
+            .traceId(0x0000000000000017L)
+            .affinity(0x0000000000000000L)
+            .extension(wsBeginEx1, 0, wsBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin15.buffer(), 0, begin15.sizeof());
+
+        DirectBuffer wsBeginEx2 = new UnsafeBuffer(WsFunctions.beginEx()
+            .typeId(WS_TYPE_ID)
+            .protocol("echo")
+            .scheme("http")
+            .authority("localhost:7114")
+            .path("/hello")
+            .build());
+        BeginFW begin16 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000016L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000030L)
+            .traceId(0x0000000000000017L)
+            .affinity(0x0000000000000000L)
+            .extension(wsBeginEx2, 0, wsBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin16.buffer(), 0, begin16.sizeof());
+
+        DirectBuffer wsDataEx1 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,    // int32 typeId
+            0x42,                   // uint8 flags
+        });
+        DataFW data11 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000031L)
+            .traceId(0x0000000000000017L)
+            .budgetId(0x0000000000000017L)
+            .reserved(0x00000042)
+            .extension(wsDataEx1, 0, wsDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data11.buffer(), 0, data11.sizeof());
+
+        DirectBuffer wsPayload1 = new UnsafeBuffer("Hello Websocket!".getBytes(StandardCharsets.UTF_8));
+        DirectBuffer wsDataEx2 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,                // int32 typeId
+            0x33,                               // uint8 flags
+            0x42, 0x77, 0x44, 0x33, 0x21, 0x07  // octets info
+        });
+        DataFW data12 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000016L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000032L)
+            .traceId(0x0000000000000017L)
+            .budgetId(0x0000000000000017L)
+            .reserved(0x00000042)
+            .payload(wsPayload1, 0, wsPayload1.capacity())
+            .extension(wsDataEx2, 0, wsDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data12.buffer(), 0, data12.sizeof());
+
+        DirectBuffer wsEndEx1 = new UnsafeBuffer(new byte[]{
+            WS_TYPE_ID, 0, 0, 0,        // int32 typeId
+            42, 0,                      // int16 code
+            5, 'h', 'e', 'l', 'l', 'o'  // string8 reason
+        });
+        EndFW end7 = endRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000001eL) // north_ws_server
+            .routedId(0x000000090000001fL) // north_echo_server
+            .streamId(0x0000000000000017L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000033L)
+            .traceId(0x0000000000000017L)
+            .extension(wsEndEx1, 0, wsEndEx1.capacity())
+            .build();
+        streams[0].write(EndFW.TYPE_ID, end7.buffer(), 0, end7.sizeof());
+
+        // filesystem extension
+        DirectBuffer fileSystemBeginEx1 = new UnsafeBuffer(FileSystemFunctions.beginEx()
+            .typeId(FILESYSTEM_TYPE_ID)
+            .capabilities("READ_PAYLOAD", "READ_EXTENSION", "READ_CHANGES")
+            .path("/hello")
+            .type("type")
+            .payloadSize(42_000_000_000L)
+            .tag("tag")
+            .timeout(77)
+            .build());
+        BeginFW begin17 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000020L) // east_http_filesystem_mapping
+            .routedId(0x0000000900000021L) // east_filesystem_server
+            .streamId(0x0000000000000019L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000034L)
+            .traceId(0x0000000000000019L)
+            .affinity(0x0000000000000000L)
+            .extension(fileSystemBeginEx1, 0, fileSystemBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin17.buffer(), 0, begin17.sizeof());
+
+        DirectBuffer fileSystemBeginEx2 = new UnsafeBuffer(FileSystemFunctions.beginEx()
+            .typeId(FILESYSTEM_TYPE_ID)
+            .capabilities("READ_EXTENSION")
+            .path("/hello")
+            .type("type")
+            .payloadSize(0)
+            .tag("tag")
+            .timeout(0)
+            .build());
+        BeginFW begin18 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000020L) // east_http_filesystem_mapping
+            .routedId(0x0000000900000021L) // east_filesystem_server
+            .streamId(0x0000000000000018L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000035L)
+            .traceId(0x0000000000000019L)
+            .affinity(0x0000000000000000L)
+            .extension(fileSystemBeginEx2, 0, fileSystemBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin18.buffer(), 0, begin18.sizeof());
+
+        // data frame with tls payload: TLSv1.3 Server Hello
+        DirectBuffer tlsPayload1 = new UnsafeBuffer(BitUtil.fromHex(
+            "160303007a020000760303328f126a2dc67b1d107023f088ca43560c8b1535c9d7e1be8b217b60b8cefa32209d830c3919be" +
+            "a4f53b3ace6b5f6837c9914c982f1421d3e162606c3eb5907c16130200002e002b0002030400330024001d00201c00c791d3" +
+            "e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e"));
+        DataFW data13 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x000000090000000cL) // north_tls_server
+            .streamId(0x000000000000001aL) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000036L)
+            .traceId(0x000000000000001aL)
+            .budgetId(0x000000000000001aL)
+            .reserved(0x00000042)
+            .payload(tlsPayload1, 0, tlsPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data13.buffer(), 0, data13.sizeof());
+
+        // data frame with mqtt payload: mqtt Connect Command
+        DirectBuffer mqttPayload1 = new UnsafeBuffer(BitUtil.fromHex("101000044d5154540502003c032100140000"));
+        DataFW data14 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x0000000900000022L) // north_mqtt_server
+            .streamId(0x000000000000001bL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000037L)
+            .traceId(0x000000000000001bL)
+            .budgetId(0x000000000000001bL)
+            .reserved(0x00000077)
+            .payload(mqttPayload1, 0, mqttPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data14.buffer(), 0, data14.sizeof());
+
+        // data frame with kafka payload: Kafka (Fetch v5 Request)
+        DirectBuffer kafkaPayload1 = new UnsafeBuffer(BitUtil.fromHex(
+            "00000051000100050000000100057a696c6c61ffffffff0000000000000001032000000000000001000f6974656d732d7265" +
+            "73706f6e73657300000001000000000000000000000000ffffffffffffffff03200000"));
+        DataFW data15 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x000000000000001dL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000038L)
+            .traceId(0x000000000000001dL)
+            .budgetId(0x000000000000001dL)
+            .reserved(0x00000088)
+            .payload(kafkaPayload1, 0, kafkaPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data15.buffer(), 0, data15.sizeof());
+
+        // data frame with kafka payload: Kafka (Fetch v5 Response)
+        DirectBuffer kafkaPayload2 = new UnsafeBuffer(BitUtil.fromHex(
+            "00000047000000010000000000000001000f6974656d732d726573706f6e7365730000000100000000000000000000000000" +
+            "0000000000000000000000000000000000ffffffff00000000"));
+        DataFW data16 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000011L) // south_kafka_client
+            .routedId(0x0000000900000012L) // south_tcp_client
+            .streamId(0x000000000000001cL) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000039L)
+            .traceId(0x000000000000001dL)
+            .budgetId(0x000000000000001dL)
+            .reserved(0x00000088)
+            .payload(kafkaPayload2, 0, kafkaPayload2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data16.buffer(), 0, data16.sizeof());
     }
 
     @BeforeEach
@@ -856,7 +1199,7 @@ public class ZillaDumpCommandTest
         byte[] expected = getResourceAsBytes("expected_filtered_dump.pcap");
 
         // WHEN
-        command.bindings = singletonList("example.north_tls_server");
+        command.bindings = singletonList("example.north_http_kafka_mapping");
         command.run();
 
         // THEN

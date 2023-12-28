@@ -76,7 +76,7 @@ public final class KafkaMergedBudgetCreditor implements MergedBudgetCreditor
         final long budgetId = mergedBudget.budgetId();
         if (budgetId != NO_BUDGET_ID)
         {
-            creditor.cleanupChild(budgetId);
+            creditor.cleanupChild(mergedBudgetId);
         }
         mergedBudget.release();
     }

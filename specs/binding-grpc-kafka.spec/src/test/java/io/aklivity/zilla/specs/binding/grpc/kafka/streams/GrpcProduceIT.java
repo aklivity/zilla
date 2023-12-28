@@ -124,4 +124,13 @@ public class GrpcProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.message.value.100k/client",
+        "${grpc}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kInUnary() throws Exception
+    {
+        k3po.finish();
+    }
 }

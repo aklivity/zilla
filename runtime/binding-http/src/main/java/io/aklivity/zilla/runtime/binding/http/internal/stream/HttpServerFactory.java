@@ -5202,7 +5202,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final int responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
             final int replySharedCredit = Math.min(responseSharedCredit, responseSharedBudgetDelta);
 
-            if (replySharedCredit > 0)
+            if (replySharedCredit > 0 && responseSharedBudgetIndex != NO_CREDITOR_INDEX)
             {
                 final long responseSharedPrevious =
                     creditor.credit(traceId, responseSharedBudgetIndex, replySharedCredit);
