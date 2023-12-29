@@ -594,7 +594,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 session.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, EMPTY_OCTETS);
             }
 
-            if ((mqttSessionDataEx == null || kind == MqttSessionDataKind.WILL ) &&
+            if ((mqttSessionDataEx == null || kind == MqttSessionDataKind.WILL) &&
                 (flags & DATA_FLAG_FIN) != 0)
             {
                 String16FW willSignalKey = new String16FW.Builder()

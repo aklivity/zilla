@@ -403,7 +403,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final IntSupplier supplySubscriptionId;
     private final EngineContext context;
 
-    private int maximumPacketSize;
+    private int maximumPacketSize = Integer.MAX_VALUE;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -513,7 +513,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
         this.keepAliveMinimum = config.keepAliveMinimum();
         this.keepAliveMaximum = config.keepAliveMaximum();
-        this.maximumPacketSize = writeBuffer.capacity();
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.noLocal = config.noLocal();
         this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
@@ -973,7 +972,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (limit - packet.limit() >= length)
+            else if (length >= 0)
             {
                 server.decodeablePacketBytes = packet.sizeof() + length;
                 server.decoder = decoder;
@@ -1231,7 +1230,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         decode:
-        if (length >= server.decodeablePacketBytes)
+        if (length >= 0)
         {
             final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
             final int typeAndFlags = publishHeader.typeAndFlags();
@@ -1328,7 +1327,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         decode:
-        if (length >= server.decodeablePacketBytes)
+        if (length >= 0)
         {
             final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
             final int typeAndFlags = publishHeader.typeAndFlags();
@@ -1428,15 +1427,15 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         decode:
-        if (length >= server.publishPayloadBytes)
+        if (length >= 0)
         {
             final String topic = mqttPublishHeaderRO.topic;
             final long topicKey = topicKey(topic, mqttPublishHeaderRO.qos);
             MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
-            int publishablePayloadSize = Math.min(server.publishPayloadBytes, publisher.initialBudget());
+            int publishablePayloadSize = Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget()), length);
 
-            final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + publishablePayloadSize);
+            final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
 
             if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
             {
@@ -2769,8 +2768,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
-                    //TODO: remove this once we will support large messages
-                    maximumPacketSize = Math.min(maxConnectPacketSize, maximumPacketSize);
                     break;
                 case KIND_REQUEST_RESPONSE_INFORMATION:
                 case KIND_REQUEST_PROBLEM_INFORMATION:
@@ -3140,17 +3137,14 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (unreleasedPacketIds.contains(packetId))
             {
-                if (unreleasedPacketIds.contains(packetId))
+                switch (version)
                 {
-                    switch (version)
-                    {
-                    case 4:
-                        doEncodePubrecV4(traceId, authorization, packetId);
-                        break;
-                    case 5:
-                        doEncodePubrecV5(traceId, authorization, packetId);
-                        break;
-                    }
+                case 4:
+                    doEncodePubrecV4(traceId, authorization, packetId);
+                    break;
+                case 5:
+                    doEncodePubrecV5(traceId, authorization, packetId);
+                    break;
                 }
             }
 
@@ -3219,6 +3213,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             stream.doPublishData(traceId, authorization, reserved, packetId, payload, flags,
                                 offset, limit, dataEx);
+                            publishPayloadBytes -= length;
                         }
                     }
                     else
@@ -3231,10 +3226,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             stream.doPublishData(traceId, authorization, reserved, packetId, payload, flags,
                                 offset, limit, EMPTY_OCTETS);
+                            publishPayloadBytes -= length;
                         }
                     }
                 }
-                publishPayloadBytes -= length;
             }
         }
 
@@ -4202,7 +4197,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.sizeof());
                     limit += payload.sizeof();
                     doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
@@ -4432,12 +4427,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertyFW mqttProperty;
             if (reasonCode == SUCCESS)
             {
-                //TODO: remove this once we support large messages
-                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                    .maximumPacketSize(maximumPacketSize)
-                    .build();
-                propertiesSize = mqttProperty.limit();
-
                 if (connectSessionExpiry != sessionExpiry)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
@@ -4773,7 +4762,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
+                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
                 }
             }
             else
@@ -4790,7 +4779,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (!MqttState.initialClosed(state))
             {
-                doNetworkWindow(traceId, authorization, 0, budgetId, decodeSlotReserved, decodeMax);
+                doNetworkWindow(traceId, authorization, 0, budgetId, decodeSlotOffset, decodeMax);
             }
         }
 
@@ -5141,7 +5130,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
                     maximumQos = mqttSessionBeginEx.qosMax();
-                    maximumPacketSize = (int) mqttSessionBeginEx.packetSizeMax();
                 }
 
                 doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);

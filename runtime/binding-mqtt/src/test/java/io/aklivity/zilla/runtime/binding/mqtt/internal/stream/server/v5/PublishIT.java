@@ -374,17 +374,6 @@ public class PublishIT
     }
 
     @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${app}/publish.reject.packet.too.large/server"})
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/publish.unroutable/client",
@@ -439,6 +428,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.10k/client",
         "${app}/publish.10k/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldPublish10k() throws Exception
     {
         k3po.finish();

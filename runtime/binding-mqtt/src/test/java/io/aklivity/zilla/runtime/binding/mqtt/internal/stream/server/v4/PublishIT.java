@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -205,17 +204,6 @@ public class PublishIT
         "${net}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
     public void shouldPublishEmptyMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${app}/publish.reject.packet.too.large/server"})
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldRejectPacketTooLarge() throws Exception
     {
         k3po.finish();
     }
